@@ -109,3 +109,140 @@ pub(crate) fn spawn_cleanup_task() {
         }
     });
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{LookupResult, LoopCorrelator, TERMINAL_TTL};
+    use std::collections::BTreeSet;
+    use std::sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    };
+    use std::time::{Duration, Instant};
+    use uuid::Uuid;
+
+    fn ids(values: &[&str]) -> BTreeSet<String> {
+        values.iter().map(|value| (*value).to_string()).collect()
+    }
+
+    #[test]
+    fn concurrent_overlapping_loops_same_server_keep_distinct_tool_use_sets() {
+        let correlator = LoopCorrelator::default();
+        let first_request = Uuid::from_u128(0x11111111111111111111111111111111);
+        let second_request = Uuid::from_u128(0x22222222222222222222222222222222);
+
+        correlator.record(
+            "same-server".to_string(),
+            ids(&["tool-a", "tool-b"]),
+            first_request,
+            Arc::new(AtomicBool::new(false)),
+        );
+        correlator.record(
+            "same-server".to_string(),
+            ids(&["tool-c"]),
+            second_request,
+            Arc::new(AtomicBool::new(false)),
+        );
+
+        assert_eq!(
+            correlator.lookup("same-server", &ids(&["tool-b", "tool-a"])),
+            Some(LookupResult::Active(first_request))
+        );
+        assert_eq!(
+            correlator.lookup("same-server", &ids(&["tool-c"])),
+            Some(LookupResult::Active(second_request))
+        );
+    }
+
+    #[tokio::test]
+    async fn cleanup_pins_active_entries_and_keeps_recent_terminal_entries() {
+        let correlator = LoopCorrelator::default();
+        let request_id = Uuid::from_u128(0x33333333333333333333333333333333);
+        let status_handle = Arc::new(AtomicBool::new(false));
+        let key = ids(&["tool-active"]);
+        correlator.record(
+            "server".to_string(),
+            key.clone(),
+            request_id,
+            Arc::clone(&status_handle),
+        );
+
+        correlator.cleanup_expired().await;
+        correlator.cleanup_expired().await;
+
+        assert_eq!(
+            correlator.lookup("server", &key),
+            Some(LookupResult::Active(request_id))
+        );
+
+        status_handle.store(true, Ordering::SeqCst);
+        assert_eq!(
+            correlator.lookup("server", &key),
+            Some(LookupResult::Cancelled(request_id))
+        );
+        correlator.cleanup_expired().await;
+
+        assert_eq!(
+            correlator.lookup("server", &key),
+            Some(LookupResult::Cancelled(request_id))
+        );
+    }
+
+    #[tokio::test]
+    async fn cleanup_evicts_only_terminal_entries_older_than_ttl() {
+        let correlator = LoopCorrelator::default();
+        let request_id = Uuid::from_u128(0x44444444444444444444444444444444);
+        let key = ids(&["tool-old"]);
+        correlator.record(
+            "server".to_string(),
+            key.clone(),
+            request_id,
+            Arc::new(AtomicBool::new(true)),
+        );
+        assert_eq!(
+            correlator.lookup("server", &key),
+            Some(LookupResult::Cancelled(request_id))
+        );
+
+        {
+            let mut entries = correlator.entries.write().expect("test lock should open");
+            let entry = entries
+                .get_mut(&("server".to_string(), key.clone()))
+                .expect("recorded key should exist");
+            entry.terminal_at = Some(Instant::now() - TERMINAL_TTL - Duration::from_secs(1));
+        }
+
+        correlator.cleanup_expired().await;
+
+        assert_eq!(correlator.lookup("server", &key), None);
+    }
+
+    #[test]
+    fn unknown_tool_use_id_set_returns_none() {
+        let correlator = LoopCorrelator::default();
+
+        assert_eq!(correlator.lookup("server", &ids(&["never-recorded"])), None);
+    }
+
+    #[test]
+    fn cancelled_entry_is_distinct_from_unknown_entry() {
+        let correlator = LoopCorrelator::default();
+        let request_id = Uuid::from_u128(0x55555555555555555555555555555555);
+        let status_handle = Arc::new(AtomicBool::new(false));
+        let known_key = ids(&["known-tool"]);
+        correlator.record(
+            "server".to_string(),
+            known_key.clone(),
+            request_id,
+            Arc::clone(&status_handle),
+        );
+
+        status_handle.store(true, Ordering::SeqCst);
+
+        assert_eq!(
+            correlator.lookup("server", &known_key),
+            Some(LookupResult::Cancelled(request_id))
+        );
+        assert_eq!(correlator.lookup("server", &ids(&["other-tool"])), None);
+    }
+}

@@ -1,7 +1,9 @@
 use crate::mcp::sampling_session_registry::{
     SamplingDecisionRecord, SamplingDispatch, SamplingRegistryError, SamplingSessionRegistry,
-    SamplingSessionStatus, TokenUsage,
+    SamplingSessionStatus, TokenUsage, is_terminal_status,
 };
+use std::collections::HashMap;
+use std::sync::atomic::Ordering;
 use std::sync::{Arc, atomic::AtomicBool};
 use uuid::Uuid;
 
@@ -67,7 +69,7 @@ async fn test_update_acp_session_transitions_status() {
 
 #[tokio::test]
 async fn test_update_acp_session_is_referenced_from_dispatch_path() {
-    let source = include_str!("client_handler.rs");
+    let source = include_str!("sampling_client_flow.rs");
     assert!(source.contains(".update_acp_session(dispatch_id, acp_session_id)"));
     assert!(source.contains("session_id_rx.await"));
 
@@ -120,6 +122,111 @@ async fn record_usage_persists_token_counts() {
             output_tokens: 17,
         })
     );
+}
+
+#[tokio::test]
+async fn reset_tool_calls_zeroes_count_without_touching_turn_count() {
+    let registry = SamplingSessionRegistry::new();
+    let mut dispatch = dispatch_fixture("test-server");
+    dispatch.tool_call_count = 5;
+    dispatch.turn_count = 3;
+    let id = dispatch.sampling_request_id;
+    registry.insert(dispatch).await;
+
+    registry
+        .reset_tool_calls(id)
+        .await
+        .expect("known dispatch should reset tool calls");
+
+    let stored = registry
+        .get(id)
+        .await
+        .expect("dispatch should remain stored");
+    assert_eq!(stored.tool_call_count, 0);
+    assert_eq!(stored.turn_count, 3);
+}
+
+#[test]
+fn tool_loop_budget_for_returns_per_server_override_or_default() {
+    let registry = SamplingSessionRegistry::with_tool_loop_budgets(
+        10,
+        HashMap::from([("foo".to_string(), 25)]),
+    );
+
+    assert_eq!(registry.tool_loop_budget_for("foo"), 25);
+    assert_eq!(registry.tool_loop_budget_for("bar"), 10);
+}
+
+#[tokio::test]
+async fn budget_exceeded_status_is_non_terminal_until_cancelled() {
+    let registry = SamplingSessionRegistry::new();
+    let dispatch = dispatch_fixture("test-server");
+    let id = dispatch.sampling_request_id;
+    let status_handle = Arc::clone(&dispatch.status_handle);
+    registry.insert(dispatch).await;
+
+    registry
+        .update_status(
+            id,
+            SamplingSessionStatus::BudgetExceeded {
+                allowed_so_far: 10,
+                budget: 10,
+            },
+        )
+        .await
+        .expect("budget exceeded should be a resumable status");
+
+    assert!(!is_terminal_status(
+        &SamplingSessionStatus::BudgetExceeded {
+            allowed_so_far: 10,
+            budget: 10,
+        }
+    ));
+    assert!(!status_handle.load(Ordering::SeqCst));
+
+    registry
+        .update_status(id, SamplingSessionStatus::Cancelled)
+        .await
+        .expect("cancel should terminate the session");
+
+    assert!(is_terminal_status(&SamplingSessionStatus::Cancelled));
+    assert!(status_handle.load(Ordering::SeqCst));
+}
+
+#[tokio::test]
+async fn increment_tool_calls_accumulates_sequential_and_joined_increments() {
+    let registry = SamplingSessionRegistry::new();
+    let dispatch = dispatch_fixture("test-server");
+    let id = dispatch.sampling_request_id;
+    registry.insert(dispatch).await;
+
+    assert_eq!(
+        registry
+            .increment_tool_calls(id, 3)
+            .await
+            .expect("first increment should succeed"),
+        3
+    );
+    assert_eq!(
+        registry
+            .increment_tool_calls(id, 2)
+            .await
+            .expect("second increment should succeed"),
+        5
+    );
+
+    let (first, second) = tokio::join!(
+        registry.increment_tool_calls(id, 4),
+        registry.increment_tool_calls(id, 6),
+    );
+
+    first.expect("joined increment should succeed");
+    second.expect("joined increment should succeed");
+    let stored = registry
+        .get(id)
+        .await
+        .expect("dispatch should remain stored");
+    assert_eq!(stored.tool_call_count, 15);
 }
 
 fn dispatch_fixture(server_name: &str) -> SamplingDispatch {

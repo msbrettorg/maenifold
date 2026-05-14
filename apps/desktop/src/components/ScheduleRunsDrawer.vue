@@ -37,7 +37,7 @@ interface RawRun {
 interface ScheduleRunRow {
   id: string;
   timestamp: string;
-  outcome: 'success' | 'failed';
+  outcome: 'success' | 'failed' | 'cancelled' | 'running' | 'unknown';
   duration: string;
   stdout: string;
   stderr: string;
@@ -61,6 +61,7 @@ const loading = ref(false);
 const retryingRunId = ref('');
 const error = ref('');
 let unsubscribe: (() => void) | null = null;
+let generation = 0;
 
 const encodedScheduleId = computed(() => encodeURIComponent(props.scheduleId));
 const resourceUri = computed(() => `schedule://logs/${encodedScheduleId.value}`);
@@ -87,11 +88,20 @@ function normalizeRun(raw: RawRun, index: number): ScheduleRunRow {
   const content = raw.content ?? '';
   const status = raw.status?.toLowerCase();
   const failed = status === 'failed' || status === 'timeout' || /exit code|timed out|error/i.test(content);
+  const outcome: ScheduleRunRow['outcome'] = failed
+    ? 'failed'
+    : status === 'success'
+      ? 'success'
+      : status === 'cancelled'
+        ? 'cancelled'
+        : status === 'in-progress' || status === 'running'
+          ? 'running'
+          : 'unknown';
   const seconds = raw.duration_seconds ?? raw.durationSeconds;
   return {
     id: raw.fileName ?? `${raw.timestamp ?? 'run'}-${index}`,
     timestamp: raw.timestamp ?? timestampFromFileName(raw.fileName),
-    outcome: failed ? 'failed' : 'success',
+    outcome,
     duration: typeof seconds === 'number' ? `${seconds}s` : '—',
     stdout: raw.stdout ?? content,
     stderr: raw.stderr ?? raw.error ?? '',
@@ -116,10 +126,13 @@ async function loadRuns(): Promise<void> {
 async function resubscribe(): Promise<void> {
   unsubscribe?.();
   unsubscribe = null;
+  const myGen = ++generation;
+  const capturedUri = resourceUri.value;
   if (!props.open || !props.scheduleId) return;
   await loadRuns();
+  if (myGen !== generation || !props.open || resourceUri.value !== capturedUri) return;
   try {
-    unsubscribe = await resources.subscribeResource(resourceUri.value, () => {
+    unsubscribe = await resources.subscribeResource(capturedUri, () => {
       void loadRuns();
     });
   } catch {
@@ -128,6 +141,7 @@ async function resubscribe(): Promise<void> {
 }
 
 async function retryRun(run: ScheduleRunRow): Promise<void> {
+  if (retryingRunId.value) return;
   retryingRunId.value = run.id;
   error.value = '';
   try {
@@ -146,6 +160,7 @@ watch(() => [props.open, props.scheduleId], () => {
 }, { immediate: true });
 
 onBeforeUnmount(() => {
+  generation += 1;
   unsubscribe?.();
 });
 </script>
@@ -186,12 +201,18 @@ onBeforeUnmount(() => {
               <TableRow class="cursor-pointer" @click="expandedRunId = expandedRunId === run.id ? '' : run.id">
                 <TableCell>{{ formatTimestamp(run.timestamp) }}</TableCell>
                 <TableCell>
-                  <Badge :variant="run.outcome === 'failed' ? 'destructive' : 'default'">{{ run.outcome }}</Badge>
+                  <Badge
+                    :variant="run.outcome === 'failed' ? 'destructive' : run.outcome === 'unknown' ? 'outline' : run.outcome === 'success' ? 'default' : 'secondary'"
+                    :class="run.outcome === 'running' ? 'animate-pulse' : ''"
+                  >
+                    {{ run.outcome }}
+                  </Badge>
                 </TableCell>
                 <TableCell>{{ run.duration }}</TableCell>
                 <TableCell class="text-right">
+                  <!-- Retry only failed/unknown; cancelled is intentional and running is active. -->
                   <Button
-                    v-if="run.outcome === 'failed'"
+                    v-if="run.outcome === 'failed' || run.outcome === 'unknown'"
                     type="button"
                     variant="outline"
                     size="sm"

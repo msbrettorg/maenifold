@@ -133,7 +133,12 @@ export function useSchedulesSettings() {
       if (!configStore.loading && agentNames.value.length === 0) await configStore.loadConfig();
       await ensureConnected();
       jobs.value = normalizeJobs(await callTool('Schedule', { action: 'list' }));
-      schedulesStore.setInstallStatuses(await callTool('Schedule', { action: 'verify_installed' }));
+      try {
+        schedulesStore.setInstallStatuses(await callTool('Schedule', { action: 'verify_installed' }));
+      } catch (probeError) {
+        console.error('Schedule verify_installed probe failed', probeError);
+        schedulesStore.setInstallStatuses([]);
+      }
       schedulesStore.setPauseState(await callTool('Schedule', { action: 'pause_status' }));
       ensureDialogAgent();
     } catch (loadError) {

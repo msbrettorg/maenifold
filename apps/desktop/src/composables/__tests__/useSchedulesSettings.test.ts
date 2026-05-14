@@ -74,6 +74,52 @@ describe('useSchedulesSettings pause-all actions', () => {
     });
   });
 
+  it('loadSchedules surfaces list errors but tolerates verify_installed failures', async () => {
+    const jobs = [{
+      id: 'daily',
+      description: 'daily',
+      schedule: '0 9 * * *',
+      schedule_human: 'every day at 9am',
+      agent: 'swe',
+      prompt: 'Run scheduled maintenance',
+      enabled: true,
+      auto_grant_permissions: false,
+      allowed_tools: [],
+    }];
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    callTool.mockImplementation((_tool: string, payload: { action: string }) => {
+      if (payload.action === 'list') return Promise.resolve(jobs);
+      if (payload.action === 'verify_installed') return Promise.reject(new Error('launchctl denied'));
+      if (payload.action === 'pause_status') return Promise.resolve({ paused: false });
+      return Promise.resolve({});
+    });
+    const settings = useSchedulesSettings();
+    const store = useSchedulesStore();
+    store.setInstallStatuses([{ id: 'daily', installed: true, enabledInConfig: true, discrepancy: false }]);
+
+    try {
+      await settings.loadSchedules();
+
+      expect(settings.jobs.value).toEqual(jobs);
+      expect(settings.error.value).toBe('');
+      expect(store.installStatuses).toEqual({});
+      expect(consoleError).toHaveBeenCalledWith(
+        'Schedule verify_installed probe failed',
+        expect.any(Error),
+      );
+
+      callTool.mockImplementation((_tool: string, payload: { action: string }) => {
+        if (payload.action === 'list') return Promise.reject(new Error('list unavailable'));
+        return Promise.resolve({});
+      });
+      await settings.loadSchedules();
+
+      expect(settings.error.value).toBe('list unavailable');
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
   it('setPauseAll(true) routes to pauseAll, setPauseAll(false) routes to resumeAll', async () => {
     const settings = useSchedulesSettings();
 

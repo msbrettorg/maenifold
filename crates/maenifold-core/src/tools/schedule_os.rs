@@ -122,6 +122,7 @@ pub(crate) fn verify_installed(task: &ScheduledTask, bin: &Path) -> Result<Verif
 
 #[cfg(target_os = "macos")]
 fn verify_os_installed(task: &ScheduledTask, bin: &Path) -> Result<bool> {
+    // Side-effect: validates bin path; manager is otherwise unused.
     LaunchdManager::new(bin.to_path_buf())
         .map_err(|error| MaenifoldError::Message(error.to_string()))?;
     let label = format!("com.maenifold.schedule.{}", task.id);
@@ -138,6 +139,7 @@ fn verify_os_installed(task: &ScheduledTask, bin: &Path) -> Result<bool> {
 
 #[cfg(target_os = "linux")]
 fn verify_os_installed(task: &ScheduledTask, bin: &Path) -> Result<bool> {
+    // Side-effect: validates bin path; manager is otherwise unused.
     SystemdManager::new(bin.to_path_buf())
         .map_err(|error| MaenifoldError::Message(error.to_string()))?;
     let unit = format!("maenifold-schedule-{}.timer", task.id);

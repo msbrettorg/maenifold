@@ -169,6 +169,24 @@ fn verify_installed_unknown_schedule_id_is_invalid_argument() {
     ));
 }
 
+#[test]
+fn verify_installed_with_known_schedule_id_returns_array_of_one() {
+    let temp = TempDir::new().expect("temp dir");
+    let context = test_context(&temp);
+    create_direct(&context, "known-schedule", false);
+
+    let rendered = schedule(
+        &context,
+        &json!({"action": "verify_installed", "scheduleId": "known-schedule"}),
+    )
+    .expect("known schedule verify should succeed");
+    let payload: Value = serde_json::from_str(&rendered).expect("verify result should be json");
+    let statuses = payload.as_array().expect("single verify should return array");
+
+    assert_eq!(statuses.len(), 1);
+    assert_eq!(statuses[0]["id"], "known-schedule");
+}
+
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 #[test]
 fn create_enabled_os_install_failure_leaves_no_persisted_schedule() {

@@ -31,13 +31,21 @@ export interface ScheduleInstallStatus {
   };
 }
 
+export interface PauseStateView {
+  paused: boolean;
+  pausedAt?: string;
+  schedulesPaused?: number;
+}
+
 type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline';
 
 export const useSchedulesStore = defineStore('schedules', {
   state: () => ({
     installStatuses: {} as Record<string, ScheduleInstallStatus>,
+    pauseState: { paused: false } as PauseStateView,
   }),
   getters: {
+    isPausedAll: (state): boolean => state.pauseState.paused,
     installStatusFor: (state) => (job: ScheduleJob): ScheduleInstallStatus | undefined =>
       state.installStatuses[job.id],
     installBadgeFor: (state) => (job: ScheduleJob): { label: string; variant: BadgeVariant; class?: string } => {
@@ -60,6 +68,13 @@ export const useSchedulesStore = defineStore('schedules', {
     setInstallStatuses(payload: unknown): void {
       const statuses = Array.isArray(payload) ? payload as ScheduleInstallStatus[] : [];
       this.installStatuses = Object.fromEntries(statuses.map((status) => [status.id, status]));
+    },
+    setPauseState(payload: unknown): void {
+      const value = typeof payload === 'object' && payload !== null ? payload as Record<string, unknown> : {};
+      const next: PauseStateView = { paused: value.paused === true };
+      if (typeof value.pausedAt === 'string') next.pausedAt = value.pausedAt;
+      if (typeof value.schedulesPaused === 'number') next.schedulesPaused = value.schedulesPaused;
+      this.pauseState = next;
     },
   },
 });

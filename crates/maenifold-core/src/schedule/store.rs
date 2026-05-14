@@ -160,7 +160,7 @@ impl ScheduleStore {
     }
 }
 
-fn write_atomically(path: &Path, content: &[u8]) -> Result<()> {
+pub(crate) fn write_atomically(path: &Path, content: &[u8]) -> Result<()> {
     let parent = path
         .parent()
         .ok_or_else(|| anyhow!("scheduled task path has no parent: {}", path.display()))?;

@@ -30,6 +30,7 @@ export function useSchedulesSettings() {
   const confirmDialogStore = useConfirmDialogStore();
   const schedulesStore = useSchedulesStore();
   const { agentNames } = storeToRefs(configStore);
+  const { pauseState, isPausedAll } = storeToRefs(schedulesStore);
   const { callTool, connect, connected } = useMcpClient();
   const jobs = ref<ScheduleJob[]>([]);
   const isLoading = ref(true);
@@ -105,6 +106,12 @@ export function useSchedulesSettings() {
     return Number.isNaN(parsed.getTime()) ? timestamp : timestampFormatter.format(parsed);
   }
 
+  function formatPausedAt(timestamp?: string): string {
+    if (!timestamp) return 'an unknown time';
+    const parsed = new Date(timestamp);
+    return Number.isNaN(parsed.getTime()) ? timestamp : timestampFormatter.format(parsed);
+  }
+
   async function ensureConnected(): Promise<void> {
     if (!connected.value) await connect();
   }
@@ -117,6 +124,7 @@ export function useSchedulesSettings() {
       await ensureConnected();
       jobs.value = normalizeJobs(await callTool('Schedule', { action: 'list' }));
       schedulesStore.setInstallStatuses(await callTool('Schedule', { action: 'verify_installed' }));
+      schedulesStore.setPauseState(await callTool('Schedule', { action: 'pause_status' }));
       ensureDialogAgent();
     } catch (loadError) {
       error.value = loadError instanceof Error ? loadError.message : String(loadError);
@@ -180,6 +188,43 @@ export function useSchedulesSettings() {
     } finally {
       isSubmitting.value = false;
     }
+  }
+
+  async function pauseAll(): Promise<void> {
+    isSubmitting.value = true;
+    error.value = '';
+    statusMessage.value = '';
+    try {
+      await ensureConnected();
+      const result = await callTool<{ message?: string }>('Schedule', { action: 'pause_all' });
+      statusMessage.value = result?.message ?? 'Schedules paused.';
+      await loadSchedules();
+    } catch (pauseError) {
+      error.value = pauseError instanceof Error ? pauseError.message : String(pauseError);
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
+
+  async function resumeAll(): Promise<void> {
+    isSubmitting.value = true;
+    error.value = '';
+    statusMessage.value = '';
+    try {
+      await ensureConnected();
+      const result = await callTool<{ message?: string }>('Schedule', { action: 'resume_all' });
+      statusMessage.value = result?.message ?? 'Schedules resumed.';
+      await loadSchedules();
+    } catch (resumeError) {
+      error.value = resumeError instanceof Error ? resumeError.message : String(resumeError);
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
+
+  async function setPauseAll(value: boolean): Promise<void> {
+    if (value) await pauseAll();
+    else await resumeAll();
   }
 
   async function runSchedule(job: ScheduleJob): Promise<void> {
@@ -268,6 +313,8 @@ export function useSchedulesSettings() {
     previewIsValid,
     form,
     schedulePlatform,
+    pauseState,
+    isPausedAll,
     scheduleLabel,
     statusFor,
     installBadgeFor: schedulesStore.installBadgeFor,
@@ -275,10 +322,14 @@ export function useSchedulesSettings() {
     permissionVariant,
     allowedToolsLabel,
     formatLastRun,
+    formatPausedAt,
     loadSchedules,
     openCreateDialog,
     openEditDialog,
     saveSchedule,
+    pauseAll,
+    resumeAll,
+    setPauseAll,
     runSchedule,
     repairSchedule,
     deleteSchedule,

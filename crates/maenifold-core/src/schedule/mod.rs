@@ -2,6 +2,10 @@ mod config;
 mod cron;
 mod launchd;
 mod lock;
+pub mod pause_state;
+#[cfg(test)]
+#[path = "pause_state_tests.rs"]
+mod pause_state_tests;
 mod store;
 mod supervisor;
 mod systemd;

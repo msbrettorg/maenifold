@@ -24,3 +24,35 @@
 - **NEW (iter-N+1):** PM read-back of SWE diff BEFORE commit catches obvious spec omissions earlier than red-team. Don't replace red-team but use this as a coarse first-pass.
 - **NEW (iter-N+1):** Same-SWE remediation via `write_agent` is preferred over fresh SWE dispatch for narrow remediation cycles. The agent's full codebase context is preserved.
 - **Always check the iter-15 RCA at the bottom of learnings.md** for ralph.sh `perform_rollback` lesson — committed iter work can be silently wiped if SIGTERM lands during cleanup.
+
+## Iter 2026-05-13 (T-303.4.27 + .28 + .29 shipped, T-303.18.3 deferred again)
+
+- **Sprint 303 status:** 3 tasks shipped this iter (T-303.4.27 + T-303.4.28 + T-303.4.29 — all worktree-create.sh hardening). Three-iter dogfooding loop closed: each subsequent task's worktree picked up the previous fix. Remaining open in sprint 303 (excluding UAT):
+  - **T-303.0** (umbrella) — blocked on T-303.18.3.
+  - **T-303.18.3** (P3, slc) — discovery state. Amendment 2 reviewed; opus-4.6 PASS-WITH-NOTES, gpt-5.5 FAIL with 5 blocking issues. Spec needs Amendment 3.
+- **T-303.18.3 next-iter playbook (CRITICAL):** Per gpt-5.5 wave-boundary review (recorded in gate history), Amendment 2 has 5 blocking issues:
+  1. **Approach C breaks overlapping-name disambiguation** — original AC#5 explicitly tests this. Need a fresh design (opaque prompt-ID per (server, prompt_name) OR sidecar `GetMcpPrompt {server, name, arguments}` META-tool — explicit server param).
+  2. Frontend integration target wrong (real owner is `useMcpPromptCommands.refresh()`, not the caller).
+  3. `DiscoverMcpPrompts` registration incomplete — also need `registry_gateway.rs`, `mcp/schema/discovery_tools.rs`, `gateway_cli.rs`, `mcpClientOps.ts:57-59`, `mcpGatewayRouting.ts:8-17`.
+  4. Spec self-contradicts on `prompts/list_changed` (lines 298-303 vs 360-375). Remove the `enable` line.
+  5. CDP UAT acceptance still uncovered. Either include in-task fixture or escalate scope.
+- **Recommended approach for next iter:** read the actual code (the 5 surface files in finding #3) BEFORE writing Amendment 3. The opus-4.6 NOTE 1-6 from prior iter still apply (LOC budgets, Option<JsonObject>, peer.list_all_prompts, GatewayState::new constructor, DISCOVERY_TOOLS const, raw not-prefixed names).
+- **Three new pre-flight items added to learnings.md (14, 15, 16):**
+  - 14: Re-run path/git-related tests from BOTH worker worktree AND main repo cwd post-merge.
+  - 15: gate_Status check before each gate_Pass to confirm the actual current state (not the intended state).
+  - 16: Skip formal confession when WorkResult is fully artifactable.
+
+### Standing directives reaffirmed
+- Lowest-numbered first remains absolute (T-303.4.27 → .28 → .29 done in order; T-303.18.3 remains open as next non-UAT).
+- UAT items stay out of RALPH scope.
+- SLC pipeline spec stage deliverable lives in the task .md file.
+- Use inner-loop + gpt-5.5 for cross-stack SWE; rubber-duck/code-review for review stages.
+- Always include MAIN REPO absolute spec path in dispatch prompts.
+- Same-SWE remediation via write_agent for narrow remediation cycles.
+
+### Iter-close health
+- All commits in dev branch; no orphan worker branches.
+- 3 worktrees created + cleaned this iter (T-303.4.27, .28, .29).
+- Memory notes filed for each closed task in mae-auto/iterations/.
+- Lessons 51-64 + pre-flight 14-16 appended to learnings.md.
+- Filed P3 follow-ups: T-303.4.28, T-303.4.29 (both done this iter — quick triple-iter shipping).

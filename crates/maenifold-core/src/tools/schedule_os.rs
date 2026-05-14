@@ -4,7 +4,32 @@ use crate::schedule::LaunchdManager;
 use crate::schedule::ScheduledTask;
 #[cfg(target_os = "linux")]
 use crate::schedule::SystemdManager;
+use serde::Serialize;
 use std::path::Path;
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+use std::process::Command;
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct VerifyInstalledStatus {
+    pub id: String,
+    pub installed: bool,
+    pub enabled_in_config: bool,
+    pub discrepancy: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_fire_time: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_fire_result: Option<LastFireResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct LastFireResult {
+    pub exit_code: i32,
+    pub finished_at: String,
+}
 
 #[cfg(target_os = "macos")]
 pub(super) fn sync_os_scheduler(task: &ScheduledTask, bin: &Path) -> Result<()> {
@@ -81,3 +106,63 @@ pub(super) fn is_not_installed_scheduler_error(error: &MaenifoldError) -> bool {
     .iter()
     .any(|needle| message.contains(needle))
 }
+
+pub(crate) fn verify_installed(task: &ScheduledTask, bin: &Path) -> Result<VerifyInstalledStatus> {
+    let installed = verify_os_installed(task, bin)?;
+    Ok(VerifyInstalledStatus {
+        id: task.id.clone(),
+        installed,
+        enabled_in_config: task.enabled,
+        discrepancy: installed != task.enabled,
+        next_fire_time: None,
+        last_fire_result: None,
+        note: unsupported_note(),
+    })
+}
+
+#[cfg(target_os = "macos")]
+fn verify_os_installed(task: &ScheduledTask, bin: &Path) -> Result<bool> {
+    LaunchdManager::new(bin.to_path_buf())
+        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+    let label = format!("com.maenifold.schedule.{}", task.id);
+    let target = format!("user/{}/{}", unsafe { libc::getuid() }, label);
+    let output = Command::new("launchctl")
+        .arg("print")
+        .arg(target)
+        .output()
+        .map_err(|error| {
+            MaenifoldError::Message(format!("failed to run launchctl print: {error}"))
+        })?;
+    Ok(output.status.success())
+}
+
+#[cfg(target_os = "linux")]
+fn verify_os_installed(task: &ScheduledTask, bin: &Path) -> Result<bool> {
+    SystemdManager::new(bin.to_path_buf())
+        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+    let unit = format!("maenifold-schedule-{}.timer", task.id);
+    let output = Command::new("systemctl")
+        .args(["--user", "is-enabled", &unit])
+        .output()
+        .map_err(|error| {
+            MaenifoldError::Message(format!("failed to run systemctl is-enabled: {error}"))
+        })?;
+    Ok(output.status.success())
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+fn verify_os_installed(_task: &ScheduledTask, _bin: &Path) -> Result<bool> {
+    Ok(false)
+}
+
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+fn unsupported_note() -> Option<String> {
+    None
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+fn unsupported_note() -> Option<String> {
+    Some("platform not supported".to_string())
+}
+
+// OS integration verified by manual UAT, see done/T-243.108.md history.

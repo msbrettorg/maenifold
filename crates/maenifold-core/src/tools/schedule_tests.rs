@@ -45,11 +45,9 @@ fn preview_returns_validated_cron_next_fires_and_timezone() {
 
     assert_eq!(payload["action"], "preview");
     assert_eq!(payload["cron"], "0 9 * * 1-5");
-    assert!(
-        payload["description"]
-            .as_str()
-            .is_some_and(|value| !value.is_empty())
-    );
+    assert!(payload["description"]
+        .as_str()
+        .is_some_and(|value| !value.is_empty()));
     assert_eq!(
         payload["nextFires"]
             .as_array()
@@ -57,11 +55,9 @@ fn preview_returns_validated_cron_next_fires_and_timezone() {
             .len(),
         5
     );
-    assert!(
-        payload["timezone"]
-            .as_str()
-            .is_some_and(|value| !value.is_empty())
-    );
+    assert!(payload["timezone"]
+        .as_str()
+        .is_some_and(|value| !value.is_empty()));
 }
 
 #[test]
@@ -84,6 +80,35 @@ fn preview_rejects_impossible_cron_with_no_upcoming_fire_times() {
         preview_schedule(&context, &json!({"action": "preview", "schedule": "0 0 30 2 *"})),
         Err(MaenifoldError::InvalidArgument(message))
             if message.contains("no upcoming fire times")
+    ));
+}
+
+#[test]
+fn verify_installed_empty_store_returns_empty_status_array() {
+    let temp = TempDir::new().expect("temp dir");
+    let context = test_context(&temp);
+
+    let rendered = schedule(&context, &json!({"action": "verify_installed"}))
+        .expect("empty store verify should succeed");
+    let payload: Value = serde_json::from_str(&rendered).expect("verify result should be json");
+
+    assert_eq!(payload, json!([]));
+}
+
+#[test]
+fn verify_installed_unknown_schedule_id_is_invalid_argument() {
+    let temp = TempDir::new().expect("temp dir");
+    let context = test_context(&temp);
+
+    let result = schedule(
+        &context,
+        &json!({"action": "verify_installed", "scheduleId": "missing-schedule"}),
+    );
+
+    assert!(matches!(
+        result,
+        Err(MaenifoldError::InvalidArgument(message))
+            if message.contains("unknown scheduleId 'missing-schedule'")
     ));
 }
 

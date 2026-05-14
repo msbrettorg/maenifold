@@ -205,3 +205,5 @@ mod resources_tests_invocation;
 mod resources_tests_list;
 #[cfg(test)]
 mod resources_tests_read;
+#[cfg(test)]
+mod resources_workflow_tests;

@@ -1,4 +1,4 @@
-use super::super::start_workflow_session;
+use super::start_workflow_session;
 use crate::{
     config::Config,
     markdown::read_markdown,

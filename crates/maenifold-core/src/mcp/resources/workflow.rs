@@ -3,7 +3,9 @@ use crate::error::{MaenifoldError, Result};
 use crate::markdown::{
     extract_h2_sections, file_exists, get_memory_files, read_markdown, uri_to_path,
 };
-use crate::workflow::{frontmatter_usize, read_workflow_queue};
+use crate::workflow::{
+    WorkflowStepTimings, frontmatter_usize, read_step_timings, read_workflow_queue,
+};
 use rmcp::model::{
     AnnotateAble, RawResource, ReadResourceResult, Resource, ResourceContents, ResourceTemplate,
 };
@@ -41,6 +43,7 @@ struct WorkflowSessionSummary {
     total_steps: usize,
     started_at: Option<String>,
     updated_at: String,
+    step_timings: WorkflowStepTimings,
 }
 
 #[derive(Debug, Serialize)]
@@ -176,6 +179,7 @@ fn read_session_summary(config: &Config, uri: &str) -> Result<WorkflowSessionSum
         .and_then(|path| std::fs::metadata(path).ok())
         .and_then(|meta| modified_timestamp(meta.modified().ok()?))
         .unwrap_or_else(current_iso_timestamp);
+    let step_timings = read_step_timings(&frontmatter);
 
     Ok(WorkflowSessionSummary {
         id,
@@ -188,6 +192,7 @@ fn read_session_summary(config: &Config, uri: &str) -> Result<WorkflowSessionSum
         total_steps,
         started_at,
         updated_at,
+        step_timings,
     })
 }
 

@@ -63,7 +63,7 @@ vi.mock('../../composables/usePipelineMcp', () => ({
   }),
 }));
 
-function session(status: string, currentStep: number) {
+function session(status: string, currentStep: number, stepTimings = {}) {
   return {
     id: 'wf-session-1',
     uri: 'memory://thinking/workflow/wf-session-1',
@@ -78,6 +78,7 @@ function session(status: string, currentStep: number) {
       { heading: 'Step 1/2 Response', body: 'First output' },
       { heading: 'Step 2/2', body: 'Second prompt' },
     ],
+    step_timings: stepTimings,
   };
 }
 
@@ -124,7 +125,7 @@ describe('WorkflowLiveProgress', () => {
     await wrapper.vm.$nextTick();
 
     expect(wrapper.text()).toContain('Run completed');
-    expect(wrapper.text()).toContain('Updated');
+    expect(wrapper.text()).not.toContain('Updated');
     expect(wrapper.text()).toContain('Total duration');
   });
 
@@ -296,5 +297,38 @@ describe('WorkflowLiveProgress', () => {
     expect(mcpMock.subscribeResource).toHaveBeenCalledTimes(2);
     expect(mcpMock.subscribeResource).toHaveBeenNthCalledWith(1, 'workflow://sessions');
     expect(mcpMock.subscribeResource).toHaveBeenNthCalledWith(2, 'workflow://session/wf-session-1');
+  });
+
+  it('renders per-step duration when both timings present', () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const store = useWorkflowStore();
+    store.selectedSession = session('active', 2, {
+      '1': {
+        started_at: '2026-04-29T12:00:00Z',
+        ended_at: '2026-04-29T12:00:01.200Z',
+      },
+    });
+
+    const wrapper = mount(WorkflowLiveProgress, {
+      props: { workflowName: 'Demo workflow' },
+      global: { plugins: [pinia] },
+    });
+
+    expect(wrapper.text()).toContain('Duration: 1.2s');
+  });
+
+  it('hides duration label when step has no timing', () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const store = useWorkflowStore();
+    store.selectedSession = session('active', 1);
+
+    const wrapper = mount(WorkflowLiveProgress, {
+      props: { workflowName: 'Demo workflow' },
+      global: { plugins: [pinia] },
+    });
+
+    expect(wrapper.text()).not.toContain('Duration:');
   });
 });

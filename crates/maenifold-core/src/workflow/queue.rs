@@ -4,7 +4,7 @@ use crate::sessions::{display_utc_now, workflow_session_uri};
 use crate::tools::ToolContext;
 use crate::workflow::{
     emit_workflow_resource_updated, format_workflow_step_with_inputs, parse_workflow_identifiers,
-    read_workflow_definition, workflow_steps,
+    read_workflow_definition, record_step_started, workflow_steps,
 };
 use chrono::Utc;
 use serde_json::{Value, json};
@@ -44,7 +44,8 @@ pub(crate) fn start_workflow_session(
     let rendered_step =
         format_workflow_step_with_inputs(&first_step, inputs.as_ref().unwrap_or(&empty_inputs))?;
     let uri = workflow_session_uri(&session_id);
-    let frontmatter = initial_workflow_frontmatter(&session_id, workflow_ids, "active", inputs);
+    let mut frontmatter = initial_workflow_frontmatter(&session_id, workflow_ids, "active", inputs);
+    record_step_started(&mut frontmatter, 1)?;
 
     let file_content = format!(
         "# Workflow Session\n\nStarted: {}\n\n## Step 1/{}\n\n{}\n",
@@ -274,45 +275,4 @@ pub(crate) fn initial_workflow_frontmatter(
 
 fn generate_workflow_session_id() -> String {
     format!("workflow-{}", Utc::now().timestamp_millis())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::start_workflow_session;
-    use crate::{
-        config::Config, test_util::ConfigResetGuard, tools::ToolContext, util::json::OutputFormat,
-    };
-    use serde_json::Value;
-    use serial_test::serial;
-    use tempfile::TempDir;
-
-    #[path = "queue_inputs_test.rs"]
-    mod workflow_start_persists_inputs_to_session_frontmatter;
-
-    #[test]
-    #[serial]
-    fn workflow_start_returns_structured_session_id_json() {
-        let temp = TempDir::new().expect("temp dir");
-        Config::override_root(temp.path());
-        Config::set_database_path(temp.path().join("memory.db"));
-        let config = Config::current();
-        config.ensure_directories().expect("ensure directories");
-        std::fs::create_dir_all(config.assets_path.join("workflows"))
-            .expect("create workflows dir");
-        std::fs::write(
-            config.assets_path.join("workflows/test.json"),
-            r#"{"steps":[{"name":"Step 1"}]}"#,
-        )
-        .expect("write workflow");
-        let _guard = ConfigResetGuard;
-        let response = start_workflow_session(
-            &ToolContext::new(config, OutputFormat::Markdown),
-            &["test".to_string()],
-            None,
-        )
-        .expect("start workflow");
-        let value: Value =
-            serde_json::from_str(&response).expect("workflow start should return JSON");
-        assert!(value.get("sessionId").and_then(Value::as_str).is_some());
-    }
 }

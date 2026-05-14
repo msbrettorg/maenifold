@@ -13,7 +13,10 @@ interface WorkflowSessionSummary {
   total_steps?: number;
   started_at?: string | null;
   updated_at?: string | null;
+  step_timings?: WorkflowStepTimings;
 }
+
+export type WorkflowStepTimings = Record<string, { started_at?: string; ended_at?: string }>;
 
 interface WorkflowSessionsResponse {
   sessions: WorkflowSessionSummary[];
@@ -30,6 +33,7 @@ interface WorkflowSessionDetail {
   total_steps?: number;
   started_at?: string | null;
   updated_at?: string | null;
+  step_timings?: WorkflowStepTimings;
   history?: Array<{ heading: string; body: string }>;
 }
 

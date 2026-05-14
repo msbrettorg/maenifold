@@ -3550,3 +3550,71 @@ In every case, the SWE confessed honestly to the specific concern. This caught t
 - Active SWE-lane peak: 6 simultaneous (well within Lesson 102's cap of 4 considering 4 backend builders + 2 frontend = mixed I/O profile).
 - Zero broken commits to dev. Zero rollbacks. All merges + verifications green.
 
+
+
+
+## 2026-05-14 — Iter-3 (Sprint 306 close + follow-up wave) — observed
+
+### Lesson 77: Architect duo (gpt-5.5 + claude-opus-4.7) catches the SAME class of bug
+
+Iter-3 dispatched both reviewers on T-306.11 spec INDEPENDENTLY (same prompt, no cross-pollination). Both surfaced the SAME critical hole: `is_active_pipeline_status` only treats `running + held lease` as a blocking reference, but `create_pipeline` writes new sessions as `status: "active"` with no lease. So the proposed lock alone was COSMETIC for the most common case. Both also enumerated the same 5 production reference-write sites. **Pattern: when 2 independent reviewers converge on the same finding, that's a strong validation signal.** When they diverge, BOTH findings are usually worth incorporating. When only one finds something, evaluate skeptically.
+
+### Lesson 78: PM SHOULD run unfiltered cargo test at iter close — pre-existing flakes hide otherwise
+
+Iter-2 + iter-3 SWEs ran filtered cargo test (`workflow::asset`, `workflow::pipeline`) per spec, which passed cleanly. Iter-3 PM ran unfiltered `cargo test --release -p maenifold-core --lib --no-fail-fast` and discovered 2 PRE-EXISTING failures in `mcp::gateway_catalog_domain_tests` and `mcp::sampling_dispatch_tests` that no SWE/iter would have caught. Filed as T-323.1, T-323.2.
+
+**Pattern: filtered test runs are fast for SWE feedback, but the PM MUST close every iter with at least one unfiltered crate run to surface latent failures.** Lesson 102 (cap on agent fan-out) plus this gives a sane test-discipline rhythm: SWE filtered → PM unfiltered at close.
+
+### Lesson 79: TDD ordering proof requires the test ACTUALLY FAILING on baseline, not just baseline-tolerant test
+
+T-306.11 SWE wrote 4 tests, 2 of which "passed initially" (i.e., the baseline code already satisfied the assertion). The honest confession surfaced this — those 2 tests are smoke checks, not regression tests for the new behavior. The other 2 DID fail initially, proving the widening + lock work is real.
+
+**Pattern: when reviewing a SWE's TDD evidence, verify EACH new test actually fails on baseline. A "tests added, all pass" report is suspicious — at least one should have failed initially. If none failed, the SWE wrote post-hoc validation tests, not regression tests.**
+
+### Lesson 80: Honest confession unlocks accurate triage — bias confessors toward failure modes
+
+The T-306.11 SWE confession self-flagged "Requires rework" and identified all 4 of the issues red-team independently corroborated (weak tests, dead-code workaround, no full-crate test). PM treated the confession as evidence of HONESTY and used it to file a follow-up + dispatch red-team without rework round. Net: smaller wall-clock to ship + better follow-up triage.
+
+**Pattern: confession prompts that explicitly invite "tell us what's weak about this" yield more useful disclosure than generic "describe what you did" prompts. The specifically-asked questions section (T-306.13/14/15 confession prompts) is high-leverage — point at the SWE's specific concerns.**
+
+### Lesson 81: Iter-3 wall-clock for 3 + 3 = 6 sprint 306 follow-ups
+
+Wave-1 (T-306.11/.12/.13): dispatched in parallel, ~30 min wall (longest: T-306.12 SWE ~13 min, T-306.11 was ~14 min including duo amend round).
+Wave-2 (T-306.14/.15/.16): dispatched in parallel after wave-1 close, expected ~10-15 min wall.
+
+**Architect duo runs ~3-5 min in parallel — never serial.** Worth the 3-5 min to amend specs upfront vs eat 30+ min rework cycle later.
+
+### Lesson 82: Pipeline reference write enumeration matters for lock-coordination tasks
+
+T-306.11 spec originally said "likely callers in workflow/pipeline/handler_*.rs". Architect duo enumerated the actual 5 sites (delete + create + graft + join + fork; rewind does NOT add new refs). Without enumeration, SWE would likely have implemented just create + delete and missed graft/join/fork.
+
+**Pattern: for cross-cutting concerns (locks, caches, notifications), the spec must ENUMERATE every site by file:line, not gesture at "likely callers". Architect-duo is the cheapest way to get this enumeration right.**
+
+
+## 2026-05-14 — Iter-3 close — RALPH-converged sprint 306 (6 child tasks)
+
+### Lesson 83: File-it-and-ship-same-iter cycle ≈ 50 min for 6 children
+
+Iter-3 wave pattern:
+- Wave-1 dispatch (3 SWEs in parallel) — ~30 min wall.
+- File 3 follow-ups DURING wave-1 cleanup (not at iter close) — ~5 min PM authoring.
+- Wave-2 dispatch (3 SWEs in parallel) — ~12 min wall.
+- Net total: 50 min for 6 children + 6 red-teams + 6 merges.
+
+**Pattern: when you discover a follow-up DURING SWE work, file it immediately AND dispatch as wave-2. Don't wait for iter-close.** The cycle is only viable if wave-1 + wave-2 specs are independent (different file scope) AND wave-2 inherits wave-1's merges (rebase OR merge after wave-1 closes). Iter-3 used the latter: wave-2 worktrees were created AFTER wave-1 merged.
+
+### Lesson 84: Pre-existing test failures should be flagged in dedicated sprint, not co-located
+
+Iter-3 discovered 2 pre-existing MCP failures via unfiltered `cargo test`. Filed under NEW sprint 323 instead of sprint 306 (which would have polluted sprint 306's scope). Also filed an umbrella (T-323.0) so the next PM has a clear entry point. **Pattern: discovered defects unrelated to active sprint go into their own sprint umbrella, not the active sprint's todo list.**
+
+### Lesson 85: Confession Q4-Q5 pattern (test passes baseline) catches weak TDD
+
+T-306.11 SWE confession Q4 + Q5 explicitly asked: "These tests passed in initial run BEFORE implementation — was the test definition itself permissive enough to pass on existing code, OR did you write it after the lock was in place?" SWE answered honestly: "passes on baseline; not a regression test for the new lock behavior." This catches the failure mode where SWEs write tests AFTER the implementation passes, then claim TDD ordering.
+
+**Pattern: every confession prompt for a TDD task should include EXPLICIT questions naming the suspect tests + asking whether they would FAIL on baseline. Don't trust "I wrote tests first" — verify the tests fail on the pre-implementation tree.**
+
+### Lesson 86: Justified scope expansion is acceptable when documented in confession
+
+T-306.16 SWE expanded scope to `pipeline/mod.rs` (outside spec's allowed-file list) to remove a now-dead wrapper that would have failed `-D warnings` build. SWE confessed the scope expansion explicitly with justification. Red-team validated the expansion was forced by the in-spec deletion + minimal. PM accepted.
+
+**Pattern: when a SWE NEEDS to touch a file outside scope to keep the build green (warnings, type errors, etc.), they should: (a) make the change, (b) explicitly confess the scope expansion in the WorkResult, (c) cite the build constraint that forced it. PM evaluates whether the expansion was forced + minimal. If yes, accept. If suspicious, fail.**

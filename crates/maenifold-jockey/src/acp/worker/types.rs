@@ -45,6 +45,7 @@ pub struct AcpExecuteSuccess {
     pub output: String,
     pub session_id: String,
     pub resumed: bool,
+    pub stop_reason: acp::StopReason,
 }
 
 #[derive(Debug)]

@@ -1,12 +1,10 @@
-mod cors;
 mod client_handler;
-mod elicitation_validation;
 #[cfg(test)]
 mod client_handler_tests;
-#[cfg(test)]
-mod sampling_dispatch_tests;
+mod cors;
 pub(crate) mod discovery_tools;
 pub(crate) mod domain_mapping;
+mod elicitation_validation;
 pub(crate) mod gateway_batch;
 pub(crate) mod gateway_batch_types;
 pub(crate) mod gateway_catalog;
@@ -23,7 +21,8 @@ mod gateway_experiment;
 mod gateway_experiment_fixtures;
 #[cfg(test)]
 mod gateway_experiment_tests;
-mod gateway_gate; pub(crate) mod gateway_handler;
+mod gateway_gate;
+pub(crate) mod gateway_handler;
 #[cfg(test)]
 mod gateway_integration_tests;
 mod gateway_intent;
@@ -37,24 +36,30 @@ mod gateway_resolver;
 mod gateway_resolver_tests;
 mod gateway_resolver_types;
 mod gateway_schema_validation;
-mod gateway_startup; mod gateway_tasks;
+mod gateway_startup;
+mod gateway_tasks;
+#[cfg(test)]
+mod gateway_tasks_tests;
 #[path = "handler_impl.rs"]
 mod handler_impl;
 #[cfg(test)]
 mod handler_impl_task_hooks_tests;
-mod task_hooks;
-#[cfg(test)]
-mod gateway_tasks_tests;
 pub mod http;
-mod mcp_tool_calls; mod resource_routing;
+pub(crate) mod loop_correlator;
+mod mcp_tool_calls;
 pub mod pending_requests;
 #[cfg(test)]
 mod pending_requests_tests;
+mod resource_routing;
+pub mod resources;
+pub(crate) mod sampling_client_flow;
+pub(crate) mod sampling_client_helpers;
+#[cfg(test)]
+mod sampling_dispatch_tests;
 pub(crate) mod sampling_events;
 pub(crate) mod sampling_session_registry;
 #[cfg(test)]
 mod sampling_session_registry_tests;
-pub mod resources;
 #[cfg(test)]
 mod save_workflow_asset_gateway_tests;
 pub mod schema;
@@ -63,9 +68,10 @@ mod stdio_pool_health;
 mod stdio_pool_lifecycle;
 mod stdio_pool_tools;
 mod stdio_process_group;
-mod stdio_session_support;
 pub mod stdio_session;
 mod stdio_session_ops;
+mod stdio_session_support;
+mod task_hooks;
 pub mod tool_routing;
 pub(crate) mod tool_utils;
 use crate::assets::AssetManager;
@@ -74,18 +80,18 @@ use crate::db::GraphDatabase;
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::gateway_handler::GatewayState;
 use crate::registry::ToolRegistry;
-pub(crate) use cors::localhost_cors;
 pub use client_handler::MaenifoldClient;
-pub use pending_requests::PendingRequestRegistry;
-pub(crate) use sampling_session_registry::SamplingSessionRegistry;
+pub(crate) use cors::localhost_cors;
 pub(crate) use gateway_cli::{gateway_cli_help, invoke_gateway_cli_tool};
+pub use pending_requests::PendingRequestRegistry;
 pub use resources::*;
+use rmcp::ServiceExt;
 use rmcp::model::{
     CallToolRequestParams, CallToolResult, Implementation, ListResourceTemplatesResult,
     ListResourcesResult, ListToolsResult, ReadResourceRequestParams, ReadResourceResult,
     ServerCapabilities, ServerInfo, SubscribeRequestParams, Tool, UnsubscribeRequestParams,
 };
-use rmcp::ServiceExt;
+pub(crate) use sampling_session_registry::SamplingSessionRegistry;
 use serde_json::{Value, json};
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;

@@ -186,6 +186,7 @@ pub async fn execute_runtime(
         Ok(success) => {
             let resumed = success.resumed;
             let session_id = success.session_id;
+            let stop_reason = success.stop_reason;
             let output = if full_output.is_empty() {
                 if prompt.starts_with('/') {
                     format!(
@@ -226,6 +227,7 @@ pub async fn execute_runtime(
                     "agentKind": runtime_key,
                     "runtimeKey": runtime_key,
                     "sessionId": session_id,
+                    "stopReason": format!("{:?}", stop_reason),
                     "resumed": resumed,
                     "requestedResume": requested_resume
                 }),
@@ -267,34 +269,5 @@ pub async fn execute_runtime(
                 meta,
             }
         }
-    }
-}
-
-pub async fn execute_runtime_sampling(
-    runtime_kind: &str,
-    role_name: &str,
-    app_session_id: uuid::Uuid,
-    prompt: String,
-    selected_model: Option<String>,
-    session_id_tx: oneshot::Sender<String>,
-    event_tx: crate::EventSender,
-) -> Result<String, String> {
-    let cwd = std::env::current_dir()
-        .map(|path| path.to_string_lossy().into_owned())
-        .unwrap_or_else(|_| ".".to_string());
-
-    let role_config_options: Vec<(String, String)> = if let Some(m) = selected_model {
-        vec![("model".to_string(), m)]
-    } else {
-        vec![]
-    };
-
-    let result = execute_runtime(runtime_kind, role_name, &prompt, &[], &cwd, &event_tx, true,
-        vec![], None, role_config_options, None, &app_session_id.to_string(), None, Some(session_id_tx)).await;
-
-    if result.ok {
-        Ok(result.output)
-    } else {
-        Err(result.error_code.unwrap_or(result.output))
     }
 }

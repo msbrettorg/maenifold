@@ -2531,6 +2531,7 @@ dependencies = [
  "async-trait",
  "dashmap",
  "libc",
+ "rmcp",
  "rusqlite",
  "serde",
  "serde_json",

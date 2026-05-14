@@ -1,5 +1,8 @@
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 
 use serde::Serialize;
 use tokio::sync::Mutex;
@@ -23,10 +26,15 @@ pub(crate) struct SamplingDispatch {
     pub decision: SamplingDecisionRecord,
     pub created_at: String,
     pub token_usage: Option<TokenUsage>,
+    pub tool_call_count: u32,
+    pub tool_loop_budget: u32,
+    pub turn_count: u32,
+    #[serde(skip)]
+    pub status_handle: Arc<AtomicBool>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 #[allow(dead_code)]
 pub(crate) enum SamplingDecisionRecord {
     AllowOnce,
@@ -37,12 +45,13 @@ pub(crate) enum SamplingDecisionRecord {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 #[allow(dead_code)]
 pub(crate) enum SamplingSessionStatus {
     PendingApproval,
     Dispatching,
     Streaming,
+    BudgetExceeded { allowed_so_far: u32, budget: u32 },
     Completed,
     Cancelled,
     Denied,
@@ -64,12 +73,23 @@ pub(crate) enum SamplingRegistryError {
 
 pub(crate) struct SamplingSessionRegistry {
     sessions: Arc<Mutex<HashMap<Uuid, SamplingDispatch>>>,
+    default_tool_loop_budget: u32,
+    per_server_tool_loop_budget: Arc<HashMap<String, u32>>,
 }
 
 impl SamplingSessionRegistry {
     pub(crate) fn new() -> Self {
+        Self::with_tool_loop_budgets(10, HashMap::new())
+    }
+
+    pub(crate) fn with_tool_loop_budgets(
+        default_tool_loop_budget: u32,
+        per_server_tool_loop_budget: HashMap<String, u32>,
+    ) -> Self {
         Self {
             sessions: Arc::new(Mutex::new(HashMap::new())),
+            default_tool_loop_budget,
+            per_server_tool_loop_budget: Arc::new(per_server_tool_loop_budget),
         }
     }
 
@@ -99,6 +119,9 @@ impl SamplingSessionRegistry {
         ) {
             return Err(SamplingRegistryError::AlreadyTerminal);
         }
+        dispatch
+            .status_handle
+            .store(is_terminal_status(&status), Ordering::SeqCst);
         dispatch.status = status;
         drop(sessions);
         notify_resource_updated(SAMPLING_SESSIONS_URI).await;
@@ -115,6 +138,72 @@ impl SamplingSessionRegistry {
             return Err(SamplingRegistryError::NotFound);
         };
         dispatch.acp_session_id = Some(acp_session_id);
+        drop(sessions);
+        notify_resource_updated(SAMPLING_SESSIONS_URI).await;
+        Ok(())
+    }
+
+    pub(crate) async fn acp_session_id(&self, id: Uuid) -> Option<String> {
+        self.sessions
+            .lock()
+            .await
+            .get(&id)
+            .and_then(|dispatch| dispatch.acp_session_id.clone())
+    }
+
+    pub(crate) async fn get(&self, id: Uuid) -> Option<SamplingDispatch> {
+        self.sessions.lock().await.get(&id).cloned()
+    }
+
+    pub(crate) async fn status_handle(&self, id: Uuid) -> Option<Arc<AtomicBool>> {
+        self.sessions
+            .lock()
+            .await
+            .get(&id)
+            .map(|dispatch| Arc::clone(&dispatch.status_handle))
+    }
+
+    pub(crate) fn tool_loop_budget_for(&self, server_name: &str) -> u32 {
+        self.per_server_tool_loop_budget
+            .get(server_name)
+            .copied()
+            .unwrap_or(self.default_tool_loop_budget)
+    }
+
+    pub(crate) async fn increment_turn(&self, dispatch_id: Uuid) -> Result<u32, String> {
+        let mut sessions = self.sessions.lock().await;
+        let dispatch = sessions
+            .get_mut(&dispatch_id)
+            .ok_or_else(|| "sampling dispatch not found".to_string())?;
+        dispatch.turn_count = dispatch.turn_count.saturating_add(1);
+        let count = dispatch.turn_count;
+        drop(sessions);
+        notify_resource_updated(SAMPLING_SESSIONS_URI).await;
+        Ok(count)
+    }
+
+    pub(crate) async fn increment_tool_calls(
+        &self,
+        dispatch_id: Uuid,
+        n: u32,
+    ) -> Result<u32, String> {
+        let mut sessions = self.sessions.lock().await;
+        let dispatch = sessions
+            .get_mut(&dispatch_id)
+            .ok_or_else(|| "sampling dispatch not found".to_string())?;
+        dispatch.tool_call_count = dispatch.tool_call_count.saturating_add(n);
+        let count = dispatch.tool_call_count;
+        drop(sessions);
+        notify_resource_updated(SAMPLING_SESSIONS_URI).await;
+        Ok(count)
+    }
+
+    pub(crate) async fn reset_tool_calls(&self, dispatch_id: Uuid) -> Result<(), String> {
+        let mut sessions = self.sessions.lock().await;
+        let dispatch = sessions
+            .get_mut(&dispatch_id)
+            .ok_or_else(|| "sampling dispatch not found".to_string())?;
+        dispatch.tool_call_count = 0;
         drop(sessions);
         notify_resource_updated(SAMPLING_SESSIONS_URI).await;
         Ok(())
@@ -164,6 +253,16 @@ impl SamplingDispatch {
     pub(crate) fn role_name(&self) -> &str {
         &self.role_name
     }
+}
+
+pub(crate) fn is_terminal_status(status: &SamplingSessionStatus) -> bool {
+    matches!(
+        status,
+        SamplingSessionStatus::Cancelled
+            | SamplingSessionStatus::Denied
+            | SamplingSessionStatus::Failed
+            | SamplingSessionStatus::Completed
+    )
 }
 
 impl Default for SamplingSessionRegistry {

@@ -40,21 +40,30 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function parseSamplingPreferences(value: unknown): AgentsConfig['samplingPreferences'] | undefined {
-  if (!isRecord(value) || !isRecord(value.perServer)) return undefined;
+  if (!isRecord(value)) return undefined;
 
   const perServer: NonNullable<AgentsConfig['samplingPreferences']>['perServer'] = {};
-  for (const [serverName, preference] of Object.entries(value.perServer)) {
-    if (!isRecord(preference) || typeof preference.alwaysAllow !== 'boolean') continue;
-    const entry: { alwaysAllow: boolean; modelOverride?: string } = {
-      alwaysAllow: preference.alwaysAllow,
-    };
-    if (typeof preference.modelOverride === 'string') {
-      entry.modelOverride = preference.modelOverride;
+  if (isRecord(value.perServer)) {
+    for (const [serverName, preference] of Object.entries(value.perServer)) {
+      if (!isRecord(preference) || typeof preference.alwaysAllow !== 'boolean') continue;
+      const entry: { alwaysAllow: boolean; modelOverride?: string; toolLoopBudget?: number } = {
+        alwaysAllow: preference.alwaysAllow,
+      };
+      if (typeof preference.modelOverride === 'string') {
+        entry.modelOverride = preference.modelOverride;
+      }
+      if (typeof preference.toolLoopBudget === 'number') {
+        entry.toolLoopBudget = preference.toolLoopBudget;
+      }
+      perServer[serverName] = entry;
     }
-    perServer[serverName] = entry;
   }
 
-  return { perServer };
+  const preferences: NonNullable<AgentsConfig['samplingPreferences']> = { perServer };
+  if (typeof value.defaultToolLoopBudget === 'number') {
+    preferences.defaultToolLoopBudget = value.defaultToolLoopBudget;
+  }
+  return preferences;
 }
 
 function parseAgentsConfig(content: string): AgentsConfig {
@@ -200,12 +209,22 @@ export const useConfigStore = defineStore('config', () => {
 
   async function setSamplingPreference(
     serverName: string,
-    pref: { alwaysAllow: boolean; modelOverride?: string },
+    pref: { alwaysAllow: boolean; modelOverride?: string; toolLoopBudget?: number },
   ): Promise<void> {
     const current = config.value.samplingPreferences?.perServer ?? {};
     await writeConfig({
       samplingPreferences: {
+        ...config.value.samplingPreferences,
         perServer: { ...current, [serverName]: pref },
+      },
+    });
+  }
+
+  async function setDefaultToolLoopBudget(defaultToolLoopBudget: number): Promise<void> {
+    await writeConfig({
+      samplingPreferences: {
+        ...(config.value.samplingPreferences ?? {}),
+        defaultToolLoopBudget,
       },
     });
   }
@@ -215,6 +234,7 @@ export const useConfigStore = defineStore('config', () => {
     const { [serverName]: _removed, ...rest } = current;
     await writeConfig({
       samplingPreferences: {
+        ...config.value.samplingPreferences,
         perServer: rest,
       },
     });
@@ -281,6 +301,7 @@ export const useConfigStore = defineStore('config', () => {
     save,
     writeConfig,
     setSamplingPreference,
+    setDefaultToolLoopBudget,
     clearSamplingPreference,
     writeRaw,
     getAgent,

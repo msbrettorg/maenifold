@@ -8,7 +8,7 @@ export type { SamplingHistoryEntry, SamplingHistoryTokenUsage } from '../lib/typ
 
 const SAMPLING_SESSIONS_URI = 'sampling://sessions';
 const MAX_HISTORY_ENTRIES = 50;
-const LIVE_STATUSES = new Set(['dispatching', 'streaming']);
+const LIVE_STATUSES = new Set(['dispatching', 'streaming', 'budgetExceeded']);
 
 interface SamplingSessionsPayload {
   sessions?: unknown;
@@ -39,13 +39,14 @@ function parseEntry(value: unknown): SamplingHistoryEntry | null {
     return null;
   }
   const tokenUsage = parseTokenUsage(value.tokenUsage);
+  const statusInfo = parseStatus(value.status);
   if (
     typeof value.samplingRequestId !== 'string'
     || typeof value.serverName !== 'string'
     || typeof value.model !== 'string'
     || typeof value.runtimeKind !== 'string'
     || typeof value.roleName !== 'string'
-    || typeof value.status !== 'string'
+    || statusInfo === null
     || typeof value.decision !== 'string'
     || typeof value.createdAt !== 'string'
     || tokenUsage === undefined
@@ -58,7 +59,7 @@ function parseEntry(value: unknown): SamplingHistoryEntry | null {
     model: value.model,
     runtimeKind: value.runtimeKind,
     roleName: value.roleName,
-    status: value.status,
+    status: statusInfo.status,
     decision: value.decision,
     createdAt: value.createdAt,
     tokenUsage,
@@ -69,7 +70,23 @@ function parseEntry(value: unknown): SamplingHistoryEntry | null {
   if (typeof value.appSessionId === 'string') {
     entry.appSessionId = value.appSessionId;
   }
+  if (typeof value.toolCallCount === 'number') entry.toolCallCount = value.toolCallCount;
+  if (typeof value.toolLoopBudget === 'number') entry.toolLoopBudget = value.toolLoopBudget;
+  if (typeof value.turnCount === 'number') entry.turnCount = value.turnCount;
+  if (statusInfo.allowedSoFar !== undefined) entry.toolCallCount = statusInfo.allowedSoFar;
+  if (statusInfo.budget !== undefined) entry.toolLoopBudget = statusInfo.budget;
   return entry;
+}
+
+function parseStatus(value: unknown): { status: string; allowedSoFar?: number; budget?: number } | null {
+  if (typeof value === 'string') return { status: value };
+  if (!isRecord(value) || !isRecord(value.budgetExceeded)) return null;
+  const payload = value.budgetExceeded;
+  return {
+    status: 'budgetExceeded',
+    allowedSoFar: typeof payload.allowedSoFar === 'number' ? payload.allowedSoFar : undefined,
+    budget: typeof payload.budget === 'number' ? payload.budget : undefined,
+  };
 }
 
 function parseSessions(text: string | undefined): SamplingHistoryEntry[] {

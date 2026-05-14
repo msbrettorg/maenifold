@@ -1,4 +1,5 @@
 import type { PermissionRequest } from '../types';
+import type { PermissionEvaluateRequestResult } from './types';
 
 export type PermissionScope = 'session' | 'agent' | 'forever';
 export type PermissionDecision = 'allow' | 'reject';
@@ -49,10 +50,14 @@ export interface LastAutoPermissionDecision {
 }
 
 export interface PermissionLedger {
-  tryAutoDecide(
+  tryAutoDecide?(
     request: PermissionRequest,
     context: PermissionLookupContext
   ): MaybePromise<PermissionDecision | null>;
+  evaluateRequest?(
+    request: PermissionRequest,
+    context: PermissionLookupContext
+  ): MaybePromise<PermissionEvaluateRequestResult>;
   recordDecision(
     request: PermissionRequest,
     context: PermissionRecordContext
@@ -62,7 +67,6 @@ export interface PermissionLedger {
   revokeDecision(id: number): MaybePromise<void>;
   resetDecisions(): MaybePromise<void>;
   getLastAutoDecision?(): LastAutoPermissionDecision | null;
-  consumePendingDecisionToken?(toolCallId: string): string | null;
   resolveDecision?(payload: {
     token: string;
     optionId: string;
@@ -83,28 +87,22 @@ class NoopPermissionLedger implements PermissionLedger {
 
 class IpcPermissionLedger implements PermissionLedger {
   private lastAutoDecision: LastAutoPermissionDecision | null = null;
-  private readonly pendingDecisionTokens = new Map<string, string>();
 
-  async tryAutoDecide(
+  // Renderer wrapper for the permission:evaluate-request IPC channel.
+  async evaluateRequest(
     request: PermissionRequest,
     context: PermissionLookupContext
-  ): Promise<PermissionDecision | null> {
-    const result = await window.electronAPI?.permissionTryAutoDecide?.({ request, context });
-    this.lastAutoDecision = result?.event ?? null;
-    if (result?.token) {
-      this.pendingDecisionTokens.set(request.toolCall.toolCallId, result.token);
+  ): Promise<PermissionEvaluateRequestResult> {
+    const evaluateRequest = window.electronAPI?.permissionEvaluateRequest;
+    if (!evaluateRequest) {
+      throw new Error('Permission evaluate-request IPC is unavailable');
     }
-    return result?.decision ?? null;
+    this.lastAutoDecision = null;
+    return evaluateRequest({ request, context });
   }
 
   recordDecision(): never {
     throw new Error('Permission decisions must be recorded through resolve-decision tokens');
-  }
-
-  consumePendingDecisionToken(toolCallId: string): string | null {
-    const token = this.pendingDecisionTokens.get(toolCallId) ?? null;
-    this.pendingDecisionTokens.delete(toolCallId);
-    return token;
   }
 
   async resolveDecision(payload: {
@@ -144,7 +142,7 @@ class IpcPermissionLedger implements PermissionLedger {
 let defaultLedger: PermissionLedger | null = null;
 
 export function createDefaultPermissionLedger(): PermissionLedger {
-  if (typeof window !== 'undefined' && window.electronAPI?.permissionTryAutoDecide) {
+  if (typeof window !== 'undefined' && window.electronAPI?.permissionEvaluateRequest) {
     return new IpcPermissionLedger();
   }
   return new NoopPermissionLedger();

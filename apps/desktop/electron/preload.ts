@@ -15,7 +15,7 @@ type Vec0Status = {
   } | null;
 };
 
-type PermissionLedgerPayload = {
+type PermissionEvaluateRequestPayload = {
   request: unknown;
   context: unknown;
 };
@@ -150,8 +150,8 @@ const electronAPI = {
     alreadyRunning?: boolean;
     pid?: number;
   }>,
-  permissionTryAutoDecide: (payload: PermissionLedgerPayload) =>
-    ipcRenderer.invoke('permission:try-auto-decide', payload) as Promise<unknown>,
+  permissionEvaluateRequest: (payload: PermissionEvaluateRequestPayload) =>
+    ipcRenderer.invoke('permission:evaluate-request', payload) as Promise<unknown>,
   permissionResolveDecision: (payload: PermissionResolveDecisionPayload) =>
     ipcRenderer.invoke('permission:resolve-decision', payload) as Promise<void>,
   permissionListDecisions: () => ipcRenderer.invoke('permission:list-decisions') as Promise<unknown[]>,

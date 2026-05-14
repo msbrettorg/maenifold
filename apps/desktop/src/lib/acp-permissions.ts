@@ -18,6 +18,7 @@ import {
   type PermissionScope,
 } from './permission-ledger/ledger';
 import { normalizePermissionToolKind } from './permission-ledger/equivalence-key';
+import type { PermissionEvaluateRequestResult } from './permission-ledger/types';
 export { setChatNotificationSink, type ChatNotificationSink } from './acp-chat-notifications';
 
 const PLAN_MODE_SAFE_TOOL_KINDS = new Set(['read', 'fetch', 'search', 'think']);
@@ -93,22 +94,39 @@ export class PermissionHandler {
       }
     }
 
-    const ledgerDecision = this.permissionLedger.tryAutoDecide(request, {
+    const lookupContext = {
       agent: this.context.agent,
       sessionId: request.sessionId,
-    });
+    };
+    const ledgerDecision = this.permissionLedger.evaluateRequest
+      ? this.permissionLedger.evaluateRequest(request, lookupContext)
+      : this.permissionLedger.tryAutoDecide?.(request, lookupContext) ?? null;
     if (ledgerDecision instanceof Promise) {
-      return ledgerDecision.then((decision) => this.resolveAutoOrPrompt(params, request, decision));
+      return ledgerDecision.then((decision) => this.resolveEvaluationOrPrompt(params, request, decision));
     }
 
-    return this.resolveAutoOrPrompt(params, request, ledgerDecision);
+    return this.resolveEvaluationOrPrompt(params, request, ledgerDecision);
   }
 
-  private resolveAutoOrPrompt(
+  private resolveEvaluationOrPrompt(
     params: RequestPermissionRequest,
     request: LocalPermissionRequest,
-    ledgerDecision: 'allow' | 'reject' | null
+    ledgerDecision: PermissionEvaluateRequestResult | 'allow' | 'reject' | null
   ): Promise<RequestPermissionResponse> {
+    if (typeof ledgerDecision === 'object' && ledgerDecision !== null) {
+      if (ledgerDecision.autoDecided) {
+        const decision = this.decisionFromResponse(request, ledgerDecision.response);
+        if (decision) markAutoPermissionStatus(request.toolCall.toolCallId, decision);
+        return Promise.resolve(ledgerDecision.response);
+      }
+      return this.promptForPermission(params, {
+        ...request,
+        toolCall: ledgerDecision.prompt.toolCall,
+        options: ledgerDecision.prompt.options,
+        decisionToken: ledgerDecision.token,
+      });
+    }
+
     if (ledgerDecision) {
       markAutoPermissionStatus(request.toolCall.toolCallId, ledgerDecision);
       const event = this.permissionLedger.getLastAutoDecision?.();
@@ -127,6 +145,20 @@ export class PermissionHandler {
     }
 
     return this.promptForPermission(params, request);
+  }
+
+  private decisionFromResponse(
+    request: LocalPermissionRequest,
+    response: RequestPermissionResponse
+  ): 'allow' | 'reject' | null {
+    const outcome = response.outcome;
+    if (outcome.outcome !== 'selected') {
+      return null;
+    }
+    const option = request.options.find((candidate) => candidate.optionId === outcome.optionId);
+    if (option?.kind.startsWith('allow')) return 'allow';
+    if (option?.kind.startsWith('reject')) return 'reject';
+    return null;
   }
 
   async resolvePermission(requestId: string, optionId: string, scope?: PermissionScope): Promise<void> {
@@ -264,12 +296,10 @@ export class PermissionHandler {
     params: RequestPermissionRequest,
     request: LocalPermissionRequest
   ): Promise<RequestPermissionResponse> {
-    const token = this.permissionLedger.consumePendingDecisionToken?.(request.toolCall.toolCallId);
-    const displayRequest = token ? { ...request, decisionToken: token } : request;
     return new Promise((resolve) => {
       const key = params.toolCall.toolCallId;
       this.pendingPermissions.set(key, {
-        request: displayRequest,
+        request,
         resolver: resolve,
       });
       this.syncPendingPermissionRequests();

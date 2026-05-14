@@ -3675,3 +3675,56 @@ Iter-4 closed 9 sprint-307 items (1 umbrella + 8 children) in ~1.5h:
 The args-fragmentation defect (T-307.8) was discovered ONLY by reading the user's actual `~/maenifold/maenifold.json` after T-307.4 SWE returned. The user's Copilot agent had `command: "/path/to/copilot --acp"` — a command with embedded args. The SWE's tests used `command: 'gpt5 --fast'` and `command: 'claude --model opus'`, which exhibit the same fragmentation in test mocks but the SWE didn't trace through to the Rust struct.
 
 **Lesson — when the spec involves any cross-process round-trip (frontend → file → daemon), the PM artifact check MUST include reading the actual production data file (`~/maenifold/maenifold.json`, `.gate/gate.db`, etc.) and tracing the user's real-world data shape through every transformation layer.** Test mocks can mask whether the production data path actually works.
+
+
+## 2026-05-14 — Iter-15 (Sprint 308 close — knowledge backlog)
+
+### Lesson 92: Red-team prompts must explicitly close the "untracked file = defect" trap
+
+All 4 red-team agents in iter-15 flagged untracked files in worker worktrees as "REQUIRES REWORK" because `git diff --stat` only shows tracked changes. This is procedurally wrong: agents are forbidden from `git add`/`git commit` per `AGENTS.md`. The PM commits at merge time. Files appearing as `??` in the worker worktree's `git status` is EXPECTED.
+
+The first 3 red-team prompts didn't anticipate this. The 4th red-team prompt (T-308.4) added an "IMPORTANT — Reframe" section explicitly forbidding this finding and instructing the auditor to verify on-disk file existence + content correctness instead. That worked — the audit cleanly distinguished the LOC concern (which was the real find) from the procedural git-tracking confusion.
+
+**Lesson — every red-team prompt MUST include:**
+- "Untracked files in the worker worktree are EXPECTED, NOT a defect. Agents are forbidden from running `git add`/`git commit` per AGENTS.md."
+- "Verify file existence on disk (ls + wc -l) and content correctness — not git tracking state."
+- "If you flag this as a blocker you will be overridden."
+
+Add this to `~/.copilot/skills/gate/references/red-prompt-template.md` as a permanent boilerplate clause.
+
+### Lesson 93: Test files exempt from 300-LOC limit
+
+Red-team T-308.4 flagged `MarkdownView.test.ts` at 404 LOC as exceeding the 300-LOC component limit. PM verified `apps/desktop/scripts/audit-components.mjs` line 25: `const SKIP_DIRS = new Set(['__tests__', 'test', 'tests', 'e2e', 'node_modules']);`. The 300-LOC limit applies to PRODUCTION components only. Existing test files routinely exceed (acp-client-core.test.ts is 789 LOC, mcpClientOps.test.ts is 564 LOC).
+
+**Lesson — red-team prompts that mention LOC limits must clarify "production source files only; test files are exempt." Otherwise audits waste cycles on false positives.**
+
+### Lesson 94: Honest confession with low-confidence verdict catches semantic-layer bugs
+
+T-308.5 SWE shipped a backlinks panel using `BuildContext.directRelations` and explicitly self-rated the work as "Requires rework — Confidence medium" in the confession because they could not prove the API was direction-aware. The SWE's uncertainty disclosure named the exact concern: "BuildContext relation files are co-occurrence not incoming-edge backlinks."
+
+PM then verified against the backend Rust schema (`crates/maenifold-core/src/db/schema.rs:88-99` — undirected concept_a/concept_b) and dispatched a remediation switching to `SearchMemories` with literal `[[concept]]` query against `concept_mentions` data. The remediation took ~12 min and produced a smaller component with semantically correct backlinks.
+
+**Lesson — when an SWE gives a low-confidence verdict + names a specific concern in their confession, treat it as a high-priority signal even if the work passes vitest. The confession's uncertainty section is the most valuable part. Always read it carefully.**
+
+### Lesson 95: Schema verification trumps API-name assumptions
+
+T-308.5 originally used `BuildContext` because the spec said "query graph for incoming edges." The frontend type `BuildContextRelation` exposes `concept`, `co_occurrence_count`, `source_files` — none of which encode direction. A 30-second backend grep on `crates/maenifold-core/src/graph/traversal.rs` revealed `WHERE concept_a = ?1 OR concept_b = ?1` — confirming the graph is undirected.
+
+**Lesson — for any task whose acceptance depends on API semantic guarantees (incoming-edge, ordered, transactional, idempotent, etc.), the spec author MUST verify the guarantee against the implementation BEFORE the spec is finalized. "The API is named BuildContext therefore it provides graph context" is an assumption, not a verification.**
+
+### Lesson 96: Iter-15 throughput pattern (4-task wave with semantic remediation)
+
+Iter-15 closed 6 sprint-308 items + filed 5 sprint-322 follow-ups in ~1h50m:
+
+- T-308.1: PM-direct close (~3 min, no SWE) — foundation already shipped, verified via grep.
+- Wave-0 (T-308.2 + T-308.3 + T-308.5): 3 SWEs in parallel worktrees, dispatched in one tool-call batch.
+- T-308.5 remediation: PM caught semantic-layer bug via confession, dispatched targeted remediation in same agent.
+- All 3 confessions sent simultaneously after WorkResults landed.
+- All 3 fresh red-teams dispatched in parallel after confessions.
+- Wave-0 commits + merges as each cleared (file-independent, sequential merge but parallel verification).
+- Wave-1 (T-308.4): worktree created from `dev` AFTER wave-0 merged, so MarkdownView changes inherited cleanly. SWE → confession → red-team → commit + merge.
+- Umbrella close + 5 follow-ups filed.
+
+Total: 1 PM-direct + 4 SWE dispatches + 4 confessions + 4 red-team audits + 4 commits + 4 merges + 5 follow-up specs + umbrella + iter-15 memory note + learnings update.
+
+**Pattern reaffirmed (Lesson 73 + Lesson 83 + Lesson 86 + Lesson 90):** wave-1 worktree must be created from a `dev` that ALREADY HAS the wave-0 merges, so file-overlapping work doesn't conflict. Auto-merge handled the unrelated-file overlap (T-308.5 KnowledgeMemoryView edit landed cleanly even though T-308.2 also edited that file — different lines, ort strategy resolved).

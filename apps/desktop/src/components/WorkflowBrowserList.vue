@@ -1,5 +1,27 @@
 <script setup lang="ts">
-import { Brain, FlaskConical, Users, Cog, BookOpen, Lightbulb, AlertTriangle, type LucideIcon } from 'lucide-vue-next'
+import { ref } from 'vue'
+import {
+  Brain,
+  FlaskConical,
+  Users,
+  Cog,
+  BookOpen,
+  Lightbulb,
+  AlertTriangle,
+  Copy,
+  Trash2,
+  type LucideIcon,
+} from 'lucide-vue-next'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { categorizeWorkflow, type WorkflowAssetSummary, type WorkflowCategory } from '../lib/workflow-asset-types'
 
@@ -12,7 +34,12 @@ defineProps<{
 
 const emit = defineEmits<{
   (e: 'select', id: string): void
+  (e: 'duplicate', id: string): void
+  (e: 'delete', id: string): void
 }>()
+
+const deleteWorkflow = ref<WorkflowAssetSummary | null>(null)
+const deleteWorkflowId = ref<string | null>(null)
 
 const categoryIconMap: Record<WorkflowCategory, LucideIcon> = {
   reasoning: Brain,
@@ -44,6 +71,29 @@ function categoryLabel(cat: WorkflowCategory): string {
 function stepLabel(count?: number): string | null {
   if (count === undefined) return null
   return `${count} ${count === 1 ? 'step' : 'steps'}`
+}
+
+function openDeleteDialog(workflow: WorkflowAssetSummary) {
+  deleteWorkflow.value = workflow
+  deleteWorkflowId.value = workflow.id
+}
+
+function closeDeleteDialog(open: boolean) {
+  if (!open) {
+    deleteWorkflow.value = null
+  }
+}
+
+function confirmDelete() {
+  if (!deleteWorkflowId.value) return
+  emit('delete', deleteWorkflowId.value)
+  deleteWorkflow.value = null
+  deleteWorkflowId.value = null
+}
+
+function cancelDelete() {
+  deleteWorkflow.value = null
+  deleteWorkflowId.value = null
 }
 </script>
 
@@ -99,6 +149,30 @@ function stepLabel(count?: number): string | null {
           aria-label="Unsaved changes"
         />
       </Button>
+      <div class="flex shrink-0 items-center gap-1 pr-2 opacity-100 transition-opacity duration-150 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          class="size-8 text-text-secondary hover:text-text-primary"
+          :aria-label="`Duplicate ${humanizeName(wf.name, wf.id)}`"
+          title="Duplicate workflow"
+          @click.stop="emit('duplicate', wf.id)"
+        >
+          <Copy class="size-4" aria-hidden="true" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          class="size-8 text-text-secondary hover:text-danger"
+          :aria-label="`Delete ${humanizeName(wf.name, wf.id)}`"
+          title="Delete workflow"
+          @click.stop="openDeleteDialog(wf)"
+        >
+          <Trash2 class="size-4" aria-hidden="true" />
+        </Button>
+      </div>
     </li>
 
     <li
@@ -118,4 +192,29 @@ function stepLabel(count?: number): string | null {
       </span>
     </li>
   </ul>
+
+  <AlertDialog
+    :open="deleteWorkflow !== null"
+    @update:open="closeDeleteDialog"
+  >
+    <AlertDialogContent class="sm:max-w-[28rem]">
+      <AlertDialogHeader>
+        <AlertDialogTitle>
+          Delete workflow {{ deleteWorkflow ? humanizeName(deleteWorkflow.name, deleteWorkflow.id) : '' }}?
+        </AlertDialogTitle>
+        <AlertDialogDescription>
+          This will permanently delete the workflow asset. Pipelines that reference this workflow will fail at next run.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel @click="cancelDelete">Cancel</AlertDialogCancel>
+        <AlertDialogAction
+          variant="destructive"
+          @click="confirmDelete"
+        >
+          Delete
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
 </template>

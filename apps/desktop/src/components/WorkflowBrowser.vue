@@ -2,6 +2,7 @@
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { Download, Plus } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -161,6 +162,32 @@ async function handleRetry() {
   await store.fetchSummaries()
 }
 
+async function handleDuplicateWorkflow(id: string) {
+  await store.selectWorkflow(id)
+  await store.duplicateCurrentWorkflow()
+}
+
+async function handleDeleteWorkflow(id: string) {
+  try {
+    if (!workflowMcp.connected.value) {
+      await workflowMcp.connect()
+    }
+    await workflowMcp.callTool('DeleteWorkflowAsset', { name: id })
+    toast.success('Workflow deleted.')
+    await store.fetchSummaries()
+    if (currentId.value === id) {
+      const nextWorkflow = filteredWorkflows.value.find((workflow) => workflow.id !== id)
+      if (nextWorkflow) {
+        await store.selectWorkflow(nextWorkflow.id)
+      } else {
+        store.clearSelection()
+      }
+    }
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : String(error))
+  }
+}
+
 async function loadVisibleStepCounts() {
   if (!pipelineStore.connected) return
   const pendingIds = filteredWorkflows.value
@@ -230,6 +257,8 @@ watch(
         :is-dirty="isDirty"
         :step-counts="stepCounts"
         @select="store.requestSelectWorkflow"
+        @duplicate="handleDuplicateWorkflow"
+        @delete="handleDeleteWorkflow"
       />
     </ScrollArea>
 

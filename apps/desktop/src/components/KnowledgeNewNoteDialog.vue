@@ -31,6 +31,10 @@ const availableFolders = computed(() => collectFolderPaths(store.folders));
 const hasWikiLink = computed(() => /\[\[[^\]]+\]\]/.test(content.value));
 const canSubmit = computed(() => title.value.trim().length > 0 && hasWikiLink.value && !submitting.value);
 
+function openDialog(): void {
+  open.value = true;
+}
+
 function resetForm(): void {
   title.value = '';
   folder.value = '';
@@ -56,6 +60,8 @@ async function submit(): Promise<void> {
     submitting.value = false;
   }
 }
+
+defineExpose({ openDialog });
 </script>
 
 <template>

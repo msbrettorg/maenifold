@@ -25,6 +25,7 @@ const {
   searchError,
 } = storeToRefs(store);
 const query = ref(store.searchQuery);
+const searchInput = ref<{ $el?: HTMLInputElement } | null>(null);
 const treeQuery = ref(store.searchQuery);
 const mode = ref<'tree' | 'search'>('tree');
 const hasSubmittedSearch = ref(false);
@@ -112,6 +113,12 @@ function openUri(uri: string, event: MouseEvent): void {
   }
   store.openNote(uri);
 }
+
+function focusSearchInput(): void {
+  searchInput.value?.$el?.focus();
+}
+
+defineExpose({ focusSearchInput });
 </script>
 
 <template>
@@ -130,7 +137,9 @@ function openUri(uri: string, event: MouseEvent): void {
       <div class="relative">
         <Search class="pointer-events-none absolute top-1/2 left-2 size-4 -translate-y-1/2 text-text-tertiary" aria-hidden="true" />
         <Input
+          ref="searchInput"
           v-model="query"
+          data-testid="knowledge-memory-search"
           class="h-9 border-border-subtle bg-bg-surface pl-8 pr-8 text-text-primary placeholder:text-text-secondary"
           placeholder="Search notes..."
           @keydown.enter.prevent="runSearch"

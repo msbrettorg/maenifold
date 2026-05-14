@@ -17,6 +17,10 @@ pub struct ScheduledTask {
     pub auto_grant_permissions: bool,
     #[serde(default)]
     pub allowed_tools: Vec<String>,
+    #[serde(default)]
+    pub mcp_action: Option<String>,
+    #[serde(default)]
+    pub mcp_parameters: Option<serde_json::Value>,
     #[serde(default = "default_timeout")]
     pub timeout_seconds: u32,
     #[serde(default = "default_true")]
@@ -73,5 +77,43 @@ mod tests {
 
         assert!(!task.auto_grant_permissions);
         assert!(task.allowed_tools.is_empty());
+    }
+
+    #[test]
+    fn schedule_task_serde_round_trip_with_mcp_action() {
+        let task = serde_json::from_value::<ScheduledTask>(json!({
+            "id": "mcp",
+            "name": "MCP task",
+            "schedule": "0 9 * * *",
+            "agent": "swe",
+            "prompt": "",
+            "mcp_action": "maenifold.gate.gate_Status",
+            "mcp_parameters": {"root": "/workspace"},
+            "created_at": "2026-04-21T07:00:00Z",
+            "updated_at": "2026-04-21T07:00:00Z"
+        }))
+        .expect("task with mcp action should deserialize");
+        let rendered = serde_json::to_value(&task).expect("serialize task");
+
+        assert_eq!(rendered["mcp_action"], "maenifold.gate.gate_Status");
+        assert_eq!(rendered["mcp_parameters"], json!({"root": "/workspace"}));
+    }
+
+    #[test]
+    fn schedule_task_serde_default_mcp_action_none() {
+        let task = serde_json::from_value::<ScheduledTask>(json!({
+            "id": "legacy-mcp",
+            "name": "Legacy MCP task",
+            "schedule": "0 9 * * *",
+            "agent": "swe",
+            "prompt": "run legacy task",
+            "created_at": "2026-04-21T07:00:00Z",
+            "updated_at": "2026-04-21T07:00:00Z"
+        }))
+        .expect("legacy task should deserialize");
+        let rendered = serde_json::to_value(&task).expect("serialize task");
+
+        assert_eq!(rendered["mcp_action"], serde_json::Value::Null);
+        assert_eq!(rendered["mcp_parameters"], serde_json::Value::Null);
     }
 }

@@ -1,8 +1,8 @@
 use super::apply_env_scrub;
-use super::build_payload;
+use super::{build_invocation, build_payload, parse_mcp_action};
 use crate::schedule::ScheduledTask;
 use chrono::Utc;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::process::Command;
 
 fn task() -> ScheduledTask {
@@ -21,6 +21,8 @@ fn task() -> ScheduledTask {
         created_at: Utc::now(),
         updated_at: Utc::now(),
         last_run: None,
+        mcp_action: None,
+        mcp_parameters: None,
     }
 }
 
@@ -82,4 +84,53 @@ fn supervisor_run_scrubs_environment() {
     let stdout = String::from_utf8(output.stdout).expect("env stdout should be utf-8");
     assert!(!stdout.contains(key));
     assert!(!stdout.contains("secret123"));
+}
+
+#[test]
+fn parse_mcp_action_rsplit_correctness() {
+    assert_eq!(
+        parse_mcp_action("maenifold.gate.gate_Status").expect("parse multi-dot"),
+        ("maenifold.gate", "gate_Status")
+    );
+    assert_eq!(
+        parse_mcp_action("a.b").expect("parse single-dot"),
+        ("a", "b")
+    );
+    assert!(parse_mcp_action("no-dot-here").is_err());
+    assert!(parse_mcp_action("a.").is_err());
+    assert!(parse_mcp_action(".b").is_err());
+}
+
+#[test]
+fn supervisor_dispatches_mcp_action_when_set() {
+    let mut task = task();
+    task.mcp_action = Some("maenifold.gate.gate_Status".to_string());
+    let invocation = build_invocation(&task, None).expect("mcp invocation");
+    let payload: Value = serde_json::from_str(&invocation.payload).expect("json payload");
+
+    assert_eq!(invocation.tool_name, "GatewayExecute");
+    assert_eq!(payload["domain"], "maenifold.gate");
+    assert_eq!(payload["command"], "gate_Status");
+    assert_eq!(payload["parameters"], json!({}));
+    assert!(!invocation.args.iter().any(|arg| arg == "--json"));
+}
+
+#[test]
+fn supervisor_uses_acpexec_when_mcp_action_absent() {
+    let invocation = build_invocation(&task(), None).expect("acp invocation");
+
+    assert_eq!(invocation.tool_name, "AcpExec");
+    assert!(invocation.args.iter().any(|arg| arg == "AcpExec"));
+    assert!(invocation.args.iter().any(|arg| arg == "--json"));
+}
+
+#[test]
+fn parameters_omitted_treated_as_empty_object() {
+    let mut task = task();
+    task.mcp_action = Some("maenifold.gate.gate_Status".to_string());
+    task.mcp_parameters = None;
+    let invocation = build_invocation(&task, None).expect("mcp invocation");
+    let payload: Value = serde_json::from_str(&invocation.payload).expect("json payload");
+
+    assert_eq!(payload["parameters"], json!({}));
 }

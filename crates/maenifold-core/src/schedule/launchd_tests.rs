@@ -12,6 +12,8 @@ fn task(schedule: &str) -> ScheduledTask {
         workdir: None,
         auto_grant_permissions: false,
         allowed_tools: Vec::new(),
+        mcp_action: None,
+        mcp_parameters: None,
         timeout_seconds: 300,
         enabled: true,
         created_at: Utc::now(),

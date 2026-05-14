@@ -31,7 +31,8 @@ use schedule_crud::create_task_with_bin;
 use schedule_crud::{create_task, delete_task, get_task, list_tasks, run_now, update_task};
 use schedule_helpers::{
     env_allowlist_view, optional_bool, optional_path_buf, optional_string, optional_string_array,
-    optional_u32, reject_enabled_while_paused, resolve_maenifold_bin, schedule_store, task_value,
+    optional_u32, optional_value, reject_enabled_while_paused, resolve_maenifold_bin,
+    schedule_store, task_value, validate_mcp_action,
 };
 use schedule_validation::{preview_schedule, validate_and_parse_schedule, verify_installed_action};
 

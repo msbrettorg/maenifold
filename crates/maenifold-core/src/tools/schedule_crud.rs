@@ -1,7 +1,8 @@
 use super::{
     ToolContext, env_allowlist_view, optional_bool, optional_path_buf, optional_string,
-    optional_string_array, optional_u32, reject_enabled_while_paused, render, required_string,
-    resolve_maenifold_bin, schedule_store, task_value, validate_and_parse_schedule,
+    optional_string_array, optional_u32, optional_value, reject_enabled_while_paused, render,
+    required_string, resolve_maenifold_bin, schedule_store, task_value,
+    validate_and_parse_schedule, validate_mcp_action,
 };
 use crate::error::{MaenifoldError, Result};
 use crate::schedule::{ScheduledTask, Supervisor};
@@ -32,6 +33,8 @@ pub(super) fn create_task_with_bin(
         workdir: optional_path_buf(payload, "workdir")?,
         auto_grant_permissions: optional_bool(payload, "auto_grant_permissions")?.unwrap_or(false),
         allowed_tools: optional_string_array(payload, "allowed_tools")?.unwrap_or_default(),
+        mcp_action: optional_string(payload, "mcp_action")?,
+        mcp_parameters: optional_value(payload, "mcp_parameters")?,
         timeout_seconds: optional_u32(payload, "timeout_seconds")?.unwrap_or(300),
         enabled: optional_bool(payload, "enabled")?.unwrap_or(true),
         created_at: Utc::now(),
@@ -44,6 +47,7 @@ pub(super) fn create_task_with_bin(
             "scheduled task '{id}' already exists"
         )));
     }
+    validate_mcp_action(task.mcp_action.as_deref(), task.mcp_parameters.as_ref())?;
     reject_enabled_while_paused(context, task.enabled)?;
     if task.enabled {
         super::schedule_os::sync_os_scheduler(&task, bin)?;
@@ -98,9 +102,24 @@ pub(super) fn update_task(context: &ToolContext, payload: &Value) -> Result<Stri
     if let Some(allowed_tools) = optional_string_array(payload, "allowed_tools")? {
         task.allowed_tools = allowed_tools;
     }
+    if payload.get("mcp_action").is_some() {
+        if payload.get("mcp_action").is_some_and(Value::is_null) {
+            task.mcp_action = None;
+            task.mcp_parameters = None;
+        } else {
+            task.mcp_action = optional_string(payload, "mcp_action")?;
+        }
+    }
+    if payload.get("mcp_parameters").is_some() {
+        task.mcp_parameters = match optional_value(payload, "mcp_parameters")? {
+            Some(value) if value.is_null() => None,
+            value => value,
+        };
+    }
     if let Some(description) = optional_string(payload, "description")? {
         task.name = description;
     }
+    validate_mcp_action(task.mcp_action.as_deref(), task.mcp_parameters.as_ref())?;
     reject_enabled_while_paused(context, task.enabled)?;
     store
         .update(&task)

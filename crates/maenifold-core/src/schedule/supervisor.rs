@@ -1,9 +1,11 @@
 use super::{
-    env_allowlist::{default_allowlist, matches},
     LockGuard, RunRecord, RunStatus, ScheduleStore, ScheduledTask,
+    env_allowlist::{default_allowlist, matches},
 };
 use anyhow::{Context, Result};
 use chrono::Utc;
+#[path = "supervisor_mcp.rs"]
+mod supervisor_mcp;
 use serde_json::json;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
@@ -13,6 +15,9 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
+use supervisor_mcp::build_invocation;
+#[cfg(test)]
+use supervisor_mcp::parse_mcp_action;
 use tracing::info;
 
 #[cfg(test)]
@@ -111,13 +116,20 @@ impl Supervisor {
                     .join(dir),
             ),
         };
-        let payload = build_payload(task, workdir.as_deref())?;
+        let invocation = build_invocation(task, workdir.as_deref())?;
+        let json_suffix = if invocation.args.iter().any(|arg| arg == "--json") {
+            " --json"
+        } else {
+            ""
+        };
         writeln!(
             log_file,
-            "started_at={} command={} tool AcpExec {} --json",
+            "started_at={} command={} tool {} {}{}",
             Utc::now().to_rfc3339(),
             self.maenifold_bin.display(),
-            payload
+            invocation.tool_name,
+            invocation.payload,
+            json_suffix
         )
         .with_context(|| format!("failed to write log header '{}'", log_path.display()))?;
         log_file
@@ -134,13 +146,7 @@ impl Supervisor {
                 .with_context(|| format!("failed to clone log file '{}'", log_path.display()))?,
         );
         let mut command = Command::new(&self.maenifold_bin);
-        command
-            .arg("tool")
-            .arg("AcpExec")
-            .arg(&payload)
-            .arg("--json")
-            .stdout(stdout)
-            .stderr(stderr);
+        command.args(&invocation.args).stdout(stdout).stderr(stderr);
         if let Some(dir) = workdir.as_deref() {
             command.current_dir(dir);
         }
@@ -198,7 +204,7 @@ impl Supervisor {
 
 /// T-305.4: scheduled fire-time children must not inherit the daemon's
 /// full launchd/user environment. Re-apply only the explicit allowlist so
-/// API keys, tokens, and SSH agent sockets are stripped before AcpExec.
+/// API keys, tokens, and SSH agent sockets are stripped before scheduled tools.
 fn apply_env_scrub(command: &mut Command) {
     let allowlist = default_allowlist();
     command.env_clear();

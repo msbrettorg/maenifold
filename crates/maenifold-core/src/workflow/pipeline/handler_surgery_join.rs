@@ -8,6 +8,7 @@ use serde_yml::Value as YamlValue;
 use std::collections::{HashMap, HashSet};
 
 use super::super::handler_validation::workflow_node_file;
+use super::super::resource_notifications::emit_pipeline_resource_updated;
 use super::super::session_io::{
     frontmatter_value, node_status_name, read_pipeline_session,
     write_workflow_node_session_with_status,
@@ -81,33 +82,39 @@ pub(super) fn join_pipeline(
         inputs: target_definition.inputs.clone(),
         template_id: None,
     };
-    validate_pipeline(&merged_definition)?;
     let merged_states = target_states.into_iter().chain(source_states).collect();
-    ensure_workflow_sessions(
-        context,
-        target_session_id,
-        &merged_definition,
-        &merged_states,
-    )?;
+    {
+        // asset-store lock — held across validate+write, NOT across resource notification,
+        // NOT while holding a pipeline lease.
+        let _guard = crate::workflow::asset_store::lock_asset_store()?;
+        validate_pipeline(&merged_definition)?;
+        ensure_workflow_sessions(
+            context,
+            target_session_id,
+            &merged_definition,
+            &merged_states,
+        )?;
 
-    target_frontmatter.insert(
-        "definition".to_string(),
-        serde_yml::to_value(&merged_definition)?,
-    );
-    target_frontmatter.insert(
-        "nodeStates".to_string(),
-        serde_yml::to_value(&merged_states)?,
-    );
-    target_frontmatter.insert(
-        "status".to_string(),
-        YamlValue::String(super::super::compute_pipeline_status(&merged_states).to_string()),
-    );
-    write_markdown(
-        &target_uri,
-        Some(&target_frontmatter),
-        &target_content,
-        &context.config,
-    )?;
+        target_frontmatter.insert(
+            "definition".to_string(),
+            serde_yml::to_value(&merged_definition)?,
+        );
+        target_frontmatter.insert(
+            "nodeStates".to_string(),
+            serde_yml::to_value(&merged_states)?,
+        );
+        target_frontmatter.insert(
+            "status".to_string(),
+            YamlValue::String(super::super::compute_pipeline_status(&merged_states).to_string()),
+        );
+        write_markdown(
+            &target_uri,
+            Some(&target_frontmatter),
+            &target_content,
+            &context.config,
+        )?;
+    }
+    emit_pipeline_resource_updated(target_session_id);
 
     let ambient_prompt = target_frontmatter.get("prompt").and_then(YamlValue::as_str);
     let result = build_pipeline_view_result(

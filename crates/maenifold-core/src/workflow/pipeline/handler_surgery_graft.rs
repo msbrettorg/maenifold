@@ -1,5 +1,6 @@
 use crate::assets::AssetManager;
 use crate::error::{MaenifoldError, Result};
+use crate::markdown::write_markdown;
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use petgraph::Direction::Outgoing;
@@ -8,9 +9,10 @@ use serde_yml::Value as YamlValue;
 use std::collections::HashSet;
 
 use super::super::handler_validation::{validate_workflow_node_definitions, workflow_node_file};
+use super::super::resource_notifications::emit_pipeline_resource_updated;
 use super::super::session_io::{
-    allocate_node_session_id, derive_pipeline_node_states, frontmatter_value,
-    persist_pipeline_state_with_status, read_pipeline_session, write_workflow_node_session,
+    allocate_node_session_id, derive_pipeline_node_states, frontmatter_value, read_pipeline_session,
+    write_workflow_node_session,
 };
 use super::super::view::build_pipeline_view_result;
 use super::super::{NodeState, NodeStatus, PipelineDefinition, validate_pipeline};
@@ -41,7 +43,6 @@ pub(super) fn graft_pipeline(
     }
 
     let merged_definition = merge_graft_definition(&definition, &graft)?;
-    validate_workflow_node_definitions(context, &graft.nodes)?;
 
     let mut new_node_files = Vec::with_capacity(graft.nodes.len());
     for node in &graft.nodes {
@@ -67,25 +68,31 @@ pub(super) fn graft_pipeline(
         new_node_files.push(workflow_node_file(node, workflow_session_id));
     }
 
-    frontmatter.insert(
-        "definition".to_string(),
-        serde_yml::to_value(&merged_definition)?,
-    );
-    let status_override = match pipeline_status.as_str() {
-        "paused" | "cancelled" => Some(pipeline_status.as_str()),
-        _ => None,
-    };
-    for node_file in &new_node_files {
-        write_workflow_node_session(context, session_id, node_file)?;
+    {
+        // asset-store lock — held across validate+write, NOT across resource notification,
+        // NOT while holding a pipeline lease.
+        let _guard = crate::workflow::asset_store::lock_asset_store()?;
+        validate_workflow_node_definitions(context, &graft.nodes)?;
+        for node_file in &new_node_files {
+            write_workflow_node_session(context, session_id, node_file)?;
+        }
+        frontmatter.insert(
+            "definition".to_string(),
+            serde_yml::to_value(&merged_definition)?,
+        );
+        frontmatter.insert("nodeStates".to_string(), serde_yml::to_value(&node_states)?);
+        let status = match pipeline_status.as_str() {
+            "paused" | "cancelled" => pipeline_status.clone(),
+            _ => super::super::compute_pipeline_status_with_definition(
+                &merged_definition,
+                &node_states,
+            )
+            .to_string(),
+        };
+        frontmatter.insert("status".to_string(), YamlValue::String(status));
+        write_markdown(&uri, Some(&frontmatter), &pipeline_content, &context.config)?;
     }
-    persist_pipeline_state_with_status(
-        &mut frontmatter,
-        &node_states,
-        status_override,
-        &uri,
-        &pipeline_content,
-        context,
-    )?;
+    emit_pipeline_resource_updated(session_id);
 
     let ambient_prompt = frontmatter.get("prompt").and_then(YamlValue::as_str);
     let result = build_pipeline_view_result(

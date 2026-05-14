@@ -14,6 +14,7 @@ use super::session_io::{frontmatter_value, read_pipeline_session};
 use super::session_io::{
     generate_pipeline_node_session_id, write_pipeline_session, write_workflow_node_session,
 };
+use super::resource_notifications::emit_pipeline_resource_updated;
 use super::view::{view_pipeline_session, view_pipeline_summary_session};
 use super::{NodeState, NodeStatus, PipelineDefinition, compute_ready_set, validate_pipeline};
 pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
@@ -27,7 +28,6 @@ pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<
     let payload_inputs = parse_inputs_payload(payload.get("inputs"))?;
     definition.inputs = merge_pipeline_inputs(definition.inputs.take(), payload_inputs);
     validate_pipeline(&definition)?;
-    validate_workflow_node_definitions(context, &definition.nodes)?;
 
     let max_concurrency = parse_max_concurrency(payload)?;
     let prefix = parse_pipeline_id_prefix(payload)?;
@@ -68,17 +68,24 @@ pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<
     }
 
     let ready = compute_ready_set(&definition, &node_states);
-    write_pipeline_session(
-        context,
-        &pipeline_id,
-        &definition,
-        &node_states_frontmatter,
-        max_concurrency,
-        None,
-    )?;
+    {
+        // asset-store lock — held across validate+write, NOT across resource notification,
+        // NOT while holding a pipeline lease.
+        let _guard = crate::workflow::asset_store::lock_asset_store()?;
+        validate_workflow_node_definitions(context, &definition.nodes)?;
+        write_pipeline_session(
+            context,
+            &pipeline_id,
+            &definition,
+            &node_states_frontmatter,
+            max_concurrency,
+            None,
+        )?;
+    }
     for node_file in &node_files {
         write_workflow_node_session(context, &pipeline_id, node_file)?;
     }
+    emit_pipeline_resource_updated(&pipeline_id);
 
     let result = json!({
         "pipelineId": pipeline_id,

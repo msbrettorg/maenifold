@@ -84,7 +84,6 @@ pub(super) fn write_pipeline_session(
         "# Pipeline Session\n",
         &context.config,
     )?;
-    emit_pipeline_resource_updated(pipeline_id);
     Ok(())
 }
 

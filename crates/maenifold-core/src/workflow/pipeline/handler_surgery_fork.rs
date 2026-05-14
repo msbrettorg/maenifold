@@ -7,8 +7,8 @@ use crate::util::json::{OutputFormat, success};
 use chrono::Utc;
 use serde_yml::Value as YamlValue;
 use std::collections::{BTreeMap, HashMap};
-
 use super::super::handler_validation::workflow_node_file;
+use super::super::resource_notifications::emit_pipeline_resource_updated;
 use super::super::session_io::{
     allocate_node_session_id, frontmatter_value, read_pipeline_session, write_pipeline_session,
     write_workflow_node_session,
@@ -16,13 +16,9 @@ use super::super::session_io::{
 use super::super::view::build_pipeline_view_result;
 use super::super::{NodeState, NodeStatus, PipelineDefinition, validate_pipeline};
 use super::ForkRequest;
-
 #[path = "handler_surgery_fork_helpers.rs"]
 mod helpers;
-use helpers::{
-    collect_fork_predecessor_context, format_predecessor_context_content, reachable_node_ids,
-};
-
+use helpers::{collect_fork_predecessor_context, format_predecessor_context_content, reachable_node_ids};
 #[allow(clippy::too_many_lines)]
 pub(super) fn fork_pipeline(
     context: &ToolContext,
@@ -34,7 +30,6 @@ pub(super) fn fork_pipeline(
         .new_session_id()
         .map(ToOwned::to_owned)
         .unwrap_or_else(|| format!("pipeline-{}", Utc::now().timestamp_millis()));
-
     let new_pipeline_uri = pipeline_session_uri(&new_session_id);
     if file_exists(&new_pipeline_uri, &context.config)? {
         return Err(MaenifoldError::InvalidArgument(format!(
@@ -42,7 +37,6 @@ pub(super) fn fork_pipeline(
             new_session_id
         )));
     }
-
     let (_, frontmatter, _) = read_pipeline_session(context, session_id)?;
     let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
     let graph = definition.build_graph();
@@ -58,7 +52,6 @@ pub(super) fn fork_pipeline(
                 fork.from_node_id()
             ))
         })?;
-
     let reachable = reachable_node_ids(&graph, node_index);
     let node_id_map = reachable
         .iter()
@@ -71,7 +64,9 @@ pub(super) fn fork_pipeline(
         .collect::<HashMap<_, _>>();
     let fork_root_predecessor_context =
         collect_fork_predecessor_context(&graph, &reachable, &source_node_states);
-
+    // asset-store lock — held across source definition copy+write, NOT across resource notification,
+    // NOT while holding a pipeline lease.
+    let asset_store_guard = crate::workflow::asset_store::lock_asset_store()?;
     let forked_definition = PipelineDefinition {
         nodes: definition
             .nodes
@@ -225,7 +220,6 @@ pub(super) fn fork_pipeline(
         template_id: None,
     };
     validate_pipeline(&forked_definition)?;
-
     let mut node_states = HashMap::with_capacity(forked_definition.nodes.len());
     let mut node_states_frontmatter = BTreeMap::new();
     for node in &forked_definition.nodes {
@@ -261,7 +255,6 @@ pub(super) fn fork_pipeline(
             );
         }
     }
-
     for node in &forked_definition.nodes {
         let node_file = workflow_node_file(node, node_states[node.id()].session_id.clone());
         write_workflow_node_session(context, &new_session_id, &node_file)?;
@@ -281,7 +274,6 @@ pub(super) fn fork_pipeline(
             )?;
         }
     }
-
     write_pipeline_session(
         context,
         &new_session_id,
@@ -290,6 +282,8 @@ pub(super) fn fork_pipeline(
         max_concurrency,
         frontmatter.get("prompt").and_then(YamlValue::as_str),
     )?;
+    drop(asset_store_guard);
+    emit_pipeline_resource_updated(&new_session_id);
     let result = build_pipeline_view_result(
         context,
         &new_session_id,

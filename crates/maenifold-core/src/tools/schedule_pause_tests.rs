@@ -8,13 +8,11 @@ fn pause_all_snapshots_prior_enabled() {
     }
     let p = action(&c, "pause_all");
     assert_eq!(p["ok"], true);
-    assert!(
-        schedule_store(&c)
-            .list()
-            .expect("list")
-            .iter()
-            .all(|t| !t.enabled)
-    );
+    assert!(schedule_store(&c)
+        .list()
+        .expect("list")
+        .iter()
+        .all(|t| !t.enabled));
     assert_eq!(
         pause_snapshot(&c),
         BTreeMap::from([
@@ -167,8 +165,12 @@ fn create_rejects_enabled_during_pause() {
     );
     let explicit = schedule(&c, &create_payload("explicit-enabled", true));
     let disabled = schedule(&c, &create_payload("disabled", false));
-    assert!(matches!(implicit, Err(MaenifoldError::InvalidArgument(_))));
-    assert!(matches!(explicit, Err(MaenifoldError::InvalidArgument(_))));
+    assert!(
+        matches!(implicit, Err(MaenifoldError::InvalidArgument(message)) if message.contains("Cannot enable schedule while pause-all is active"))
+    );
+    assert!(
+        matches!(explicit, Err(MaenifoldError::InvalidArgument(message)) if message.contains("Cannot enable schedule while pause-all is active"))
+    );
     assert!(disabled.is_ok());
 }
 #[test]
@@ -186,8 +188,12 @@ fn update_rejects_enabling_during_pause() {
         &json!({"action":"update","id":"beta","description":"still enabled"}),
     );
     let disabled = schedule(&c, &json!({"action":"update","id":"alpha","enabled":false}));
-    assert!(matches!(enable, Err(MaenifoldError::InvalidArgument(_))));
-    assert!(inherit_true.is_err());
+    assert!(
+        matches!(enable, Err(MaenifoldError::InvalidArgument(message)) if message.contains("Cannot enable schedule while pause-all is active"))
+    );
+    assert!(
+        matches!(inherit_true, Err(MaenifoldError::InvalidArgument(message)) if message.contains("Cannot enable schedule while pause-all is active"))
+    );
     assert!(disabled.is_ok());
 }
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]

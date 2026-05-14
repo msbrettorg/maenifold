@@ -1,11 +1,11 @@
-use super::context::{ToolContext, load_help_doc, render, required_string};
+use super::context::{load_help_doc, render, required_string, ToolContext};
 use super::schedule_logs::get_logs;
 use crate::error::{MaenifoldError, Result};
-use crate::schedule::{ParsedSchedule, ScheduleStore, ScheduledTask, Supervisor, parse_schedule};
-use crate::util::json::{OutputFormat, success};
+use crate::schedule::{parse_schedule, ParsedSchedule, ScheduleStore, ScheduledTask, Supervisor};
+use crate::util::json::{success, OutputFormat};
 use chrono::{SecondsFormat, Utc};
 use croner::parser::CronParser;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use tracing::warn;
 
@@ -14,7 +14,9 @@ mod schedule_os;
 #[cfg(test)]
 #[path = "schedule_tests.rs"]
 mod schedule_tests;
-use schedule_os::{is_not_installed_scheduler_error, sync_os_scheduler, uninstall_os_scheduler};
+use schedule_os::{
+    is_not_installed_scheduler_error, sync_os_scheduler, uninstall_os_scheduler, verify_installed,
+};
 
 pub fn schedule(context: &ToolContext, payload: &Value) -> Result<String> {
     if payload
@@ -40,11 +42,41 @@ pub fn schedule(context: &ToolContext, payload: &Value) -> Result<String> {
         "run_now" => run_now(context, payload),
         "logs" => get_logs(context, payload),
         "preview" => preview_schedule(context, payload),
+        "verify_installed" => verify_installed_action(context, payload),
         _ => Err(MaenifoldError::InvalidArgument(format!(
-            "unknown action '{}'. Available: create, update, delete, list, get, run_now, logs, preview",
+            "unknown action '{}'. Available: create, update, delete, list, get, run_now, logs, preview, verify_installed",
             action
         ))),
     }
+}
+
+fn verify_installed_action(context: &ToolContext, payload: &Value) -> Result<String> {
+    let store = schedule_store(context);
+    if let Some(id) = optional_string(payload, "scheduleId")? {
+        let task = store
+            .read(&id)
+            .map_err(|_| MaenifoldError::InvalidArgument(format!("unknown scheduleId '{id}'")))?;
+        let bin = resolve_maenifold_bin()?;
+        return Ok(render(
+            context.output_format,
+            serde_json::to_value(verify_installed(&task, &bin)?)?,
+        ));
+    }
+    let tasks = store
+        .list()
+        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+    if tasks.is_empty() {
+        return Ok(render(context.output_format, json!([])));
+    }
+    let bin = resolve_maenifold_bin()?;
+    let statuses = tasks
+        .into_iter()
+        .map(|task| verify_installed(&task, &bin))
+        .collect::<Result<Vec<_>>>()?;
+    Ok(render(
+        context.output_format,
+        serde_json::to_value(statuses)?,
+    ))
 }
 
 fn preview_schedule(context: &ToolContext, payload: &Value) -> Result<String> {

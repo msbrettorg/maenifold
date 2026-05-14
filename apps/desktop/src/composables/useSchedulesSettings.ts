@@ -5,12 +5,7 @@ import { allowedToolsLabel, parseAllowedTools, permissionLabel, permissionVarian
 import { detectSchedulePlatform } from '@/composables/useSchedulePlatform';
 import { useConfigStore } from '@/stores/config';
 import { useConfirmDialogStore } from '@/stores/confirm-dialog';
-
-interface ScheduleRun {
-  status: string;
-  timestamp: string;
-  error?: string | null;
-}
+import { useSchedulesStore, type ScheduleJob } from '@/stores/schedules';
 
 export interface ScheduleForm {
   id: string;
@@ -23,19 +18,6 @@ export interface ScheduleForm {
   allowedTools: string;
 }
 
-export interface ScheduleJob {
-  id: string;
-  description?: string;
-  schedule: string;
-  schedule_human?: string | null;
-  agent: string;
-  prompt: string;
-  enabled: boolean;
-  auto_grant_permissions: boolean;
-  allowed_tools: string[];
-  last_run?: ScheduleRun | null;
-}
-
 type DialogMode = 'create' | 'edit';
 
 const timestampFormatter = new Intl.DateTimeFormat(undefined, {
@@ -46,6 +28,7 @@ const timestampFormatter = new Intl.DateTimeFormat(undefined, {
 export function useSchedulesSettings() {
   const configStore = useConfigStore();
   const confirmDialogStore = useConfirmDialogStore();
+  const schedulesStore = useSchedulesStore();
   const { agentNames } = storeToRefs(configStore);
   const { callTool, connect, connected } = useMcpClient();
   const jobs = ref<ScheduleJob[]>([]);
@@ -133,6 +116,7 @@ export function useSchedulesSettings() {
       if (!configStore.loading && agentNames.value.length === 0) await configStore.loadConfig();
       await ensureConnected();
       jobs.value = normalizeJobs(await callTool('Schedule', { action: 'list' }));
+      schedulesStore.setInstallStatuses(await callTool('Schedule', { action: 'verify_installed' }));
       ensureDialogAgent();
     } catch (loadError) {
       error.value = loadError instanceof Error ? loadError.message : String(loadError);
@@ -214,6 +198,32 @@ export function useSchedulesSettings() {
     }
   }
 
+  async function repairSchedule(job: ScheduleJob): Promise<void> {
+    actionJobIds.value.add(job.id);
+    error.value = '';
+    statusMessage.value = '';
+    try {
+      await ensureConnected();
+      const result = await callTool<{ message?: string }>('Schedule', {
+        action: 'update',
+        id: job.id,
+        schedule: job.schedule,
+        agent: job.agent,
+        prompt: job.prompt,
+        description: job.description ?? job.id,
+        enabled: job.enabled,
+        auto_grant_permissions: job.auto_grant_permissions,
+        allowed_tools: job.allowed_tools,
+      });
+      statusMessage.value = result?.message ?? `Scheduled task '${job.id}' repaired.`;
+      await loadSchedules();
+    } catch (repairError) {
+      error.value = repairError instanceof Error ? repairError.message : String(repairError);
+    } finally {
+      actionJobIds.value.delete(job.id);
+    }
+  }
+
   async function deleteSchedule(job: ScheduleJob): Promise<void> {
     const confirmed = await confirmDialogStore.confirm(
       `Delete schedule "${job.id}"?`,
@@ -247,6 +257,7 @@ export function useSchedulesSettings() {
     isLoading,
     isSubmitting,
     isActionInProgress,
+    installStatusFor: schedulesStore.installStatusFor,
     error,
     statusMessage,
     dialogOpen,
@@ -259,6 +270,7 @@ export function useSchedulesSettings() {
     schedulePlatform,
     scheduleLabel,
     statusFor,
+    installBadgeFor: schedulesStore.installBadgeFor,
     permissionLabel,
     permissionVariant,
     allowedToolsLabel,
@@ -268,6 +280,7 @@ export function useSchedulesSettings() {
     openEditDialog,
     saveSchedule,
     runSchedule,
+    repairSchedule,
     deleteSchedule,
   };
 }

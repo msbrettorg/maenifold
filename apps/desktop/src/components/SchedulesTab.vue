@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { History, Loader2, Pencil, Play, Plus, RefreshCw, Trash2 } from 'lucide-vue-next';
+import { History, Loader2, Pencil, Play, Plus, RefreshCw, Trash2, Wrench } from 'lucide-vue-next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,6 +22,7 @@ const {
   isLoading,
   isSubmitting,
   isActionInProgress,
+  installStatusFor,
   error,
   statusMessage,
   dialogOpen,
@@ -34,6 +35,7 @@ const {
   schedulePlatform,
   scheduleLabel,
   statusFor,
+  installBadgeFor,
   permissionLabel,
   permissionVariant,
   allowedToolsLabel,
@@ -43,6 +45,7 @@ const {
   openEditDialog,
   saveSchedule,
   runSchedule,
+  repairSchedule,
   deleteSchedule,
 } = useSchedulesSettings();
 
@@ -104,6 +107,7 @@ function openRunsDrawer(id: string): void {
             <TableHead>Agent</TableHead>
             <TableHead>Permissions</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Install state</TableHead>
             <TableHead>Last run</TableHead>
             <TableHead class="text-right">Actions</TableHead>
           </TableRow>
@@ -120,6 +124,11 @@ function openRunsDrawer(id: string): void {
               </div>
             </TableCell>
             <TableCell><Badge :variant="statusFor(job).variant">{{ statusFor(job).label }}</Badge></TableCell>
+            <TableCell>
+              <Badge :variant="installBadgeFor(job).variant" :class="installBadgeFor(job).class">
+                {{ installBadgeFor(job).label }}
+              </Badge>
+            </TableCell>
             <TableCell class="max-w-[18rem] text-sm text-muted-foreground">
               <div>{{ formatLastRun(job.last_run?.timestamp) }}</div>
               <p v-if="job.last_run?.error" class="mt-1 text-xs text-destructive">{{ job.last_run.error }}</p>
@@ -134,6 +143,11 @@ function openRunsDrawer(id: string): void {
                   <Loader2 v-if="isActionInProgress(job.id)" class="h-3.5 w-3.5 animate-spin" />
                   <Play v-else class="h-3.5 w-3.5" />
                   Run now
+                </Button>
+                <Button v-if="installStatusFor(job)?.discrepancy === true" type="button" variant="outline" size="sm" :disabled="isActionInProgress(job.id) || isSubmitting" @click="repairSchedule(job)">
+                  <Loader2 v-if="isActionInProgress(job.id)" class="h-3.5 w-3.5 animate-spin" />
+                  <Wrench v-else class="h-3.5 w-3.5" />
+                  Repair
                 </Button>
                 <Button type="button" variant="outline" size="sm" :disabled="isSubmitting" @click="openRunsDrawer(job.id)">
                   <History class="h-3.5 w-3.5" />

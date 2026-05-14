@@ -2895,3 +2895,29 @@ The rollback heuristic (`exit_code != 0 → revert`) does not distinguish betwee
 8. **NEW (iter-N+3):** For investigation tasks (where the spec says "identify root cause + fix or document"), dispatch blue-team to DEFINE the harness from source reading without execution; SWE then actuates the fix; PM independently re-runs the smoke. Three-layer confirmation pattern.
 9. **NEW (iter-N+3):** When a spec has open architectural questions (Approach A vs B vs C), the rubber-duck/duo review IS the right place to resolve — PM authoring + 2-reviewer duo gives multiple expert eyes BEFORE SWE wastes cycles. Wave-boundary duo on slc tasks is non-negotiable.
 10. **NEW (iter-N+3):** When deferring a half-complete review, RECORD the deferral status explicitly in the spec body AND in gate_Append notes — what's done, what's pending, what next iter must do. T-303.18.3 has both. This makes pickup unambiguous.
+
+## 2026-05-13 — RALPH iter (T-303.4.27 + follow-ups)
+
+### What shipped
+- **T-303.4.27** (P3, tdd) — worktree-create.sh idempotently appends `/todo` and `/done` (anchored, slash-less) to common-dir `.git/info/exclude` so the symlinks stop showing as untracked. Tests extended 11→16. Branch worker-T-303.4.27 (commit 3b1257976), merged at 5a22b90c7.
+- Filed P3 follow-ups: **T-303.4.28** (stale-lock recovery via SIGTERM/INT trap) and **T-303.4.29** (nested-worktree when run from inside an existing worktree — `git rev-parse --show-toplevel` returns the wrong root).
+
+### Lessons appended
+
+51. **Per-worktree `.git/info/exclude` is a phantom feature in current git.** Per gitrepository-layout(5): "info — This directory is ignored if $GIT_COMMON_DIR is set and $GIT_COMMON_DIR/info will be used instead." Empirically confirmed on git 2.53.0 in clean isolated test repo. The spec for T-303.4.27 originally recommended writing per-worktree `.git/worktrees/<name>/info/exclude` — that path is silently ignored. Only common-dir `.git/info/exclude` is read by `git status` / `git ls-files --exclude-standard`. Standing rule: when a spec recommends a fix mechanism, PM should empirically reproduce it BEFORE dispatching SWE. Five minutes of `mkdir wt-test; git init; git worktree add ...; touch x; mkdir -p .git/worktrees/wt/info; echo x > .git/worktrees/wt/info/exclude; git status` saves a wasted SWE iteration.
+
+52. **Anchored slash-less patterns in `.git/info/exclude` are safe even when the same name exists as a directory in the main repo.** `/todo` (no trailing slash, root-anchored) matches `todo` as either a file/symlink OR a directory at the repo root. For T-303.4.27 the main repo's tracked `.gitignore` already has `todo/` (matches dir) — adding `/todo` to common info/exclude doesn't change main repo behavior (already ignored as dir) but DOES start matching the worktree symlinks. Standing pattern for "ignore both dirs and symlinks at the same root path": anchored, slash-less.
+
+53. **mkdir-lockfile is a portable atomic lock primitive.** `mkdir` is atomic per POSIX. Using `mkdir "${file}.lock"` as a lock acquire (with `rmdir` on release) works on macOS BSD AND GNU coreutils without depending on `flock(1)` (which isn't shipped on macOS). For T-303.4.27 we used a 5s busy-wait (50 × 0.1s sleep). Limitation: stale locks survive SIGKILL — manual `rmdir` recovery required (filed T-303.4.28 for trap INT/TERM/HUP improvement).
+
+54. **Subshell `set -euo pipefail` propagation works as expected.** Wrapping lock-protected logic in `(...)` subshell with `trap cleanup EXIT` reliably releases the lock on `set -e` aborts AND on normal exits. Verified empirically by red-team. Caveat: SIGTERM/SIGINT need EXPLICIT trap; raw EXIT trap does NOT fire on signals.
+
+55. **PM amendment of an in-progress spec is a normal PM operation.** When empirical investigation reveals the spec's recommended fix doesn't actually work, the PM amends the spec body (in `todo/T-XXX.md`) BEFORE dispatching the next stage. Annotate with "PM amendment <date>" and explain why. T-303.4.27 had Fix #1 swapped from "per-worktree exclude" to "common-dir exclude with anchored patterns" via inline edit + new acceptance criteria. SWE then dispatched against the amended spec, not the original. Standing rule: if you find the spec is wrong, FIX THE SPEC FIRST, then dispatch — don't expect the SWE to figure it out from confused instructions.
+
+56. **TDD blue-team fail-fast is fine — let SWE prove the rest.** Blue-team's verification run will hit `fail` on the first new failing assertion and stop. Tests 13-16 may not be exercised during blue stage — that's expected. SWE makes test 12 pass, which then allows tests 13-16 to run. Don't request blue-team rework just because later tests weren't exercised; the design IS fail-fast.
+
+### Pre-flight refinement for next iter (T-303.4.28 / T-303.4.29 / T-303.18.3)
+
+11. **NEW (this iter):** Before recommending a git mechanism in a spec, empirically reproduce it in `/tmp/wt-test/`. Per-worktree info/exclude phantom (lesson 51) cost 5 minutes to verify; would have cost a full SWE iteration if dispatched without verification.
+12. **NEW (this iter):** When a fix touches the worktree-create script itself, the worktree used to test the fix was created with the OLD script — so the worktree under test still shows the bug. The TEST creates fresh worktrees with the NEW script and asserts on those. This is correct TDD — don't be confused that the testing-worktree itself shows the bug.
+13. **NEW (this iter):** Co-located follow-up filings: when SWE/red-team confession surfaces a real concern that's out of scope for the current task, file it as a NEW task in the same sprint (next free `<parent>.<n>` ID) immediately after passing the parent. T-303.4.28 and T-303.4.29 were filed in this iter with reproduction steps, fix candidates, and acceptance criteria already drafted from the SWE/red-team disclosures — saves a future iter from re-discovering.

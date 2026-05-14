@@ -1,8 +1,9 @@
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { nextTick } from 'vue';
 import MarkdownView from '../MarkdownView.vue';
+import { useAppShellStore } from '../../stores/app-shell';
 import { useKnowledgeStore } from '../../stores/knowledge';
 import { getMarkdownIt } from '../../composables/useMarkdownIt';
 
@@ -280,6 +281,62 @@ describe('MarkdownView rendering regression coverage', () => {
       const store = useKnowledgeStore();
       expect(store.activeTabUri).toBe('memory://Shared Concept');
       expect(store.openTabs).toContain('memory://Shared Concept');
+      wrapper.unmount();
+    });
+
+
+    it('memory URI markdown link opens the note and switches to Knowledge', async () => {
+      const wrapper = await mountMarkdown('[Open memory](memory://foo)');
+      const knowledgeStore = useKnowledgeStore();
+      const appShellStore = useAppShellStore();
+      const openNote = vi.spyOn(knowledgeStore, 'openNote');
+      const setActiveTab = vi.spyOn(appShellStore, 'setActiveTab');
+
+      await wrapper.find('a[href="memory://foo"]').trigger('click');
+
+      expect(openNote).toHaveBeenCalledWith('memory://foo');
+      expect(setActiveTab).toHaveBeenCalledWith('knowledge');
+      wrapper.unmount();
+    });
+
+    it('cmd-click memory URI markdown link opens the note in a new Knowledge tab', async () => {
+      const wrapper = await mountMarkdown('[Open memory](memory://foo)');
+      const knowledgeStore = useKnowledgeStore();
+      const appShellStore = useAppShellStore();
+      const openNote = vi.spyOn(knowledgeStore, 'openNote');
+      const openInNewTab = vi.spyOn(knowledgeStore, 'openInNewTab');
+      const setActiveTab = vi.spyOn(appShellStore, 'setActiveTab');
+
+      await wrapper.find('a[href="memory://foo"]').trigger('click', { metaKey: true });
+
+      expect(openInNewTab).toHaveBeenCalledWith('memory://foo');
+      expect(openNote).not.toHaveBeenCalled();
+      expect(setActiveTab).toHaveBeenCalledWith('knowledge');
+      wrapper.unmount();
+    });
+
+    it('external markdown link does not route through the Knowledge store', async () => {
+      const wrapper = await mountMarkdown('[External](https://example.com)');
+      const knowledgeStore = useKnowledgeStore();
+      const appShellStore = useAppShellStore();
+      const openNote = vi.spyOn(knowledgeStore, 'openNote');
+      const openInNewTab = vi.spyOn(knowledgeStore, 'openInNewTab');
+      const setActiveTab = vi.spyOn(appShellStore, 'setActiveTab');
+
+      await wrapper.find('a[href="https://example.com"]').trigger('click');
+
+      expect(openNote).not.toHaveBeenCalled();
+      expect(openInNewTab).not.toHaveBeenCalled();
+      expect(setActiveTab).not.toHaveBeenCalled();
+      wrapper.unmount();
+    });
+
+    it('DOMPurify preserves explicit memory URI markdown links', async () => {
+      const wrapper = await mountMarkdown('[Memory link](memory://foo/bar)');
+      const link = wrapper.find('a[href="memory://foo/bar"]');
+
+      expect(link.exists()).toBe(true);
+      expect(link.attributes('href')).toBe('memory://foo/bar');
       wrapper.unmount();
     });
 

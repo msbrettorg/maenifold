@@ -36,6 +36,33 @@ This document is the authoritative implementation spec for the native `maenifold
   - `gsd`
   - `lightweight`
 
+## Mental Model
+
+- `todo/` is the active backlog.
+- `done/` is the archive of completed task files.
+- Markdown task files are authoritative; `gate.db` is only a rebuildable read model.
+- Pipeline state still comes from the bound state machine and canonical stage records.
+- `pending` is a dispatch state, not a terminal work stage.
+- The only legal state-machine outcomes remain `pass` and `fail`.
+- A task can be terminally unavailable for dispatch without changing the pipeline JSON by setting frontmatter `blocked: true`.
+- Frontmatter `blocked: true` is an operator-authored task semantic, not a state-machine outcome. `gate_Status` reports that task with `state: "blocked"` regardless of its replayed pipeline stage and excludes it from `gate_Status ready=true`.
+- Optional frontmatter `blocked_reason: <text>` records the free-form reason, and `superseded_by: [T-XXX.Y]` names replacement task IDs when applicable. `gate_Status` surfaces these fields as `blocked_reason` and `superseded_by`.
+- Rejected design: adding a `blocked` outcome to every state machine would require changing built-in and runtime process JSON, create a new event alongside `PASS`/`FAIL`, and force archive migration pressure. The frontmatter flag keeps `schemaVersion` unchanged and preserves the "markdown is authoritative, cache is rebuildable" rule.
+
+### How to mark a task blocked
+
+1. Use `gate_Append` to record the current-stage rationale if operator notes are needed.
+2. Edit only the task markdown frontmatter in `todo/` and add:
+
+   ```yaml
+   blocked: true
+   blocked_reason: waiting on user authorization
+   superseded_by: [T-309.7]
+   ```
+
+3. Run `gate_Sync` with `rebuild: true` so the cache reflects the authoritative markdown.
+4. Confirm `gate_Status` includes the task as `state: "blocked"` and `gate_Status ready=true` omits it.
+
 ## Architectural Rules
 
 - `lifecycle.rs` owns the reusable gate command lifecycle
@@ -503,6 +530,9 @@ The Gateway command adapter lives outside this crate at `crates/maenifold-core/s
 - Parse frontmatter `title`
 - Parse frontmatter `pipeline`
 - Parse frontmatter `status`
+- Parse frontmatter `blocked`, defaulting to `false`
+- Parse optional frontmatter `blocked_reason`
+- Parse optional frontmatter `superseded_by`
 - Parse canonical frontmatter `sessionId` (with low-cost legacy alias support when present)
 - Parse title
 - Parse `Pipeline`

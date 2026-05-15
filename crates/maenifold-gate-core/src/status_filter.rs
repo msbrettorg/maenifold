@@ -114,4 +114,20 @@ mod tests {
         assert!(filter.matches(&json!({ "state": "pending", "blockedBy": ["T-1"] })));
         assert!(!filter.matches(&json!({ "state": "pending", "blockedBy": [] })));
     }
+
+    #[test]
+    fn ready_only_excludes_frontmatter_blocked_rows() {
+        let filter = StatusFilter {
+            state: None,
+            ready_only: true,
+            blocked_only: false,
+            include_done: false,
+        };
+        assert!(!filter.matches(&json!({
+            "ready": false,
+            "state": "blocked",
+            "blocked": true,
+            "location": "todo"
+        })));
+    }
 }

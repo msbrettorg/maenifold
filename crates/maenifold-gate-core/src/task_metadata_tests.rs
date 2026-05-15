@@ -65,9 +65,32 @@ fn parses_depends_on_string_list_alias_and_dedups() {
 }
 
 #[test]
+fn parses_blocked_frontmatter_fields() {
+    let metadata = parse_yaml(
+        "---\nid: T-309.7\ntitle: blocked task\npipeline: gsd\nblocked: true\nblocked_reason: waiting on user authorization\nsuperseded_by: [T-309.8, T-309.9]\n---",
+    );
+    assert!(metadata.blocked);
+    assert_eq!(
+        metadata.blocked_reason.as_deref(),
+        Some("waiting on user authorization")
+    );
+    assert_eq!(
+        metadata.superseded_by,
+        Some(vec!["T-309.8".to_string(), "T-309.9".to_string()])
+    );
+}
+
+#[test]
+fn missing_blocked_frontmatter_defaults_to_open_task() {
+    let metadata = parse_yaml("---\nid: T-309.7\ntitle: open task\npipeline: gsd\n---");
+    assert!(!metadata.blocked);
+    assert_eq!(metadata.blocked_reason, None);
+    assert_eq!(metadata.superseded_by, None);
+}
+
+#[test]
 fn rejects_self_dependency() {
-    let yaml =
-        "---\nid: T-1.1\ntitle: self dep\npipeline: sdd\ndepends_on: [T-0.1, T-1.1]\n---";
+    let yaml = "---\nid: T-1.1\ntitle: self dep\npipeline: sdd\ndepends_on: [T-0.1, T-1.1]\n---";
     let lines: Vec<_> = yaml.lines().collect();
     let error = TaskMetadataParser::parse(&lines).expect_err("self dependency should fail");
     assert!(error.to_string().contains("task depends on itself"));
@@ -83,8 +106,7 @@ fn missing_priority_yields_none() {
 
 #[test]
 fn valid_priority_p0_is_parsed() {
-    let metadata =
-        parse_yaml("---\nid: T-250.1\ntitle: task\npipeline: sdd\npriority: P0\n---");
+    let metadata = parse_yaml("---\nid: T-250.1\ntitle: task\npipeline: sdd\npriority: P0\n---");
     assert_eq!(metadata.priority.as_deref(), Some("P0"));
 }
 
@@ -107,8 +129,7 @@ fn missing_sprint_yields_none() {
 
 #[test]
 fn valid_sprint_243_is_parsed() {
-    let metadata =
-        parse_yaml("---\nid: T-250.1\ntitle: task\npipeline: sdd\nsprint: 243\n---");
+    let metadata = parse_yaml("---\nid: T-250.1\ntitle: task\npipeline: sdd\nsprint: 243\n---");
     assert_eq!(metadata.sprint, Some(243));
 }
 

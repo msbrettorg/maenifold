@@ -121,17 +121,31 @@ pub(super) fn status_row(
     let document = TaskRepository::read_task_document(root, task)?;
     let definition = resolve_definition_for_task(root, &document.metadata, requested_pipeline)?;
     let effective = TaskStatusDeriver::derive(&document, &definition, &task.location)?;
-    let last_updated = document.records.iter().map(|r| r.recorded_at.as_str()).max();
+    let last_updated = document
+        .records
+        .iter()
+        .map(|r| r.recorded_at.as_str())
+        .max();
+    let state = if document.metadata.blocked {
+        "blocked".to_string()
+    } else {
+        effective.state.clone()
+    };
+    let ready = task.location == "todo" && state == "pending";
     Ok(json!({
         "taskId": task.task_id,
         "canonicalTaskId": document.metadata.id,
         "title": document.metadata.title,
         "pipeline": document.metadata.pipeline,
-        "state": effective.state,
+        "state": state,
         "stages": definition.ordered_stage_ids()?,
         "attempts": effective.attempts,
         "location": task.location,
         "path": task.path,
+        "ready": ready,
+        "blocked": document.metadata.blocked,
+        "blocked_reason": document.metadata.blocked_reason,
+        "superseded_by": document.metadata.superseded_by,
         "linked": is_linked_session_id(document.metadata.session_id.as_deref()),
         "issue": "",
         "priority": document.metadata.priority,

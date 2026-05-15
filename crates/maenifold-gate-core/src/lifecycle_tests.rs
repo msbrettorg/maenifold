@@ -250,11 +250,15 @@ fn status_without_summary_keeps_full_task_rows() {
         .as_object()
         .expect("object");
 
-    assert_eq!(row.len(), 14);
+    assert_eq!(row.len(), 18);
     assert!(row.contains_key("title"));
     assert!(row.contains_key("path"));
     assert!(row.contains_key("stages"));
     assert!(row.contains_key("pipeline"));
+    assert!(row.contains_key("ready"));
+    assert!(row.contains_key("blocked"));
+    assert!(row.contains_key("blocked_reason"));
+    assert!(row.contains_key("superseded_by"));
 }
 
 fn context(root: &Path) -> GateContext {

@@ -35,6 +35,7 @@ function isTransientResumeTransportError(error: unknown, bridge: AcpClientBridge
   const message = error instanceof Error ? error.message : String(error);
   return bridge.isTransportClosed()
     || message.includes('ACP connection closed')
+    || message.includes('ACP client disconnected before response')
     || message.includes('ACP agent terminated before responding')
     || message.includes('ACP relay socket is not connected');
 }

@@ -182,6 +182,35 @@ describe('useSessionStore reconnect flow', () => {
     expect(store.error).toBeNull();
   });
 
+  it('retries when reconnect cleanup disconnects the first ACP load before response', async () => {
+    mockBridge.loadSession
+      .mockRejectedValueOnce(new Error('ACP client disconnected before response (Copilot)'))
+      .mockResolvedValueOnce({});
+
+    const store = useSessionStore();
+    store.savedSessions = [
+      {
+        id: 'saved-remote',
+        agentName: 'Copilot',
+        sessionId: 'acp-remote-resume',
+        title: 'Resumable session',
+        lastUpdated: Date.now(),
+        cwd: '/repo',
+        supportsLoadSession: true,
+      },
+    ];
+
+    const result = await store.focusOrResumeRemoteSession('acp-remote-resume');
+
+    expect(result.status).toBe('resumed');
+    expect(store.activeSessionId).toBe(result.localSessionId);
+    expect(store.currentSession?.sessionId).toBe('acp-remote-resume');
+    expect(mockBridge.initialize).toHaveBeenCalledTimes(2);
+    expect(mockBridge.loadSession).toHaveBeenCalledTimes(2);
+    expect(mockBridge.disconnect).toHaveBeenCalledTimes(1);
+    expect(store.error).toBeNull();
+  });
+
   it('does not refresh the session list after session/load reconnect succeeds', async () => {
     mockBridge.initialize.mockResolvedValueOnce({
       protocolVersion: 1,

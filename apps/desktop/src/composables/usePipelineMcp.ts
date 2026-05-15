@@ -82,6 +82,22 @@ export function usePipelineMcp(baseUrl?: string) {
     });
   }
 
+  function updatePipeline(
+    sessionId: string,
+    definition: PipelineDefinition,
+    options: PipelineCreateOptions = {},
+  ) {
+    const name = options.name?.trim();
+    const description = options.description?.trim();
+    return callPipeline({
+      sessionId,
+      definition,
+      ...(name ? { name } : {}),
+      ...(description ? { description } : {}),
+      update: true,
+    });
+  }
+
   function viewPipeline(sessionId: string): Promise<PipelineView> {
     return callPipeline<PipelineView>({ sessionId, view: true });
   }
@@ -190,6 +206,7 @@ export function usePipelineMcp(baseUrl?: string) {
     callPipeline,
     listPipelines,
     createPipeline,
+    updatePipeline,
     viewPipeline,
     runPipeline,
     pausePipeline,

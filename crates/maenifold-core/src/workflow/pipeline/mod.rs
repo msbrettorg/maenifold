@@ -79,6 +79,9 @@ mod handler_lifecycle;
 mod handler_list_lineage;
 mod handler_nodes;
 mod handler_surgery;
+mod handler_update;
+#[cfg(test)]
+mod handler_update_t301_26_tests;
 mod handler_validation;
 mod handler_wait;
 #[cfg(test)]

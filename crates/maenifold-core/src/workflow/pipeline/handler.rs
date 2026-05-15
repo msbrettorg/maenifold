@@ -10,6 +10,7 @@ use super::handler_crud::{
 use super::handler_lifecycle::handle_lifecycle_operation;
 use super::handler_nodes::handle_node_operation;
 use super::handler_surgery::handle_surgery_operation;
+use super::handler_update::update_pipeline;
 use super::handler_wait::{await_terminal, parse_timeout_ms, wait_requested};
 use super::quarantine::restore_pipeline_from_quarantine;
 
@@ -42,6 +43,15 @@ pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
         let session_id = normalize_pipeline_session_id(session_id)?;
         if let Some(result) = handle_surgery_operation(context, &session_id, payload)? {
             return Ok(result);
+        }
+
+        if payload.get("definition").is_some()
+            && payload
+                .get("update")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+        {
+            return update_pipeline(context, &session_id, payload);
         }
 
         if payload

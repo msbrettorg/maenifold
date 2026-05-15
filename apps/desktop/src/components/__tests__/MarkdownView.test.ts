@@ -393,6 +393,31 @@ describe('MarkdownView rendering regression coverage', () => {
       wrapper.unmount();
     });
 
+    it('limits post-render WikiLink existence checks to four in flight', async () => {
+      let inFlight = 0;
+      let maxInFlight = 0;
+      memoryApi.readMemory.mockClear();
+      memoryApi.readMemory.mockImplementation(async () => {
+        inFlight += 1;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        await new Promise((resolve) => window.setTimeout(resolve, 10));
+        inFlight -= 1;
+        throw new Error('not found');
+      });
+
+      const content = Array.from({ length: 12 }, (_unused, index) => `[[Concept${index}]]`).join(' ');
+      const wrapper = await mountMarkdown(content);
+      const chips = wrapper.findAll('[data-wikilink]');
+
+      expect(memoryApi.readMemory).toHaveBeenCalledTimes(12);
+      expect(maxInFlight).toBeLessThanOrEqual(4);
+      expect(chips).toHaveLength(12);
+      for (const chip of chips) {
+        expect(chip.attributes('data-unresolved')).toBe('true');
+      }
+      wrapper.unmount();
+    });
+
     it('syntax highlighted code fence still renders', async () => {
       const wrapper = await mountMarkdown('```ts\nconst answer: number = 42;\n```');
 

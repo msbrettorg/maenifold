@@ -4,6 +4,16 @@ export interface PipelineEnvelope<T> {
   error?: unknown;
 }
 
+export class ToolEnvelopeError extends Error {
+  constructor(
+    public readonly code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ToolEnvelopeError';
+  }
+}
+
 function isPipelineEnvelope(value: unknown): value is PipelineEnvelope<unknown> {
   return (
     typeof value === 'object' &&
@@ -34,12 +44,30 @@ function getEnvelopeErrorMessage(error: unknown): string {
   }
 }
 
+function getEnvelopeErrorRecord(error: unknown): { code: string; message: string } | null {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    typeof (error as { code?: unknown }).code === 'string'
+  ) {
+    return {
+      code: (error as { code: string }).code,
+      message: getEnvelopeErrorMessage((error as { message?: unknown }).message ?? error),
+    };
+  }
+  return null;
+}
+
 export function unwrapEnvelope<T>(result: unknown): T {
   if (!isPipelineEnvelope(result)) {
     return result as T;
   }
 
   if (!result.success) {
+    const errorRecord = getEnvelopeErrorRecord(result.error);
+    if (errorRecord) {
+      throw new ToolEnvelopeError(errorRecord.code, errorRecord.message);
+    }
     throw new Error(getEnvelopeErrorMessage(result.error));
   }
 

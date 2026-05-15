@@ -59,6 +59,47 @@ Before completing any task, verify:
 - No obvious bugs or edge cases missed
 - Changes are minimal and focused (no scope creep)
 
+## Pre-flight edge case enumeration
+
+T-244.110 is the trigger for this rule: the `terminalId` predicate took four SWE attempts because each review round found one more edge case for the same shape-routing decision. Do the edge-case sweep before declaring done so the task does not ratchet one missed discriminator case at a time.
+
+For any predicate, discriminator, or shape-routing function you write or modify during the task, you MUST complete this self-check before declaring done:
+
+1. **Step 1.** List every possible "absent" or "malformed" value the field could take that should route to the negative branch.
+2. **Step 2.** For each case, name which branch the code actually routes it to.
+3. **Step 3.** If any case is unhandled or routes to an empty/blank render or wrong branch, fix it before declaring done.
+
+Apply these absent-value matrices as required checklists:
+
+- **String fields:** undefined, null, empty `""`, whitespace `"   "`, `"\t"`, `"\n"`, only-noise (e.g., literal `"undefined"`).
+- **Union types:** every spec-defined sub-shape + malformed (no recognized sub-shape).
+- **Numeric fields:** undefined, null, NaN, Infinity, negative, zero.
+- **Arrays:** undefined, null, empty `[]`, single-item.
+
+Worked example A — string-field absent matrix for a `terminalId: string` predicate:
+
+| Case | Actual branch to name during the self-check |
+|------|---------------------------------------------|
+| `undefined` | Negative branch: no terminal session |
+| `null` | Negative branch: no terminal session |
+| `""` | Negative branch: no terminal session |
+| `"   "` | Negative branch: no terminal session |
+| `"\t"` | Negative branch: no terminal session |
+| `"\n"` | Negative branch: no terminal session |
+| `"undefined"` | Negative branch: no terminal session |
+| `"term-123"` | Positive branch: terminal session present |
+
+Worked example B — union-type absent matrix for the ACP terminal block discriminator:
+
+| Case | Actual branch to name during the self-check |
+|------|---------------------------------------------|
+| Standard terminal block shape | Standard terminal branch |
+| Inline-snapshot terminal shape | Inline-snapshot terminal branch |
+| Partial or mixed terminal shape | Malformed/negative branch; never blank render |
+| Type matches but no recognized terminal sub-shape | Malformed/negative branch; never blank render |
+
+This is a self-audit pass, not new tests; however, tests for the surfaced cases must exist when the code is non-trivial.
+
 ## Communication
 
 - Be concise and focused on implementation details

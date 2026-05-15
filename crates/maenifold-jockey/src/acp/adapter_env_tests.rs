@@ -64,9 +64,10 @@ fn env_from_file_resolves_value() {
 }
 
 #[test]
-fn env_from_file_missing_skips_with_warning() {
+fn env_from_file_missing_fails_preflight() {
     let _guard = lock_env();
     let root = tempfile::tempdir().expect("create config root");
+    let missing = root.path().join("missing-key");
     write_config(
         &root,
         json!({
@@ -74,7 +75,7 @@ fn env_from_file_missing_skips_with_warning() {
                 "codex": {
                     "command": "/bin/echo adapter",
                     "envFromFile": {
-                        "AZURE_OPENAI_API_KEY": root.path().join("missing-key").to_string_lossy()
+                        "AZURE_OPENAI_API_KEY": missing.to_string_lossy()
                     },
                     "env": {
                         "OTHER_VAR": "still-resolves"
@@ -84,10 +85,18 @@ fn env_from_file_missing_skips_with_warning() {
         }),
     );
 
-    let env = resolve_env(&root);
+    clear_adapter_cache();
+    let err = match build_stdio_adapter_with_root("codex", &root.path().to_path_buf()) {
+        Ok(_) => panic!("missing envFromFile should fail preflight"),
+        Err(err) => err,
+    };
 
-    assert_eq!(env.get("AZURE_OPENAI_API_KEY"), None);
-    assert_eq!(env.get("OTHER_VAR"), Some(&"still-resolves".to_string()));
+    assert!(err.contains("preflight"), "{err}");
+    assert!(err.contains("AZURE_OPENAI_API_KEY"), "{err}");
+    assert!(
+        err.contains(&missing.to_string_lossy().to_string()),
+        "{err}"
+    );
 }
 
 #[test]
@@ -120,7 +129,7 @@ fn env_from_command_resolves_value() {
 }
 
 #[test]
-fn env_from_command_nonzero_exit_skips() {
+fn env_from_command_nonzero_exit_fails_preflight() {
     let _guard = lock_env();
     let root = tempfile::tempdir().expect("create config root");
     write_config(
@@ -143,10 +152,15 @@ fn env_from_command_nonzero_exit_skips() {
         }),
     );
 
-    let env = resolve_env(&root);
+    clear_adapter_cache();
+    let err = match build_stdio_adapter_with_root("codex", &root.path().to_path_buf()) {
+        Ok(_) => panic!("failing envFromCommand should fail preflight"),
+        Err(err) => err,
+    };
 
-    assert_eq!(env.get("AZURE_OPENAI_API_KEY"), None);
-    assert_eq!(env.get("OTHER_VAR"), Some(&"still-resolves".to_string()));
+    assert!(err.contains("preflight"), "{err}");
+    assert!(err.contains("AZURE_OPENAI_API_KEY"), "{err}");
+    assert!(err.contains("/usr/bin/false"), "{err}");
 }
 
 #[test]

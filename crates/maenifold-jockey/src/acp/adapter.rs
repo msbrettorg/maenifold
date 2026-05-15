@@ -7,10 +7,16 @@ use std::time::{SystemTime, UNIX_EPOCH};
 #[path = "adapter_env.rs"]
 mod adapter_env;
 #[cfg(test)]
+#[path = "adapter_env_t301_31_tests.rs"]
+mod adapter_env_t301_31_tests;
+#[cfg(test)]
 #[path = "adapter_env_tests.rs"]
 mod adapter_env_tests;
+#[cfg(test)]
+#[path = "adapter_t301_31_tests.rs"]
+mod adapter_t301_31_tests;
 
-use adapter_env::{env_from_command, env_from_file};
+use adapter_env::validate_env;
 
 fn load_agents_config(root: &Path) -> Result<Value, String> {
     let path = root.join("maenifold.json");
@@ -153,12 +159,20 @@ fn resolve_adapter_for_name(
         return Err(format!("agent '{}' has an empty command", runtime));
     }
     let mut env = entry_env(&entry);
-    for (var_name, value) in env_from_command(&entry) {
-        if !env_contains(&env, &var_name) {
-            env.push((var_name, value));
-        }
-    }
-    for (var_name, value) in env_from_file(&entry) {
+    for (var_name, value) in validate_env(&entry).map_err(|error| {
+        let details = error
+            .failures
+            .into_iter()
+            .map(|failure| {
+                format!(
+                    "{} from {} ({})",
+                    failure.var_name, failure.source, failure.reason
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("; ");
+        format!("preflight env validation failed for agent '{runtime}': {details}")
+    })? {
         if !env_contains(&env, &var_name) {
             env.push((var_name, value));
         }

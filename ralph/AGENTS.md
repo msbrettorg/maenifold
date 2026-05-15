@@ -153,3 +153,42 @@ The symlinks are removed automatically when the worktree directory is removed.
 The PM does not have a fixed file scope. The PM may dispatch workers anywhere in the repo by setting per-task scope in the spec amendment + dispatch prompt. Workers receive task-specific scope from the spec, not from this file.
 
 Cross-stack work (Rust + `apps/desktop` in the same task) is normal and expected — the spec defines the file boundary.
+
+## Mid-iter redeploy (when validation needs the new artifact)
+
+When a shipped task changes a backend behavior or frontend asset that a downstream task needs to UAT, redeploy the affected artifact mid-iter before dispatching the dependent task. Do not wait for iter-end — dependent CDP UAT against a stale daemon or stale Electron bundle proves nothing.
+
+Common patterns:
+
+- Backend Rust change merged → dependent task needs daemon behavior verified:
+  `cargo build --release -p maenifold-cli -p maenifold-pipeline-driver`
+  then restart daemon (`./scripts/deploy-daemon.sh` or equivalent).
+
+- Frontend Vue change merged → dependent task needs CDP UAT:
+  `cd apps/desktop && npm run package`
+  then relaunch via `scripts/uat-launch.sh <task-id>`.
+
+Record the redeploy in the iter log (PID + inode + size) so the audit trail
+shows the dependent task's UAT ran against the post-change artifact.
+
+## Wave boundaries (when to dispatch wave-boundary rubber-duck reviews)
+
+A "wave boundary" is the transition from one logical wave of related work to the next within a sprint, AND the close of any sprint umbrella. Per the constitution, every wave boundary requires two independent rubber-duck reviews (one `gpt-5.5`, one `claude-opus-4.6`), both PASS-or-remediated before opening the next wave.
+
+Within a single ralph iter, what counts as a wave boundary:
+
+- The iter completes a coherent group of related tasks (e.g., all sprint 301 ship tasks done) AND new tasks are being dispatched that depend on those outcomes.
+- A sprint umbrella task (`T-XXX.0`) is being closed.
+- The PM is about to ship a multi-task milestone the user explicitly requested.
+
+What is NOT a wave boundary:
+
+- Each individual task ship (the per-task confession + audit chain handles that).
+- Mid-iter defects discovered + filed (those start a new lane, not a new wave).
+- A single iter's normal kanban-pull flow when tasks are independent.
+
+If the iter is one continuous wave (e.g., 11 independent tasks in one sprint with no umbrella close), no wave-boundary review is required. If the iter spans an umbrella close OR a major milestone, both rubber-ducks MUST run before declaring the wave closed.
+
+## Iter status surface (for monitoring)
+
+While `ralph.sh` is running, it writes `ralph/state/iter-status.json` (gitignored) every 30s with the current iteration number, elapsed seconds, log file path + line count, last activity timestamp, stuck threshold, copilot PID, and current HEAD SHA. PMs and observers can poll this file with `cat ralph/state/iter-status.json | jq` instead of tailing the log directly. The file is overwritten on each emit and one final time after `wait`.

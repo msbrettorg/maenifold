@@ -504,6 +504,46 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   copilot "${COPILOT_ARGS[@]}" 2>&1 | tee "$iter_log" &
   copilot_tee_pid=$!
 
+  iter_status_file="ralph/state/iter-status.json"
+  iter_started_iso="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+  emit_iter_status() {
+    local now_epoch idle log_lines log_size head_sha
+    now_epoch=$(date +%s)
+    if [[ -f "$iter_log" ]]; then
+      log_lines=$(wc -l < "$iter_log" 2>/dev/null | tr -d ' ' || echo 0)
+      log_size=$(wc -c < "$iter_log" 2>/dev/null | tr -d ' ' || echo 0)
+      local last_mod
+      last_mod=$(stat -f %m "$iter_log" 2>/dev/null || stat -c %Y "$iter_log" 2>/dev/null || echo 0)
+      idle=$(( now_epoch - last_mod ))
+    else
+      log_lines=0
+      log_size=0
+      idle=0
+    fi
+    head_sha="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
+    cat > "$iter_status_file" <<EOF
+{
+  "iteration": ${iteration},
+  "max_iterations": ${MAX_ITERATIONS},
+  "agent": "${AGENT}",
+  "model": "${MODEL}",
+  "started_at": "${iter_started_iso}",
+  "elapsed_seconds": $(( now_epoch - start_epoch )),
+  "log_file": "${iter_log}",
+  "log_lines": ${log_lines},
+  "log_size_bytes": ${log_size},
+  "last_log_activity_seconds_ago": ${idle},
+  "stuck_threshold_seconds": ${STUCK_TIMEOUT_SECONDS},
+  "is_stuck": $( [[ "$STUCK_TIMEOUT_SECONDS" -gt 0 && "$idle" -ge "$STUCK_TIMEOUT_SECONDS" ]] && echo true || echo false ),
+  "copilot_tee_pid": ${copilot_tee_pid},
+  "head_sha": "${head_sha}"
+}
+EOF
+  }
+
+  emit_iter_status
+
   if [[ "$STUCK_TIMEOUT_SECONDS" -gt 0 ]]; then
     (
       while true; do
@@ -512,6 +552,7 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
         if ! ps -p $copilot_tee_pid > /dev/null 2>&1; then
           break
         fi
+        emit_iter_status
         # Check log file modification time
         if [[ -f "$iter_log" ]]; then
           last_mod=$(stat -f %m "$iter_log" 2>/dev/null || stat -c %Y "$iter_log" 2>/dev/null || echo 0)
@@ -532,6 +573,9 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
 
   wait $copilot_tee_pid
   exit_code=$?
+
+  # Final status emit before cleanup
+  emit_iter_status
 
   # Clean up stuck monitor if still running
   if [[ -n "${stuck_monitor_pid:-}" ]]; then

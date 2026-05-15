@@ -28,6 +28,8 @@ ralph/state/sessions/
 ralph/state/otel/
 ralph/state/metrics.jsonl
 ralph/state/thinking-session-id.txt
+ralph/state/ralph.lock
+ralph/state/iter-status.json
 poc/copilotkit/*/node_modules/
 poc/copilotkit/app/dist/
 

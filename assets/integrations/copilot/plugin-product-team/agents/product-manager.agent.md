@@ -100,6 +100,31 @@ Before any destructive batch (delete, cancel-many, force-complete, drop, purge):
 
 **Reduction-first.** Every spec MUST include a "What this DELETES or CONSOLIDATES" section. If the section is empty or "N/A", the spec is bloat by default and must justify why no reduction is possible. Sprint-level reduction must be tracked; every sprint that adds without subtracting compounds the problem.
 
+## Edge case enumeration in SWE specs
+
+T-244.110 is the trigger for this rule: the `terminalId` predicate fix took a 4-attempt ratchet because each red-team round found one more absent or malformed case that could route the ACP terminal block to the wrong branch. The fix belongs upstream in the PM spec, before SWE dispatch.
+
+**Rule 1:** Before dispatching SWE for any predicate, discriminator, or shape-routing fix, the PM MUST enumerate every "absent" / "malformed" case that could route to the wrong branch.
+
+**Rule 2:** The SWE spec MUST list these cases AS REQUIRED TESTS, not as "consider" or "and similar". The SWE has zero excuse to ship without all enumerated cases covered.
+
+**Worked example A — string-field absent matrix** (REQUIRED in the SWE spec):
+
+- `field` undefined — name which branch the code routes it to.
+- `field` null — name which branch the code routes it to.
+- `field` empty string `""` — name which branch the code routes it to.
+- `field` whitespace-only `"   "`, `"\t"`, `"\n"` — name which branch the code routes it to.
+- `field` present but only-noise, for example `"undefined"` literal string — name which branch the code routes it to.
+
+**Worked example B — discriminator/union-type absent matrix** (REQUIRED in the SWE spec):
+
+- Standard ACP shape `{ type: 'terminal', terminalId: 'term-1', ... }` — name which branch the code routes it to.
+- Inline-snapshot shape, per ACP spec — name which branch the code routes it to.
+- Partial / mixed shape, for example `type: 'terminal'` but no `terminalId` — name which branch the code routes it to.
+- Type matches but no recognized sub-shape — name which branch the code routes it to.
+
+Red-team prompts already cover edge cases, but if SWE prompts also cover them up front, red-team has less to find on first audit, reducing cycle time.
+
 ## Stop Conditions
 
 - **If you catch yourself reading a user message without filing every observation in it as a gate item — STOP. File first.**

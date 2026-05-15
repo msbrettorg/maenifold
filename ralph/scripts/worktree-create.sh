@@ -12,7 +12,8 @@
 #   3. Symlinks worktrees/<task-id>/done -> main repo done/
 #   4. Symlinks worktrees/<task-id>/apps/desktop/node_modules -> main repo's apps/desktop/node_modules
 #      (only if apps/desktop/node_modules exists in the main repo)
-#   5. Verifies the spec file (todo/<task-id>*.md) is reachable from inside the worktree
+#   5. Installs a pre-commit hook so workers cannot self-commit without PM authorization
+#   6. Verifies the spec file (todo/<task-id>*.md) is reachable from inside the worktree
 #
 # Why symlinks for todo/done:
 #   Per AGENTS.md (2026-04-28), todo/ and done/ are gitignored to avoid parallel-worktree
@@ -107,6 +108,34 @@ add_worktree_symlink_excludes() {
   }
 }
 
+install_pm_owned_pre_commit_hook() {
+  local worktree_gitdir
+  worktree_gitdir="$(git -C "${WORKTREE_DIR}" rev-parse --git-dir)"
+  case "${worktree_gitdir}" in
+    /*) ;;
+    *) worktree_gitdir="${WORKTREE_DIR}/${worktree_gitdir}" ;;
+  esac
+
+  local hooks_dir="${worktree_gitdir}/hooks"
+  mkdir -p "${hooks_dir}"
+  git -C "${WORKTREE_DIR}" config extensions.worktreeConfig true
+  git -C "${WORKTREE_DIR}" config --worktree core.hooksPath "${hooks_dir}"
+
+  cat >"${hooks_dir}/pre-commit" <<'HOOK'
+#!/usr/bin/env bash
+# pre-commit: enforce PM-owns-git per AGENTS.md Trust Model #6
+if [[ "${PM_OWNS_THIS:-}" != "1" ]]; then
+  echo "ERROR: This worktree forbids worker-initiated commits per AGENTS.md Trust Model #6." >&2
+  echo "       Workers do not commit. The PM owns all git operations on this worktree." >&2
+  echo "       If you are the PM merging this branch, set PM_OWNS_THIS=1 and retry." >&2
+  exit 1
+fi
+exit 0
+HOOK
+  chmod 0755 "${hooks_dir}/pre-commit"
+  echo "  installed PM_OWNS_THIS pre-commit guard"
+}
+
 if [[ -e "${WORKTREE_DIR}" ]]; then
   echo "error: worktree already exists at ${WORKTREE_DIR}" >&2
   echo "  remove with: git worktree remove ${WORKTREE_DIR} && git branch -D ${BRANCH_NAME}" >&2
@@ -126,6 +155,7 @@ ln -s "${REPO_ROOT}/todo" "${WORKTREE_DIR}/todo"
 ln -s "${REPO_ROOT}/done" "${WORKTREE_DIR}/done"
 echo "  symlinked todo/ + done/ -> main repo"
 add_worktree_symlink_excludes
+install_pm_owned_pre_commit_hook
 
 if [[ -d "${REPO_ROOT}/apps/desktop/node_modules" ]]; then
   rm -rf "${WORKTREE_DIR}/apps/desktop/node_modules"
@@ -151,3 +181,4 @@ echo "Worktree ready. SWE prompt should reference:"
 echo "  cwd: ${WORKTREE_DIR}"
 echo "  spec: ${WORKTREE_DIR}/todo/${TASK_ID}-*.md  (or main repo absolute path)"
 echo "  branch: ${BRANCH_NAME}"
+echo "  git: pre-commit hook installed; worker commits are blocked unless PM_OWNS_THIS=1"

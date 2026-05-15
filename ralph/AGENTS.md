@@ -51,7 +51,11 @@ What the PM MAY do directly (non-exhaustive):
 - **UAT items.** Per `ralph/prompt.md`, UAT tasks are out of RALPH scope. Skip them; let a human run UAT.
 - **Touching `memory://**`** by hand outside the maenifold MCP write commands. The graph is updated through `WriteMemory` / `EditMemory`.
 - **Editing security-boundary or trust-boundary code without explicit user authorization** baked into the spec.
-- **Any git-state mutation by a worker.** Workers commit on their worktree branch — only the PM merges to `dev`, deletes branches, or removes worktrees. Workers do not run `git checkout`, `git reset`, `git restore`, `git stash`, `git pull`, `git rebase`, `git merge`, `git clean`. Read-only git is fine.
+- **Any git-state mutation by a worker.** Workers do not commit and do not run `git checkout`, `git reset`, `git restore`, `git stash`, `git pull`, `git rebase`, `git merge`, `git clean`. Read-only git is fine. The PM owns commits, merges to `dev`, branch deletion, and worktree removal.
+
+### Worker self-commit protection
+
+**Worker self-commit attempt is blocked at the worktree level.** Every worktree created via `ralph/scripts/worktree-create.sh` installs a per-worktree pre-commit hook (via `git config --worktree core.hooksPath`, so the hook lives at `.git/worktrees/<name>/hooks/pre-commit`, not at the common `.git/hooks/`). The hook refuses commits unless `PM_OWNS_THIS=1` is set. Workers MUST report their work as a WorkResult to the PM and let the PM merge. If you are a worker and your `git commit` was rejected with the `PM_OWNS_THIS` message, that is the expected behavior — return your changes as a WorkResult instead. The PM merges with `PM_OWNS_THIS=1 git merge worker-<task-id>` (the env var is needed because `git merge` may invoke pre-commit on the merge commit).
 
 ## Quality gates (required before any worker `gate_Pass`)
 
@@ -93,7 +97,7 @@ Every commit (PM merge or worker branch commit) MUST include this trailer:
 Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
 ```
 
-The PM owns merges to `dev`. Workers commit on their `worker-T-XXX.Y` branch only.
+The PM owns commits and merges to `dev`. Workers report WorkResult output only.
 
 ## Worktree convention (PM-orchestrated workers)
 
@@ -116,7 +120,9 @@ worktree. The script:
 2. Symlinks `worktrees/<task-id>/todo -> <main-repo>/todo` and same for `done`.
 3. Symlinks `worktrees/<task-id>/apps/desktop/node_modules -> <main-repo>/apps/desktop/node_modules`
    when present (avoids redundant `npm ci` for tasks that don't change `package.json`).
-4. Self-verifies the spec (`todo/<task-id>*.md`) is readable through the symlink, warns
+4. Installs a pre-commit hook that blocks worker self-commits unless `PM_OWNS_THIS=1`
+   is set by the PM.
+5. Self-verifies the spec (`todo/<task-id>*.md`) is readable through the symlink, warns
    if not.
 
 **Worker prompt.** Always include the absolute spec path in the dispatch prompt so the
@@ -143,4 +149,3 @@ The symlinks are removed automatically when the worktree directory is removed.
 The PM does not have a fixed file scope. The PM may dispatch workers anywhere in the repo by setting per-task scope in the spec amendment + dispatch prompt. Workers receive task-specific scope from the spec, not from this file.
 
 Cross-stack work (Rust + `apps/desktop` in the same task) is normal and expected — the spec defines the file boundary.
-

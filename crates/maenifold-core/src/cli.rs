@@ -1,5 +1,6 @@
 mod handlers;
 mod parse;
+mod tool_dispatch;
 mod usage;
 
 use std::path::PathBuf;
@@ -7,12 +8,12 @@ use std::path::PathBuf;
 use crate::config::Config;
 use crate::error::MaenifoldError;
 use crate::mcp;
-use crate::registry::ToolRegistry;
 use crate::util::json::{OutputFormat, failure, from_str_safe, success};
 use clap::{Parser, Subcommand};
 use handlers::{run_http, run_mcp, run_schedule_run, run_tool_command};
 use parse::{ParsedCli, parse_cli, render_clap_error, render_error, validate_cli};
 use serde_json::Value;
+use tool_dispatch::invoke_tool_with_timeout;
 use usage::usage;
 
 #[derive(Parser, Debug)]
@@ -196,7 +197,7 @@ impl CliApp {
             }
         };
 
-        match ToolRegistry::global().try_invoke(tool_name, &payload, output_format) {
+        match invoke_tool_with_timeout(tool_name, payload, output_format) {
             Ok(output) => {
                 if output_format == OutputFormat::Json {
                     // T-12.7: RTM NFR-1 - pass through existing JSON envelopes only when

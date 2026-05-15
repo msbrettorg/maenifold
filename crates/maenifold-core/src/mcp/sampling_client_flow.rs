@@ -143,7 +143,7 @@ async fn existing_dispatch(
             }
             Ok(_) => {
                 let _ = sampling_registry.update_status(existing_id, SamplingSessionStatus::Cancelled).await;
-                return Err(rmcp::ErrorData::invalid_request("Sampling session denied by user", None));
+                return Err(sampling_denied_error());
             }
             Err(_) => {
                 let _ = sampling_registry.update_status(existing_id, SamplingSessionStatus::Cancelled).await;
@@ -208,11 +208,19 @@ async fn new_dispatch(
         })
         .await;
     match decision.action {
-        SamplingAction::Deny => Err(rmcp::ErrorData::invalid_request("Sampling session denied by user", None)),
+        SamplingAction::Deny => Err(sampling_denied_error()),
         SamplingAction::AllowOnce | SamplingAction::AllowAlways => {
             Ok((dispatch_id, app_session_id, model, role_name, None, decision))
         }
     }
+}
+
+fn sampling_denied_error() -> rmcp::ErrorData {
+    rmcp::ErrorData::new(
+        rmcp::model::ErrorCode(-1),
+        "Sampling session denied by user",
+        None,
+    )
 }
 
 async fn response_from_sampling(

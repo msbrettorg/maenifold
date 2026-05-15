@@ -44,6 +44,9 @@ fn forward_mapping_targets_existing_registry_tools_by_domain() {
 }
 
 #[test]
+// Prompt discovery tools are direct top-level diagnostics, like
+// DiscoverMcpTools, because they enumerate downstream MCP prompt inventory
+// rather than executing a native maenifold domain command.
 fn reverse_mapping_exhaustively_covers_canonical_native_tools() {
     for name in ToolRegistry::global().canonical_names() {
         assert!(
@@ -62,6 +65,8 @@ fn is_top_level_gateway_tool(name: &str) -> bool {
         "GetHelp"
             | "ReadMcpResource"
             | "DiscoverMcpTools"
+            | "DiscoverMcpPrompts"
+            | "GetMcpPrompt"
             | "GatewayIndex"
             | "GatewayExecute"
             | "GatewayBatch"

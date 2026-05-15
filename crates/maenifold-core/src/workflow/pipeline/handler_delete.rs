@@ -17,8 +17,8 @@ use super::session_delete_files::{
     resolve_pipeline_delete_files, resolve_unreadable_pipeline_delete_files,
 };
 use super::session_io::{
-    delete_pipeline_session_files, derive_pipeline_node_states, frontmatter_value,
-    read_pipeline_session,
+    delete_pipeline_session_files_with_default_retention, derive_pipeline_node_states,
+    frontmatter_value, read_pipeline_session,
 };
 use super::{NodeState, NodeStatus};
 
@@ -65,7 +65,11 @@ pub(super) fn delete_pipeline_with_force(
             }
             let files = resolve_pipeline_delete_files(context, session_id, &node_states)?;
             audit_pipeline_delete(context, session_id, force, files)?;
-            let deleted_files = delete_pipeline_session_files(context, session_id, &node_states)?;
+            let deleted_files = delete_pipeline_session_files_with_default_retention(
+                context,
+                session_id,
+                &node_states,
+            )?;
             render_delete_result(context, session_id, deleted_files, None)
         },
     )
@@ -85,6 +89,14 @@ pub(super) fn delete_unreadable_pipeline(
     let files = resolve_unreadable_pipeline_delete_files(context, session_id)?;
     audit_pipeline_delete(context, session_id, force, files)?;
     let pipeline_uri = pipeline_session_uri(session_id);
+    if context.config.settings.quarantine_retention_days.is_none() {
+        return Err(MaenifoldError::Message(
+            "quarantine retention not configured".to_string(),
+        ));
+    }
+    let quarantine = context.config.quarantine_config().ok_or_else(|| {
+        MaenifoldError::Message("quarantine retention not configured".to_string())
+    })?;
     let deleted_file = quarantine_file(&pipeline_uri, &context.config, session_id)?;
     clear_pipeline_resource_state(session_id);
     emit_pipeline_sessions_resource_updated();
@@ -100,6 +112,8 @@ pub(super) fn delete_unreadable_pipeline(
             cleaned_up_files: 1,
             skipped_files: 0,
             deleted_files: vec![deleted_file],
+            retention_days: quarantine.retention_days,
+            defaulted_retention: context.config.settings.quarantine_retention_days.is_none(),
         },
         Some(degraded),
     )
@@ -159,6 +173,12 @@ fn render_delete_result(
         "cleanedUpFiles": deleted_files.cleaned_up_files,
         "skippedFiles": deleted_files.skipped_files,
         "deletedFiles": deleted_files.deleted_files,
+        "retentionDays": deleted_files.retention_days,
+        "defaultedRetention": deleted_files.defaulted_retention,
+        "message": format!(
+            "Pipeline moved to quarantine for {} days.",
+            deleted_files.retention_days
+        ),
     });
     if let Some(degraded) = degraded {
         result["degraded"] = degraded;

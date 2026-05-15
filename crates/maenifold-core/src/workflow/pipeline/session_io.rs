@@ -1,4 +1,4 @@
-pub(super) use super::session_delete_files::delete_pipeline_session_files;
+pub(super) use super::session_delete_files::delete_pipeline_session_files_with_default_retention;
 pub(super) use super::session_read::{
     derive_pipeline_node_states, frontmatter_value, optional_frontmatter_value,
     read_pipeline_session,

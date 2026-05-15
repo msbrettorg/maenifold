@@ -1,6 +1,6 @@
 import type mermaidType from 'mermaid';
 import type { Ref } from 'vue';
-import DOMPurify from 'dompurify';
+import { sanitize } from '../lib/sanitizer';
 
 let mermaidPromise: Promise<typeof mermaidType> | null = null;
 let mermaidRenderSequence = 0;
@@ -29,7 +29,7 @@ async function getMermaid(): Promise<typeof mermaidType> {
 }
 
 function sanitizeMermaidSvg(svg: string): string {
-  return DOMPurify.sanitize(svg, {
+  return sanitize(svg, {
     USE_PROFILES: { svg: true, svgFilters: true },
     ADD_TAGS: ['style', 'foreignObject'],
     ADD_ATTR: ['xmlns'],

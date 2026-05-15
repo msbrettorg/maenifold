@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { nextTick, ref, useTemplateRef, watch } from 'vue';
-import DOMPurify from 'dompurify';
 import { getMarkdownIt } from '../composables/useMarkdownIt';
 import { useMemoryApi } from '../composables/useMemoryApi';
 import { useMermaid } from '../composables/useMermaid';
 import { collectFolderPaths } from '../lib/knowledge-helpers';
+import { ALLOWED_URI_REGEXP, sanitize } from '../lib/sanitizer';
 import { useAppShellStore } from '../stores/app-shell';
 import { useKnowledgeStore } from '../stores/knowledge';
 import WikilinkCreateDialog from './WikilinkCreateDialog.vue';
@@ -29,26 +29,7 @@ const createDialogOpen = ref(false), unresolvedConcept = ref('');
 const wikilinkExistsCache = new Map<string, boolean>();
 let unresolvedCheckTimer: number | null = null;
 
-// Keep data URI rendering to inert raster image formats. SVG data URIs are
-// intentionally excluded because nested SVG payloads can carry executable
-// script/event handlers that would bypass DOM-level SVG sanitization.
-const allowedUriRegexp =
-  /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|memory):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$)|data:image\/(?:bmp|gif|jpe?g|png|webp);base64,)/i;
 const forbiddenTags = ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'textarea'];
-const eventAttributeHookInstalledKey = '__maenifoldEventAttributeHookInstalled';
-
-function installEventAttributeHook(): void {
-  const purifierState = DOMPurify as unknown as Record<string, boolean>;
-  if (purifierState[eventAttributeHookInstalledKey]) return;
-  DOMPurify.addHook('uponSanitizeAttribute', (_node, data) => {
-    if (data.attrName?.toLowerCase().startsWith('on')) {
-      data.keepAttr = false;
-    }
-  });
-  purifierState[eventAttributeHookInstalledKey] = true;
-}
-
-installEventAttributeHook();
 
 async function conceptExists(concept: string): Promise<boolean> { const cached = wikilinkExistsCache.get(concept); if (cached !== undefined) return cached; try { await memoryApi.readMemory(`memory://${concept}`); wikilinkExistsCache.set(concept, true); return true; } catch { wikilinkExistsCache.set(concept, false); return false; } }
 
@@ -71,10 +52,10 @@ function restoreForeignObjectText(safeHtml: string, originalHtml: string): strin
     const originalNode = originalForeignObjects[index];
     if (!originalNode) return;
 
-    const sanitizedInnerHtml = DOMPurify.sanitize(originalNode.innerHTML, {
+    const sanitizedInnerHtml = sanitize(originalNode.innerHTML, {
       USE_PROFILES: { html: true },
       FORBID_TAGS: [...forbiddenTags, 'style'],
-      ALLOWED_URI_REGEXP: allowedUriRegexp,
+      ALLOWED_URI_REGEXP,
     });
     const container = document.createElement('div');
     container.innerHTML = sanitizedInnerHtml;
@@ -98,7 +79,7 @@ async function updateRendered(): Promise<void> {
     if (thisVersion !== renderVersion) return;
 
     const html = md.render(source);
-    const safe = DOMPurify.sanitize(html, {
+    const safe = sanitize(html, {
       USE_PROFILES: { html: true, svg: true, svgFilters: true },
       ADD_TAGS: ['style', 'foreignObject', 'use'],
       ADD_ATTR: [
@@ -134,7 +115,7 @@ async function updateRendered(): Promise<void> {
         'xmlns:xlink',
       ],
       FORBID_TAGS: forbiddenTags,
-      ALLOWED_URI_REGEXP: allowedUriRegexp,
+      ALLOWED_URI_REGEXP,
     });
     if (thisVersion !== renderVersion) return;
 

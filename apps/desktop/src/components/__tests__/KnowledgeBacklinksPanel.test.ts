@@ -98,4 +98,21 @@ describe('KnowledgeBacklinksPanel', () => {
     expect(mockApi.searchMemories).toHaveBeenCalledWith('[[First Note]]', expect.any(Object));
     expect(mockApi.searchMemories).toHaveBeenCalledWith('[[Second Note]]', expect.any(Object));
   });
+
+  it.each([
+    ['Some [Bracketed] Title', '[[Some Bracketed Title]]'],
+    ['Line\nBreak Title', '[[Line Break Title]]'],
+    ['Line\rBreak Title', '[[Line Break Title]]'],
+    ['  Trimmed Title  ', '[[Trimmed Title]]'],
+    ['Plain Title', '[[Plain Title]]'],
+  ])('sanitizes active note title %j before querying backlinks', async (title, expectedQuery) => {
+    mockApi.searchMemories.mockResolvedValueOnce(search());
+    seed(useKnowledgeStore(), note('memory://active', title));
+    mount(KnowledgeBacklinksPanel, { global: { stubs } });
+    await flushPromises();
+    expect(mockApi.searchMemories).toHaveBeenCalledWith(expectedQuery, {
+      mode: 'FullText',
+      pageSize: 30,
+    });
+  });
 });

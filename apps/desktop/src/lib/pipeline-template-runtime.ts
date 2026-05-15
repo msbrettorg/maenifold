@@ -10,10 +10,12 @@ import type {
   PipelineEdge,
   PipelineNode,
 } from './pipeline-types';
+import { getNodeType } from './pipeline-types';
 import type {
   PipelineTemplate,
   TemplateVariables,
 } from './pipeline-templates';
+import { createNodeId } from './pipeline-node-factory';
 import { PIPELINE_TEMPLATES } from './pipeline-templates';
 
 // ---------------------------------------------------------------------------
@@ -168,17 +170,26 @@ export function instantiateTemplate(
   template: PipelineTemplate,
   variables: TemplateVariables,
 ): InstantiateResult {
+  const idMap = new Map<string, string>();
   const nodes = template.definition.nodes.map((node) => {
     const interpolatedNode = interpolateNode(node, variables);
+    const newId = createNodeId(getNodeType(node));
+    idMap.set(node.id, newId);
     const displayLabel = template.nodeLabels[node.id];
+    const next = { ...interpolatedNode, id: newId };
 
     return displayLabel
-      ? { ...interpolatedNode, displayLabel }
-      : interpolatedNode;
+      ? { ...next, displayLabel }
+      : next;
   });
-  const edges = template.definition.edges.map((edge) =>
-    interpolateEdge(edge, variables),
-  );
+  const edges = template.definition.edges.map((edge) => {
+    const remapped = interpolateEdge(edge, variables);
+    return {
+      ...remapped,
+      source: idMap.get(remapped.source) ?? remapped.source,
+      target: idMap.get(remapped.target) ?? remapped.target,
+    };
+  });
 
   return {
     definition: {

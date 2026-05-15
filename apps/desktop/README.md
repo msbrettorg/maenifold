@@ -114,6 +114,29 @@ Agent configurations are stored in:
 ```
 
 > **Note**: Environment variables are passed to the agent process on startup. Use these for API keys, custom settings, or overriding default behavior.
+>
+> **Cross-machine portable secrets** — instead of pasting an API key as an inline `env` literal (committed in your `maenifold.json`), use `envFromFile` to point at a file or `envFromCommand` to spawn a keychain helper. The daemon resolves these at child-spawn time and works correctly even when the daemon was launched from Finder/launchd (which doesn't inherit `~/.bashrc` / `~/.zshrc` env vars). Patterns mirror OpenAI Codex `[auth] command/args` and Claude Code `apiKeyHelper`.
+>
+> ```jsonc
+> "Claude Code": {
+>   "command": "npx",
+>   "args": ["@zed-industries/claude-code-acp@latest"],
+>   "envFromFile": {
+>     "ANTHROPIC_API_KEY": "~/.secrets/anthropic_api_key"
+>   }
+> },
+> "Codex": {
+>   "command": "/path/to/codex-acp",
+>   "envFromCommand": {
+>     "AZURE_OPENAI_API_KEY": {
+>       "command": "/usr/bin/security",
+>       "args": ["find-generic-password", "-w", "-s", "azure-openai-key"]
+>     }
+>   }
+> }
+> ```
+>
+> Precedence (first wins per VAR): inline `env` → `envFromCommand` → `envFromFile` → `settings.envPassthrough` allow-list. Failures are fail-soft (warn + skip, never fail-hard). See repo-root `README.md` for the full details.
 
 ## 📖 Usage
 

@@ -5,6 +5,30 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 324 — Config env passthrough portability
+
+Made API-key passthrough work on machines where the daemon is launched from a macOS GUI context (Finder, launchd, Electron `app.launch`) without sourcing the user's shell init files. Pattern matches OpenAI Codex `[auth] command/args` ([config-reference](https://developers.openai.com/codex/config-reference)) and Claude Code `apiKeyHelper` ([settings](https://docs.claude.com/en/docs/claude-code/settings)).
+
+### Added
+- **`envFromFile` field** (T-324.1): on every stdio entry in `maenifold.json` (both `mcpServers` items and `agents.*` entries). Map of `VAR_NAME` to file path. The daemon reads the file at child-spawn time, trims trailing CR/LF, and injects the value as an env var on the spawned process. `~/foo` HOME expansion supported (no `~user/foo`).
+- **`envFromCommand` field** (T-324.1): same locations. Map of `VAR_NAME` to `{command, args}`. Daemon runs the command (no shell wrapper — explicit `Command::new(command).args(args)`) and uses stdout as the value.
+- **Adapter resolution** (T-324.2): wired into `crates/maenifold-jockey/src/acp/adapter_env.rs`. Strict first-wins precedence: inline `env` literal → `envFromCommand` → `envFromFile` → `settings.envPassthrough`. Fail-soft errors throughout — file missing, command nonzero exit, empty stdout, non-UTF-8 stdout — emit `tracing::warn!` with `var_name` + source (path or command) and skip the var. **No secret value is ever logged.** Resolution continues for other sources.
+- **Schema** (T-324.1): JSON schema for the new fields registered via `crates/maenifold-core/src/mcp/schema/config_tools.rs` so config-tooling surfaces (validators, UI hints) see them.
+
+### Tests
+- 4 deserialize tests in `crates/maenifold-core/src/acp/config/tests.rs` (T-324.1): `stdio_entry_deserializes_env_from_file_only`, `stdio_entry_deserializes_all_env_sources`, `agent_entry_deserializes_env_from_command_only`, `agent_entry_env_sources_default_empty`.
+- 5 resolution tests in `crates/maenifold-jockey/src/acp/adapter_env_tests.rs` (T-324.2): `env_from_file_resolves_value`, `env_from_file_missing_skips_with_warning`, `env_from_command_resolves_value`, `env_from_command_nonzero_exit_skips`, `precedence_literal_overrides_command_overrides_file_overrides_passthrough`. Tests use `tempfile` for file fixtures and `/bin/echo` (success) + `/usr/bin/false` (nonzero exit) for command fixtures so they don't depend on host secrets state.
+
+### Migration
+- The existing `env` literal map and `settings.envPassthrough` allow-list keep working unchanged. Existing configs deserialize without modification.
+- New users on fresh installs should prefer `envFromFile` (file-on-disk secret) or `envFromCommand` (keychain helper) over inline `env` literals — same one-time config edit, but the `maenifold.json` no longer carries a plaintext key.
+
+### Documentation
+- `README.md` troubleshooting section: replaced the `launchctl setenv` workaround with the `envFromFile` / `envFromCommand` pattern.
+- `apps/desktop/README.md`: added a config example showing the new fields alongside the existing inline `env` map.
+
+---
+
 ## Sprint 70 — Workflow Runner Hardening + ACP Coverage
 
 Closed sequential-thinking/workflow runner regressions and added direct ACP prompt tooling plus real-agent integration coverage.

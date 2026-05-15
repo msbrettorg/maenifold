@@ -405,13 +405,25 @@ brew install ymtdzzz/tap/otel-tui
 
 ### Quick start
 
-The fastest operator view is:
+The fastest operator view is one command in one terminal:
 
 ```bash
-ralph/ralph-watch.sh
+./ralph.sh --watch
 ```
 
-When `tmux` is available, `ralph-watch.sh` auto-splits panes so you can watch telemetry and logs in one place. Without `tmux`, it still gives you the core monitoring commands to run manually.
+This re-launches itself inside a tmux session with `otel-tui` (live OTLP collector) in the top pane and the ralph iteration loop in the bottom pane. Ctrl+C tears both down cleanly. Requires `tmux` + `otel-tui`.
+
+If you'd rather keep ralph and the watcher in separate terminals (e.g. you're already inside tmux, or you want the watcher to survive a ralph restart):
+
+```bash
+# terminal 1
+./ralph.sh watch          # otel-tui collector, default mode
+# or
+./ralph.sh watch --both   # tmux split: otel-tui top, log tail bottom
+
+# terminal 2
+./ralph.sh
+```
 
 ### What to watch
 
@@ -422,11 +434,11 @@ When `tmux` is available, `ralph-watch.sh` auto-splits panes so you can watch te
 
 ### Manual usage
 
-If `ralph-watch.sh` is not enough, the underlying views are simple:
+If `./ralph.sh watch --both` is not enough, the underlying views are simple:
 
 ```bash
-# Watch OTEL traces directly:
-otel-tui --from-json-file ralph/state/otel/latest.jsonl
+# Watch OTEL traces directly (live collector mode):
+./ralph.sh watch
 
 # Gate status:
 gate status --root .
@@ -437,7 +449,7 @@ tail -f ralph/state/logs/iter-*.log
 
 Recommended workflow:
 
-1. Start `ralph/ralph-watch.sh` before launching `./ralph.sh` or `./meta.sh`.
+1. Run `./ralph.sh --watch` in a single terminal.
 2. Keep an eye on `otel-tui` for model/tool/cost drift.
 3. Use the iteration log when an agent appears stuck or starts looping.
 4. After completion, read the matching session dump for the full transcript.

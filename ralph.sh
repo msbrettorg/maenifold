@@ -44,10 +44,15 @@ if [[ "${1:-}" == "watch" ]]; then
       exec tail -f "$log" ;;
     both)
       command -v tmux >/dev/null 2>&1 || { echo "tmux required for --both"; exit 1; }
+      for port in 4317 4318 8888; do
+        stale_pid=$(lsof -ti :"$port" 2>/dev/null || true)
+        if [[ -n "$stale_pid" ]]; then kill "$stale_pid" 2>/dev/null || true; fi
+      done
+      sleep 1
       # Ensure clean shutdown of tmux session on Ctrl+C
       cleanup_tmux() { tmux has-session -t ralph-watch 2>/dev/null && tmux send-keys -t ralph-watch C-c && sleep 1 && tmux kill-session -t ralph-watch 2>/dev/null; }
       trap cleanup_tmux INT TERM EXIT
-      tmux new-session -d -s ralph-watch "otel-tui --from-json-file $OTEL_FILE" \; \
+      tmux new-session -d -s ralph-watch "otel-tui" \; \
         split-window -v "tail -f $(latest_log || echo /dev/null)" \; attach
       ;;
   esac
@@ -67,6 +72,7 @@ NO_CUSTOM_INSTRUCTIONS=false
 NO_ASK_USER=true
 CONTINUE=false
 NOTIFY=true
+WATCH=false
 EXTRA_COPILOT_ARGS=()
 
 usage() {
@@ -74,9 +80,12 @@ usage() {
 Usage: $0 [watch] [options]
 
 Subcommands:
-  watch [--log|--both]         Launch otel-tui live monitor (run in 2nd terminal)
+  watch [--log|--both]         Launch otel-tui live monitor on its own (sidecar mode)
 
 Options:
+  --watch                      Wrap this run in a tmux session with otel-tui in the
+                               top pane and ralph in the bottom pane (one terminal,
+                               unified live view). Requires tmux + otel-tui.
   --model <model>              Copilot model (default: claude-opus-4.6-1m)
   --effort <level>             Reasoning effort: low|medium|high|xhigh (default: xhigh)
   --max-iterations <n>         Iteration limit (default: 50)
@@ -145,6 +154,7 @@ while [[ $# -gt 0 ]]; do
                         NO_CUSTOM_INSTRUCTIONS=true; shift ;;
     --no-ask-user)      NO_ASK_USER=true;          shift ;;
     --no-notify)        NOTIFY=false;              shift ;;
+    --watch)            WATCH=true;                shift ;;
     --add-dir)          EXTRA_COPILOT_ARGS+=(--add-dir "${2:-}"); shift 2 ;;
     *)
       echo "Unknown argument: $1"
@@ -153,6 +163,55 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+# --- --watch: re-exec self inside a tmux session with otel-tui in top pane ---
+if [[ "$WATCH" == "true" ]]; then
+  if [[ -n "${RALPH_WATCH_INNER:-}" ]]; then
+    : # already inside the tmux pane; fall through to normal run
+  else
+    command -v tmux >/dev/null 2>&1 || { echo "ERROR: --watch requires tmux"; exit 1; }
+    command -v otel-tui >/dev/null 2>&1 || { echo "ERROR: --watch requires otel-tui (brew install ymtdzzz/tap/otel-tui)"; exit 1; }
+    if [[ -n "${TMUX:-}" ]]; then
+      echo "ERROR: --watch cannot run from inside an existing tmux session. Run from a plain terminal, or run \`./ralph.sh\` directly in this pane and \`./ralph.sh watch\` in another."
+      exit 1
+    fi
+    # Clear stale OTEL collector ports
+    for port in 4317 4318 8888; do
+      stale_pid=$(lsof -ti :"$port" 2>/dev/null || true)
+      [[ -n "$stale_pid" ]] && kill "$stale_pid" 2>/dev/null || true
+    done
+    sleep 1
+    SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+    # Rebuild the inner command, dropping --watch and re-quoting every other arg.
+    INNER_CMD=("$SCRIPT_PATH")
+    [[ -n "$MODEL"            ]] && INNER_CMD+=(--model "$MODEL")
+    [[ -n "$REASONING_EFFORT" ]] && INNER_CMD+=(--effort "$REASONING_EFFORT")
+    [[ -n "$MAX_ITERATIONS"   ]] && INNER_CMD+=(--max-iterations "$MAX_ITERATIONS")
+    [[ "$MAX_RUNTIME_SECONDS" -ne 0 ]]   && INNER_CMD+=(--max-runtime "$MAX_RUNTIME_SECONDS")
+    [[ -n "$STUCK_TIMEOUT_SECONDS" ]]    && INNER_CMD+=(--stuck-timeout "$STUCK_TIMEOUT_SECONDS")
+    [[ -n "$CRATE"            ]] && INNER_CMD+=(--crate "$CRATE")
+    [[ -n "$SCOPE_PATH"       ]] && INNER_CMD+=(--path "$SCOPE_PATH")
+    [[ -n "$AGENT"            ]] && INNER_CMD+=(--agent "$AGENT")
+    [[ -n "$SESSION_NAME"     ]] && INNER_CMD+=(--name "$SESSION_NAME")
+    [[ "$NO_CUSTOM_INSTRUCTIONS" == "true" ]] && INNER_CMD+=(--no-custom-instructions)
+    [[ "$NO_ASK_USER" == "true" ]] && INNER_CMD+=(--no-ask-user)
+    [[ "$NOTIFY" == "false" ]] && INNER_CMD+=(--no-notify)
+    for a in "${EXTRA_COPILOT_ARGS[@]+"${EXTRA_COPILOT_ARGS[@]}"}"; do
+      INNER_CMD+=("$a")
+    done
+    INNER_QUOTED=$(printf '%q ' "${INNER_CMD[@]}")
+    cleanup_tmux() { tmux has-session -t ralph-watch 2>/dev/null && tmux kill-session -t ralph-watch 2>/dev/null; }
+    trap cleanup_tmux INT TERM EXIT
+    # Top pane: otel-tui collector. Bottom pane: ralph itself.
+    # Sleep 2s before launching ralph so the collector binds to 4318 first.
+    tmux new-session -d -s ralph-watch "otel-tui" \; \
+      split-window -v "sleep 2; RALPH_WATCH_INNER=1 ${INNER_QUOTED}; echo; echo '--- ralph exited; press any key to close ---'; read -n 1" \; \
+      select-pane -t 1 \; \
+      attach
+    exit 0
+  fi
+fi
+
 
 LOOP_START_EPOCH="$(date +%s)"
 

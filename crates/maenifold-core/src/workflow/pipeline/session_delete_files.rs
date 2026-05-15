@@ -74,7 +74,12 @@ pub(super) fn delete_pipeline_session_files(
     pipeline_session_id: &str,
     node_states: &HashMap<String, NodeState>,
 ) -> Result<DeletePipelineSessionFilesResult> {
-    super::quarantine::require_quarantine_config(&context.config)?;
+    if context.config.settings.quarantine_retention_days.is_none() {
+        return Err(MaenifoldError::Message(
+            "quarantine retention not configured".to_string(),
+        ));
+    }
+    let quarantine = super::quarantine::require_quarantine_config(&context.config)?;
     let mut deleted_files = Vec::new();
     let mut skipped_files = 0usize;
     let mut workflow_session_ids = HashSet::with_capacity(node_states.len());
@@ -147,7 +152,33 @@ pub(super) fn delete_pipeline_session_files(
         cleaned_up_files: deleted_files.len(),
         skipped_files,
         deleted_files,
+        retention_days: quarantine.retention_days,
+        defaulted_retention: context.config.settings.quarantine_retention_days.is_none(),
     })
+}
+
+pub(super) fn delete_pipeline_session_files_with_default_retention(
+    context: &ToolContext,
+    pipeline_session_id: &str,
+    node_states: &HashMap<String, NodeState>,
+) -> Result<DeletePipelineSessionFilesResult> {
+    if context.config.settings.quarantine_retention_days.is_some() {
+        return delete_pipeline_session_files(context, pipeline_session_id, node_states);
+    }
+
+    let mut defaulted_config = context.config.clone();
+    defaulted_config.settings.quarantine_retention_days =
+        Some(Config::default_quarantine_retention_days());
+    let defaulted_context = ToolContext {
+        config: defaulted_config,
+        output_format: context.output_format,
+        stdio_pool: context.stdio_pool.clone(),
+        cancellation_token: context.cancellation_token.clone(),
+    };
+    let mut result =
+        delete_pipeline_session_files(&defaulted_context, pipeline_session_id, node_states)?;
+    result.defaulted_retention = true;
+    Ok(result)
 }
 
 #[cfg(test)]

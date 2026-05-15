@@ -72,6 +72,8 @@ mod handler_delete;
 #[cfg(test)]
 mod handler_delete_degraded_tests;
 #[cfg(test)]
+mod handler_delete_default_retention_tests;
+#[cfg(test)]
 mod handler_delete_quarantine_tests;
 mod handler_lifecycle;
 mod handler_list_lineage;

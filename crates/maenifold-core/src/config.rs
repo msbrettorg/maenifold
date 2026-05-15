@@ -177,9 +177,16 @@ impl Config {
     }
 
     pub fn quarantine_config(&self) -> Option<QuarantineConfig> {
-        self.settings
-            .quarantine_retention_days
-            .map(|retention_days| QuarantineConfig { retention_days })
+        Some(QuarantineConfig {
+            retention_days: self
+                .settings
+                .quarantine_retention_days
+                .unwrap_or_else(Self::default_quarantine_retention_days),
+        })
+    }
+
+    pub fn default_quarantine_retention_days() -> u32 {
+        30
     }
 
     // T-10.9: RTM FR-15
@@ -236,4 +243,43 @@ pub(crate) fn env_bool(name: &str, default: bool) -> bool {
             _ => default,
         })
         .unwrap_or(default)
+}
+
+#[cfg(test)]
+mod default_retention_tests {
+    use super::Config;
+    use serial_test::serial;
+    use std::fs;
+
+    struct ResetGuard;
+
+    impl Drop for ResetGuard {
+        fn drop(&mut self) {
+            Config::reset_overrides();
+        }
+    }
+
+    #[test]
+    #[serial]
+    fn config_t301_27_exposes_default_quarantine_retention_days_when_unconfigured() {
+        let tmp = tempfile::TempDir::new().expect("temp dir");
+        Config::override_root(tmp.path());
+        Config::set_database_path(tmp.path().join("memory.db"));
+        let _reset = ResetGuard;
+        fs::write(
+            tmp.path().join("maenifold.json"),
+            r#"{"agents":{},"settings":{}}"#,
+        )
+        .expect("write config");
+
+        let config = Config::current();
+
+        assert_eq!(
+            config
+                .quarantine_config()
+                .expect("default quarantine retention config")
+                .retention_days,
+            30
+        );
+    }
 }

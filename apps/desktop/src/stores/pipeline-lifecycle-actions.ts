@@ -1,10 +1,16 @@
 import type { Ref } from 'vue';
+import { toast } from 'vue-sonner';
 import { usePipelineMcp } from '../composables/usePipelineMcp';
 import type { PipelineEdge, PipelineInputs, PipelineNode, PipelineView } from '../lib/pipeline-types';
 
 type PipelineMcp = ReturnType<typeof usePipelineMcp>;
 type WithError = <T>(tool: string, fn: () => Promise<T>) => Promise<T | undefined>;
 type RefreshView = (options?: { resetEventLog?: boolean }) => Promise<void>;
+
+interface PipelineDeleteResult {
+  message?: string;
+  defaultedRetention?: boolean;
+}
 
 interface PipelineLifecycleActionDependencies {
   mcp: PipelineMcp;
@@ -104,13 +110,14 @@ export function createPipelineLifecycleActions({
     await withError('delete_pipeline', async () => {
       const isCurrentPipeline = currentPipelineId.value === sessionId;
       let deleted = false;
+      let result: PipelineDeleteResult = {};
 
       if (isCurrentPipeline) {
         stopCurrentPolling();
       }
 
       try {
-        await mcp.deletePipeline(sessionId);
+        result = await mcp.deletePipeline(sessionId) as PipelineDeleteResult;
         deleted = true;
       } finally {
         if (isCurrentPipeline && !deleted && currentPipelineId.value === sessionId) {
@@ -122,7 +129,12 @@ export function createPipelineLifecycleActions({
         newPipeline();
       }
       await refreshList();
-      setSuccessMessage(`Deleted pipeline ${sessionId}.`);
+      const message = result.message ?? `Deleted pipeline ${sessionId}.`;
+      setSuccessMessage(message);
+      toast.success(message);
+      if (result.defaultedRetention === true) {
+        toast.info('Using default 30-day quarantine retention.');
+      }
     });
   }
 

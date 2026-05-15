@@ -10,6 +10,14 @@ import {
   useAgentCapabilitiesStore,
 } from '../agent-capabilities';
 
+const { toast } = vi.hoisted(() => ({
+  toast: {
+    warning: vi.fn(),
+  },
+}));
+
+vi.mock('vue-sonner', () => ({ toast }));
+
 const connected = ref(true);
 const error = ref<string | null>(null);
 const connect = vi.fn(async () => {
@@ -46,6 +54,7 @@ describe('useAgentCapabilitiesStore', () => {
     error.value = null;
     connect.mockClear();
     callTool.mockReset();
+    toast.warning.mockClear();
     seedConfig();
   });
 
@@ -178,5 +187,21 @@ describe('useAgentCapabilitiesStore', () => {
 
     expect(store.getProbe('architect')?.style).toBe('unknown');
     expect(store.getProbe('architect')?.state).toBe('ready');
+  });
+
+  it('sanitizes probe errors before surfacing toast and probe state', async () => {
+    const store = useAgentCapabilitiesStore();
+    callTool.mockRejectedValue(new Error(
+      'HTTP 500: Internal Server Error from /etc/secret/path for /Users/brett/private/token.txt tenantId=tenant-12345',
+    ));
+
+    await store.refreshAll();
+
+    const surfaced = store.getProbe('architect')?.error ?? '';
+    expect(surfaced).toBe('Resource server error');
+    expect(toast.warning).toHaveBeenCalledWith('Resource server error');
+    expect(surfaced).not.toContain('/Users/');
+    expect(surfaced).not.toContain('/etc/');
+    expect(surfaced).not.toContain('tenant-12345');
   });
 });

@@ -3,6 +3,7 @@ import { StreamableHTTPClientTransport, StreamableHTTPError } from '@modelcontex
 import type { CompleteResult, GetPromptResult, Notification, Prompt as PromptDescriptor, PromptReference, ResourceTemplateReference } from '@modelcontextprotocol/sdk/types';
 import { LoggingMessageNotificationSchema, ProgressNotificationSchema, PromptListChangedNotificationSchema, ResourceListChangedNotificationSchema, ResourceUpdatedNotificationSchema, ToolListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types';
 import { MCP_PROTOCOL_VERSION } from '../lib/constants';
+import { sanitizeResourceErrorMessage, warnRawResourceErrorInDev } from '../lib/error-sanitizer';
 import { getHttpFetch } from '../lib/http';
 import { extractAppUiMetadata } from '../stores/agent-capabilities-helpers';
 import type { JsonRpcNotification, ResourceContent, ResourceDescriptor, ResourceTemplateDescriptor, ToolCallResult, ToolDefinition } from './mcpTransport';
@@ -23,6 +24,12 @@ export interface NotificationRouter {
   onNotification(handler: (notification: JsonRpcNotification) => void): () => void;
 }
 
+function getSanitizedErrorMessage(error: unknown): string {
+  const rawError = getErrorMessage(error);
+  warnRawResourceErrorInDev(rawError);
+  return sanitizeResourceErrorMessage(rawError);
+}
+
 export function createNotificationRouter(): NotificationRouter {
   const notificationListeners = new Set<(notification: JsonRpcNotification) => void>();
   return {
@@ -40,7 +47,7 @@ export function createSdkMcpClient(options: {
   const client = new Client({ name: 'pipeline-ui', version: '0.1.0' }, { capabilities: {} });
   const transport = new StreamableHTTPClientTransport(new URL(options.mcpUrl), { fetch: getHttpFetch() });
   transport.setProtocolVersion(MCP_PROTOCOL_VERSION);
-  client.onerror = (err) => options.onError(getErrorMessage(err));
+  client.onerror = (err) => options.onError(getSanitizedErrorMessage(err));
   client.onclose = options.onClose;
   client.fallbackNotificationHandler = async (notification) => options.notificationRouter.dispatch(notification);
   for (const schema of [
@@ -76,7 +83,7 @@ export function createMcpClientOps(options: {
   type GatewayIndexErrorKind = 'call' | 'content' | 'json' | 'schema';
 
   function createGatewayIndexError(message: string, kind: GatewayIndexErrorKind, cause?: unknown): Error {
-    const causeMessage = cause ? `: ${getErrorMessage(cause)}` : '';
+    const causeMessage = cause ? `: ${getSanitizedErrorMessage(cause)}` : '';
     const err = new Error(`${message}${causeMessage}`) as Error & { cause?: unknown; gatewayIndexErrorKind?: GatewayIndexErrorKind };
     err.gatewayIndexErrorKind = kind;
     if (cause) err.cause = cause;
@@ -169,13 +176,13 @@ export function createMcpClientOps(options: {
   async function withReconnect<T>(operation: (client: SdkClient) => Promise<T>): Promise<T> {
     try { return await operation(await options.ensureConnectedSession()); }
     catch (err: unknown) {
-      if (!isSessionExpiredError(err)) { options.setError(getErrorMessage(err)); throw err; }
+      if (!isSessionExpiredError(err)) { options.setError(getSanitizedErrorMessage(err)); throw err; }
       options.setError('MCP session expired: HTTP 404');
       await options.reconnectSession();
       domainMapBuilt = false;
       await buildDomainMap();
       try { return await operation(await options.ensureConnectedSession()); }
-      catch (retryErr: unknown) { options.setError(getErrorMessage(retryErr)); throw retryErr; }
+      catch (retryErr: unknown) { options.setError(getSanitizedErrorMessage(retryErr)); throw retryErr; }
     }
   }
 
@@ -196,7 +203,7 @@ export function createMcpClientOps(options: {
         if (getGatewayIndexErrorKind(err) === 'call' && directMcpFallbackTools.has(name)) {
           return withReconnect(async (client) => (await client.callTool({ name, arguments: args })) as ToolCallResult);
         }
-        options.setError(getErrorMessage(err));
+        options.setError(getSanitizedErrorMessage(err));
         throw err;
       }
     }

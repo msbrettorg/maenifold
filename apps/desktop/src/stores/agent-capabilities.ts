@@ -7,6 +7,7 @@ import {
   loadAgentProbeCache,
   persistAgentProbeCache,
 } from '../lib/agent-probe-cache';
+import { sanitizeResourceErrorMessage, warnRawResourceErrorInDev } from '../lib/error-sanitizer';
 import { useConfigStore } from './config';
 import {
   AGENT_PROBE_CACHE_TTL_MS,
@@ -198,7 +199,9 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
         next.set(agentName, toProbeResult(match));
       }
     } catch (error) {
-      const message = getErrorMessage(error);
+      const rawError = getErrorMessage(error);
+      warnRawResourceErrorInDev(rawError);
+      const message = sanitizeResourceErrorMessage(rawError);
       const timedOut = isProbeTimeout(message);
       hasErrors = true;
       needsRetry = shouldRetryProbe(message);

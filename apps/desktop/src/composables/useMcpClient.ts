@@ -1,6 +1,7 @@
 import { readonly, ref } from 'vue';
 import { DEFAULT_MCP_BASE_URL } from '../lib/constants';
 import { getApiBase } from '../lib/api-base';
+import { sanitizeResourceErrorMessage, warnRawResourceErrorInDev } from '../lib/error-sanitizer';
 import { getErrorMessage } from './mcpTransport';
 import {
   createMcpClientOps,
@@ -101,7 +102,9 @@ export function useMcpClient(baseUrl?: string) {
       await client.connect(transport);
       updateConnectedState(client, transport);
     } catch (err: unknown) {
-      const message = getErrorMessage(err);
+      const rawError = getErrorMessage(err);
+      warnRawResourceErrorInDev(rawError);
+      const message = sanitizeResourceErrorMessage(rawError);
       resetState();
       client = null;
       transport = null;

@@ -153,6 +153,12 @@ SWE agents are unreliable narrators. These requirements exist because SWEs have:
 - **SWE:** The task is the task. Adjacent problems → report, don't fix.
 - **Sub-PMs:** Obsolete. Use pipelines instead.
 
+### Frontend worktrees
+
+- **Worker forbidden actions:** workers are FORBIDDEN from running `npm install`, `npm ci`, `npm rebuild`, or `npx electron-rebuild` inside any worktree whose `apps/desktop/node_modules` is a symlink.
+- **Reason:** worktree `node_modules` symlinks can mutate the main repo dependency tree and create nested `node_modules/node_modules` contamination.
+- **PM prompt check:** PM must verify frontend worker prompts include the forbidden-action clause before dispatch.
+
 ### Parallelization — Pipeline DAGs Handle It
 
 The `Pipeline` tool manages concurrency, ordering, and saturation. The PM builds DAGs; the engine runs them up to `maxConcurrency`. Manual wave dispatch is obsolete.

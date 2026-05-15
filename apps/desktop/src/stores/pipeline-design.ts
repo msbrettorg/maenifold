@@ -188,10 +188,13 @@ export function createPipelineDesignActions(deps: DesignActionsDeps) {
           throw new Error(`Workflow node '${node.id}' is missing workflowId`);
         }
       });
-      const result = await mcp.createPipeline({
+      const serializedDefinition = {
         ...definition,
         edges: definition.edges.map(serializeEdge),
-      }, maxConcurrency.value, { name: options.name });
+      };
+      const result = currentPipelineId.value
+        ? await mcp.updatePipeline(currentPipelineId.value, serializedDefinition, options)
+        : await mcp.createPipeline(serializedDefinition, maxConcurrency.value, options);
       if (
         isCreateResult(result)
         && typeof result.pipelineId === 'string'

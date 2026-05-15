@@ -124,7 +124,7 @@ fn write_driver_started_at(context: &ToolContext, session_id: &str) -> Result<()
     )
 }
 
-fn persist_pipeline_frontmatter(
+pub(crate) fn persist_pipeline_frontmatter(
     context: &ToolContext,
     pipeline_uri: &str,
     frontmatter: &mut maenifold_core::markdown::Frontmatter,
@@ -150,7 +150,7 @@ fn persist_pipeline_frontmatter(
     )
 }
 
-fn pipeline_node_states(
+pub(crate) fn pipeline_node_states(
     frontmatter: &maenifold_core::markdown::Frontmatter,
 ) -> Result<HashMap<String, NodeState>> {
     let node_states = frontmatter.get("nodeStates").cloned().ok_or_else(|| {
@@ -159,7 +159,7 @@ fn pipeline_node_states(
     serde_yml::from_value(node_states).map_err(Into::into)
 }
 
-fn update_workflow_status(
+pub(crate) fn update_workflow_status(
     context: &ToolContext,
     workflow_session_id: &str,
     status: &str,
@@ -180,12 +180,12 @@ fn update_workflow_status(
     )
 }
 
-fn pipeline_session_uri(session_id: &str) -> String {
+pub(crate) fn pipeline_session_uri(session_id: &str) -> String {
     let (year, month, day) = session_date_parts(session_id);
     format!("memory://pipelines/{year:04}/{month:02}/{day:02}/{session_id}")
 }
 
-fn workflow_session_uri(session_id: &str) -> String {
+pub(crate) fn workflow_session_uri(session_id: &str) -> String {
     let (year, month, day) = session_date_parts(session_id);
     format!("memory://thinking/workflow/{year:04}/{month:02}/{day:02}/{session_id}")
 }

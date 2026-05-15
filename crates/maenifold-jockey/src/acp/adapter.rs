@@ -12,11 +12,14 @@ mod adapter_env_t301_31_tests;
 #[cfg(test)]
 #[path = "adapter_env_tests.rs"]
 mod adapter_env_tests;
+#[path = "adapter_resolve.rs"]
+mod adapter_resolve;
 #[cfg(test)]
 #[path = "adapter_t301_31_tests.rs"]
 mod adapter_t301_31_tests;
 
 use adapter_env::validate_env;
+use adapter_resolve::resolve_adapter_for_name;
 
 fn load_agents_config(root: &Path) -> Result<Value, String> {
     let path = root.join("maenifold.json");
@@ -84,8 +87,8 @@ fn env_contains(env: &[(String, String)], var_name: &str) -> bool {
 static ADAPTER_CACHE: std::sync::OnceLock<
     DashMap<(String, PathBuf), Result<(String, Vec<String>, Vec<(String, String)>), String>>,
 > = std::sync::OnceLock::new();
-fn adapter_cache(
-) -> &'static DashMap<(String, PathBuf), Result<(String, Vec<String>, Vec<(String, String)>), String>>
+fn adapter_cache()
+-> &'static DashMap<(String, PathBuf), Result<(String, Vec<String>, Vec<(String, String)>), String>>
 {
     ADAPTER_CACHE.get_or_init(DashMap::new)
 }
@@ -147,48 +150,6 @@ pub(super) fn build_stdio_adapter_with_root(
         args,
         env,
     }))
-}
-
-fn resolve_adapter_for_name(
-    runtime: &str,
-    root: &PathBuf,
-) -> Result<(String, Vec<String>, Vec<(String, String)>), String> {
-    let (config, entry) = find_agent_entry(root, runtime)?;
-    let (binary, args) = command_parts(&entry);
-    if binary.is_empty() {
-        return Err(format!("agent '{}' has an empty command", runtime));
-    }
-    let mut env = entry_env(&entry);
-    for (var_name, value) in validate_env(&entry).map_err(|error| {
-        let details = error
-            .failures
-            .into_iter()
-            .map(|failure| {
-                format!(
-                    "{} from {} ({})",
-                    failure.var_name, failure.source, failure.reason
-                )
-            })
-            .collect::<Vec<_>>()
-            .join("; ");
-        format!("preflight env validation failed for agent '{runtime}': {details}")
-    })? {
-        if !env_contains(&env, &var_name) {
-            env.push((var_name, value));
-        }
-    }
-    for var_name in env_passthrough(&config) {
-        if !env_contains(&env, var_name) {
-            if let Ok(value) = std::env::var(var_name) {
-                env.push((var_name.to_string(), value));
-            }
-        }
-    }
-    Ok((
-        binary.to_string(),
-        args.into_iter().map(ToString::to_string).collect(),
-        env,
-    ))
 }
 
 pub fn probe_runtime(runtime_kind: &str) -> Option<(bool, String)> {

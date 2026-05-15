@@ -1,4 +1,5 @@
 mod recovery;
+mod recovery_preflight;
 
 use maenifold_core::json::OutputFormat;
 use maenifold_core::tools::ToolContext;
@@ -111,7 +112,12 @@ async fn run(config: Config) -> Result<()> {
     let _ = signal_task.await;
 
     let result = match execution_result {
-        Ok(execution_result) => {
+        Ok(mut execution_result) => {
+            if recovery_preflight::promote_preflight_env_failures_to_stuck(&context, &session_id)?
+                > 0
+            {
+                execution_result.status = "stuck".to_string();
+            }
             persist_final_pipeline_status(&context, &session_id, &execution_result.status)
         }
         Err(error) => {

@@ -36,6 +36,19 @@ interface ModelListResponse {
   currentDimensions: number;
 }
 
+interface EmbeddingActionResponse {
+  activated?: boolean;
+  downloaded?: boolean;
+  deleted?: boolean;
+  regenerated?: boolean;
+  modelId?: string;
+  modelChanged?: boolean;
+  reembedRequired?: boolean;
+  vectorsCleared?: boolean;
+  dimensionsDiffer?: boolean;
+  message: string;
+}
+
 export type PendingAction = 'downloading' | 'activating' | 'deleting';
 
 export function useEmbeddingsActions() {
@@ -114,12 +127,18 @@ export function useEmbeddingsActions() {
     pending[model.id] = 'downloading';
     error.value = '';
     try {
-      await callTool('EmbeddingModels', { action: 'download', modelId: model.id });
+      const response = await callTool<EmbeddingActionResponse>('EmbeddingModels', {
+        action: 'download',
+        modelId: model.id,
+      });
       ensurePolling();
       await loadData();
+      toast.success(response.message ?? `Downloaded ${model.name}.`);
     } catch (e) {
       pending[model.id] = undefined;
-      error.value = e instanceof Error ? e.message : String(e);
+      const message = e instanceof Error ? e.message : String(e);
+      error.value = message;
+      toast.error(`Failed to download ${model.name}: ${message}`);
     }
   }
 
@@ -128,10 +147,24 @@ export function useEmbeddingsActions() {
     pending[model.id] = 'activating';
     error.value = '';
     try {
-      await callTool('EmbeddingModels', { action: 'activate', modelId: model.id });
+      const response = await callTool<EmbeddingActionResponse>('EmbeddingModels', {
+        action: 'activate',
+        modelId: model.id,
+      });
       await loadData();
+      const restartPrompt = response.reembedRequired
+        ? ' Restart maenifold to load the new model. Vectors will rebuild on next sync.'
+        : '';
+      const message = `${response.message ?? `Activated ${model.name}.`}${restartPrompt}`;
+      if (response.vectorsCleared === false && response.modelChanged === true) {
+        toast.warning(message);
+      } else {
+        toast.success(message);
+      }
     } catch (e) {
-      error.value = e instanceof Error ? e.message : String(e);
+      const message = e instanceof Error ? e.message : String(e);
+      error.value = message;
+      toast.error(`Failed to activate ${model.name}: ${message}`);
     } finally {
       pending[model.id] = undefined;
     }
@@ -142,10 +175,16 @@ export function useEmbeddingsActions() {
     pending[model.id] = 'deleting';
     error.value = '';
     try {
-      await callTool('EmbeddingModels', { action: 'delete', modelId: model.id });
+      const response = await callTool<EmbeddingActionResponse>('EmbeddingModels', {
+        action: 'delete',
+        modelId: model.id,
+      });
       await loadData();
+      toast.success(response.message ?? `Deleted ${model.name}.`);
     } catch (e) {
-      error.value = e instanceof Error ? e.message : String(e);
+      const message = e instanceof Error ? e.message : String(e);
+      error.value = message;
+      toast.error(`Failed to delete ${model.name}: ${message}`);
     } finally {
       pending[model.id] = undefined;
     }
@@ -156,8 +195,10 @@ export function useEmbeddingsActions() {
     regenerating.value = true;
     error.value = '';
     try {
-      await callTool('EmbeddingModels', { action: 'regenerate' });
-      toast.success('Embeddings cleared. Run sync to rebuild.');
+      const response = await callTool<EmbeddingActionResponse>('EmbeddingModels', {
+        action: 'regenerate',
+      });
+      toast.success(response.message ?? 'Embeddings cleared. Run sync to rebuild.');
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       error.value = message;

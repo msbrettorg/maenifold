@@ -3728,3 +3728,16 @@ Iter-15 closed 6 sprint-308 items + filed 5 sprint-322 follow-ups in ~1h50m:
 Total: 1 PM-direct + 4 SWE dispatches + 4 confessions + 4 red-team audits + 4 commits + 4 merges + 5 follow-up specs + umbrella + iter-15 memory note + learnings update.
 
 **Pattern reaffirmed (Lesson 73 + Lesson 83 + Lesson 86 + Lesson 90):** wave-1 worktree must be created from a `dev` that ALREADY HAS the wave-0 merges, so file-overlapping work doesn't conflict. Auto-merge handled the unrelated-file overlap (T-308.5 KnowledgeMemoryView edit landed cleanly even though T-308.2 also edited that file — different lines, ort strategy resolved).
+
+## 2026-05-14 — Iter-16 (Sprint 309 open)
+
+### Lesson 97: ralph/AGENTS.md role + reconciliation (T-309.5)
+
+`ralph/AGENTS.md` and `ralph/prompt.md` are **both** auto-attached to RALPH iterations as system_reminders. Iter-16 startup found them contradictory:
+
+- `ralph/AGENTS.md` (pre-iter-16): "You are an autonomous SWE. One improvement per iteration. Scope constraints: apps/** off-limits."
+- `ralph/prompt.md` (active): "You are the maenifold project manager. Dispatch work to inner-loop workers. Apps/** is in-scope per task spec."
+
+**Lesson — when two auto-attached docs both seed the system context, they MUST agree.** Drift between them surfaces as an immediate contradiction that the agent has to silently reconcile, with high risk of picking the wrong frame. T-309.5 closed this by rewriting `ralph/AGENTS.md` as the **standing constitution** (operating mode, source of truth, forbidden list, gate ops, commit policy, worktree convention) and pointing all per-iteration mechanics at `ralph/prompt.md`.
+
+**PM startup pre-flight (updated):** read `ralph/AGENTS.md` for the standing constitution, then `ralph/prompt.md` for the iteration playbook, then the most recent 2-3 entries in this file (`learnings.md`) and `thoughts.md`. The two docs must not contradict — if you spot drift, file a gate task immediately.

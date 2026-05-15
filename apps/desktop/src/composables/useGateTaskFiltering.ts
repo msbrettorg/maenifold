@@ -8,6 +8,7 @@ export type GateSortDirection = 'asc' | 'desc';
 
 type GateTaskReadiness = GateTask & {
   ready?: boolean | null;
+  blocked?: boolean | null;
   blockedBy?: string[] | null;
   blocked_by?: string[] | null;
   missingDependencies?: string[] | null;
@@ -112,6 +113,8 @@ export function isReadyTask(task: GateTaskReadiness) {
 }
 
 export function isBlockedTask(task: GateTaskReadiness) {
+  if (task.blocked === true) return true;
+  if (task.state === 'blocked') return true;
   return task.state === 'error'
     || (task.state === 'pending' && (hasTaskError(task) || hasUnmetDependency(task) || task.ready === false));
 }

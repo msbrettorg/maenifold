@@ -18,6 +18,9 @@ export interface GateTask {
   last_updated_at?: string | null;
   priority?: string | null;
   sprint?: number | null;
+  blocked?: boolean;
+  blocked_reason?: string | null;
+  superseded_by?: string[] | null;
   location: string;
   path: string;
   issue: string;

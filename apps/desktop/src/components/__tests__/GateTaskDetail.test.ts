@@ -112,4 +112,46 @@ describe('GateTaskDetail', () => {
     expect(document.body.textContent).toContain('/repo/done/T-243.71-gate-wikilinks.md');
     wrapper.unmount();
   });
+
+  it('surfaces frontmatter blocked reason and superseding task IDs', async () => {
+    const blockedTask: GateTask = {
+      ...task,
+      taskId: 'T-309.3',
+      canonicalTaskId: 'T-309.3',
+      title: 'Blocked gate task',
+      state: 'blocked',
+      location: 'todo',
+      path: '/repo/todo/T-309.3-blocked.md',
+      blocked: true,
+      blocked_reason: 'Superseded by narrower implementation task.',
+      superseded_by: ['T-322.14'],
+    };
+    const wrapper = mount(GateTaskDetail, {
+      props: {
+        task: blockedTask,
+        body: 'Review blocked task metadata.',
+        history: [],
+        bodyLoading: false,
+        historyLoading: false,
+        bodyError: '',
+        historyError: '',
+        root: '/repo',
+      },
+      attachTo: document.body,
+      global: {
+        stubs: {
+          GateTaskDetailHistory: { template: '<div />' },
+          GateTaskDetailStages: { template: '<div />' },
+          GateStageActions: { template: '<div />' },
+        },
+      },
+    });
+    await settle();
+
+    expect(wrapper.text()).toContain('Blocked reason');
+    expect(wrapper.text()).toContain('Superseded by narrower implementation task.');
+    expect(wrapper.text()).toContain('Superseded by');
+    expect(wrapper.text()).toContain('T-322.14');
+    wrapper.unmount();
+  });
 });

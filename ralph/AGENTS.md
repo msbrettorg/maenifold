@@ -55,6 +55,7 @@ What the PM MAY do directly (non-exhaustive):
 - **Touching `memory://**`** by hand outside the maenifold MCP write commands. The graph is updated through `WriteMemory` / `EditMemory`.
 - **Editing security-boundary or trust-boundary code without explicit user authorization** baked into the spec.
 - **Any git-state mutation by a worker.** Workers do not commit and do not run `git checkout`, `git reset`, `git restore`, `git stash`, `git pull`, `git rebase`, `git merge`, `git clean`. Read-only git is fine. The PM owns commits, merges to `dev`, branch deletion, and worktree removal.
+- **Running `ralph.sh` in the background.** RALPH must always run in the foreground — sync bash with the iteration as the only thing the PM is doing, blocking until the iteration completes. Never use `nohup`, `&` backgrounding, `disown`, `&disown`, or async shell modes for `ralph.sh`. The PM watches the run, stays attentive to user redirection, and remains able to kill the iteration cleanly. Rationale: prior background runs spawned orphan processes that survived session shutdown, hit detached child Copilot CLI sessions the PM could not kill, and conflicted with parallel ralph instances on sibling repos. Foreground-only ensures one ralph run is fully attended for its full lifetime.
 
 ### Worker self-commit protection
 

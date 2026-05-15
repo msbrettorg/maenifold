@@ -25,6 +25,32 @@ fn workflow_definition(prompt: &str) -> PipelineDefinition {
     .expect("definition")
 }
 
+fn step_one_workflow_definition() -> PipelineDefinition {
+    serde_json::from_value(json!({
+        "nodes": [{
+            "id": "step-1",
+            "type": "workflow",
+            "workflowId": "test-workflow-a",
+            "acpClient": "test-agent",
+            "prompt": "old workflow prompt"
+        }],
+        "edges": []
+    }))
+    .expect("definition")
+}
+
+fn step_one_tool_definition() -> PipelineDefinition {
+    serde_json::from_value(json!({
+        "nodes": [{
+            "id": "step-1",
+            "type": "tool",
+            "toolName": "memory_status"
+        }],
+        "edges": []
+    }))
+    .expect("definition")
+}
+
 fn state(status: NodeStatus) -> NodeState {
     NodeState {
         session_id: "workflow-node-a-1778851690641".to_string(),
@@ -45,6 +71,13 @@ fn state(status: NodeStatus) -> NodeState {
     }
 }
 
+fn step_one_completed_state() -> NodeState {
+    NodeState {
+        session_id: "workflow-step-1-1778851690641".to_string(),
+        ..state(NodeStatus::Completed)
+    }
+}
+
 fn seed_status(status: NodeStatus) -> (tempfile::TempDir, crate::tools::ToolContext) {
     let (tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
     let mut states = HashMap::new();
@@ -53,6 +86,20 @@ fn seed_status(status: NodeStatus) -> (tempfile::TempDir, crate::tools::ToolCont
         &context,
         "pipeline-1778851690641",
         workflow_definition("old prompt"),
+        states,
+        4,
+    );
+    (tmp, context)
+}
+
+fn seed_step_one_completed() -> (tempfile::TempDir, crate::tools::ToolContext) {
+    let (tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+    let mut states = HashMap::new();
+    states.insert("step-1".to_string(), step_one_completed_state());
+    seed_pipeline_session_with_workflows(
+        &context,
+        "pipeline-1778851690641",
+        step_one_workflow_definition(),
         states,
         4,
     );
@@ -69,6 +116,17 @@ fn update_payload(definition: PipelineDefinition) -> Value {
     })
 }
 
+fn set_completed_frontmatter(context: &crate::tools::ToolContext) {
+    let (uri, mut frontmatter, content) =
+        read_pipeline_session(context, "pipeline-1778851690641").expect("read seeded pipeline");
+    frontmatter.insert("status".to_string(), serde_yml::Value::String("completed".to_string()));
+    frontmatter.insert("cursor".to_string(), serde_yml::to_value(7u64).expect("yaml"));
+    frontmatter.insert("first".to_string(), serde_yml::to_value(3u64).expect("yaml"));
+    frontmatter.insert("last".to_string(), serde_yml::to_value(9u64).expect("yaml"));
+    crate::markdown::write_markdown(&uri, Some(&frontmatter), &content, &context.config)
+        .expect("rewrite completed frontmatter");
+}
+
 fn pipeline_files(context: &crate::tools::ToolContext) -> Vec<std::path::PathBuf> {
     let root = context.config.memory_path.join("pipelines");
     let mut files = Vec::new();
@@ -83,6 +141,49 @@ fn pipeline_files(context: &crate::tools::ToolContext) -> Vec<std::path::PathBuf
     }
     files.sort();
     files
+}
+
+#[test]
+#[serial]
+fn update_pipeline_t301_36_resets_state_when_node_type_changes() {
+    let (_tmp, context) = seed_step_one_completed();
+    let original_session_id = "workflow-step-1-1778851690641";
+
+    pipeline(&context, &update_payload(step_one_tool_definition())).expect("update pipeline");
+    let (_, frontmatter, _) =
+        read_pipeline_session(&context, "pipeline-1778851690641").expect("read updated pipeline");
+    let states: HashMap<String, NodeState> =
+        frontmatter_value(&frontmatter, "nodeStates").expect("node states");
+    let updated = states.get("step-1").expect("step-1 state");
+
+    assert_eq!(
+        updated.status,
+        NodeStatus::Pending,
+        "same-id node type changes must reset runtime status"
+    );
+    assert_ne!(
+        updated.session_id, original_session_id,
+        "same-id node type changes must allocate a fresh session id"
+    );
+}
+
+#[test]
+#[serial]
+fn update_pipeline_t301_36_preserves_status_when_updating_completed_pipeline() {
+    let (_tmp, context) = seed_status(NodeStatus::Completed);
+    set_completed_frontmatter(&context);
+
+    pipeline(&context, &update_payload(workflow_definition("new prompt"))).expect("update");
+    let (_, frontmatter, _) =
+        read_pipeline_session(&context, "pipeline-1778851690641").expect("read updated pipeline");
+
+    assert_eq!(
+        frontmatter.get("status").and_then(serde_yml::Value::as_str),
+        Some("completed")
+    );
+    assert_eq!(frontmatter.get("cursor").and_then(serde_yml::Value::as_u64), Some(7));
+    assert_eq!(frontmatter.get("first").and_then(serde_yml::Value::as_u64), Some(3));
+    assert_eq!(frontmatter.get("last").and_then(serde_yml::Value::as_u64), Some(9));
 }
 
 #[test]

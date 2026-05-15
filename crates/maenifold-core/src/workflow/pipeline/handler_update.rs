@@ -1,5 +1,6 @@
 use crate::assets::AssetManager;
 use crate::error::{MaenifoldError, Result};
+use crate::markdown::write_markdown;
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use serde_json::{Value, json};
@@ -11,7 +12,7 @@ use super::lease;
 use super::resource_notifications::emit_pipeline_resource_updated;
 use super::session_io::{
     NodeFile, allocate_node_session_id, derive_pipeline_node_states, frontmatter_value,
-    read_pipeline_session, write_pipeline_session, write_workflow_node_session,
+    read_pipeline_session, write_workflow_node_session,
 };
 use super::{NodeState, NodeStatus, PipelineDefinition, compute_ready_set, validate_pipeline};
 
@@ -45,7 +46,8 @@ fn update_pipeline_locked(
     payload: &Value,
     definition: PipelineDefinition,
 ) -> Result<String> {
-    let (_, frontmatter, _) = read_pipeline_session(context, session_id)?;
+    let (uri, mut frontmatter, content) = read_pipeline_session(context, session_id)?;
+    let existing_definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
     let existing_states: HashMap<String, NodeState> =
         derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
     if existing_states
@@ -57,12 +59,9 @@ fn update_pipeline_locked(
         ));
     }
 
-    let (node_states, new_node_files) = merge_node_states(context, &definition, &existing_states)?;
+    let (node_states, new_node_files) =
+        merge_node_states(context, &definition, &existing_definition, &existing_states)?;
     let ready = compute_ready_set(&definition, &node_states);
-    let max_concurrency = frontmatter
-        .get("maxConcurrency")
-        .and_then(YamlValue::as_u64)
-        .unwrap_or(8);
     let name = optional_text(payload, "name")?.or_else(|| existing_text(&frontmatter, "name"));
     let description = optional_text(payload, "description")?
         .or_else(|| existing_text(&frontmatter, "description"));
@@ -71,13 +70,13 @@ fn update_pipeline_locked(
         let _guard = crate::workflow::asset_store::lock_asset_store()?;
         validate_workflow_node_definitions(context, &definition.nodes)?;
         let node_states_frontmatter = states_to_frontmatter(&node_states)?;
-        write_pipeline_session(
+        write_updated_pipeline_session(
             context,
-            session_id,
+            &uri,
+            &mut frontmatter,
+            &content,
             &definition,
             &node_states_frontmatter,
-            max_concurrency,
-            None,
             name.as_deref(),
             description.as_deref(),
         )?;
@@ -100,11 +99,17 @@ fn update_pipeline_locked(
 fn merge_node_states(
     context: &ToolContext,
     definition: &PipelineDefinition,
+    existing_definition: &PipelineDefinition,
     existing_states: &HashMap<String, NodeState>,
 ) -> Result<(HashMap<String, NodeState>, Vec<NodeFile>)> {
     let mut seen = HashSet::with_capacity(definition.nodes.len());
     let mut node_states = HashMap::with_capacity(definition.nodes.len());
     let mut new_node_files = Vec::new();
+    let existing_node_types: HashMap<&str, &str> = existing_definition
+        .nodes
+        .iter()
+        .map(|node| (node.id(), node.node_type_name()))
+        .collect();
 
     for node in &definition.nodes {
         if !seen.insert(node.id()) {
@@ -114,8 +119,13 @@ fn merge_node_states(
             )));
         }
         if let Some(state) = existing_states.get(node.id()) {
-            node_states.insert(node.id().to_string(), state.clone());
-            continue;
+            if existing_node_types
+                .get(node.id())
+                .is_some_and(|old_type| *old_type == node.node_type_name())
+            {
+                node_states.insert(node.id().to_string(), state.clone());
+                continue;
+            }
         }
         let session_id = allocate_node_session_id(context, node.id())?;
         node_states.insert(node.id().to_string(), pending_state(session_id.clone()));
@@ -123,6 +133,44 @@ fn merge_node_states(
     }
 
     Ok((node_states, new_node_files))
+}
+
+fn write_updated_pipeline_session(
+    context: &ToolContext,
+    uri: &str,
+    frontmatter: &mut crate::markdown::Frontmatter,
+    content: &str,
+    definition: &PipelineDefinition,
+    node_states: &BTreeMap<String, YamlValue>,
+    name: Option<&str>,
+    description: Option<&str>,
+) -> Result<()> {
+    upsert_text(frontmatter, "name", name);
+    upsert_text(frontmatter, "description", description);
+    frontmatter.insert("definition".to_string(), serde_yml::to_value(definition)?);
+    frontmatter.insert(
+        "nodeStates".to_string(),
+        YamlValue::Mapping(
+            node_states
+                .iter()
+                .map(|(key, value)| (YamlValue::String(key.clone()), value.clone()))
+                .collect(),
+        ),
+    );
+    write_markdown(uri, Some(frontmatter), content, &context.config)?;
+    Ok(())
+}
+
+fn upsert_text(
+    frontmatter: &mut crate::markdown::Frontmatter,
+    field: &str,
+    value: Option<&str>,
+) {
+    if let Some(value) = value.map(str::trim).filter(|value| !value.is_empty()) {
+        frontmatter.insert(field.to_string(), YamlValue::String(value.to_string()));
+    } else {
+        frontmatter.remove(field);
+    }
 }
 
 fn pending_state(session_id: String) -> NodeState {

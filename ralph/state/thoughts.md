@@ -2,60 +2,69 @@
 
 Handoff from this iter to the next. Replace at iter end.
 
-## Iter close 2026-05-15 (iter-2) — sprint 301 carry-forward 4/4 shipped
+## Iter close 2026-05-15 (iter-3) — sprint 301 SHIPPED, T-301.40 decomposed into 3 children, all shipped
 
-**Working tree clean** after this commit. dev branch up to date at aae3e48c9.
+**Working tree clean** after this commit. dev branch up to date at d11bfbc38 (will tick up by the iter-close commit).
 
-Backlog: 80 → ~80 in sprint 301 totals (4 shipped + 1 follow-up filed). Net iter throughput: 4 tasks closed (T-301.32, T-301.37, T-301.38, T-301.39).
+**Sprint 301 is CLOSED.** Net iter throughput: 3 children of T-301.40 shipped (T-301.40.1, T-301.40.2, T-301.40.3); parent T-301.40 retained in todo/ as blocked + superseded_by trace.
 
 ## In flight at handoff
 
-Nothing. All 4 dispatched workers landed + audited + merged + gate-advanced. All 4 worktrees cleaned up.
+Nothing. All 3 dispatched workers landed + audited + merged + gate-advanced. All 3 worktrees cleaned up.
 
 ## What landed this iter (in commit order)
 
-- **Sprint 301** (carry-forward from iter-1):
-  - T-301.32 — fix two baseline maenifold-core lib test failures (gateway_catalog whitelist + sampling deny -32600→-1)
-  - T-301.37 — T-301.31 follow-ups (3 sub-tasks): jockey adapter.rs LOC 306→267, docs/DEVELOPMENT.md optional envFromFile schema, pipeline-driver Stuck-status mapping for preflight env failures
-  - T-301.38 — fork dialog silent-fail wrapped in toast.error
-  - T-301.39 — promote-to-memory empty Connections gets visible validation (toast + focus + danger-styled inline error)
-- **Build artifacts refreshed** post-merge:
-  - target/release/maenifold + target/release/maenifold-pipeline-driver rebuilt at 13:52
-  - apps/desktop/out/maenifold-darwin-arm64/ repackaged at 13:53
+- **Sprint 301** (carry-forward closing):
+  - **T-301.40.2** (commit fd8e4ba3a, merge f16c73954) — shared cross-crate `pub const PREFLIGHT_ENV_VALIDATION_FAILED_PREFIX` in `jockey::acp::adapter_env`. Lifted literal previously duplicated across jockey + pipeline-driver. Producer + consumer both reference shared symbol. New constant-equality test (uses `concat!` to keep grep-uniqueness). Postscript appended to done/T-301.31.md retracting structured-variant speculation.
+  - **T-301.40.1** (commit 258f8ba72, merge 6b79327cc) — pipeline-driver lib refactor. Added `[lib]` section, created `crates/maenifold-pipeline-driver/src/lib.rs` (159 LOC, 1-to-1 port of pre-refactor main.rs::run body), slimmed main.rs to 23 LOC thin shim. New integration test `tests/preflight_misconfigured_agent.rs` (226 LOC) pre-seeds Abandoned + preflight failure_reason and asserts existing Ok-arm post-hoc promotion flips to Stuck. **1st red-team FAILED on scope creep** (SWE had invented new pre-dispatch behavior to make test pass); PM remediation removed the new code + reshaped test fixture; **2nd red-team (claude-opus-4.6, fresh) PASSED**.
+  - **T-301.40.3** (commit 229f29283, merge d11bfbc38) — Err-path coverage of `execute_pipeline`. 4-line defensive promotion in Err arm: `let _ = recovery_preflight::promote_preflight_env_failures_to_stuck(...)` BEFORE `finalize_failed_pipeline_execution`. Result swallowed with `let _` so original Err propagates unchanged. New integration test `tests/preflight_err_path.rs` (157 LOC) injects outer Err by omitting required pipeline definition AND pre-seeds Abandoned, asserts Err return + node = Stuck.
 
-## Sprint 301 carry-forward (1 task — filed during this iter)
+## Build artifacts at iter close
 
-| Task | Pri | Why deferred |
-|---|---|---|
-| T-301.40 | P2 | NEW. T-301.37 follow-ups: (a) integration test against a REAL pipeline run with envFromFile pointing at /nonexistent/path (current test asserts unit-level mapping only), (b) structured PreflightFailure variant handling instead of literal string match (fidelity loss at jockey→driver boundary), (c) Err-path coverage in promote_preflight_env_failures_to_stuck (currently only runs on Ok(execution_result) branch). Heavy task; needs new pipeline-driver integration test infrastructure under crates/maenifold-pipeline-driver/tests/. |
+- `target/release/maenifold`: inode 315778576 (rebuilt 15:16)
+- `target/release/maenifold-pipeline-driver`: inode 315778599 (rebuilt 15:16)
+- Daemon: PID 84130, inode 315778576 (matches disk — daemon was kicked at 15:24 mid-iter to absorb T-301.40.2 jockey changes)
+- Sprint 302's first task does NOT need a daemon restart (binaries already fresh).
 
-## Other open product gaps
+## Sprint 301 final state
 
-- **16 LOC violations on baseline** (per `bash scripts/audit-crates.sh`), down from 17 — T-301.37 sub-task 1 fixed adapter.rs. T-315.1 still owns the full audit-crates debt with 16 violators including handler_execute.rs (455 LOC, +2 .unwrap() violations). Each remaining file should be a tracked task per AGENTS.md "every audit failure is a tracked item."
-- **Stale daemon** at iter close: PID 96954 still has the iter-1 binary (inode 314208435) in memory. The new release binary is at target/release/maenifold (built 13:52). Next iter MUST restart daemon before:
-  - Pipeline-driver UAT (would test old recovery.rs without the preflight promotion)
-  - Sampling-deny verification (old daemon returns -32600, new code returns -1)
-  - Any work that depends on T-301.32 or T-301.37 backend changes being live
-  Use `./rebuild.sh` (rebuild + launchctl kickstart) or kill PID 96954 + relaunch via launchd.
-- **Stale Electron app** (already repackaged but the running app may not be the fresh package). Next iter CDP UAT on T-301.38/T-301.39 features should launch via `scripts/uat-launch.sh <task-id>` against the freshly-packaged binary at apps/desktop/out/maenifold-darwin-arm64/maenifold.app.
-
-## Process insights worth carrying forward
-
-- **TDD pipeline stage collapse continued**: PM dispatched single inner-loop SWE per task with explicit "write failing test FIRST" discipline; SWE confession + tool chronology validated test-first; red-team validated meaningful (not tautological). PM advanced blue-team + swe stages with attribution to "swe-T-XXX (gpt-5.5, TDD test-author phase)" + "swe-T-XXX (gpt-5.5)" — process gap recorded for transparency, see learnings.md.
-- **Red-team scoping override**: red-T-301.32 returned FAIL on a pre-existing 757-LOC overage. PM overrode per AGENTS.md "pre-existing → informational, not FAIL" rule. Documented in gate notes + learnings.md. Future red-team prompts should include the explicit instruction to NOT FAIL on pre-existing-baseline files unless the SWE delta crossed the limit boundary.
-- **Worker-flagged baseline regressions**: All 4 SWE workers reported full-suite failures (acorn missing + Vue composableIntegration flake + Rust concurrent_read_resource flake) as "blocker requires rework." PM verified each was pre-existing baseline. Workers were honest about uncertainty; PM evidence resolved. Pattern to encode: SWE prompts should explicitly require running the failing test ON DEV BEFORE the change to baseline whether it's pre-existing.
+- 3 newly-filed children all in done/ (T-301.40.1.md, T-301.40.2.md, T-301.40.3.md).
+- Parent T-301.40 remains in todo/ with `blocked: true` + `superseded_by: [T-301.40.1, T-301.40.2, T-301.40.3]`. ready=false. Future PMs see it as a gate-aware traceability marker, not a dispatchable task. Do NOT advance T-301.40 through gate stages — its work IS the 3 children.
+- All other sprint-301 tasks closed in iter-1 + iter-2.
 
 ## Suggested entry point for next loop
 
-Per "lowest-numbered first" — start with **T-301.40**. It's the only sprint-301 task remaining. Heavy lift (new integration test infrastructure for pipeline-driver), so allocate generously and consider splitting:
-  - T-301.40a: integration test scaffolding + the misconfigured-agent test (P1)
-  - T-301.40b: structured PreflightFailure variant refactor (P2)
-  - T-301.40c: Err-path coverage in promotion logic (P2)
+Per "lowest-numbered first" + "do not mix sprints" — start **sprint 302**.
 
-If sprint 301 closes (T-301.40 done), **iter ends** per "When you finish the sprint you're done with the iteration too." Then sprint 302 next — first task is T-302.11 (Agents tab full UAT, gsd pipeline). Sprint 302 is heavy on CDP UAT items (T-302.11, T-302.12, T-302.35); each needs a CDP-port-isolated worktree and serial execution per "one agent per CDP session."
+First sprint-302 task is **T-302.11** (`244.116-agents-tab-full-uat`, `pipeline: gsd`). This is a **CDP UAT** task. Per ralph/prompt.md UI verification rules:
+- Use `agent-browser` (the only permitted tool — no Python/Playwright/Puppeteer).
+- Launch via `scripts/uat-launch.sh T-302.11` against the packaged Electron app.
+- One agent per CDP session — visual audits are serial.
+- Set `MAENIFOLD_UAT=1` + `MAENIFOLD_UAT_FOLDER_PICKER_PATH=/tmp/uat-fixture-folder` before any CDP launch (folder-picker bypass).
+- Agent-browser may attach to about:blank instead of the renderer — workaround in repo-root AGENTS.md "Known harness gap" section.
+
+Sprint 302 is heavy on CDP UAT items (T-302.11, T-302.12, T-302.35) — each needs its own CDP-port-isolated worktree. Per the constitution, "one agent per CDP session" — they cannot run in parallel. Plan: serialize CDP UAT work; parallelize any non-CDP items if found in sprint 302.
 
 ## Critical pre-flight before next iter starts
 
-1. **Restart daemon** (`./rebuild.sh` or kill PID 96954 + launchd kickstart). Verify with `lsof -p $(pgrep -f 'target/release/maenifold' | head -1) | grep "txt.*target/release/maenifold$"` shows the new inode (compare against `ls -la target/release/maenifold`).
-2. **Run `bash scripts/audit-crates.sh`** to confirm baseline is 16 (not 17) post-T-301.37 merge. If 17, the merge is broken.
-3. **Run `cargo test -p maenifold-core --lib -- reverse_mapping_exhaustively_covers sampling_deny_returns_negative_1`** to confirm both T-301.32 fixes are in dev. Both should PASS.
+1. **Daemon inode check** — `lsof -p $(pgrep -f 'target/release/maenifold' | head -1) | grep "txt.*target/release/maenifold$"` should match `ls -lai target/release/maenifold`. Currently both = inode 315778576. If they diverge, kickstart launchd: `launchctl kickstart -k gui/$(id -u)/com.ma-collective.maenifold`.
+2. **audit-crates baseline** — `bash scripts/audit-crates.sh` should report **16 violators** (matches end of iter-3 baseline). If 17+, the merge is broken or new violator landed; check what file went over and file as gate task per AGENTS.md "every audit failure is a tracked item."
+3. **Smoke test the new defensive promotion** — `cargo test -p maenifold-pipeline-driver` should pass 3/3 (recovery_preflight unit + 2 integration tests including the new preflight_err_path).
+
+## Process insights worth carrying forward
+
+- **Decomposition pre-dispatch is non-negotiable for multi-deliverable specs.** T-301.40 had 3 deliverables that would have blown the 10-min SWE wall-clock cap as one task. Decomposing into 3 children (filed as new gate tasks with `superseded_by: [...]` on parent + `blocked: true` to remove from ready=true) gave 3 focused workers each ≤10 min. The parent stays in todo/ as documentation, not as dispatchable work.
+- **Sequential dependency chain via worktree mid-iter rebase**: when later children depend on earlier merges (40.3 needed 40.1's lib.rs structure), pre-create the later worktree but defer worker dispatch until predecessor merges. After each predecessor merge, `cd worktrees/<later> && PM_OWNS_THIS=1 git rebase dev` to absorb the new base. This pattern is now in learnings.md.
+- **Red-team caught real scope creep on 40.1 v1**. SWE invented new production code (a `mark_preflight_env_failures_abandoned` function) to make their integration test pass instead of reshaping the test fixture to exercise the existing real path. PM remediation guidance was specific: remove the new function, pre-seed Abandoned + failure_reason in the fixture so the existing Ok-arm promotion catches it. v2 audit (claude-opus-4.6, fresh) PASSED clean. Pattern is in learnings.md as a recurring failure mode.
+- **PM-authorized scope expansion via write_agent worked** for T-301.40.2's real file-scope blocker (private adapter_env module needed bridging via adapter.rs). Pattern is in learnings.md.
+- **TDD pipeline collapse continued** (single SWE per task with explicit "test-first" instruction; PM advances blue-team + swe stages with attribution to "swe-T-XXX (gpt-5.5, TDD test-author phase)" + "swe-T-XXX (gpt-5.5)"). Same pattern as iter-2; still recorded for transparency until AGENTS.md formally allows TDD-fast collapsed dispatch.
+
+## Wave-boundary review status
+
+Sprint 301 closes with this iter, but the work was 3 children of one parent task with their own per-task confession + audit chains. Per ralph/AGENTS.md "wave boundaries" definition, this is **NOT** a wave boundary requiring duo rubber-duck review (no umbrella close + tasks were independent file-scope work). If next iter starts a NEW sprint (302) with new architecture decisions, the duo at THAT boundary is appropriate.
+
+## Open product gaps (carry-forward, NOT in scope)
+
+- **16 LOC violations on baseline** (per `bash scripts/audit-crates.sh`). T-315.1 owns the audit-crates LOC debt with all 16 violators. Each remaining file should be a tracked task per AGENTS.md.
+- **handler_execute.rs has 2 .unwrap() violations** (also tracked in T-315.1 / T-315.2).
+- **Informational finding from T-301.40.1 v2 red-team**: `pub mod recovery; pub mod recovery_preflight;` in lib.rs could be `pub(crate) mod` for tighter encapsulation. Non-blocking; can fold into a future cleanup.

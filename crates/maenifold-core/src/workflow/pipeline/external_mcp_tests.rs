@@ -20,6 +20,8 @@ fn config_with_global_and_agents(
                     crate::acp_config::AgentEntry {
                         command: "/usr/bin/env true".to_string(),
                         env: HashMap::new(),
+                        env_from_file: HashMap::new(),
+                        env_from_command: HashMap::new(),
                         mcp_servers,
                     },
                 )
@@ -66,6 +68,8 @@ fn resolve_server_entry_prefers_global_over_agent() {
         args: vec![],
         timeout: None,
         env: HashMap::new(),
+        env_from_file: HashMap::new(),
+        env_from_command: HashMap::new(),
         gateway: false,
     };
     let config =
@@ -85,6 +89,8 @@ fn resolve_server_entry_falls_back_to_agent_server() {
         args: vec![],
         timeout: None,
         env: HashMap::new(),
+        env_from_file: HashMap::new(),
+        env_from_command: HashMap::new(),
         gateway: false,
     };
     let config = config_with_global_and_agents(vec![], [("agent-a", vec![agent_server.clone()])]);

@@ -85,6 +85,8 @@ fn agent_entry_schema() -> Value {
         "properties": {
             "command": { "type": "string", "minLength": 1 },
             "env": { "type": "object", "additionalProperties": { "type": "string" } },
+            "envFromFile": { "type": "object", "additionalProperties": { "type": "string" } },
+            "envFromCommand": env_from_command_schema(),
             "mcpServers": { "type": "array", "items": mcp_server_schema() }
         },
         "required": ["command"],
@@ -104,6 +106,8 @@ fn mcp_server_schema() -> Value {
                     "args": { "type": "array", "items": { "type": "string" } },
                     "timeout": { "type": "integer", "minimum": 1 },
                     "env": { "type": "object", "additionalProperties": { "type": "string" } },
+                    "envFromFile": { "type": "object", "additionalProperties": { "type": "string" } },
+                    "envFromCommand": env_from_command_schema(),
                     "gateway": { "type": "boolean" }
                 },
                 "required": ["type", "name", "command"],
@@ -120,6 +124,21 @@ fn mcp_server_schema() -> Value {
                 "additionalProperties": false
             }
         ]
+    })
+}
+
+fn env_from_command_schema() -> Value {
+    json!({
+        "type": "object",
+        "additionalProperties": {
+            "type": "object",
+            "properties": {
+                "command": { "type": "string", "minLength": 1 },
+                "args": { "type": "array", "items": { "type": "string" } }
+            },
+            "required": ["command"],
+            "additionalProperties": false
+        }
     })
 }
 

@@ -9,6 +9,8 @@ fn config_with_agent(name: &str) -> AgentsConfig {
         AgentEntry {
             command: "/bin/echo".to_string(),
             env: HashMap::new(),
+            env_from_file: HashMap::new(),
+            env_from_command: HashMap::new(),
             mcp_servers: Vec::new(),
         },
     );

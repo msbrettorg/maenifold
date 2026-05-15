@@ -96,6 +96,10 @@ Sort backlog by priority (P0 > P1 > P2 > P3) then by task ID. Never dispatch low
 
 Before any destructive batch (delete, cancel-many, force-complete, drop, purge): list the exact target IDs + statuses, confirm the list matches the user's literal words, and only then execute. After execution, re-list and verify the post-state matches intent. Treat any counts-only success payload (`{cleanedUpFiles:N}`) as UNVERIFIED until the post-list confirms the operation. The daemon may lie — see `memory://incidents/20260501-phantom-deletion-rca`.
 
+## Reduction-first spec rule
+
+**Reduction-first.** Every spec MUST include a "What this DELETES or CONSOLIDATES" section. If the section is empty or "N/A", the spec is bloat by default and must justify why no reduction is possible. Sprint-level reduction must be tracked; every sprint that adds without subtracting compounds the problem.
+
 ## Stop Conditions
 
 - **If you catch yourself reading a user message without filing every observation in it as a gate item — STOP. File first.**

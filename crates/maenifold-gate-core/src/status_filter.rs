@@ -14,11 +14,11 @@ impl StatusFilter {
             return false;
         }
 
-        if self.blocked_only
-            && !row["blockedBy"]
-                .as_array()
-                .is_some_and(|blocked_by| !blocked_by.is_empty())
-        {
+        let dependency_blocked = row["blockedBy"]
+            .as_array()
+            .is_some_and(|blocked_by| !blocked_by.is_empty());
+        let frontmatter_blocked = row["blocked"].as_bool() == Some(true);
+        if self.blocked_only && !dependency_blocked && !frontmatter_blocked {
             return false;
         }
 
@@ -51,9 +51,7 @@ mod tests {
             include_done: false,
         };
         assert!(filter.matches(&json!({ "ready": true, "state": "pending", "location": "todo" })));
-        assert!(
-            !filter.matches(&json!({ "ready": false, "state": "pending", "location": "todo" }))
-        );
+        assert!(!filter.matches(&json!({ "ready": false, "state": "pending", "location": "todo" })));
     }
 
     #[test]
@@ -113,6 +111,52 @@ mod tests {
         };
         assert!(filter.matches(&json!({ "state": "pending", "blockedBy": ["T-1"] })));
         assert!(!filter.matches(&json!({ "state": "pending", "blockedBy": [] })));
+    }
+
+    #[test]
+    fn blocked_only_matches_dependency_only_blocked() {
+        let filter = StatusFilter {
+            state: None,
+            ready_only: false,
+            blocked_only: true,
+            include_done: false,
+        };
+        assert!(filter.matches(&json!({ "state": "pending", "blockedBy": ["T-X"] })));
+    }
+
+    #[test]
+    fn blocked_only_matches_frontmatter_only_blocked() {
+        let filter = StatusFilter {
+            state: None,
+            ready_only: false,
+            blocked_only: true,
+            include_done: false,
+        };
+        assert!(filter.matches(&json!({ "state": "blocked", "blocked": true, "blockedBy": [] })));
+    }
+
+    #[test]
+    fn blocked_only_matches_both() {
+        let filter = StatusFilter {
+            state: None,
+            ready_only: false,
+            blocked_only: true,
+            include_done: false,
+        };
+        assert!(
+            filter.matches(&json!({ "state": "blocked", "blocked": true, "blockedBy": ["T-Y"] }))
+        );
+    }
+
+    #[test]
+    fn blocked_only_excludes_neither() {
+        let filter = StatusFilter {
+            state: None,
+            ready_only: false,
+            blocked_only: true,
+            include_done: false,
+        };
+        assert!(!filter.matches(&json!({ "state": "pending", "blocked": false, "blockedBy": [] })));
     }
 
     #[test]

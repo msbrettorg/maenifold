@@ -210,6 +210,36 @@ fn agents_config_includes_settings() {
     assert_eq!(agent.mcp_servers[0].name(), "local");
 }
 
+fn first_stdio(entry: serde_json::Value) -> McpServerEntry { serde_json::from_value::<AgentsConfig>(json!({"mcpServers": [entry], "agents": {}})).expect("config").mcp_servers.into_iter().next().expect("stdio entry") }
+fn first_agent(entry: serde_json::Value) -> AgentEntry { serde_json::from_value::<AgentsConfig>(json!({"agents": {"agent": entry}})).expect("config").agents.into_values().next().expect("agent entry") }
+
+#[test] fn stdio_entry_deserializes_env_from_file_only() {
+    let entry = first_stdio(json!({"type":"stdio","name":"local","command":"/bin/echo","envFromFile":{"AZURE_OPENAI_API_KEY":"~/.secrets/azure"}}));
+    let McpServerEntry::Stdio { env, env_from_file, env_from_command, .. } = entry else { panic!("stdio") };
+    assert!(env.is_empty() && env_from_command.is_empty());
+    assert_eq!(env_from_file.get("AZURE_OPENAI_API_KEY").map(String::as_str), Some("~/.secrets/azure"));
+}
+
+#[test] fn agent_entry_deserializes_env_from_command_only() {
+    let entry = first_agent(json!({"command":"/bin/echo --agent","envFromCommand":{"ANTHROPIC_API_KEY":{"command":"/usr/bin/security","args":["find-generic-password","-w"]}}}));
+    assert!(entry.env.is_empty() && entry.env_from_file.is_empty());
+    let command = entry.env_from_command.get("ANTHROPIC_API_KEY").expect("command source");
+    assert_eq!((&command.command, &command.args), (&"/usr/bin/security".to_string(), &vec!["find-generic-password".to_string(), "-w".to_string()]));
+}
+
+#[test] fn stdio_entry_deserializes_all_env_sources() {
+    let entry = first_stdio(json!({"type":"stdio","name":"local","command":"/bin/echo","env":{"PATH":"/usr/bin"},"envFromFile":{"OPENAI_API_KEY":"~/.secrets/openai"},"envFromCommand":{"ANTHROPIC_API_KEY":{"command":"/usr/bin/security","args":["find-generic-password"]}}}));
+    let McpServerEntry::Stdio { env, env_from_file, env_from_command, .. } = entry else { panic!("stdio") };
+    assert_eq!(env.get("PATH").map(String::as_str), Some("/usr/bin"));
+    assert_eq!(env_from_file.get("OPENAI_API_KEY").map(String::as_str), Some("~/.secrets/openai"));
+    assert_eq!(env_from_command.get("ANTHROPIC_API_KEY").expect("command source").args, vec!["find-generic-password"]);
+}
+
+#[test] fn agent_entry_env_sources_default_empty() {
+    let entry = first_agent(json!({"command":"/bin/echo --agent"}));
+    assert!(entry.env.is_empty() && entry.env_from_file.is_empty() && entry.env_from_command.is_empty());
+}
+
 #[test]
 fn test_real_maenifold_json_core() {
     let home = std::env::var("HOME").expect("HOME should be set");

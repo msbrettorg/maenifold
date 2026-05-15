@@ -316,6 +316,8 @@ mod tests {
         let entry = AgentEntry {
             command: "/usr/local/bin/claude --print".to_string(),
             env: HashMap::new(),
+            env_from_file: HashMap::new(),
+            env_from_command: HashMap::new(),
             mcp_servers: vec![],
         };
 
@@ -330,6 +332,8 @@ mod tests {
         let entry = AgentEntry {
             command: "  ".to_string(),
             env: HashMap::new(),
+            env_from_file: HashMap::new(),
+            env_from_command: HashMap::new(),
             mcp_servers: vec![],
         };
 
@@ -345,6 +349,8 @@ mod tests {
         let entry = AgentEntry {
             command: "mock".to_string(),
             env: HashMap::new(),
+            env_from_file: HashMap::new(),
+            env_from_command: HashMap::new(),
             mcp_servers: vec![],
         };
 

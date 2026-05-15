@@ -1,10 +1,11 @@
 import { ref } from 'vue';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createGateSnapshot, type GateSnapshot, type GateTask } from '../../lib/gate';
-import { useGateTaskFiltering } from '../useGateTaskFiltering';
+import { isBlockedTask, useGateTaskFiltering } from '../useGateTaskFiltering';
 
 type TestGateTask = GateTask & {
   ready?: boolean;
+  blocked?: boolean;
   blockedBy?: string[];
 };
 
@@ -34,6 +35,39 @@ function task(values: Partial<TestGateTask>): TestGateTask {
 
 describe('useGateTaskFiltering readiness filter', () => {
   beforeEach(() => { localStorage.clear(); });
+
+  it('treats state blocked as blocked without dependency hints', () => {
+    expect(isBlockedTask(task({ taskId: 'T-7', state: 'blocked', ready: false }))).toBe(true);
+  });
+
+  it('treats frontmatter blocked true as blocked regardless of state', () => {
+    expect(isBlockedTask(task({ taskId: 'T-8', blocked: true, state: 'swe', ready: true }))).toBe(true);
+  });
+
+  it('preserves pending ready false dependency-blocked semantics', () => {
+    expect(isBlockedTask(task({ taskId: 'T-9', ready: false, blockedBy: ['T-0'] }))).toBe(true);
+  });
+
+  it('includes frontmatter-blocked tasks in the blocked readiness filter', () => {
+    const snapshot = ref<GateSnapshot | null>(createGateSnapshot('/repo', [
+      task({ taskId: 'T-10', blocked: true, state: 'blocked', ready: false }),
+    ]));
+    const filtering = useGateTaskFiltering(snapshot);
+
+    filtering.readinessFilter.value = 'blocked';
+
+    expect(filtering.visibleTasks.value.map((gateTask) => gateTask.taskId)).toEqual(['T-10']);
+  });
+
+  it('excludes frontmatter-blocked tasks from the default ready readiness filter', () => {
+    const snapshot = ref<GateSnapshot | null>(createGateSnapshot('/repo', [
+      task({ taskId: 'T-11', blocked: true, state: 'blocked', ready: false }),
+    ]));
+    const filtering = useGateTaskFiltering(snapshot);
+
+    expect(filtering.readinessFilter.value).toBe('ready');
+    expect(filtering.visibleTasks.value).toHaveLength(0);
+  });
 
   it('filters ready, blocked, and all task sets', () => {
     const snapshot = ref<GateSnapshot | null>(createGateSnapshot('/repo', [

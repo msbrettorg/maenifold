@@ -14,12 +14,16 @@ const props = defineProps<{
 
 const fileLabel = computed(() => getTaskPathHint(props.task.path));
 const stateTone = computed(() =>
-  gateStageFamily(props.task.location === 'done' ? 'done' : props.task.state),
+  props.task.blocked === true || props.task.state === 'blocked'
+    ? 'failed'
+    : gateStageFamily(props.task.location === 'done' ? 'done' : props.task.state),
 );
 const stateLabel = computed(() =>
   formatStageLabel(props.task.location === 'done' ? 'done' : props.task.state),
 );
 const locationLabel = computed(() => formatStageLabel(props.task.location));
+const blockedReason = computed(() => props.task.blocked_reason?.trim() ?? '');
+const supersededBy = computed(() => props.task.superseded_by?.map((id) => id.trim()).filter(Boolean) ?? []);
 const pipelineStaleTitle = computed(
   () =>
     props.task.issue?.trim() ||
@@ -93,6 +97,20 @@ function stateBadgeClass(tone: string): string {
       <dt class="text-xs text-text-secondary">Canonical ID</dt>
       <dd class="mt-1 flex min-h-7 items-center break-words font-mono text-xs">
         {{ task.canonicalTaskId || '—' }}
+      </dd>
+    </div>
+
+    <div v-if="blockedReason" class="col-[1/-1] flex flex-col gap-1 rounded-md bg-warning/10 p-3">
+      <dt class="text-xs font-semibold text-warning">Blocked reason</dt>
+      <dd class="text-sm text-text-primary">
+        {{ blockedReason }}
+      </dd>
+    </div>
+
+    <div v-if="supersededBy.length" class="col-[1/-1] flex flex-col gap-1">
+      <dt class="text-xs text-text-secondary">Superseded by</dt>
+      <dd class="font-mono text-xs text-text-primary">
+        {{ supersededBy.join(', ') }}
       </dd>
     </div>
 

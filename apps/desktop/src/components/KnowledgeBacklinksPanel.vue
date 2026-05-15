@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemoryApi } from '../composables/useMemoryApi';
+import { sanitizeConceptForWikilinkQuery } from '../lib/wikilink-query-sanitizer';
 import type { MemoryFile, MemorySearchItem } from '../lib/workflow-types';
 import { useKnowledgeStore } from '../stores/knowledge';
 
@@ -42,7 +43,8 @@ async function loadBacklinks(): Promise<void> {
 
   backlinksLoading.value = true;
   try {
-    const result = await memoryApi.searchMemories(`[[${concept}]]`, {
+    const queryConcept = sanitizeConceptForWikilinkQuery(concept);
+    const result = await memoryApi.searchMemories(`[[${queryConcept}]]`, {
       mode: 'FullText',
       pageSize: 30,
     });

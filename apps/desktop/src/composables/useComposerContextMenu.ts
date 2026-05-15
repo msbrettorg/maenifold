@@ -1,4 +1,5 @@
 import { computed, ref, type ComputedRef, type Ref } from 'vue';
+import { toast } from 'vue-sonner';
 import type { PipelineView } from '../lib/pipeline-types';
 import type { SessionRef } from '../lib/pipeline-types';
 import { createNode, createNodeId } from '../lib/pipeline-node-factory';
@@ -153,16 +154,22 @@ export function useComposerContextMenu(options: UseComposerContextMenuOptions) {
       case 'restartNode': void store.restartNode(nodeId); break;
       case 'rewindNode': void store.rewindNodes([nodeId]); break;
       case 'forkNode': {
-        if (!store.currentPipelineId) break;
+        const pipelineId = store.currentPipelineId;
+        if (!pipelineId) break;
         void (async () => {
-          const requestedName = await promptDialogStore.requestValue({
-            title: 'Fork pipeline session',
-            description: 'Optional name for the forked pipeline session.',
-            placeholder: 'my-forked-session',
-            confirmLabel: 'Fork',
-          });
-          if (requestedName === null) return;
-          await store.forkPipeline(store.currentPipelineId!, nodeId, requestedName.trim() || undefined);
+          try {
+            const requestedName = await promptDialogStore.requestValue({
+              title: 'Fork pipeline session',
+              description: 'Optional name for the forked pipeline session.',
+              placeholder: 'my-forked-session',
+              confirmLabel: 'Fork',
+            });
+            if (requestedName === null) return;
+            await store.forkPipeline(pipelineId, nodeId, requestedName.trim() || undefined);
+          } catch (error) {
+            console.error('Fork pipeline session failed', error);
+            toast.error('Fork failed — please retry');
+          }
         })();
         break;
       }

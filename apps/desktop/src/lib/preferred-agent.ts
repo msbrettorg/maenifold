@@ -23,10 +23,21 @@ export function writeLastUsedAgent(agentName: string): void {
   writeStorageValue(PREFS_STORE_PATH, LAST_USED_AGENT_KEY, normalized);
 }
 
+/**
+ * Well-known agent that works out-of-box without env-var configuration.
+ * Copilot uses GitHub's built-in `gh` CLI auth, so no envFromFile is needed.
+ * See docs/DEVELOPMENT.md for the agent configuration patterns.
+ */
+const PREFERRED_DEFAULT_AGENT = 'Copilot';
+
 export function resolvePreferredAgent(agentNames: readonly string[]): string {
   const preferredAgent = readLastUsedAgent();
   if (preferredAgent && agentNames.includes(preferredAgent)) {
     return preferredAgent;
+  }
+
+  if (agentNames.includes(PREFERRED_DEFAULT_AGENT)) {
+    return PREFERRED_DEFAULT_AGENT;
   }
 
   return normalizeAgentName(agentNames[0]);

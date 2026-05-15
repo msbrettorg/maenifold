@@ -3774,3 +3774,94 @@ Iter-16 closed 6 sprint-309 items + closed umbrella + filed 3 sprint-322 follow-
 **Pattern reaffirmed (Lessons 73, 83, 86, 90, 96):** wave-0 first-action saturation works. The PM does NOT idle while workers run — uses the time to draft red-team prompts, prep merge scripts, file follow-up specs, write memory notes for already-completed tasks.
 
 **New observation:** PM-direct for trivially-trivial single-file work (T-309.5 ralph/AGENTS.md rewrite, T-309.3 no-op gate_Append) is faster than dispatching a worker. The dispatch overhead (worktree create + agent dispatch + read result + verify + merge + cleanup) for a 1-file edit is ~5 min; PM-direct is ~2 min. Use PM-direct ONLY when the work is genuinely 1-file mechanical (markdown rewrite, single-line edit, gate_Append-only) AND in scope per the constitution (ralph/* dir for PM-orchestrator). Anything multi-file, anything that touches code, anything requiring fresh red-team — dispatch.
+
+
+## 2026-05-14 — Iter-17 (Sprint 310 close — build-package + cross-sprint preconditions)
+
+### Lesson 101: Daemon-binary freshness verification needs a script (not PM tribal knowledge)
+
+Iter-17 opened with the running daemon at PID 68923 started 14:17:47, binary mtime 06:12:12, but `T-309.7` was committed at 17:15:31. The running PROCESS image was BEFORE T-309.7 source landed. Source mtime alone was insufficient — only `strings /usr/local/bin/maenifold | grep "blocked_reason"` (returning empty pre-redeploy, populated post-redeploy) proved the running binary contained the latest source-level changes.
+
+This is the same recurring pattern as the AGENTS.md retro item #4 ("the deploy procedure missed an entire binary"). The PM had to re-derive the launchctl + lsof + strings procedure from tribal knowledge.
+
+**Lesson — file `ralph/scripts/check-daemon-freshness.sh` as P2 next iter** that compares running-binary inode (via `lsof -p <pid>`) against `/usr/local/bin/maenifold` AND `target/release/maenifold` AND verifies an expected marker string from the latest commit is present in the binary. Filed as T-322.15 (deploy script wrapper) — verify a freshness-check sibling lands too. The cost of a 30-second pre-flight is much lower than the cost of debugging stale-binary symptoms during dispatch.
+
+### Lesson 102: Wave-boundary architects often disagree on severity — PM resolves
+
+Iter-17 wave-boundary architects diverged sharply:
+- **claude-opus-4.6**: PASS-WITH-FILED-FOLLOWUPS — desktop gate viewer gap is "UX papercut, information IS accessible via task body." Recommended close.
+- **gpt-5.5**: REQUIRES-REWORK — same gap, but framed as "default filter HIDES T-309.3 entirely" → blocking.
+
+PM resolution: the divergence itself is signal. opus's framing was technically true (the data is accessible somewhere), but gpt-5.5's framing was operationally true (a default-view user simply doesn't see T-309.3). Since the PM CAUSED the surface (T-309.3 frontmatter migration), the right call is to ship the remediation in the same iter rather than punting to next iter.
+
+**Lesson — when wave-boundary architects diverge, the PM is the tiebreaker. Default to the more-restrictive verdict when the PM's own action created the surface that's being audited. If you migrated production data this iter, you own the downstream UI debt for this iter.** Iter-17 shipped T-322.10 + T-322.14 in a combined SWE dispatch in the same iter as the migration, instead of holding for sprint 322.
+
+### Lesson 103: Same-merge-base combined SWE dispatch for sibling type/predicate/render tasks
+
+T-322.10 (frontend type alignment) + T-322.14 (filter predicate + detail render) target the same code surface and require the same TypeScript context. Dispatching them as TWO separate SWEs would have:
+- Created two worktrees from the same dev base.
+- Required PM to manually sequence merges and resolve overlapping diffs in `apps/desktop/src/lib/gate.ts` and `apps/desktop/src/composables/useGateTaskFiltering.ts`.
+- Doubled the confession + red-team overhead.
+
+Dispatching them as ONE combined SWE in a single worktree (named `worktrees/T-322.10-14`):
+- One gate-pass-loop cycle for the work delta.
+- The PM closes BOTH gate task IDs separately after the merge (each runs its own gate_Pass count).
+- Acceptance is verified end-to-end (vitest covers the full chain).
+
+**Pattern — when two gate tasks describe the same code surface at different abstraction levels, dispatch them as one combined SWE worktree referenced by both spec paths in the dispatch prompt. Close each gate ID independently after merge. The work delta is the same; the gate accounting is just bookkeeping.**
+
+### Lesson 104: Helper script glob collisions and override silent-success
+
+Initial `ralph/scripts/gate-pass-loop.sh` had two latent bugs surfaced by gpt-5.5 wave-boundary review:
+1. `done/T-310.1*.md` matched `T-310.10` due to no separator constraint after task ID. Fixed by enumerating exact `<id>.md` and `<id>-*.md` forms.
+2. Explicit `[stage-count]` override skipped final-state verification entirely → silent success if override was wrong. Fixed by always running final verification; override mode just relaxes the success criterion to "task is somewhere on disk."
+
+**Lesson — every helper script that operates on user-supplied IDs must have unique-prefix logic (avoid `<id>*` glob without separator). Every helper script with conditional verification must verify SOMETHING in every branch, never skip entirely.** Hardened the script in commit d51477466.
+
+### Lesson 105: T-322.9 caller chain proved correct; T-322.10/14 caller chain was hidden
+
+Iter-16 wave-boundary architects caught the `blocked_only` filter gap (became T-322.9) but did NOT catch the desktop frontend predicate/render gap (became T-322.10 + T-322.14). Why: iter-16 architects audited backend caller surfaces only. The frontend `apps/desktop/src/composables/useGateTaskFiltering.ts:114-117` has its OWN local `isBlockedTask` predicate that doesn't import from gate-core. Cross-language caller chains require the architect to explicitly grep both languages.
+
+**Lesson — wave-boundary review prompts should explicitly enumerate "search apps/desktop/** for any `isXxx` predicate or filter that mirrors the backend semantics." Cross-language type/predicate parity is a known blindspot of single-side audits.** Update wave-boundary prompt template for next iter.
+
+### Lesson 106: Iter-17 throughput pattern (4 SWE-equivalent tasks + 1 combined SWE in ~2h wall-clock)
+
+- **Sprint 310 children** (T-310.1, T-310.2, T-310.3) + cross-sprint precondition T-322.9 + T-309.3 frontmatter migration:
+  - PM-direct T-310.1 (cargo build 32s + launchctl ops + verification) — ~5 min.
+  - PM-direct T-310.2 (AGENTS.md edit) — ~2 min.
+  - SWE T-310.3 + T-322.9 in parallel worktrees — ~3 min wall (longest SWE was ~143s).
+  - 2 confessions + 2 red-teams in parallel — ~5 min wall (longest red-team ~107s).
+  - 2 merges + gate-pass-loop closes — ~3 min.
+  - T-309.3 frontmatter PM-direct migration — ~2 min.
+  - Wave-boundary architect duo (gpt-5.5 + opus-4.6) — ~7 min wall (longest ~437s gpt-5.5).
+- **Wave-2 (combined T-322.10+T-322.14 dispatch in response to gpt-5.5 finding):** filed 2 P3 follow-ups (T-322.14, T-322.15) THEN dispatched combined SWE — ~10 min wall.
+- **Iter close** (memory note via WriteMemory + learnings + thoughts) — ~5 min.
+
+Net iter-17: 4 SWE-equivalent items SHIPPED + 1 wave-2 combined SWE in flight + 5 P3 follow-ups filed (T-322.11, .12, .13, .14, .15) + umbrella closed + tooling helper hoisted to ralph/scripts/.
+
+**Pattern reaffirmed (Lessons 90, 96, 100):** wave-0 saturation + wave-2 follow-up dispatch during umbrella close is the throughput unlock. The wave-2 dispatch was REACTIVE to wave-boundary architect feedback rather than pre-planned, but landed in the same iter — that's the goal.
+
+### Lesson 107: WriteMemory rejects WikiLinks that look like file paths
+
+Initial iter-17 memory note had `[[AGENTS.md]]`, `[[gate-pass-loop.sh]]`, `[[npm install]]` as concepts. WriteMemory rejected with `FILTERED_WIKILINKS` error citing "File path leaked into WikiLink — not a concept" for `agents.md`. Had to rewrite as `[[maenifold constitution]]`, `[[gate-pass-loop helper]]`, `[[npm install command]]`.
+
+**Lesson — WikiLinks must reference CONCEPTS, not files. Anything ending in `.md` / `.sh` / `.ts` / `.py` will be rejected. Use a descriptive concept name even when the natural reference is a file path.** This is a useful protection against polluting the knowledge graph with file paths but it's a non-obvious validation that breaks the first attempt at bulk-write notes about file-heavy work.
+
+### Standing directives reaffirmed for iter-18+
+
+- **Lowest-numbered first remains absolute.** UAT items in sprints 301-305 stay out of scope. Sprint 311 is the next non-UAT-only sprint (T-311.1 P2 code-reduction-sweep, T-311.2 P2 visual-explainer-skill UAT [skip], T-311.3 P3 swe-worker-git-touch-violation).
+- **Wave-0 first-action dispatch in ONE response.** When iter starts, identify ALL ready non-trivial tasks in the lowest sprint AND dispatch SWEs in ONE tool-call batch. Spec amendments + architect-duo reviews happen IN PARALLEL.
+- **Per-task worktrees via ralph/scripts/worktree-create.sh.** 4-6 in flight by default.
+- **Wave-boundary architect duo (gpt-5.5 + claude-opus-4.6)** at every umbrella close, INDEPENDENT prompts. When they DIVERGE (Lesson 102), PM is tiebreaker; default to the more-restrictive verdict when PM's own action created the surface.
+- **Cross-language caller-chain audit (Lesson 105)** must be explicit in wave-boundary prompts: backend filter changes must check apps/desktop/** for mirror predicates.
+- **gate-pass-loop helper** at `ralph/scripts/gate-pass-loop.sh` is the canonical close path. PM-direct + SWE-merged tasks all flow through it.
+- **WriteMemory wikilinks** must reference concepts, not file paths (Lesson 107).
+- **Use Python heredoc / temp file + `jq --rawfile` for large structured payloads** (avoids shell quoting hell, established Lesson 95).
+
+### Iter-18 playbook
+
+1. **PRE-FLIGHT:** check daemon binary freshness (T-322.15 spec) — if a check-daemon-freshness.sh helper has landed, run it; otherwise verify manually via `lsof -p $(pgrep -f 'maenifold --http') | grep txt` + strings.
+2. **Sprint 311 (docs-skills):** T-311.1 (P2 code-reduction-sweep), T-311.3 (P3 swe-worker-git-touch-violation). T-311.2 is UAT — skip. Both T-311.1 + T-311.3 are file-disjoint from what's known — dispatch parallel.
+3. **Sprint 322 backlog**: T-322.1 (P1 tables-do-not-sort), then the P3 follow-ups (T-322.2 through T-322.15) in priority+ID order.
+4. **Wave-boundary architect duo** at sprint 311 close + sprint 322 close.
+5. **Memory note + learnings + thoughts** at iter-end.

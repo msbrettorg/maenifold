@@ -9,6 +9,14 @@ fn lock_env() -> MutexGuard<'static, ()> {
     ENV_LOCK.lock().expect("lock environment mutex")
 }
 
+#[test]
+fn preflight_constant_value_is_locked_to_cross_crate_contract() {
+    assert_eq!(
+        super::PREFLIGHT_ENV_VALIDATION_FAILED_PREFIX,
+        concat!("preflight env validation ", "failed")
+    );
+}
+
 fn write_config(root: &tempfile::TempDir, config: serde_json::Value) {
     std::fs::write(root.path().join("maenifold.json"), config.to_string())
         .expect("write maenifold.json");

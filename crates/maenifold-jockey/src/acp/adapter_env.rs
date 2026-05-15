@@ -2,6 +2,15 @@ use serde_json::Value;
 use std::path::PathBuf;
 use std::process::Command;
 
+/// Cross-crate contract: any failure_reason string that starts with this prefix
+/// is recognized by `maenifold-pipeline-driver`'s recovery layer and promoted to
+/// `NodeStatus::Stuck` (retriable) instead of remaining `NodeStatus::Abandoned` (terminal).
+///
+/// The pipeline-driver consumer is `crates/maenifold-pipeline-driver/src/recovery_preflight.rs`.
+/// Both sides MUST reference this constant; do not change the value without updating both
+/// sides AND the cross-crate test in `adapter_env_tests.rs`.
+pub const PREFLIGHT_ENV_VALIDATION_FAILED_PREFIX: &str = "preflight env validation failed";
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct EnvValidationFailure {
     pub var_name: String,

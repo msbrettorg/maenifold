@@ -7,6 +7,7 @@ mod session;
 mod worker;
 
 pub use adapter::{
+    PREFLIGHT_ENV_VALIDATION_FAILED_PREFIX,
     StdioAdapterSpec, build_stdio_adapter, clear_adapter_cache, config_root, probe_runtime,
     resolve_cwd, set_config_root,
 };

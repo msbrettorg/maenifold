@@ -7,10 +7,12 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use super::handler_crud::delete_pipeline_with_force;
+use super::session_delete_files::restore_pipeline_from_quarantine;
 use super::test_support::{pipeline_test_context, seed_pipeline_session_with_workflows};
 use super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode};
 
 const TS: i64 = 1_735_689_600_000;
+const TRASH_DATE: &str = "2025-01-01";
 
 #[rustfmt::skip]
 fn workflow_node(id: &str) -> PipelineNode {
@@ -47,7 +49,16 @@ fn source_path(context: &crate::tools::ToolContext, uri: &str) -> PathBuf {
     uri_to_path(uri, &context.config.memory_path).expect("resolve source path")
 }
 
-fn quarantine_day_root(context: &crate::tools::ToolContext) -> PathBuf {
+fn quarantine_day_root(context: &crate::tools::ToolContext, session_id: &str) -> PathBuf {
+    context
+        .config
+        .maenifold_root
+        .join(".trash")
+        .join(TRASH_DATE)
+        .join(session_id)
+}
+
+fn dot_quarantine_day_root(context: &crate::tools::ToolContext) -> PathBuf {
     context
         .config
         .memory_path
@@ -56,6 +67,14 @@ fn quarantine_day_root(context: &crate::tools::ToolContext) -> PathBuf {
         .join("2025")
         .join("01")
         .join("01")
+}
+
+fn directory_has_entries(path: &Path) -> bool {
+    path.exists()
+        && std::fs::read_dir(path)
+            .expect("read quarantine directory")
+            .next()
+            .is_some()
 }
 
 fn assert_quarantined(day_root: &Path, source: &Path) {
@@ -89,7 +108,72 @@ fn delete_t301_27_defaults_missing_retention_to_30_days_and_quarantines_files() 
     for (uri, source) in uris.iter().zip(source_paths.iter()) {
         assert!(!file_exists(uri, &context.config).expect("source removed"));
         assert!(!source.exists(), "source path remains: {}", source.display());
-        assert_quarantined(&quarantine_day_root(&context), source);
+        assert_quarantined(&quarantine_day_root(&context, session_id), source);
+    }
+}
+
+#[test]
+#[serial]
+fn quarantine_file_t301_34_does_not_write_to_dot_quarantine_path() {
+    let (_tmp, mut context, _guard) = pipeline_test_context(OutputFormat::Json);
+    context.config.settings.quarantine_retention_days = Some(30);
+    let session_id = "pipeline-1735689600000-t301-34-no-dot-quarantine";
+    let uris = seed_pipeline(&context, session_id);
+    let source_paths: Vec<PathBuf> = uris.iter().map(|uri| source_path(&context, uri)).collect();
+
+    delete_pipeline_with_force(&context, session_id, true).expect("delete pipeline");
+
+    for source in &source_paths {
+        assert_quarantined(&quarantine_day_root(&context, session_id), source);
+    }
+    assert!(
+        !directory_has_entries(&dot_quarantine_day_root(&context)),
+        ".quarantine mirror path must stay empty"
+    );
+}
+
+#[test]
+#[serial]
+fn restore_pipeline_t301_34_finds_files_in_trash_only() {
+    let (_tmp, mut context, _guard) = pipeline_test_context(OutputFormat::Json);
+    context.config.settings.quarantine_retention_days = Some(30);
+    let session_id = "pipeline-1735689600000-t301-34-restore-from-trash";
+    let uris = seed_pipeline(&context, session_id);
+    let source_paths: Vec<PathBuf> = uris.iter().map(|uri| source_path(&context, uri)).collect();
+    let trash_paths: Vec<PathBuf> = source_paths
+        .iter()
+        .map(|source| {
+            quarantine_day_root(&context, session_id)
+                .join(source.file_name().expect("source file name"))
+        })
+        .collect();
+
+    delete_pipeline_with_force(&context, session_id, true).expect("delete pipeline");
+    for trash in &trash_paths {
+        assert!(trash.is_file(), "trash seed missing: {}", trash.display());
+    }
+    let dot_quarantine = dot_quarantine_day_root(&context);
+    if dot_quarantine.exists() {
+        std::fs::remove_dir_all(&dot_quarantine).expect("remove non-canonical mirror");
+    }
+
+    let report = restore_pipeline_from_quarantine(&context, session_id, TRASH_DATE)
+        .expect("restore from trash quarantine");
+
+    assert_eq!(report.skipped_files, 0);
+    assert_eq!(report.restored_files.len(), source_paths.len());
+    for (source, trash) in source_paths.iter().zip(trash_paths.iter()) {
+        let restored = source.display().to_string();
+        assert!(
+            report.restored_files.contains(&restored),
+            "missing restored file {restored}"
+        );
+        assert!(source.is_file(), "source was not restored: {}", source.display());
+        assert!(
+            !trash.exists(),
+            "trash source should be consumed: {}",
+            trash.display()
+        );
     }
 }
 
@@ -111,6 +195,6 @@ fn delete_t301_27_explicit_retention_does_not_report_defaulted_retention() {
     assert_eq!(payload["data"]["retentionDays"], json!(7));
     for (uri, source) in uris.iter().zip(source_paths.iter()) {
         assert!(!file_exists(uri, &context.config).expect("source removed"));
-        assert_quarantined(&quarantine_day_root(&context), source);
+        assert_quarantined(&quarantine_day_root(&context, session_id), source);
     }
 }

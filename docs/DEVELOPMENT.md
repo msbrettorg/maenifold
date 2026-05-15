@@ -145,3 +145,31 @@ Request JSON output when needed:
 ```bash
 maenifold tool <name> '<json>' --json
 ```
+
+## Agent Configuration & Environment Variables
+
+ACP agents are configured in `~/maenifold/maenifold.json` under the `agents` block.
+Use these environment schemas when an agent needs runtime credentials:
+
+- `envFromFile`: read an env var from a local file, e.g. `"envFromFile": { "AZURE_OPENAI_API_KEY": "~/.secrets/azure_openai_api_key" }`.
+- `envFromCommand`: read an env var from command stdout, e.g. `"envFromCommand": { "TOKEN": "security find-generic-password -w -s token" }`.
+- `envPassthrough`: inherit existing daemon env vars, e.g. `"envPassthrough": ["AZURE_OPENAI_API_KEY"]`.
+
+Example Codex agent configuration:
+
+```json
+"Codex": {
+  "command": "/path/to/codex-acp",
+  "envFromFile": {
+    "AZURE_OPENAI_API_KEY": "~/.secrets/azure_openai_api_key"
+  }
+}
+```
+
+For Azure OpenAI-backed Codex, `~/.codex/config.toml` must set an `env_key`
+that matches the configured environment variable name, such as
+`env_key = "AZURE_OPENAI_API_KEY"`.
+
+Out of the box, the create-pipeline flow defaults to `Copilot` when present
+because it uses `gh` CLI auth and needs no secret-file setup. If `Copilot` is
+not configured, the flow falls back to the first configured agent.

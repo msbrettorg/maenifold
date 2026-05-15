@@ -129,10 +129,13 @@ for ((i=1; i<=STAGE_COUNT; i++)); do
 done
 
 # Final state verification — check on-disk location (gate_Status default excludes done)
-done_glob="$REPO_ROOT/done/${TASK_ID}*.md"
-todo_glob="$REPO_ROOT/todo/${TASK_ID}*.md"
-done_file="$(ls $done_glob 2>/dev/null | head -1 || true)"
-todo_file="$(ls $todo_glob 2>/dev/null | head -1 || true)"
+# Use exact-match globs (with separator chars after task id) to prevent T-310.1 matching T-310.10
+done_files=("$REPO_ROOT/done/${TASK_ID}.md" "$REPO_ROOT/done/${TASK_ID}-"*".md")
+todo_files=("$REPO_ROOT/todo/${TASK_ID}.md" "$REPO_ROOT/todo/${TASK_ID}-"*".md")
+done_file=""
+todo_file=""
+for f in "${done_files[@]}"; do [[ -f "$f" ]] && done_file="$f" && break; done
+for f in "${todo_files[@]}"; do [[ -f "$f" ]] && todo_file="$f" && break; done
 
 if [[ -n "$done_file" ]]; then
   final_state="done"
@@ -150,6 +153,9 @@ else
 fi
 echo "[gate-pass-loop] $TASK_ID FINAL: state=$final_state location=$final_loc"
 
+# Always verify final state — even when stage-count was overridden (silent-success guard).
+# When stage-count IS overridden, we don't expect done/done; we just report and exit 0
+# unless verification turned up something nonsensical.
 if [[ -z "$STAGE_COUNT_OVERRIDE" ]]; then
   if [[ "$final_state" == "done" && "$final_loc" == "done" ]]; then
     echo "[gate-pass-loop] $TASK_ID: SUCCESS (landed in done/)"
@@ -158,4 +164,11 @@ if [[ -z "$STAGE_COUNT_OVERRIDE" ]]; then
     echo "[gate-pass-loop] $TASK_ID: WARN — expected done/done, got $final_state/$final_loc" >&2
     exit 3
   fi
+else
+  if [[ "$final_state" == "unknown" && "$final_loc" == "unknown" ]]; then
+    echo "[gate-pass-loop] $TASK_ID: WARN — task not found in todo/ or done/ post-loop" >&2
+    exit 3
+  fi
+  echo "[gate-pass-loop] $TASK_ID: OK (override mode, final state $final_state/$final_loc)"
+  exit 0
 fi

@@ -155,6 +155,27 @@ Use these environment schemas when an agent needs runtime credentials:
 - `envFromCommand`: read an env var from command stdout, e.g. `"envFromCommand": { "TOKEN": "security find-generic-password -w -s token" }`.
 - `envPassthrough`: inherit existing daemon env vars, e.g. `"envPassthrough": ["AZURE_OPENAI_API_KEY"]`.
 
+`envFromFile` supports two schema forms, including optional object-form entries.
+The string form is required by default:
+missing or unreadable files fail preflight. The object form accepts a `path` plus
+`optional: true`, which skips that variable when the file is absent instead of
+failing preflight. Default behavior is fail-closed unless `optional: true` is set.
+
+Example with required and optional file-backed environment variables side-by-side:
+
+```json
+"Codex": {
+  "command": "/path/to/codex-acp",
+  "envFromFile": {
+    "AZURE_OPENAI_API_KEY": "~/.secrets/azure_openai_api_key",
+    "EXPERIMENTAL_TOKEN": {
+      "path": "~/.secrets/experimental_token",
+      "optional": true
+    }
+  }
+}
+```
+
 Example Codex agent configuration:
 
 ```json

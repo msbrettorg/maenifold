@@ -83,11 +83,6 @@ pub fn restore_pipeline_from_quarantine(
 }
 
 pub fn run_quarantine_cleanup(config: &Config) -> Result<QuarantineCleanupReport> {
-    if config.settings.quarantine_retention_days.is_none() {
-        return Err(MaenifoldError::Message(
-            "quarantine retention not configured".to_string(),
-        ));
-    }
     let quarantine = require_quarantine_config(config)?;
     let trash_root = config.maenifold_root.join(".trash");
     let mut deleted_files = Vec::new();

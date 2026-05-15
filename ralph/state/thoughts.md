@@ -371,3 +371,59 @@ ounded by SLOWEST single SWE (~10 min for T-309.1 multi-consumer hoist), NOT the
 - **Pre-action alignment** for any task whose spec has gate clauses, P0 references, or "do not do without authorization" language. Read the spec FULLY before deciding to dispatch.
 - **File follow-ups eagerly during work.** T-322.8/9/10 came from worker discovery + red-team observations + architect-duo findings. Don't try to land everything in current iter; capture for next.
 - **gate-tdd.sh / gate-gsd.sh helpers in /tmp/** — generalize across iters as `ralph/scripts/gate-pass-loop.sh <task-id> <agent> <notes> [stage-count]`. The script is the same for every task; only the task ID + notes change. (TODO for iter-17: hoist to ralph/scripts/.)
+
+
+## Iter 2026-05-14 (iter-17) — Sprint 310 close + T-322.9 cross-sprint precondition + atone for desktop UI gap (T-322.10+T-322.14)
+
+**Sprint 310 SHIPPED in full + T-322.9 + T-309.3 migration + reactive T-322.10+T-322.14 SWE:**
+
+- ✅ T-310.1 (P1 ops, PM-direct) — Daemon redeploy. Rebuilt cargo, launchctl bootout/bootstrap, new PID 82955, T-309.7 strings now in binary.
+- ✅ T-310.2 (P1 docs, PM-direct) — agent-browser about:blank workaround documented in AGENTS.md CDP Testing.
+- ✅ T-310.3 (P1 SWE) — node_modules integrity check + worker isolation docs (gpt-5.5 SWE clean, opus-4.6 red-team PASS).
+- ✅ T-322.9 (P2 SWE, cross-sprint) — gate_Status blocked_only OR-union with frontmatter blocked (gpt-5.5 SWE clean, opus-4.6 red-team PASS).
+- ✅ T-309.3 frontmatter migrated to `blocked: true` + rich `blocked_reason` (PM-direct, end-to-end verified).
+- ✅ T-310.0 umbrella closed via gate-pass-loop helper.
+- 🔄 T-322.10 + T-322.14 combined SWE in flight (filed as P3 by iter-16 + this iter; bumped to acceptance-blocking-soon by gpt-5.5 wave-boundary; PM elected to ship in same iter as the migration that surfaced the gap).
+
+**Iter-17 follow-ups filed (P3):**
+- T-322.11 — status_filter test for `state=done blocked=true include_done=false` interaction.
+- T-322.12 — node_modules integrity unit test for nested-contamination branch.
+- T-322.13 — node_modules integrity decision on whether to skip `optional: true` entries.
+- T-322.14 — desktop gate viewer surface frontmatter blocked tasks + blocked_reason render (combined with T-322.10 in same iter SWE).
+- T-322.15 — ralph/scripts/deploy-daemon.sh wrapper for full daemon+driver redeploy.
+
+**Tooling shipped:**
+- `ralph/scripts/gate-pass-loop.sh` (~178 LOC after hardening) — generalized helper hoisted from /tmp per iter-16 lesson 100 standing directive #5. Iter-17 round-2 hardened the glob-collision (T-310.1 vs T-310.10) and override silent-success cases per gpt-5.5 wave-boundary findings.
+
+**Iter-17 throughput pattern (~2h wall-clock):**
+- Bootstrap (skill load + gate sync + spec read + daemon-binary-freshness check): ~5 min.
+- Wave-0 dispatch: PM-direct T-310.1 (cargo build 32s + launchctl ops) || PM-direct T-310.2 || SWE T-310.3 + T-322.9 in parallel worktrees.
+- Wave-0 close: 2 confessions + 2 red-teams in parallel, then 2 merges + 2 gate-pass-loops.
+- T-309.3 frontmatter migration (PM-direct, ~2 min).
+- Wave-boundary architect duo (gpt-5.5 + opus-4.6) in parallel — DIVERGED on severity of T-322.10/14 gap.
+- Wave-2 reactive: file T-322.14 + T-322.15, dispatch combined SWE for T-322.10+T-322.14, harden gate-pass-loop.sh.
+- Iter close: WriteMemory note, learnings.md +91 LOC, thoughts.md update.
+
+**Standing directives reaffirmed:**
+- Lowest-numbered first remains absolute. UAT items stay out of RALPH scope.
+- Wave-0 first-action dispatch in ONE response.
+- Per-task worktrees via ralph/scripts/worktree-create.sh.
+- Wave-boundary architect duo at every umbrella close, INDEPENDENT prompts. **Lesson 102: when they DIVERGE, PM is tiebreaker; default to more-restrictive verdict if PM caused the surface.**
+- gate-pass-loop helper at `ralph/scripts/gate-pass-loop.sh` is canonical close path.
+- WriteMemory wikilinks must reference concepts, not file paths (Lesson 107).
+
+### Iter-18 playbook
+
+1. **PRE-FLIGHT:** check daemon binary freshness. If `ralph/scripts/check-daemon-freshness.sh` has landed (T-322.15 sibling), run it. Otherwise verify via `lsof -p $(pgrep -f 'maenifold --http') | grep txt` + `strings <binary> | grep <latest-marker>`.
+2. **First action:** wait for / verify wave-2 SWE T-322.10+T-322.14 from iter-17 closed cleanly. If not, finish that work first.
+3. **Sprint 311 (docs-skills):**
+   - T-311.1 (P2 code-reduction-sweep — strip-agent-bloat).
+   - T-311.2 (P2 visual-explainer-skill UAT — SKIP, UAT).
+   - T-311.3 (P3 swe-worker-git-touch-violation).
+   - Both T-311.1 and T-311.3 are likely file-disjoint — dispatch parallel.
+4. **Sprint 322 backlog:**
+   - T-322.1 (P1 tables-do-not-sort) lowest pending P1.
+   - Then P3 follow-ups in priority + ID order: T-322.11, T-322.12, T-322.13, T-322.15 (or whichever cluster makes sense as a wave).
+   - T-322.10 + T-322.14 if iter-17 didn't close them.
+5. **Wave-boundary architect duo** at sprint 311 close + sprint 322 close.
+6. **Memory note + learnings + thoughts** at iter-end.

@@ -24,6 +24,9 @@ pub struct TaskMetadata {
     pub title: String,
     pub pipeline: String,
     pub state: Option<String>,
+    pub blocked: bool,
+    pub blocked_reason: Option<String>,
+    pub superseded_by: Option<Vec<String>>,
     pub session_id: Option<String>,
     pub depends_on: Vec<String>,
     pub priority: Option<String>,
@@ -44,6 +47,12 @@ struct FrontmatterTask {
     title: Option<String>,
     pipeline: Option<String>,
     state: Option<String>,
+    #[serde(default)]
+    blocked: bool,
+    #[serde(default, deserialize_with = "deserialize_optional_string")]
+    blocked_reason: Option<String>,
+    #[serde(default)]
+    superseded_by: Option<StringOrVec>,
     #[serde(
         default,
         rename = "sessionId",
@@ -146,6 +155,9 @@ impl TaskMetadataParser {
                     .pipeline
                     .ok_or(GateError::MissingMetadataField("pipeline"))?,
                 state: frontmatter.state,
+                blocked: frontmatter.blocked,
+                blocked_reason: frontmatter.blocked_reason,
+                superseded_by: frontmatter.superseded_by.map(|values| values.0),
                 session_id: frontmatter.session_id,
                 depends_on,
                 priority,
@@ -159,6 +171,9 @@ impl TaskMetadataParser {
             pipeline: parse_labeled_value(lines, "Pipeline")?
                 .ok_or(GateError::MissingMetadataField("Pipeline"))?,
             state: None,
+            blocked: false,
+            blocked_reason: None,
+            superseded_by: None,
             session_id: None,
             depends_on: Vec::new(),
             priority: None,

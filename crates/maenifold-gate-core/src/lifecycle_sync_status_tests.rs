@@ -230,7 +230,7 @@ fn status_row_includes_priority_sprint_and_last_updated_at_when_present() {
             .unwrap_or(false),
         "lastUpdatedAt should be a non-empty RFC 3339 string"
     );
-    assert_eq!(row.as_object().unwrap().len(), 14);
+    assert_eq!(row.as_object().unwrap().len(), 18);
 }
 
 #[test]
@@ -242,5 +242,53 @@ fn status_row_emits_null_priority_sprint_and_last_updated_at_when_absent() {
     assert!(row["priority"].is_null(), "priority should be null");
     assert!(row["sprint"].is_null(), "sprint should be null");
     assert!(row["lastUpdatedAt"].is_null());
-    assert_eq!(row.as_object().unwrap().len(), 14);
+    assert_eq!(row.as_object().unwrap().len(), 18);
+}
+
+#[test]
+fn status_returns_blocked_state_and_frontmatter_fields() {
+    let root = new_root();
+    write_blocked_task(root.path(), "T-309.7");
+
+    let row = single_status(root.path());
+
+    assert_eq!(row["state"], "blocked");
+    assert_eq!(row["ready"], false);
+    assert_eq!(row["blocked"], true);
+    assert_eq!(row["blocked_reason"], "waiting on user authorization");
+    assert_eq!(row["superseded_by"], serde_json::json!(["T-309.8"]));
+}
+
+#[test]
+fn ready_status_excludes_blocked_tasks() {
+    let root = new_root();
+    write_task(root.path(), "T-309.6", "gsd");
+    write_blocked_task(root.path(), "T-309.7");
+
+    let rows = GateLifecycle::status(StatusArgs {
+        context: context(root.path()),
+        filter: StatusFilter {
+            state: None,
+            ready_only: true,
+            blocked_only: false,
+            include_done: false,
+        },
+        summary: false,
+    })
+    .expect("status");
+    let rows = rows.as_array().expect("array");
+
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0]["taskId"], "T-309.6");
+    assert_eq!(rows[0]["state"], "pending");
+}
+
+fn write_blocked_task(root: &Path, id: &str) {
+    fs::write(
+        task_path(root, id, "todo"),
+        format!(
+            "---\nid: {id}\ntitle: {id} blocked\npipeline: gsd\nstate: execute\nblocked: true\nblocked_reason: waiting on user authorization\nsuperseded_by: [T-309.8]\n---\n# {id} blocked\n"
+        ),
+    )
+    .expect("write blocked task");
 }

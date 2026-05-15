@@ -163,6 +163,20 @@ if [[ -d "${REPO_ROOT}/apps/desktop/node_modules" ]]; then
   echo "  symlinked apps/desktop/node_modules -> main repo (skip npm ci unless package.json changed)"
 fi
 
+# Symlink apps/desktop/out so CDP UAT workers can find the packaged Electron
+# binary that scripts/uat-launch.sh expects. Per AGENTS.md the build output
+# lives at apps/desktop/out/ and is gitignored, so a fresh worktree never has
+# it. Symlinking restores read-access to the main repo's last package without
+# requiring `npm run package` inside the worktree (which is forbidden for
+# CDP UAT workers anyway). Ralph PM iter-4 (2026-05-15) — closes the
+# pre-flight blocker that hit T-302.11.{1,2,3} workers when the worktree
+# binary path resolved to a missing file.
+if [[ -d "${REPO_ROOT}/apps/desktop/out" ]]; then
+  rm -rf "${WORKTREE_DIR}/apps/desktop/out"
+  ln -s "${REPO_ROOT}/apps/desktop/out" "${WORKTREE_DIR}/apps/desktop/out"
+  echo "  symlinked apps/desktop/out -> main repo (CDP UAT workers can find packaged binary)"
+fi
+
 # Self-verify: the spec must be readable through the symlink.
 SPEC_GLOB="${WORKTREE_DIR}/todo/${TASK_ID}*.md"
 SPEC_MATCHES=( $(ls $SPEC_GLOB 2>/dev/null || true) )

@@ -153,6 +153,8 @@ export type ViewNode =
 
 export interface PipelineView {
   pipelineId: string;
+  name?: string;
+  description?: string;
   status: PipelineStatus;
   templateId?: string;
   inputs?: PipelineInputs;
@@ -175,6 +177,7 @@ export interface PipelineRunSummary {
 
 export interface PipelineListItem {
   pipelineId: string;
+  name?: string | null;
   status: PipelineStatus;
   nodeCount: number;
   completedCount: number;

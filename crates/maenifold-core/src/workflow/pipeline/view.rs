@@ -56,7 +56,7 @@ pub(super) fn view_pipeline_session_value(
         .get("status")
         .and_then(YamlValue::as_str)
         .map(str::to_owned);
-    let result = build_pipeline_view_result(
+    let mut result = build_pipeline_view_result(
         context,
         session_id,
         &definition,
@@ -64,6 +64,7 @@ pub(super) fn view_pipeline_session_value(
         ambient_prompt,
         persisted_status.as_deref(),
     )?;
+    apply_pipeline_metadata(&mut result, &frontmatter);
     Ok(result)
 }
 
@@ -184,6 +185,25 @@ pub(super) fn build_pipeline_view_result(
     }
 
     Ok(result)
+}
+
+fn apply_pipeline_metadata(result: &mut Value, frontmatter: &crate::markdown::Frontmatter) {
+    if let Some(name) = frontmatter
+        .get("name")
+        .and_then(YamlValue::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        result["name"] = json!(name);
+    }
+    if let Some(description) = frontmatter
+        .get("description")
+        .and_then(YamlValue::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        result["description"] = json!(description);
+    }
 }
 
 pub(super) fn is_pipeline_terminal_status(status: &str) -> bool {

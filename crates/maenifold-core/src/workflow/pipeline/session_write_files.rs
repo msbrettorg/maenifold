@@ -20,6 +20,8 @@ pub(super) fn write_pipeline_session(
     node_states: &BTreeMap<String, YamlValue>,
     max_concurrency: u64,
     prompt: Option<&str>,
+    name: Option<&str>,
+    description: Option<&str>,
 ) -> Result<()> {
     let uri = pipeline_session_uri(pipeline_id);
     let (year, month, day) = date_parts_from_session_id(pipeline_id);
@@ -49,6 +51,15 @@ pub(super) fn write_pipeline_session(
         "status".to_string(),
         YamlValue::String("active".to_string()),
     );
+    if let Some(name) = name.map(str::trim).filter(|value| !value.is_empty()) {
+        frontmatter.insert("name".to_string(), YamlValue::String(name.to_string()));
+    }
+    if let Some(description) = description.map(str::trim).filter(|value| !value.is_empty()) {
+        frontmatter.insert(
+            "description".to_string(),
+            YamlValue::String(description.to_string()),
+        );
+    }
     frontmatter.insert("definition".to_string(), serde_yml::to_value(definition)?);
     if let Some(inputs) = definition
         .inputs

@@ -142,6 +142,22 @@ pub(super) fn augment_list_payload(
         "runs": compute_pipeline_runs(&node_states),
         "nodes": nodes,
     });
+    if let Some(name) = frontmatter
+        .get("name")
+        .and_then(YamlValue::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        entry["name"] = json!(name);
+    }
+    if let Some(description) = frontmatter
+        .get("description")
+        .and_then(YamlValue::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        entry["description"] = json!(description);
+    }
     if orphaned_workers > 0 {
         entry["degraded"] = json!({
             "reason": "orphaned-acp-workers",

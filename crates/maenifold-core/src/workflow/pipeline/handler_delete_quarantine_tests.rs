@@ -220,21 +220,14 @@ fn delete_unreadable_fails_closed_without_retention() {
 
 #[test]
 #[serial]
-fn quarantine_cleanup_scheduler_refuses_to_run_without_retention_config() {
+fn quarantine_cleanup_scheduler_uses_default_retention_when_setting_unset() {
     let (_tmp, mut context, _guard) = pipeline_test_context(OutputFormat::Json);
     context.config.settings.quarantine_retention_days = None;
 
-    let error = match run_quarantine_cleanup(&context.config) {
-        Ok(_) => panic!("scheduler must refuse missing retention config"),
-        Err(error) => error,
-    };
+    let report = run_quarantine_cleanup(&context.config)
+        .expect("scheduler should use the default quarantine retention");
 
-    assert!(
-        error
-            .to_string()
-            .contains("quarantine retention not configured"),
-        "unexpected error: {error}"
-    );
+    assert!(report.deleted_files.is_empty());
 }
 
 #[test]

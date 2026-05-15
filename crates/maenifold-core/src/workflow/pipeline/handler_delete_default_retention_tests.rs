@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use super::handler_crud::delete_pipeline_with_force;
+use super::quarantine::run_quarantine_cleanup;
 use super::session_delete_files::restore_pipeline_from_quarantine;
 use super::test_support::{pipeline_test_context, seed_pipeline_session_with_workflows};
 use super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode};
@@ -84,6 +85,18 @@ fn assert_quarantined(day_root: &Path, source: &Path) {
         "missing quarantined copy for {}",
         source.display()
     );
+}
+
+#[test]
+#[serial]
+fn run_quarantine_cleanup_t301_35_succeeds_with_default_retention_when_setting_unset() {
+    let (_tmp, mut context, _guard) = pipeline_test_context(OutputFormat::Json);
+    context.config.settings.quarantine_retention_days = None;
+
+    let report = run_quarantine_cleanup(&context.config)
+        .expect("cleanup without configured retention should use the 30-day default");
+
+    assert!(report.deleted_files.is_empty());
 }
 
 #[test]

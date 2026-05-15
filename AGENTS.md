@@ -406,6 +406,20 @@ agent-browser connect <printed-port>
 
 **Tooling:** Use `agent-browser` CLI for all CDP interaction. Load the `electron` skill first (`agent-browser skills get electron`). Connect with `agent-browser connect <port>`. Use `agent-browser snapshot` to get the accessibility tree with `@eN` element refs, then `agent-browser click @eN` / `agent-browser type @eN "text"` to interact. Use `agent-browser screenshot` for evidence.
 
+**Known harness gap — `agent-browser connect` may attach to `about:blank` instead of the maenifold renderer (T-310.2 / T-248.30).** On the packaged Electron app, `agent-browser tab` sometimes lists only an `about:blank` target even though the actual renderer (`title: "maenifold"`, `url: file://...app.asar/dist/index.html`) IS exposed via CDP. Symptom: `agent-browser snapshot` returns an empty tree or the about:blank chrome page instead of the maenifold home page.
+
+**Workaround (mandatory pre-flight check):** after `agent-browser connect <port>`, run `agent-browser snapshot -i` and look for the maenifold home page. If you see only `about:blank` chrome, fall back to:
+
+```bash
+# Find the renderer's websocket URL directly from the CDP /json endpoint
+curl -s http://127.0.0.1:<port>/json | jq '.[] | select(.title == "maenifold" or (.url // "" | contains("app.asar/dist/index.html"))) | .webSocketDebuggerUrl'
+
+# Then use raw CDP (or restart agent-browser pointing it at the URL once that flag exists)
+# Until agent-browser fixes tab discovery, raw CDP via curl/jq + a thin shell wrapper is the fallback.
+```
+
+The blue-team v8 verification of T-243.46 used this exact recipe to drive CDP raw against the renderer websocket. Do not silently skip UI verification when the renderer is not in `agent-browser tab` output — the renderer IS reachable; the harness just can't discover it. Fix tracked in T-310.2.
+
 **CDP timeout discipline:** Interactive UI waits are assertions, not sleep buffers. Use single-digit waits only: 1-5 seconds by default, 8 seconds maximum for dynamic UI after a click/reload/navigation. If the expected control/text/state is not present within that window, capture the snapshot, console, errors, relevant log path, PID, and port, then treat it as a product or harness failure. Never use 30s/60s `agent-browser wait` calls to see whether the UI eventually settles; long waits are only acceptable for non-interactive build/package/launch commands, not renderer behavior.
 
 **Do NOT write custom Python/Playwright scripts for UI testing.** `agent-browser` is the tool. It handles Electron's CDP quirks, provides accessibility-tree snapshots, and gives you reliable element refs. Hand-written scripts get stuck in loops and miss elements.

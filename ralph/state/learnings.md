@@ -3741,3 +3741,36 @@ Total: 1 PM-direct + 4 SWE dispatches + 4 confessions + 4 red-team audits + 4 co
 **Lesson — when two auto-attached docs both seed the system context, they MUST agree.** Drift between them surfaces as an immediate contradiction that the agent has to silently reconcile, with high risk of picking the wrong frame. T-309.5 closed this by rewriting `ralph/AGENTS.md` as the **standing constitution** (operating mode, source of truth, forbidden list, gate ops, commit policy, worktree convention) and pointing all per-iteration mechanics at `ralph/prompt.md`.
 
 **PM startup pre-flight (updated):** read `ralph/AGENTS.md` for the standing constitution, then `ralph/prompt.md` for the iteration playbook, then the most recent 2-3 entries in this file (`learnings.md`) and `thoughts.md`. The two docs must not contradict — if you spot drift, file a gate task immediately.
+
+### Lesson 98: Wave-boundary architect duo catches blocked_only filter gap (T-309.7 iter-16)
+
+T-309.7 added the `blocked: true` frontmatter field with full state-override + ready-filter behavior. All 5 SWE WorkResults + 5 fresh red-team audits passed in single-shot. The umbrella was about to close.
+
+**Then both wave-boundary architects (gpt-5.5 + claude-opus-4.6 rubber-duck) independently flagged the same gap:** the existing `blocked_only` status filter at `crates/maenifold-gate-core/src/status_filter.rs:17-22` checks `row["blockedBy"]` (the dependency-blocker array, pre-existing) NOT the new frontmatter `row["blocked"]` field. So `gate_Status blocked=true` would NOT surface frontmatter-blocked tasks like T-309.3 after migration.
+
+The red-team for T-309.7 didn't catch this because the spec acceptance only required the override + ready-filter + reason-surfacing behavior. The `blocked_only` filter was out of the worker's stated scope. The architect-duo at the wave boundary does CALLER-behavior auditing ("can a downstream consumer use this?") that delta-only red-team doesn't.
+
+**Lesson — wave-boundary reviews are the right venue to catch contract-asymmetry bugs that delta-only red-team won't see.** When two reviewers on different model families converge on the same finding, it's almost certainly real. Filed as T-322.9 (P2 tdd, sprint 322 misc bin); T-309.3 frontmatter updated with `depends_on: ["T-310.1", "T-322.9"]` to make the deploy → filter-fix → migration chain explicit.
+
+### Lesson 99: gate_Pass loop is pipeline-agnostic (advances by state machine, not by stage label)
+
+Built `/tmp/gate-tdd.sh` and `/tmp/gate-gsd.sh` mid-iter. The script takes a stage-name list for log labeling but `gate_Pass` actually advances based on the active state machine, NOT on what name the script passes. So calling `gate_Pass` 4 times on a sdd-pipeline task (which runs pending → swe → red-team → blue-team → done) works correctly even when the script's loop is labeled with TDD stage names (pending/blue-team/swe/red-team).
+
+**Lesson — only the call count matters; the labels are cosmetic.** A single helper script can drive any pipeline as long as the count matches the stages. lightweight = 3 PASS, sdd = 4, tdd = 4, gsd = 5, slc = 6. Verify final state in `done/` after each task to confirm the count was right; if a task lands in pending instead of done, you under-counted.
+
+### Lesson 100: iter-16 throughput pattern (5-task wave + umbrella close in ~1h35m)
+
+Iter-16 closed 6 sprint-309 items + closed umbrella + filed 3 sprint-322 follow-ups in ~1h35m wall-clock:
+
+- Bootstrap (skill load + gate sync + spec read): ~5 min.
+- T-309.5 PM-direct + T-309.3 PM-direct close: ~5 min.
+- Wave-0: 5 SWEs in parallel worktrees, dispatched in one tool-call batch.
+- All 5 SWE WorkResults landed within 11 min of dispatch (95s → 618s).
+- All 5 fresh red-team audits dispatched simultaneously after WorkResults; all PASS within 5 min of dispatch.
+- Per-task merge + gate-pass + memory note + worktree prune: ~3 min each, partially serialized.
+- Wave-boundary architect duo (gpt-5.5 + claude-opus-4.6): ~3 min wall-clock, parallel.
+- Umbrella close + final memory note + iter-end thoughts/learnings: ~5 min.
+
+**Pattern reaffirmed (Lessons 73, 83, 86, 90, 96):** wave-0 first-action saturation works. The PM does NOT idle while workers run — uses the time to draft red-team prompts, prep merge scripts, file follow-up specs, write memory notes for already-completed tasks.
+
+**New observation:** PM-direct for trivially-trivial single-file work (T-309.5 ralph/AGENTS.md rewrite, T-309.3 no-op gate_Append) is faster than dispatching a worker. The dispatch overhead (worktree create + agent dispatch + read result + verify + merge + cleanup) for a 1-file edit is ~5 min; PM-direct is ~2 min. Use PM-direct ONLY when the work is genuinely 1-file mechanical (markdown rewrite, single-line edit, gate_Append-only) AND in scope per the constitution (ralph/* dir for PM-orchestrator). Anything multi-file, anything that touches code, anything requiring fresh red-team — dispatch.

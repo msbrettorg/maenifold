@@ -346,3 +346,28 @@ Multiple Sprint 243 "frontend stub" commits NEVER MERGED to dev despite being ma
 3. T-305.12 + T-305.13 + T-305.14 quick fillers.
 4. Close T-305.0 umbrella; move to sprint 306 (workflow umbrella).
 
+ounded by SLOWEST single SWE (~10 min for T-309.1 multi-consumer hoist), NOT the SUM. 5 SWEs in parallel = ~10 min wall vs ~50 min serial.
+2. **Pre-action alignment on T-309.3** caught a P0 P0 #5 (anti-cargo-cult-security) violation BEFORE dispatch. PM read the spec body's "When to do this work" clause and recognized the gate. Did NOT dispatch. Filed memory note + gate_Append + frontmatter `depends_on:` to make the chain explicit. Future PMs now have context.
+3. **PM-direct for trivially-trivial work** (T-309.5 single-file ralph/AGENTS.md rewrite, T-309.3 no-op) saved ~5 min/task vs dispatching a worker. ~10 min total saved across 2 tasks.
+4. **gate-tdd.sh + gate-gsd.sh helpers** built mid-iter saved redundant tool calls. Each task's gate-pass cycle ran in ONE bash command (4-5 MCP calls hidden) instead of 4-5 separate tool invocations from the agent.
+5. **Wave-boundary architect duo (gpt-5.5 + claude-opus-4.6)** caught the `blocked_only` filter gap that all 5 single-model red-teams missed. Convergent finding from independent reviewers = high signal. Filed as T-322.9.
+6. **All 5 SWEs single-shot to PASS** (zero remediation cycles). Spec quality + spec amendment quality = first-shot success rate.
+
+**What needs attention next iter (iter-17):**
+
+1. **RUN T-310.1 FIRST** (daemon redeploy). T-309.7's gate `blocked` field is in code on dev but the running daemon binary is older. Next PM iteration that tries to USE `state="blocked"` queries against the running daemon will silently get stale results. Pre-flight check or upfront dispatch.
+2. **Migrate T-309.3 to `blocked: true`** in frontmatter once T-310.1 lands. Then sprint 309 fully drains.
+3. **Land T-322.9** (filter alignment) before any operational reliance on `blocked_only` queries.
+4. **Sprint 310 (build-package)** is next iter's lowest sprint with non-UAT work. 3 P1 children: T-310.1 daemon redeploy, T-310.2 agent-browser fix, T-310.3 node_modules integrity check.
+
+### Standing directives for future iters
+
+- **Lowest-numbered first remains absolute.** Sprint 309 done → Sprint 310 next.
+- **UAT items stay out of RALPH scope.** Sprints 301-304 remain UAT-only / RALPH-skipped.
+- **Wave-0 first-action dispatch in ONE response.** Identify ALL ready non-trivial tasks at iter start and batch-launch SWEs in ONE tool-call batch. Spec amendments + architect-duo reviews happen IN PARALLEL with already-running SWE work, never as a serial gate.
+- **Per-task worktrees via ralph/scripts/worktree-create.sh.** 5+ in flight by default.
+- **Wave-boundary architect duo (gpt-5.5 + claude-opus-4.6)** at every umbrella close. Independent prompts. Both PASS (or findings remediated/filed) before close.
+- **PM-direct ONLY for trivially-trivial single-file work** (markdown rewrite, gate_Append-only). Anything multi-file, code-touching, or requiring fresh red-team → dispatch.
+- **Pre-action alignment** for any task whose spec has gate clauses, P0 references, or "do not do without authorization" language. Read the spec FULLY before deciding to dispatch.
+- **File follow-ups eagerly during work.** T-322.8/9/10 came from worker discovery + red-team observations + architect-duo findings. Don't try to land everything in current iter; capture for next.
+- **gate-tdd.sh / gate-gsd.sh helpers in /tmp/** — generalize across iters as `ralph/scripts/gate-pass-loop.sh <task-id> <agent> <notes> [stage-count]`. The script is the same for every task; only the task ID + notes change. (TODO for iter-17: hoist to ralph/scripts/.)

@@ -33,7 +33,19 @@ const forbiddenTags = ['script', 'iframe', 'object', 'embed', 'form', 'input', '
 
 async function conceptExists(concept: string): Promise<boolean> { const cached = wikilinkExistsCache.get(concept); if (cached !== undefined) return cached; try { await memoryApi.readMemory(`memory://${concept}`); wikilinkExistsCache.set(concept, true); return true; } catch { wikilinkExistsCache.set(concept, false); return false; } }
 
-async function markUnresolvedWikilinks(): Promise<void> { await Promise.all(Array.from(containerRef.value?.querySelectorAll<HTMLElement>('[data-wikilink]') ?? []).map(async (chip) => { const concept = chip.getAttribute('data-wikilink'); if (!concept) return; if (await conceptExists(concept)) chip.removeAttribute('data-unresolved'); else chip.setAttribute('data-unresolved', 'true'); })); }
+async function runWithLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const item = items[nextIndex];
+      nextIndex += 1;
+      await fn(item);
+    }
+  });
+  await Promise.all(workers);
+}
+
+async function markUnresolvedWikilinks(): Promise<void> { const chips = Array.from(containerRef.value?.querySelectorAll<HTMLElement>('[data-wikilink]') ?? []); await runWithLimit(chips, 4, async (chip) => { const concept = chip.getAttribute('data-wikilink'); if (!concept) return; if (await conceptExists(concept)) chip.removeAttribute('data-unresolved'); else chip.setAttribute('data-unresolved', 'true'); }); }
 
 function scheduleUnresolvedCheck(): void { if (unresolvedCheckTimer !== null) window.clearTimeout(unresolvedCheckTimer); unresolvedCheckTimer = window.setTimeout(() => { void markUnresolvedWikilinks(); }, 60); }
 

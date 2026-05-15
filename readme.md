@@ -279,14 +279,32 @@ Issues and pull requests are welcome on [GitHub](https://github.com/msbrettorg/m
 - **SearchMemories returns empty results:** Expected on a fresh install with no memory files. Write a memory first with `WriteMemory`.
 - **Desktop dev shell doesn't start Electron:** Run `npm run dev:electron` from `apps/desktop/`. The plain `npm run dev` script starts only the Vite renderer; the Electron host is wired behind the `dev:electron` lifecycle event.
 - **MCP client can't spawn the server:** Ensure the `command` in your MCP config points to an absolute path or a binary on your PATH.
-- **GUI app missing env vars set in `~/.zprofile` (e.g. `AZURE_OPENAI_API_KEY`):** macOS GUI launches (Dock, Spotlight, double-click) do not source your shell init files. Bake the variable into the user-launchd domain so every GUI app inherits it:
+- **GUI app missing env vars set in `~/.zprofile` (e.g. `AZURE_OPENAI_API_KEY`):** macOS GUI launches (Dock, Spotlight, double-click) do not source your shell init files, so a value exported from `~/.zshrc`/`~/.bashrc`/`~/.zprofile` is invisible to the daemon and to ACP agents the daemon spawns. **Recommended fix — `envFromFile` in `maenifold.json`:** keep the secret in a file (e.g. `~/.secrets/azure_openai_api_key`) and reference it on the agent (or stdio MCP server) entry. The daemon reads the file and injects the value at child spawn time, so it works the same whether you launched from a terminal or from Finder.
 
-  ```sh
-  launchctl setenv AZURE_OPENAI_API_KEY "$(<~/.secrets/azure_openai_api_key)"
-  launchctl setenv AZURE_OPENAI_ENDPOINT "https://your-resource.openai.azure.com"
+  ```json
+  "agents": {
+    "Codex": {
+      "command": "/path/to/codex-acp",
+      "envFromFile": {
+        "AZURE_OPENAI_API_KEY": "~/.secrets/azure_openai_api_key",
+        "OPENAI_API_KEY": "~/.secrets/azure_openai_api_key"
+      }
+    }
+  }
   ```
 
-  Quit and reopen maenifold after running. To make it survive reboot, add a LaunchAgent plist under `~/Library/LaunchAgents/` that calls `launchctl setenv` at login (Apple Q&A: [Setting environment variables for GUI processes](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPRuntimeConfig/Articles/EnvironmentVars.html)).
+  Or use `envFromCommand` for keychain-backed secrets — the daemon spawns the command and uses stdout as the value (matches OpenAI Codex `[auth] command` and Claude Code `apiKeyHelper`):
+
+  ```json
+  "envFromCommand": {
+    "ANTHROPIC_API_KEY": {
+      "command": "/usr/bin/security",
+      "args": ["find-generic-password", "-w", "-s", "anthropic-api-key"]
+    }
+  }
+  ```
+
+  Precedence (first wins): inline `env` literal map → `envFromCommand` → `envFromFile` → `settings.envPassthrough` allow-list (which only sees a var if your daemon already had it in `std::env`). Failures are fail-soft: a missing file or non-zero command exit logs a warning (without the value) and skips that variable. See `crates/maenifold-jockey/src/acp/adapter_env.rs` for the implementation and `done/T-324.1.md` + `done/T-324.2.md` for the design rationale.
 
 ## Documentation
 

@@ -36,7 +36,6 @@ pub(super) fn quarantine_file(uri: &str, config: &Config, session_id: &str) -> R
     fs::create_dir_all(&destination_dir)?;
     let destination = collision_free_path(&destination_dir.join(name));
     move_file(&absolute_path, &destination)?;
-    mirror_quarantine_file(config, session_id, name, &destination)?;
     Ok(absolute_path.to_string_lossy().to_string())
 }
 
@@ -121,30 +120,6 @@ fn trash_session_dir(config: &Config, session_id: &str) -> PathBuf {
         .join(".trash")
         .join(format!("{year:04}-{month:02}-{day:02}"))
         .join(session_id)
-}
-
-fn visible_quarantine_day_dir(config: &Config, session_id: &str) -> PathBuf {
-    let (year, month, day) = date_parts_from_session_id(session_id);
-    config
-        .memory_path
-        .join("pipelines")
-        .join(".quarantine")
-        .join(format!("{year:04}"))
-        .join(format!("{month:02}"))
-        .join(format!("{day:02}"))
-}
-
-fn mirror_quarantine_file(
-    config: &Config,
-    session_id: &str,
-    name: &std::ffi::OsStr,
-    source: &Path,
-) -> Result<()> {
-    let visible_dir = visible_quarantine_day_dir(config, session_id);
-    fs::create_dir_all(&visible_dir)?;
-    let visible_destination = collision_free_path(&visible_dir.join(name));
-    fs::copy(source, visible_destination)?;
-    Ok(())
 }
 
 fn collision_free_path(path: &Path) -> PathBuf {

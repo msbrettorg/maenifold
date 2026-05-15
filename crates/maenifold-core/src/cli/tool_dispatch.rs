@@ -55,6 +55,15 @@ mod tests {
     use std::time::{Duration, Instant};
 
     #[test]
+    fn tool_dispatch_resolves_value_within_timeout() {
+        let result = block_on_tool_dispatch_with_timeout(
+            async { Ok("expected-value".to_string()) },
+            Duration::from_secs(5),
+        );
+        assert_eq!(result.expect("future resolves"), "expected-value");
+    }
+
+    #[test]
     fn tool_dispatch_timeout_returns_bounded_error() {
         let started = Instant::now();
         let result = block_on_tool_dispatch_with_timeout(

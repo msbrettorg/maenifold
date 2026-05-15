@@ -6,6 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 #[path = "adapter_env.rs"]
 mod adapter_env;
+pub use adapter_env::PREFLIGHT_ENV_VALIDATION_FAILED_PREFIX;
 #[cfg(test)]
 #[path = "adapter_env_t301_31_tests.rs"]
 mod adapter_env_t301_31_tests;

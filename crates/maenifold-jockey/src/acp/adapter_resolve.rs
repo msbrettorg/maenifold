@@ -26,7 +26,10 @@ pub(super) fn resolve_adapter_for_name(
             })
             .collect::<Vec<_>>()
             .join("; ");
-        format!("preflight env validation failed for agent '{runtime}': {details}")
+        format!(
+            "{} for agent '{runtime}': {details}",
+            super::PREFLIGHT_ENV_VALIDATION_FAILED_PREFIX
+        )
     })? {
         if !env_contains(&env, &var_name) {
             env.push((var_name, value));

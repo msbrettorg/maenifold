@@ -1,12 +1,3 @@
-use crate::assets::AssetManager;
-use crate::error::{MaenifoldError, Result};
-use crate::markdown::{append_h2_section, file_exists};
-use crate::sessions::{pipeline_session_uri, workflow_session_uri};
-use crate::tools::ToolContext;
-use crate::util::json::{OutputFormat, success};
-use chrono::Utc;
-use serde_yml::Value as YamlValue;
-use std::collections::{BTreeMap, HashMap};
 use super::super::handler_validation::workflow_node_file;
 use super::super::resource_notifications::emit_pipeline_resource_updated;
 use super::super::session_io::{
@@ -16,9 +7,23 @@ use super::super::session_io::{
 use super::super::view::build_pipeline_view_result;
 use super::super::{NodeState, NodeStatus, PipelineDefinition, validate_pipeline};
 use super::ForkRequest;
+use crate::assets::AssetManager;
+use crate::error::{MaenifoldError, Result};
+use crate::markdown::{append_h2_section, file_exists};
+use crate::sessions::{pipeline_session_uri, workflow_session_uri};
+use crate::tools::ToolContext;
+use crate::util::json::{OutputFormat, success};
+use chrono::Utc;
+use serde_yml::Value as YamlValue;
+use std::collections::{BTreeMap, HashMap};
 #[path = "handler_surgery_fork_helpers.rs"]
 mod helpers;
-use helpers::{collect_fork_predecessor_context, format_predecessor_context_content, reachable_node_ids};
+#[path = "handler_surgery_fork_metadata.rs"]
+mod metadata;
+use helpers::{
+    collect_fork_predecessor_context, format_predecessor_context_content, reachable_node_ids,
+};
+use metadata::apply_fork_predecessor_context_to_frontmatter;
 #[allow(clippy::too_many_lines)]
 pub(super) fn fork_pipeline(
     context: &ToolContext,
@@ -244,17 +249,11 @@ pub(super) fn fork_pipeline(
         node_states.insert(node.id().to_string(), state.clone());
         node_states_frontmatter.insert(node.id().to_string(), serde_yml::to_value(&state)?);
     }
-    for (original_node_id, predecessor_outputs) in &fork_root_predecessor_context {
-        let forked_node_id = &node_id_map[original_node_id];
-        if let Some(serde_yml::Value::Mapping(map)) =
-            node_states_frontmatter.get_mut(forked_node_id)
-        {
-            map.insert(
-                serde_yml::Value::String("predecessorContext".to_string()),
-                serde_yml::to_value(predecessor_outputs)?,
-            );
-        }
-    }
+    apply_fork_predecessor_context_to_frontmatter(
+        &mut node_states_frontmatter,
+        &fork_root_predecessor_context,
+        &node_id_map,
+    )?;
     for node in &forked_definition.nodes {
         let node_file = workflow_node_file(node, node_states[node.id()].session_id.clone());
         write_workflow_node_session(context, &new_session_id, &node_file)?;

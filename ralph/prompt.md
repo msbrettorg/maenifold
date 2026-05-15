@@ -36,7 +36,7 @@ Within the sprint start with the lowest numbered gate items and work your way up
 **MCP (preferred):** Use the gate MCP `status` tool with root `.`
 **CLI fallback:** `gate status --root .`
 
-**Priority rule:** Tasks are ordered by ID. Lower sprint numbers = higher priority. Always work the lowest-numbered pending task first. T-01.x before T-203.x before T-204.x. **UAT items are out of scope — skip them.**
+**Priority rule:** Tasks are ordered by ID. Lower sprint numbers = higher priority. Always work the lowest-numbered pending task first. T-01.x before T-203.x before T-204.x. **UAT items are in scope** — drive them to completion via CDP testing in an isolated worktree on a non-overlapping CDP port (see `scripts/uat-launch.sh` and the Agent isolation section).
 
 ### 4. Read project conventions
 
@@ -118,7 +118,7 @@ The PM's job at iter start is to dispatch every ready task in the sprint as a SW
 
 1. It has an explicit `depends_on:` in its frontmatter pointing at a task that is not yet in `done/`, OR
 2. It edits the SAME file as a task that already has a SWE in flight (file contention — serialize), OR
-3. It's a UAT item (out of RALPH scope per protocol).
+3. It is a CDP UAT item AND another CDP UAT item is already in flight (CDP-port contention — serialize one CDP agent per port; see `scripts/uat-launch.sh`).
 
 Anything else is a process violation. "I'm waiting for red-team on T-X" is NOT a reason to delay T-Y. "I'm writing a confession audit" is NOT a reason to delay T-Z. The PM is the dispatcher; dispatch is THE job.
 
@@ -168,7 +168,10 @@ The child tasks ship as separate gate rows + commits + merges. Each child can ru
 ### F. Hygiene
 - Write memory notes for non-trivial decisions with `[[WikiLinks]]`.
 - Repair concept fragmentation when you see it (`AnalyzeConceptCorruption` → `RepairConcepts` with `dryRun` first).
-- Append operational learnings to `ralph/state/learnings.md` so future iterations don't repeat your mistakes.
+- **Two state files, two rituals — RALPH is a loop and these files are how loops talk to each other:**
+  - `ralph/state/learnings.md` — APPEND-ONLY. Messages FROM past loops. Append a new `### Lesson` H3 for any discovery worth carrying forward; never edit or delete past entries.
+  - `ralph/state/thoughts.md` — REPLACE entirely at iter end. Messages TO the next loop. Rewrite from scratch with whatever the next PM needs to inherit. Do not append.
+  - **Iter ledgers / what shipped / throughput tallies** go in `memory://mae-auto/iterations/*` notes via `WriteMemory`, NOT into either state file.
 
 ---
 
@@ -380,7 +383,7 @@ You manage multiple tasks concurrently. Each task lives in its own worktree and 
 2. **On failure** — iterate fix attempts up to 3 times (re-dispatch SWE to same worktree). If still failing:
    - Record failure via gate (`gate fail T-XXX.YY --agent ralph --notes '...' --root .`)
    - Discard the worktree: `git worktree remove worktrees/T-XXX.Y && git branch -D task/T-XXX.Y`
-   - Append the failure pattern to `ralph/state/learnings.md`.
+   - Append the failure pattern to `ralph/state/learnings.md` ONLY if it's a durable lesson ("X breaks because Y; do Z"). If it's an iter-specific tally ("we hit N failures this iter"), `WriteMemory` it under `memory://mae-auto/iterations/*` instead.
    - **Don't block other tasks.** Move on to the next completed agent.
 
 3. **On success — commit in worktree, then merge to main:**
@@ -448,4 +451,4 @@ You are the PM. The PM doesn't punch out — the PM ships, then ships the next t
 
 Lowest numbered gate items first. If you are caught jumping ahead and prioritizing new items whilst leaving the old harder stuff in gate your agents will be terminated without warning. This is a hard rule. The backlog is ordered for a reason. New items assume the old ones are done. If you skip around you WILL cause problems.
 
-**UAT is OUT OF SCOPE.** Do not create, run, or dispatch UAT work. Fix the bugs.
+**UAT is IN SCOPE.** Drive UAT items to completion via CDP testing in an isolated worktree on a non-overlapping CDP port. CDP is the only way to test the UI (see root `AGENTS.md` Definition of Done + the Agent isolation section above + `scripts/uat-launch.sh`). UAT items are no longer skipped.

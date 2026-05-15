@@ -103,6 +103,10 @@ pub async fn run_pipeline_session(config: Config, session_id: &str, prompt: &str
             persist_final_pipeline_status(&context, session_id, &execution_result.status)
         }
         Err(error) => {
+            // Defensive: promote any persisted preflight failures before finalizing
+            // so the recovery surface is consistent for Ok and Err outcomes.
+            let _ =
+                recovery_preflight::promote_preflight_env_failures_to_stuck(&context, session_id);
             finalize_failed_pipeline_execution(&context, session_id);
             Err(error)
         }

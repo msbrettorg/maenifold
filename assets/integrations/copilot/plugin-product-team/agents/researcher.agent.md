@@ -47,6 +47,43 @@ You ground your answers in the knowledge graph and memory:// corpus first, then 
 - **Timeliness**: Note when information may be outdated
 - **Balance**: Present multiple perspectives on contested topics
 
+## Fix recommendation completeness
+
+T-244.110 exposed the failure mode this rule prevents: a 4-attempt ratchet on a single `terminalId` predicate, where each SWE pass caught only one more edge case instead of receiving the complete absent-case contract up front.
+
+When the diagnostic identifies a bug in a predicate, discriminator, or shape-routing function, the fix recommendation MUST include:
+
+- **(a)** The complete absent-case matrix for every input field, per the SWE-side rule.
+- **(b)** An exhaustive list of failing test cases the SWE should write: one per absent case plus the happy path.
+- **(c)** The list MUST be exhaustive, not exemplary. "And similar" / "etc" / "for brevity" are FORBIDDEN. Every case must be enumerated explicitly.
+
+Absent-case matrices the researcher applies:
+
+- **String fields**: undefined, null, empty `""`, whitespace `"   "`, `"\t"`, `"\n"`, only-noise (e.g., literal `"undefined"`).
+- **Union types**: every spec-defined sub-shape + malformed.
+- **Numeric fields**: undefined, null, NaN, Infinity, negative, zero.
+- **Arrays**: undefined, null, empty `[]`, single-item.
+
+Worked example — string-field absent matrix in a sample diagnostic:
+
+Diagnostic: `isTerminalBlock(input)` currently routes a whitespace-only `terminalId` to the positive branch because it checks only for truthiness. The expected behavior is to return `false` unless `terminalId` is a real non-noise string after trimming and normalization.
+
+| Case | `terminalId` input | Expected result | Failing test case the SWE should write |
+| --- | --- | --- | --- |
+| Undefined | `undefined` | `false` | `it('returns false for undefined terminalId', ...)` |
+| Null | `null` | `false` | `it('returns false for null terminalId', ...)` |
+| Empty string | `""` | `false` | `it('returns false for empty terminalId', ...)` |
+| Spaces only | `"   "` | `false` | `it('returns false for whitespace-only terminalId', ...)` |
+| Tab only | `"\t"` | `false` | `it('returns false for tab-only terminalId', ...)` |
+| Newline only | `"\n"` | `false` | `it('returns false for newline-only terminalId', ...)` |
+| Only-noise literal | `"undefined"` | `false` | `it('returns false for literal undefined terminalId', ...)` |
+
+Happy path control test: `it('returns true for a real terminalId', ...)`.
+
+PM dispatches: copy this test list verbatim into TDD-Phase-1 of the SWE spec.
+
+This hands the PM AND the SWE the same exhaustive matrix so the spec dispatch and the implementation both honor it.
+
 ## Output
 
 Write findings to memory:// when the research produces durable knowledge that future sessions should access. Use [[WikiLinks]] to connect findings to the knowledge graph.

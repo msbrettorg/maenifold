@@ -129,7 +129,7 @@ describe('PermissionHandler persistence interceptor', () => {
 
     const response = await handler.requestPermission(edit);
 
-    expect(response.outcome).not.toEqual({ outcome: 'selected', optionId: 'allow-once' });
+    expect(response.outcome).toEqual({ outcome: 'cancelled' });
     expect(handler.pendingPermissionRequests.value).toHaveLength(0);
   });
 

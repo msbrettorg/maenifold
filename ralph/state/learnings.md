@@ -3865,3 +3865,78 @@ Initial iter-17 memory note had `[[AGENTS.md]]`, `[[gate-pass-loop.sh]]`, `[[npm
 3. **Sprint 322 backlog**: T-322.1 (P1 tables-do-not-sort), then the P3 follow-ups (T-322.2 through T-322.15) in priority+ID order.
 4. **Wave-boundary architect duo** at sprint 311 close + sprint 322 close.
 5. **Memory note + learnings + thoughts** at iter-end.
+
+
+## 2026-05-14 — Iter-18 (Sprint 311 close + Sprint 322 grind)
+
+### Lesson 108: Decomposition is a valid SWE deliverable
+
+T-322.1 SWE swe-t-322-1 (gpt-5.5) was assigned a P1 "tables-do-not-sort" task spanning 4 tabs. The SWE did discovery and STOPPED before fixing because scope exceeded the per-task budget (≤5 files, ≤250 LOC, ≤10 min wall). Returned a WorkResult with discovery findings + recommended decomposition into 4 child tasks. PM filed T-322.1.1, T-322.1.2, T-322.1.3, T-322.1.4 + PM-direct closed T-322.1 with the discovery+decomposition as deliverable.
+
+This is a healthier pattern than "force-fit one giant SWE that exceeds budget." The SWE that explicitly stops + reports honestly + recommends decomposition is doing the right thing per Lesson 14-cap. PM's job at that point is to file children + close the parent with rationale + queue children for next iter.
+
+**Lesson — when a SWE stops with a "scope exceeds budget" report, treat the report itself as the deliverable. File child tasks immediately, close the parent with decomposition rationale, do NOT push the SWE to keep going past the wall-clock cap.** Iter-19 picks up children with smaller blast radius.
+
+### Lesson 109: Production-path testing requires production-shape mocks (T-322.4 round 1 lesson)
+
+T-322.4 SWE round 1 wrote tests with FLAT error envelope mocks (`new Error(\'{"code":"NOT_FOUND",...}\'); but production envelopes are NESTED (`{"success":false,"data":null,"error":{"code":"NOT_FOUND",...}}`). Tests passed because the mock shape accidentally matched the SWE\'s `parsed.code` check. Production path was bypassed entirely (`mcpClientOps.callTool` threw plain `Error` BEFORE `unwrapEnvelope` could run, so `ToolEnvelopeError instanceof` check was dead code).
+
+This is a textbook example of the AGENTS.md retrospective item #5: "Frontend filters silently exclude valid backend data" / "trace before fixing, spec full-stack from the start."
+
+**Lesson — every SWE working on a frontend-backend interface must trace the FULL data path before writing tests:** source → backend serialization → MCP transport → frontend deserialization → consumer code. Mock shapes MUST match what production actually produces, not what the spec author imagined. Red-team prompts should explicitly require "do the test mocks match the production response shape per the actual transport code?" as a check item.
+
+Round-2 same-SWE remediation via `write_agent` with the trace pinpointed (lines named) made the fix surgical: 1 turn, ~6 min wall, fresh red-team PASS.
+
+### Lesson 110: Same-SWE remediation for FAIL audits (3rd reaffirmation, T-322.4 round 1)
+
+When red-team round 1 returns FAIL with specific findings, dispatch the remediation via `write_agent` to the SAME SWE rather than fresh dispatch. Iter-18 T-322.4 round 1 → write_agent remediation → 1 turn → round-2 fresh red-team PASS no findings. Saves ~10 min of fresh-context overhead per remediation cycle. The SWE already has the file context loaded.
+
+This pattern reaffirmed iter-7, iter-14 (T-305.5 + T-305.20), iter-15 (T-308.5), iter-18 (T-322.4). The same-SWE remediation is the standard pattern; fresh SWE only when the original SWE\'s work is fundamentally untrustable.
+
+### Lesson 111: Sandbox banned-substring guard catches commit message bodies
+
+The Copilot CLI sandbox blocks `git commit -m \'...\'` invocations whose ARGV string contains banned substrings (specifically the name-based process-termination tool names). T-322.15 commit message originally described the script\'s use of `kill` with a literal-PID-placeholder; rejected. Workaround: avoid the literal substrings. Use phrases like "terminate via numeric-pid signals only (no name-based process termination tools used)" instead of using the literal command names.
+
+This is a known process drift item (Iter-1 standing directive); tripped iter-18 T-322.15 commit message because the SWE\'s spec body wording leaked into the PM\'s commit message. PM should pre-scrub commit message drafts before invoking `git commit`.
+
+**Lesson — when authoring commit messages that DESCRIBE process-termination behavior, use semantic descriptions ("terminate", "signal", "send SIGTERM") not the literal command names. The sandbox cannot distinguish description from invocation.**
+
+### Lesson 112: Iter-18 throughput pattern (12 closes + 19 follow-ups in ~5h)
+
+Iter-18 closed 12 tasks (2 sprint 311 + 1 PM-direct decomposition + 9 sprint 322) and filed 19 follow-ups in ~5h wall.
+
+- **Bootstrap** (skill load + gate sync + spec read + daemon freshness check): ~5 min
+- **Wave-0** (T-311.1 + T-311.3 in 2 parallel worktrees): both clean PASS-WITH-FOLLOWUPS, ~30 min wall
+- **Architect duo on sprint 311 close**: 2 parallel rubber-ducks, both APPROVE-WITH-FILED-FOLLOWUPS, converged on T-322.27 lightweight→sdd correction
+- **Wave-1** (T-322.2 + T-322.3 in parallel): both PASS, ~30 min wall
+- **Wave-2** (T-322.1 + T-322.4 + T-322.7 + T-322.8 in 4 parallel worktrees): T-322.1 decomposed, T-322.7 + T-322.8 PASS-WITH-FOLLOWUPS, T-322.4 round 1 FAIL → same-SWE remediation Path A → round 2 PASS no findings, ~50 min wall
+- **Wave-3** (T-322.11 + T-322.12 + T-322.15 + T-322.28 across 4 parallel worktrees): all PASS, ~30 min wall
+- **Iter-end** (memory note + learnings + thoughts): ~10 min
+
+**Pattern reaffirmed (Lessons 73, 83, 86, 90, 96, 100, 106):** 4 parallel SWE lanes is the comfortable cap (Lesson 102). Same-SWE remediation via write_agent for FAIL audits saves ~10 min per cycle. PM-direct decomposition for budget-exceeding tasks beats forcing one big SWE.
+
+### Iter-19 playbook
+
+1. **Pre-flight:** check daemon binary freshness (deploy-daemon.sh from T-322.15 is now available — try it first, but understand it is untested; manual verification fallback per AGENTS.md retrospective item #4).
+2. **Sprint 322 grind continues** (Sprint 311 is RALPH-converged):
+   - T-322.5 + T-322.6 (MarkdownView same-file series — serialize after iter-18 merges settle)
+   - T-322.13 (node_modules optional skip — sibling of T-322.12, file-disjoint with most others)
+   - T-322.16-26 (11 reduction tasks → 4 contention lanes per opus-4.6 architect recommendation: deps-duplication, one-caller, single-child wrappers + dead code, compat shims)
+   - T-322.27 (PM drift-audit recipe — touches ralph/AGENTS.md + learnings.md, schedule for late iter to avoid PM iter-end conflicts)
+   - T-322.1.1, T-322.1.2, T-322.1.3 (P1 tdd table-sort children — file-disjoint, parallel-safe)
+3. **Wave-boundary architect duo** at sprint 322 close (when reduction backlog drains).
+4. **Memory note + learnings + thoughts** at iter-end.
+
+### Standing directives reaffirmed for iter-19+
+
+- **Lowest-numbered first remains absolute.** Sprint 322 is now the active iter sprint.
+- **UAT items stay out of RALPH scope.** Sprint 311 stays partially-converged (T-311.0 umbrella + T-311.2 UAT remain in todo/ until human runs UAT).
+- **Wave-0 first-action dispatch in ONE response.**
+- **Per-task worktrees via ralph/scripts/worktree-create.sh.** Pre-commit hook now blocks worker self-commits unless PM_OWNS_THIS=1 (T-311.3).
+- **Wave-boundary architect duo (gpt-5.5 + claude-opus-4.6)** at every umbrella/sprint close.
+- **Same-SWE remediation via write_agent** for FAIL audits (Lesson 110).
+- **PM-direct decomposition** for budget-exceeding tasks (Lesson 108).
+- **Production-shape mock matching** for frontend-backend integration tests (Lesson 109).
+- **gate-pass-loop helper** at `ralph/scripts/gate-pass-loop.sh` is the canonical close path.
+- **WriteMemory wikilinks** must reference concepts, not file paths (Lesson 107).
+- **Commit-message wording**: avoid literal banned process-termination command names (Lesson 111).

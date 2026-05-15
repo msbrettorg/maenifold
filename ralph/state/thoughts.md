@@ -427,3 +427,80 @@ ounded by SLOWEST single SWE (~10 min for T-309.1 multi-consumer hoist), NOT the
    - T-322.10 + T-322.14 if iter-17 didn't close them.
 5. **Wave-boundary architect duo** at sprint 311 close + sprint 322 close.
 6. **Memory note + learnings + thoughts** at iter-end.
+
+
+
+## Iter 2026-05-14 (iter-18) — Sprint 311 close + Sprint 322 grind (12 closes + 19 follow-ups)
+
+**Headline:** 12 tasks shipped + 19 follow-ups filed in ~5h wall. Sprint 311 RALPH-converged. Sprint 322 grew net (15 → 26 todo) due to T-311.1 META-SCAN producing 11 reduction tasks plus other red-team-derived follow-ups.
+
+**Tasks shipped this iter:**
+
+- **T-311.1** (gsd P2) — code reduction sweep META-SCAN. memory://desktop/code-reduction-sweep-2026-05-14 (377 LOC reduction inventory, audit-script gap table, 11 follow-ups T-322.16-26). Reduction-first PM agent rule appended to product-manager.agent.md. SWE bumped P2→P1 PM-direct pre-merge per red-team finding 1.
+- **T-311.3** (tdd P3) — per-worktree pre-commit hook (git config --worktree core.hooksPath) blocks worker self-commits unless PM_OWNS_THIS=1. ralph/AGENTS.md updated. TDD test verifies blocked + authorized commits.
+- **T-322.1** (tdd P1) — PM-direct close after SWE discovery: tables-do-not-sort decomposed into 4 children (T-322.1.1 SchedulesTab, T-322.1.2 ScheduleRunsDrawer, T-322.1.3 SettingsEmbeddingsTable, T-322.1.4 list-surface UX). 4 supposedly-affected surfaces (Pipelines/Knowledge/MCP/Agents) are NOT tables — UX research deferred.
+- **T-322.2** (tdd P3) — bounded 30s tool dispatch timeout. Original CLI hang not reproduced; protection mandatory regardless. tokio::time::timeout wraps spawn_blocking ToolRegistry.try_invoke. Documented GatewayExecute fallback.
+- **T-322.3** (tdd P3) — MarkdownView wikilink existence check throttled to 4 concurrent via 10-LOC inline runWithLimit helper. No new dependencies.
+- **T-322.4** (tdd P3, ROUND 2) — round 1 FAILED with 3 critical findings (production-path bypass: callTool threw plain Error before unwrapEnvelope ran; mocks were FLAT shape masking the bug). Round 2 same-SWE write_agent remediation Path A: callTool now detects structured envelopes and throws ToolEnvelopeError(NOT_FOUND); MarkdownView discriminates instanceof. 71 tests PASS.
+- **T-322.7** (tdd P3) — KnowledgeBacklinksPanel concept titles sanitized via new wikilink-query-sanitizer (strips brackets, collapses CRLF, trims).
+- **T-322.8** (tdd P3) — 3 named getErrorMessage consumers (mcpClientOps, useMcpClient, agent-capabilities) now sanitize before reaching UI surface using existing error-sanitizer helper.
+- **T-322.11** (tdd P3) — status_filter combinatorial regression test (state=done + blocked=true + include_done=false). Test-only.
+- **T-322.12** (tdd P3) — Vitest scenario for node_modules contamination detection. Pre-existing -missing.test is bare-script style; filed T-322.31 to harmonize.
+- **T-322.15** (sdd P3) — ralph/scripts/deploy-daemon.sh (195 LOC) wraps daemon+driver redeploy ops procedure. Script not executed (destructive); PM runs at next iter close.
+- **T-322.28** (tdd P3) — tool_dispatch success-path unit test. Closes test matrix (timeout path + success path now both covered).
+
+**Follow-ups filed this iter (19):**
+
+- T-322.16-26 (11 P1 sdd reduction tasks from T-311.1 META-SCAN)
+- T-322.27 (PM drift-audit recipe — sdd, was lightweight; PM-direct corrected per architect duo finding)
+- T-322.29 (sanitize 5 more getErrorMessage consumers from T-322.8 finding)
+- T-322.30 (sanitize WikilinkCreateDialog + useMemoryPromotion-helpers from T-322.7 finding)
+- T-322.31 (Vitest convert pre-existing -missing test from T-322.12 finding)
+- T-322.32 (deploy-daemon lsof sanity check from T-322.15 finding 1)
+- T-322.33 (deploy-daemon retry loop from T-322.15 finding 5)
+- T-322.1.1, T-322.1.2, T-322.1.3 (P1 tdd table-sort children from T-322.1 decomposition)
+- T-322.1.4 (P3 gsd list-surface UX research)
+
+**What worked this iter:**
+
+1. **Wave-0 first-action saturation** in ONE response (Lesson 102 ceiling honored). 4 parallel SWE lanes per wave; total wall bounded by slowest lane in each wave, not by sum.
+2. **PM-direct decomposition** (Lesson 108) for T-322.1 — SWE honestly stopped at scope boundary, PM filed 4 children + closed parent with discovery+decomposition as the deliverable. Cleaner than forcing a 30+ min SWE.
+3. **Same-SWE remediation via write_agent** (Lesson 110) for T-322.4 round 1 FAIL → round 2 PASS in 1 turn. ~10 min saved vs fresh dispatch.
+4. **Wave-boundary architect duo** caught T-322.27 lightweight→sdd correction pre-iter-end. Both reviewers (gpt-5.5 + claude-opus-4.6) returned APPROVE-WITH-FILED-FOLLOWUPS, converged on the same minor finding.
+5. **Cross-stack caller-chain audits** (Lesson 105) at every red-team caught additional consumers needing same fix: T-322.7 → T-322.30, T-322.8 → T-322.29, T-322.15 → T-322.32+T-322.33.
+
+**What needs attention iter-19:**
+
+1. **Sprint 322 backlog now at 26 items** (grew from 15 due to META-SCAN follow-ups). Architect-duo recommended grouping the 11 reduction tasks (T-322.16-26) into 4 contention lanes for parallel SWE dispatch:
+   - Deps-duplication: T-322.16, T-322.17, T-322.18 (different files, can parallelize)
+   - One-caller helpers: T-322.20, T-322.21
+   - Single-child wrappers + dead code: T-322.19, T-322.22, T-322.23, T-322.24
+   - Compat shims (heavily-imported barrel files, expect ~20 callers each): T-322.25, T-322.26
+2. **Daemon deploy is now scripted** (T-322.15 ralph/scripts/deploy-daemon.sh) but UNTESTED — PM at iter-19 should test the happy path early in the iter (or at the next deploy need), and apply the 2 follow-up sanity checks (T-322.32 lsof guard + T-322.33 PID retry loop) if either trips.
+3. **Lesson 111 sandbox guard tripped on T-322.15 commit message body** — PM should pre-scrub commit messages for literal name-based-process-termination tool names. Use semantic descriptions instead.
+
+**Standing directives reaffirmed for iter-19+:**
+
+- Lowest-numbered first remains absolute. Sprint 322 active.
+- UAT items stay out of RALPH scope. Sprint 311 partially-converged.
+- Wave-0 first-action dispatch in ONE response. ≤4 parallel SWE lanes (Lesson 102 ceiling).
+- Per-task worktrees with PM_OWNS_THIS=1 commit/merge guard (T-311.3).
+- Wave-boundary architect duo at every sprint close, INDEPENDENT prompts.
+- Same-SWE remediation via write_agent for FAIL audits (Lesson 110).
+- PM-direct decomposition for budget-exceeding tasks (Lesson 108).
+- Production-shape mock matching for frontend-backend integration tests (Lesson 109).
+- WriteMemory wikilinks must reference concepts, not file paths (Lesson 107).
+- Commit-message scrubbing for literal banned substrings (Lesson 111).
+
+### Iter-19 playbook
+
+1. **PRE-FLIGHT:** check daemon binary freshness. Try ralph/scripts/deploy-daemon.sh dry-run if needed; otherwise verify manually via `lsof -p $(pgrep -f \'maenifold --http\') | grep txt` + strings on a recent commit marker.
+2. **Sprint 322 grind:** lowest-numbered first.
+   - T-322.5 + T-322.6 (MarkdownView same-file series — serialize after iter-18 merges settle)
+   - T-322.13 (node_modules optional skip)
+   - T-322.16-26 reduction-tasks wave (4 contention lanes)
+   - T-322.27 (PM drift-audit recipe — schedule late iter to avoid iter-end PM doc conflicts)
+   - T-322.29-T-322.33 (recently-filed follow-ups)
+   - T-322.1.1, T-322.1.2, T-322.1.3 (table-sort children — parallel-safe)
+3. **Wave-boundary architect duo** at sprint 322 close (when reduction backlog drains).
+4. **Memory note + learnings + thoughts** at iter-end.

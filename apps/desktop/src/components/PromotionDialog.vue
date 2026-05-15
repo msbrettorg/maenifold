@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -34,6 +35,7 @@ const selectedAction = ref<PromotionAction | null>(null);
 const selectedResult = ref<NormalizedMemorySearchItem | null>(null);
 const selectedMemory = ref<NormalizedMemoryDocument | null>(null);
 const loadingMemory = ref(false);
+const editorRef = ref<{ focusWikiLinkInput?: () => void } | null>(null);
 
 const source = computed<MemoryPromotionSource>(() => ({ pipelineId: props.pipelineId, nodeId: props.node.nodeId, output: props.node.output ?? '' }));
 const wikiLinkError = computed(() => hasWikiLinkConnection(wikiLinkInput.value) ? '' : 'Add at least one connection before saving.');
@@ -159,6 +161,8 @@ function validateCurrentAction(): boolean {
   }
   if (!hasWikiLinkConnection(wikiLinkInput.value)) {
     formError.value = wikiLinkError.value;
+    toast.error('Add at least one connection before saving');
+    editorRef.value?.focusWikiLinkInput?.();
     return false;
   }
   if (selectedAction.value === 'append' && !selectedResult.value) {
@@ -270,7 +274,7 @@ async function closeDialog(): Promise<void> {
           </div>
         </section>
         <PromotionDialogPreview v-else-if="step === 'preview'" :search-query="searchQuery" :search-results="searchResults" :searching="promotion.searching.value" :writing="promotion.writing.value" :info-message="infoMessage" :form-error="formError" :promotion-error="promotion.error.value" :busy="promotion.busy.value" @update:search-query="searchQuery = $event" @search="runSearch" @select-action="selectAction" @close="closeDialog" />
-        <PromotionDialogEditor v-else-if="step === 'editor' && selectedAction" :selected-action="selectedAction" :selected-result="selectedResult" :selected-memory="selectedMemory" :loading-memory="loadingMemory" :title="title" :folder="folder" :tags-input="tagsInput" :wiki-link-input="wikiLinkInput" :wiki-link-error="wikiLinkError" :next-preview="nextPreview" :form-error="formError" :update-disabled-message="updateDisabledMessage" :busy="promotion.busy.value" @update:title="updateTitle" @update:folder="updateFolder" @update:tags-input="updateTagsInput" @update:wiki-link-input="updateWikiLinkInput" @back="backToPreview" @continue="continueToConfirm" @retry="retryCurrentAction" @close="closeDialog" />
+        <PromotionDialogEditor ref="editorRef" v-else-if="step === 'editor' && selectedAction" :selected-action="selectedAction" :selected-result="selectedResult" :selected-memory="selectedMemory" :loading-memory="loadingMemory" :title="title" :folder="folder" :tags-input="tagsInput" :wiki-link-input="wikiLinkInput" :wiki-link-error="wikiLinkError" :next-preview="nextPreview" :form-error="formError" :update-disabled-message="updateDisabledMessage" :busy="promotion.busy.value" @update:title="updateTitle" @update:folder="updateFolder" @update:tags-input="updateTagsInput" @update:wiki-link-input="updateWikiLinkInput" @back="backToPreview" @continue="continueToConfirm" @retry="retryCurrentAction" @close="closeDialog" />
         <PromotionDialogConfirm v-else :selected-action="selectedAction" :selected-result="selectedResult" :selected-memory="selectedMemory" :title="title" :folder="folder" :tags="tags" :next-preview="nextPreview" :form-error="formError" :submit-label="submitLabel" :busy="promotion.busy.value" :can-submit-update="canSubmitUpdate" :update-disabled-message="updateDisabledMessage" @back="step = 'editor'" @submit="handleSubmit" @retry="retryCurrentAction" @close="closeDialog" />
       </ScrollArea>
     </DialogContent>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -35,6 +36,21 @@ const emit = defineEmits<{
   (event: 'retry'): void;
   (event: 'close'): void;
 }>();
+
+const wikiLinkInputRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null);
+
+function focusWikiLinkInput(): void {
+  if (wikiLinkInputRef.value instanceof HTMLElement) {
+    wikiLinkInputRef.value.focus();
+    return;
+  }
+  const textarea = wikiLinkInputRef.value?.$el instanceof HTMLElement
+    ? wikiLinkInputRef.value.$el
+    : document.getElementById('promotion-connections-input');
+  textarea?.focus();
+}
+
+defineExpose({ focusWikiLinkInput });
 
 const heading = {
   create: 'Create new note',
@@ -75,17 +91,30 @@ const description = {
     </div>
 
     <label class="grid min-w-0 gap-[0.35rem] text-xs text-text-secondary">
-      <span>Connections</span>
+      <span class="flex flex-wrap items-center justify-between gap-2">
+        <span>Connections</span>
+        <span
+          v-if="wikiLinkError"
+          id="promotion-connections-error"
+          class="rounded-[4px] bg-danger/10 px-2 py-1 text-xs font-medium text-danger"
+          role="alert"
+        >
+          {{ wikiLinkError }}
+        </span>
+      </span>
       <Textarea
+        id="promotion-connections-input"
+        ref="wikiLinkInputRef"
         class="border-0"
         rows="3"
         placeholder="Add one or more topics, for example: semantic zoom, pipeline-ui"
         :value="wikiLinkInput"
+        :aria-invalid="Boolean(wikiLinkError)"
+        :aria-describedby="wikiLinkError ? 'promotion-connections-error' : undefined"
         @input="emit('update:wikiLinkInput', ($event.target as HTMLTextAreaElement).value)"
       />
       <small class="text-text-secondary">Use plain topics or [[WikiLinks]]. We will format them for you.</small>
     </label>
-    <p v-if="wikiLinkError" class="m-0 text-status-abandoned text-xs" role="alert">{{ wikiLinkError }}</p>
 
     <div v-if="selectedAction !== 'create'" class="grid gap-4">
       <span class="text-xs text-text-primary">Current note</span>

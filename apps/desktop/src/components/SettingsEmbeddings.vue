@@ -60,17 +60,15 @@ function openRegenerate(): void {
   dialog.value = { type: 'regenerate', modelId: '' };
 }
 
-async function confirmDialog(): Promise<void> {
-  const current = dialog.value;
-  if (!current) return;
+async function confirmDialog(payload: { type: 'activate' | 'delete' | 'regenerate'; modelId: string }): Promise<void> {
   dialog.value = null;
-  if (current.type === 'regenerate') {
+  if (payload.type === 'regenerate') {
     await regenerateEmbeddings();
     return;
   }
-  const model = models.value.find((m) => m.id === current.modelId);
+  const model = models.value.find((m) => m.id === payload.modelId);
   if (!model) return;
-  if (current.type === 'activate') {
+  if (payload.type === 'activate') {
     await activateModel(model);
   } else {
     await deleteModel(model);
@@ -160,6 +158,7 @@ onMounted(() => {
       <SettingsEmbeddingsConfirmDialog
         :open="dialogOpen"
         :type="dialog?.type ?? null"
+        :model-id="dialog?.modelId ?? ''"
         :model-name="dialogModel?.name ?? null"
         @update:open="(v: boolean) => (dialogOpen = v)"
         @confirm="confirmDialog"

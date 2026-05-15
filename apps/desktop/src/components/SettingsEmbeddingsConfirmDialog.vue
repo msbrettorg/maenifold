@@ -13,12 +13,13 @@ import {
 defineProps<{
   open: boolean;
   type: 'activate' | 'delete' | 'regenerate' | null;
+  modelId: string;
   modelName?: string | null;
 }>();
 
 const emit = defineEmits<{
   'update:open': [value: boolean];
-  confirm: [];
+  confirm: [payload: { type: 'activate' | 'delete' | 'regenerate'; modelId: string }];
 }>();
 </script>
 
@@ -45,7 +46,7 @@ const emit = defineEmits<{
       </AlertDialogHeader>
       <AlertDialogFooter>
         <AlertDialogCancel>Cancel</AlertDialogCancel>
-        <AlertDialogAction @click="emit('confirm')">
+        <AlertDialogAction @click="type && emit('confirm', { type, modelId })">
           <template v-if="type === 'activate'">Activate</template>
           <template v-else-if="type === 'regenerate'">Regenerate</template>
           <template v-else>Delete</template>

@@ -31,3 +31,18 @@ Literal strings like `pkill`, `killall` in commit message text get flagged even 
 
 ## rustfmt churns unrelated files
 Standing SWE failure mode for Rust workers. Format only files you created or modified. PM reverts unrelated churn at merge. Not yet build-enforced.
+
+## Counts-only success on destructive ops with extension-loaded virtual tables
+`db::open_connection` returns a connection without loaded extensions. `DROP TABLE IF EXISTS` on a vec0 virtual table from such a connection silently fails. The historical pattern `conn.execute_batch(drop_sql).is_ok()` swallows the error and returns `vectors_cleared: false` with a generic warning, which the frontend then discards. **Rule:** any destructive op against a virtual table (vec0, fts5, etc.) must load the corresponding extension first via the shared helper (`db::load_vec0_extension(&conn, &context.config.assets_path)` for vec0). Verify the operation actually completed by re-querying schema, not by trusting the boolean from `execute_batch`.
+
+## Reka UI AlertDialogAction emits update:open(false) BEFORE @click handlers
+The action button auto-closes the dialog as part of its built-in click handling, which fires the parent's `update:open` setter chain BEFORE the user's `@click="emit('confirm')"` runs. Any `confirmDialog` that reads from a parent ref like `dialog.value` will see the post-close (null) state and early-return. **Rule:** pass the action payload through the emit (`emit('confirm', { type, modelId })`); never read transient parent dialog state inside the confirm handler.
+
+## Frontend response discard hides backend warnings
+When a backend MCP action returns a structured response with `message`, `warnings`, or other side-effect signals, the composable MUST capture and surface them. `await callTool('X', {...}); await loadData()` is a pattern that throws away every signal except success/error. **Rule:** type the response (`callTool<XResponse>`), inspect the warning fields, emit `toast.warning` for partial-failure shapes, and append daemon-restart prompts when the backend response indicates the change requires one.
+
+## HFS+ case-insensitive vs git case-sensitive
+On macOS HFS+ (default), `README.md` and `readme.md` resolve to the same file. Git's index records ONE casing, and tools that compare `git status` see modifications to whichever casing is tracked. If you `view`/`edit` a file using a different casing than what git tracks, your edit lands on disk but `git add <other-case>` won't stage the tracked entry — leaving a phantom modification. **Rule:** before editing top-level docs (README, CHANGELOG, etc.), run `git ls-files | grep -i <name>` to discover the tracked case, then use that casing in the edit path.
+
+## AcpExec smoke test beats CDP UAT for env-passthrough verification
+When verifying that an env var reached an ACP subprocess (Codex/Claude/etc.), a single `GatewayExecute → AcpExec → mode:prompt` curl call that returns model output is decisive evidence the auth header was sent and accepted. CDP UAT for "the UI button works" is a separate concern. **Rule:** for backend-layer fixes, AcpExec smoke test FIRST (seconds), CDP UAT SECOND (for UI flow). Don't conflate "the env var reached the subprocess" with "the user can click the button to make it happen."

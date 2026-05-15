@@ -168,15 +168,20 @@ pub(super) fn handle_activate(
     if model_changing {
         match db::open_connection(&context.config.database_path) {
             Ok(conn) => {
-                // T-202.9: Drop both vec0 virtual tables so `ensure_vec0_tables`
-                // rebuilds them with the correct dimensionality on next startup.
-                // Use targeted upserts on `model_metadata` (instead of a blanket
-                // DELETE) so we record the new active_model_id immediately and
-                // — when known — the new embedding_dimensions, without nuking
-                // unrelated metadata rows.
                 let drop_sql = "DROP TABLE IF EXISTS vec_concepts; \
                                 DROP TABLE IF EXISTS vec_memory_files;";
-                let mut ok = conn.execute_batch(drop_sql).is_ok();
+                let mut ok = match crate::db::load_vec0_extension(
+                    &conn,
+                    &context.config.assets_path,
+                ) {
+                    Ok(()) => conn.execute_batch(drop_sql).is_ok(),
+                    Err(e) => {
+                        tracing::warn!(
+                            "Failed to load vec0 extension during activate for '{model_id}': {e}"
+                        );
+                        false
+                    }
+                };
                 if ok {
                     if let Err(e) = conn.execute(
                         "INSERT INTO model_metadata (key, value) VALUES (?1, ?2) \
@@ -289,3 +294,7 @@ fn write_agents_config(root: &Path, config: &AgentsConfig) -> Result<()> {
     std::fs::write(&path, content)
         .map_err(|e| MaenifoldError::Message(format!("Failed to write config: {e}")))
 }
+
+#[cfg(test)]
+#[path = "embedding_models_actions_tests.rs"]
+mod tests;

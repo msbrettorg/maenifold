@@ -33,7 +33,10 @@ let disposeSessionSubscription: (() => void) | null = null;
 const pipelineItems = computed(() => {
   const q = props.filterQuery.trim().toLowerCase();
   if (!q) return pipelines.value;
-  return pipelines.value.filter((p) => p.pipelineId.toLowerCase().includes(q));
+  return pipelines.value.filter((p) =>
+    p.pipelineId.toLowerCase().includes(q)
+    || p.name?.toLowerCase().includes(q)
+  );
 });
 
 function normalizePipelineSessionsPayload(payload: unknown): PipelineListItem[] {

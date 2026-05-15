@@ -29,6 +29,7 @@ export interface PipelineAssetSummary {
 
 export interface PipelineCreateOptions {
   name?: string;
+  description?: string;
 }
 
 const sharedMcpClients = new Map<string, ReturnType<typeof useMcpClient>>();
@@ -72,10 +73,12 @@ export function usePipelineMcp(baseUrl?: string) {
     options: PipelineCreateOptions = {},
   ) {
     const name = options.name?.trim();
+    const description = options.description?.trim();
     return callPipeline({
       definition,
       maxConcurrency,
       ...(name ? { name } : {}),
+      ...(description ? { description } : {}),
     });
   }
 

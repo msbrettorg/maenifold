@@ -31,6 +31,8 @@ pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<
 
     let max_concurrency = parse_max_concurrency(payload)?;
     let prefix = parse_pipeline_id_prefix(payload)?;
+    let name = parse_optional_text(payload, "name")?;
+    let description = parse_optional_text(payload, "description")?;
     let timestamp_millis = Utc::now().timestamp_millis();
     let pipeline_id = format!("{prefix}-{timestamp_millis}");
     let mut node_states = HashMap::with_capacity(definition.nodes.len());
@@ -80,6 +82,8 @@ pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<
             &node_states_frontmatter,
             max_concurrency,
             None,
+            name.as_deref(),
+            description.as_deref(),
         )?;
     }
     for node_file in &node_files {
@@ -92,6 +96,13 @@ pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<
         "ready": ready,
         "nodes": response_nodes,
     });
+    let mut result = result;
+    if let Some(name) = name {
+        result["name"] = json!(name);
+    }
+    if let Some(description) = description {
+        result["description"] = json!(description);
+    }
     Ok(match context.output_format {
         OutputFormat::Json => success(result),
         OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
@@ -176,6 +187,19 @@ fn parse_pipeline_id_prefix(payload: &Value) -> Result<&str> {
     }
 
     Ok(prefix)
+}
+
+fn parse_optional_text(payload: &Value, field: &str) -> Result<Option<String>> {
+    match payload.get(field) {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::String(value)) => {
+            let trimmed = value.trim();
+            Ok((!trimmed.is_empty()).then(|| trimmed.to_string()))
+        }
+        Some(_) => Err(MaenifoldError::InvalidArgument(format!(
+            "{field} must be a string"
+        ))),
+    }
 }
 
 fn parse_inputs_payload(value: Option<&Value>) -> Result<Option<JsonMap<String, Value>>> {

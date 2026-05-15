@@ -281,6 +281,8 @@ pub(super) fn fork_pipeline(
         &node_states_frontmatter,
         max_concurrency,
         frontmatter.get("prompt").and_then(YamlValue::as_str),
+        frontmatter.get("name").and_then(YamlValue::as_str),
+        frontmatter.get("description").and_then(YamlValue::as_str),
     )?;
     drop(asset_store_guard);
     emit_pipeline_resource_updated(&new_session_id);

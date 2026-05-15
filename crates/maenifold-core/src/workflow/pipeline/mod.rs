@@ -68,6 +68,8 @@ mod handler;
 mod handler_crud;
 #[cfg(test)]
 mod handler_crud_audit_tests;
+#[cfg(test)]
+mod handler_crud_t301_25_tests;
 mod handler_delete;
 #[cfg(test)]
 mod handler_delete_degraded_tests;

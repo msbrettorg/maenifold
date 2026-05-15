@@ -25,6 +25,7 @@ const beadClass = computed(() => beadClassFor(props.item.status));
 const statusTextClass = computed(() => statusTextClassFor(props.item.status));
 const progressBarClass = computed(() => progressBarClassFor(props.item.status));
 const statusLabel = computed(() => formatStatus(props.item.status));
+const displayName = computed(() => props.item.name?.trim() || props.item.pipelineId);
 const descriptionText = computed(() => props.item.description?.trim() || '—');
 const lastRunTimestamp = computed(() => resolveLastRunTimestamp(props.item));
 
@@ -137,8 +138,8 @@ function formatStatus(status: PipelineStatus): string {
       <div class="flex min-w-0 flex-1 flex-col gap-1">
         <span
           class="truncate text-sm font-medium text-text-primary"
-          :title="item.pipelineId"
-        >{{ item.pipelineId }}</span>
+          :title="displayName"
+        >{{ displayName }}</span>
         <span
           class="line-clamp-2 text-xs leading-4 text-text-secondary"
           :title="descriptionText"

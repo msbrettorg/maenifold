@@ -6,6 +6,12 @@ import MarkdownView from '../MarkdownView.vue';
 import { useAppShellStore } from '../../stores/app-shell';
 import { useKnowledgeStore } from '../../stores/knowledge';
 import { getMarkdownIt } from '../../composables/useMarkdownIt';
+import { ToolEnvelopeError } from '../../composables/pipeline-mcp-transport';
+
+interface MarkdownViewExposed {
+  markUnresolvedWikilinks: () => Promise<void>;
+  wikilinkExistsCache: Map<string, boolean>;
+}
 
 const memoryApi = vi.hoisted(() => ({
   readMemory: vi.fn(),
@@ -30,6 +36,10 @@ async function mountMarkdown(content: unknown) {
   });
   await settle();
   return wrapper;
+}
+
+function markdownViewExposed(wrapper: Awaited<ReturnType<typeof mountMarkdown>>): MarkdownViewExposed {
+  return wrapper.vm as unknown as MarkdownViewExposed;
 }
 
 describe('MarkdownView rendering regression coverage', () => {
@@ -359,7 +369,9 @@ describe('MarkdownView rendering regression coverage', () => {
     });
 
     it('unresolved WikiLink click opens the focused create dialog instead of opening a note', async () => {
-      memoryApi.readMemory.mockRejectedValue(new Error('not found'));
+      memoryApi.readMemory.mockRejectedValue(
+        new ToolEnvelopeError('NOT_FOUND', 'Memory file not found: Missing Concept'),
+      );
       const wrapper = await mountMarkdown('Open [[Missing Concept]].');
       const store = useKnowledgeStore();
       const openNote = vi.spyOn(store, 'openNote');
@@ -369,6 +381,34 @@ describe('MarkdownView rendering regression coverage', () => {
 
       expect(openNote).not.toHaveBeenCalled();
       expect(document.body.textContent).toContain('Create note for “Missing Concept”?');
+      wrapper.unmount();
+    });
+
+    it('definitive not-found WikiLink check marks unresolved and caches false', async () => {
+      memoryApi.readMemory.mockRejectedValue(
+        new ToolEnvelopeError('NOT_FOUND', 'Memory file not found: ConceptX'),
+      );
+      const wrapper = await mountMarkdown('Open [[ConceptX]].');
+
+      const chip = wrapper.find('[data-wikilink="ConceptX"]');
+      expect(chip.attributes('data-unresolved')).toBe('true');
+      expect(markdownViewExposed(wrapper).wikilinkExistsCache.get('ConceptX')).toBe(false);
+      wrapper.unmount();
+    });
+
+    it('transient WikiLink check stays unknown and retries on next explicit check', async () => {
+      memoryApi.readMemory.mockRejectedValue(new TypeError('fetch failed'));
+      const wrapper = await mountMarkdown('Open [[ConceptX]].');
+
+      const chip = wrapper.find('[data-wikilink="ConceptX"]');
+      expect(chip.attributes('data-unresolved')).toBeUndefined();
+      expect(markdownViewExposed(wrapper).wikilinkExistsCache.get('ConceptX')).toBeUndefined();
+
+      memoryApi.readMemory.mockClear();
+      await markdownViewExposed(wrapper).markUnresolvedWikilinks();
+
+      expect(memoryApi.readMemory).toHaveBeenCalledTimes(1);
+      expect(markdownViewExposed(wrapper).wikilinkExistsCache.get('ConceptX')).toBeUndefined();
       wrapper.unmount();
     });
 
@@ -402,7 +442,7 @@ describe('MarkdownView rendering regression coverage', () => {
         maxInFlight = Math.max(maxInFlight, inFlight);
         await new Promise((resolve) => window.setTimeout(resolve, 10));
         inFlight -= 1;
-        throw new Error('not found');
+        throw new ToolEnvelopeError('NOT_FOUND', 'Memory file not found: Concept');
       });
 
       const content = Array.from({ length: 12 }, (_unused, index) => `[[Concept${index}]]`).join(' ');

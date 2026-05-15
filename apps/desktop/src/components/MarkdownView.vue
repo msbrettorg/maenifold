@@ -3,6 +3,7 @@ import { nextTick, ref, useTemplateRef, watch } from 'vue';
 import { getMarkdownIt } from '../composables/useMarkdownIt';
 import { useMemoryApi } from '../composables/useMemoryApi';
 import { useMermaid } from '../composables/useMermaid';
+import { ToolEnvelopeError } from '../composables/pipeline-mcp-transport';
 import { collectFolderPaths } from '../lib/knowledge-helpers';
 import { ALLOWED_URI_REGEXP, sanitize } from '../lib/sanitizer';
 import { useAppShellStore } from '../stores/app-shell';
@@ -31,7 +32,11 @@ let unresolvedCheckTimer: number | null = null;
 
 const forbiddenTags = ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'textarea'];
 
-async function conceptExists(concept: string): Promise<boolean> { const cached = wikilinkExistsCache.get(concept); if (cached !== undefined) return cached; try { await memoryApi.readMemory(`memory://${concept}`); wikilinkExistsCache.set(concept, true); return true; } catch { wikilinkExistsCache.set(concept, false); return false; } }
+function isNotFoundError(error: unknown): boolean {
+  return error instanceof ToolEnvelopeError && error.code === 'NOT_FOUND';
+}
+
+async function conceptExists(concept: string): Promise<boolean | null> { const cached = wikilinkExistsCache.get(concept); if (cached !== undefined) return cached; try { await memoryApi.readMemory(`memory://${concept}`); wikilinkExistsCache.set(concept, true); return true; } catch (error) { if (isNotFoundError(error)) { wikilinkExistsCache.set(concept, false); return false; } return null; } }
 
 async function runWithLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
   let nextIndex = 0;
@@ -45,7 +50,7 @@ async function runWithLimit<T>(items: T[], limit: number, fn: (item: T) => Promi
   await Promise.all(workers);
 }
 
-async function markUnresolvedWikilinks(): Promise<void> { const chips = Array.from(containerRef.value?.querySelectorAll<HTMLElement>('[data-wikilink]') ?? []); await runWithLimit(chips, 4, async (chip) => { const concept = chip.getAttribute('data-wikilink'); if (!concept) return; if (await conceptExists(concept)) chip.removeAttribute('data-unresolved'); else chip.setAttribute('data-unresolved', 'true'); }); }
+async function markUnresolvedWikilinks(): Promise<void> { const chips = Array.from(containerRef.value?.querySelectorAll<HTMLElement>('[data-wikilink]') ?? []); await runWithLimit(chips, 4, async (chip) => { const concept = chip.getAttribute('data-wikilink'); if (!concept) return; const exists = await conceptExists(concept); if (exists === false) chip.setAttribute('data-unresolved', 'true'); else chip.removeAttribute('data-unresolved'); }); }
 
 function scheduleUnresolvedCheck(): void { if (unresolvedCheckTimer !== null) window.clearTimeout(unresolvedCheckTimer); unresolvedCheckTimer = window.setTimeout(() => { void markUnresolvedWikilinks(); }, 60); }
 
@@ -177,10 +182,12 @@ async function handleClick(event: MouseEvent): Promise<void> {
   }
 
   const uri = `memory://${concept}`;
-  if (!(await conceptExists(concept))) {
+  const exists = await conceptExists(concept);
+  if (exists === false) {
     unresolvedConcept.value = concept; createDialogOpen.value = true;
     return;
   }
+  if (exists === null) return;
   if (event.metaKey || event.ctrlKey) { knowledgeStore.openInNewTab(uri); return; }
   knowledgeStore.openNote(uri);
 }
@@ -197,6 +204,8 @@ function handleKeydown(event: KeyboardEvent): void {
 function handleCreated(): void {
   wikilinkExistsCache.set(unresolvedConcept.value, true); void knowledgeStore.loadRootFolders(); void markUnresolvedWikilinks();
 } watch(() => props.content, updateRendered, { immediate: true });
+
+defineExpose({ markUnresolvedWikilinks, wikilinkExistsCache });
 </script>
 
 <template>

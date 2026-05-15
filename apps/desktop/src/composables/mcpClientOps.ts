@@ -8,6 +8,7 @@ import { getHttpFetch } from '../lib/http';
 import { extractAppUiMetadata } from '../stores/agent-capabilities-helpers';
 import type { JsonRpcNotification, ResourceContent, ResourceDescriptor, ResourceTemplateDescriptor, ToolCallResult, ToolDefinition } from './mcpTransport';
 import { getErrorMessage } from './mcpTransport';
+import { ToolEnvelopeError } from './pipeline-mcp-transport';
 
 export type SdkClient = Client;
 export type SdkTransport = StreamableHTTPClientTransport;
@@ -114,6 +115,20 @@ export function createMcpClientOps(options: {
     try { return JSON.stringify(result.structuredContent); } catch { return String(result.structuredContent); }
   }
 
+  function parseToolEnvelopeError(rawText: string | undefined): ToolEnvelopeError | null {
+    if (!rawText) return null;
+    try {
+      const parsed = JSON.parse(rawText) as { success?: unknown; error?: { code?: unknown; message?: unknown } };
+      if (parsed.success === false && typeof parsed.error?.code === 'string') {
+        const message = typeof parsed.error.message === 'string' ? parsed.error.message : rawText;
+        return new ToolEnvelopeError(parsed.error.code, message);
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
+
   async function readGatewayIndex(client: SdkClient, args: Record<string, unknown>, context: string): Promise<unknown> {
     let indexResult: ToolCallResult;
     try { indexResult = (await client.callTool({ name: 'GatewayIndex', arguments: args })) as ToolCallResult; }
@@ -190,7 +205,11 @@ export function createMcpClientOps(options: {
     options.setError(null);
     const toolResult = await callToolRaw(name, args);
     const rawText = toolResult.content?.[0]?.text;
-    if (toolResult.isError) { options.setError(rawText || 'Unknown tool error'); throw new Error(rawText || 'Unknown tool error'); }
+    if (toolResult.isError) {
+      const envelopeError = parseToolEnvelopeError(rawText);
+      options.setError(envelopeError?.message ?? rawText ?? 'Unknown tool error');
+      throw envelopeError ?? new Error(rawText || 'Unknown tool error');
+    }
     if (typeof rawText !== 'string') return undefined as T;
     try { return JSON.parse(rawText) as T; } catch { return rawText as T; }
   }

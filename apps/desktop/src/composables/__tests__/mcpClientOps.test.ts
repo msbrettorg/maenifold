@@ -2,6 +2,7 @@ import { StreamableHTTPError } from '@modelcontextprotocol/sdk/client/streamable
 import { describe, expect, it, vi } from 'vitest';
 import { createMcpClientOps, gatewayPassthroughTools, type SdkClient } from '../mcpClientOps';
 import type { ToolCallResult } from '../mcpTransport';
+import { ToolEnvelopeError } from '../pipeline-mcp-transport';
 
 function toolText(payload: unknown): ToolCallResult {
   return {
@@ -560,5 +561,30 @@ describe('createMcpClientOps gateway routing', () => {
     expect(secondClient.callTool.mock.calls.filter(([request]) => request.name === 'GatewayExecute')).toEqual([
       [{ name: 'GatewayExecute', arguments: { domain: 'maenifold.system', command: 'GetConfig', parameters: {} } }],
     ]);
+  });
+
+  it('throws ToolEnvelopeError for structured gateway tool errors', async () => {
+    const client = createMockClient(async ({ name, arguments: args = {} }) => {
+      if (name === 'GatewayIndex' && !('domain' in args)) return toolText({ domains: [{ name: 'maenifold.memory' }] });
+      if (name === 'GatewayIndex' && args.domain === 'maenifold.memory') return toolText({ commands: [{ name: 'ReadMemory' }] });
+      if (name === 'GatewayExecute') {
+        return toolErrorText(JSON.stringify({
+          success: false,
+          data: null,
+          error: { code: 'NOT_FOUND', message: 'Memory file not found: ConceptX' },
+        }));
+      }
+      throw new Error(`Unexpected direct call for ${name}`);
+    });
+    const ops = createOps(() => client);
+
+    try {
+      await ops.callTool('ReadMemory', { identifier: 'memory://ConceptX' });
+      throw new Error('expected ReadMemory to reject');
+    } catch (error) {
+      expect(error).toBeInstanceOf(ToolEnvelopeError);
+      expect((error as ToolEnvelopeError).code).toBe('NOT_FOUND');
+      expect((error as Error).message).toBe('Memory file not found: ConceptX');
+    }
   });
 });

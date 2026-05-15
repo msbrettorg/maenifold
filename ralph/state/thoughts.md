@@ -504,3 +504,59 @@ ounded by SLOWEST single SWE (~10 min for T-309.1 multi-consumer hoist), NOT the
    - T-322.1.1, T-322.1.2, T-322.1.3 (table-sort children — parallel-safe)
 3. **Wave-boundary architect duo** at sprint 322 close (when reduction backlog drains).
 4. **Memory note + learnings + thoughts** at iter-end.
+
+
+## Iter 2026-05-14 (iter-19) — Sprint 312 close PM-process (3 ships + 2 follow-ups)
+
+**Headline:** Sprint 312 RALPH-converged in single-shot. 3 sibling agent-prompt rules shipped (PM/SWE/researcher edge-case enumeration) + 1 umbrella close. Wave-boundary architect duo DIVERGED for the first time this session — exercised Lesson 102 PM tiebreaker; both blockers refuted on factual grounds but documentation-hole follow-up filed.
+
+**Tasks shipped this iter:**
+
+- **T-312.1** (gsd P2) — `## Edge case enumeration in SWE specs` added to product-manager.agent.md (line 103, +25 LOC). Researcher confirmed T-244.110 trigger via done log. Blue-team verify PASS. 5-stage gsd pipeline.
+- **T-312.2** (tdd P2) — `## Pre-flight edge case enumeration` added to swe.agent.md (line 62, +41 LOC). 4 absent-value matrices + 2 worked example tables. Blue-team + red-team PASS (2 NB + 4 INFO findings).
+- **T-312.3** (tdd P2) — `## Fix recommendation completeness` added to researcher.agent.md (line 50, +37 LOC). 3-clause rule with FORBIDDEN prohibition, exhaustive matrix table. Blue-team + red-team PASS (2 NB + 4 INFO findings).
+- **T-312.0** (sdd P2 umbrella) — PM-direct close per 4-sprint precedent (T-308.0/T-309.0/T-310.0/T-312.0).
+
+**Follow-ups filed this iter (2):**
+
+- T-322.34 (sdd P3) — 13 refinements consolidating 12 red-team findings + 1 META back-propagation observation.
+- T-322.35 (sdd P3) — Codify CDP-bound P1 spec keywords as RALPH-out-of-scope in ralph/prompt.md + AGENTS.md. Triggered by architect-duo divergence.
+
+**What worked this iter:**
+
+1. **Wave-0 saturation**: 3 SWEs in ONE response, all completed in <90s parallel. Then 6 audit agents in ONE response (3 blue + 2 red + 1 researcher), all completed in <3min parallel. PM did NOT idle.
+2. **Per-task worktree + PM-owned commit/merge**: zero file-stomp risk, clean dev branch with --no-ff merge commits + Co-authored-by trailers.
+3. **Lesson 102 tiebreaker EXERCISED**: First diverging architect duo this session. PM verified both blockers' factual claims independently before deciding. Pattern works.
+4. **Filing T-322.35 instead of just dismissing the BLOCK**: gpt-5.5's surface-level finding was wrong (T-304.3 is functionally UAT-equivalent), but the underlying concern (the rule isn't codified anywhere) was legitimate. PM accepted the SPIRIT of the finding by filing the codification follow-up.
+
+**What needs attention iter-20+:**
+
+1. **T-322.35 should be earliest in iter-20**: it removes a class of architect-duo divergence risk for all future PMs. Single doc edit, low effort, high process leverage.
+2. **Sprint 322 backlog at 28 items** (was 26): T-322.34 + T-322.35 added. Continued grind.
+3. **T-309.3 stays correctly blocked** per cargo-cult-security P0 trigger.
+4. **Sprint 312 children's red-team findings** (12 items in T-322.34) are minor-but-real refinements; address in batched SWE dispatch when sprint 322 reaches them in priority order.
+
+**Standing directives reaffirmed for iter-20+:**
+
+- Lowest-numbered first remains absolute. Sprints 301-311 remain UAT-blocked or accepted-residual-risk.
+- UAT items + CDP-bound P1 specs (per T-322.35 rule when codified) stay out of RALPH scope.
+- Wave-0 first-action dispatch in ONE response. Lesson 102 ceiling honored (ceiling adapts to runtime payload pressure).
+- Per-task worktrees with PM_OWNS_THIS=1 commit/merge guard.
+- Wave-boundary architect duo at every sprint close, INDEPENDENT prompts, Lesson 102 PM tiebreaker on divergence (default more-restrictive ONLY where the surface is actually defective; refute factually-wrong findings with evidence).
+- PM-direct umbrella close pattern is established (4-sprint precedent); use for meta-orchestration tasks with zero independent deliverable.
+- Same-SWE remediation via write_agent for FAIL audits (Lesson 110).
+- WriteMemory wikilinks must reference concepts, not file paths (Lesson 107).
+
+### Iter-20 playbook
+
+1. **PRE-FLIGHT:** check daemon binary freshness (lsof + recent commit marker). Daemon was built May 14 17:37 — still fresh as of iter-19.
+2. **Sprint 322 grind, lowest-numbered first:**
+   - T-322.5 + T-322.6 (MarkdownView same-file series — serialize)
+   - T-322.13 (node_modules optional skip)
+   - T-322.16-26 reduction-tasks wave (4 contention lanes per iter-18 architect grouping)
+   - T-322.27 (PM drift-audit recipe)
+   - T-322.29-T-322.33 (iter-18 follow-ups)
+   - **T-322.34 + T-322.35** (iter-19 follow-ups — T-322.35 earliest priority for the architect-duo divergence fix)
+   - T-322.1.1, T-322.1.2, T-322.1.3 (table-sort children)
+3. **Wave-boundary architect duo** at sprint 322 close (when reduction backlog drains).
+4. **Memory note + learnings + thoughts** at iter-end.

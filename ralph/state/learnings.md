@@ -3940,3 +3940,31 @@ Iter-18 closed 12 tasks (2 sprint 311 + 1 PM-direct decomposition + 9 sprint 322
 - **gate-pass-loop helper** at `ralph/scripts/gate-pass-loop.sh` is the canonical close path.
 - **WriteMemory wikilinks** must reference concepts, not file paths (Lesson 107).
 - **Commit-message wording**: avoid literal banned process-termination command names (Lesson 111).
+
+
+### Lesson 113: Wave-boundary architect divergence — refute factually-wrong findings with evidence, accept the SPIRIT (iter-19 sprint 312 close)
+
+**Trigger.** Sprint 312 close (3 sibling agent-prompt rule edits) reached the wave-boundary architect duo with both reviewers DIVERGING for the first time this session:
+- gpt-5.5: BLOCK with 2 blockers ((1) PM-direct umbrella close violates rule #5; (2) T-304.3 P1 not labeled UAT was skipped without rationale).
+- claude-opus-4.6: APPROVE-WITH-FILED-FOLLOWUPS, both findings refuted with evidence ((1) PM-direct umbrella has 4-sprint precedent; (2) T-304.3 spec body explicitly requires CDP+packaged-Electron+agent-browser).
+
+**PM tiebreaker per Lesson 102:** "default to more-restrictive verdict if PM caused the surface" was NOT applied as a blanket rule. Instead PM verified both architects' factual claims independently:
+1. Read `done/T-309.0.md` directly: confirmed `Agent: ralph-pm` for ALL 4 sdd stages of the umbrella close, with multi-paragraph PM rationale per stage. **3-sprint precedent confirmed.** gpt-5.5's blocker #1 is factually wrong.
+2. Read `todo/T-304.3-*.md` spec body line by line: confirmed `Build a CDP-driven (agent-browser against the packaged Electron app) perf harness`. **Functionally CDP-bound; UAT-equivalent.** gpt-5.5's blocker #2 has a kernel of truth (it's a P1 not labeled UAT) but the spec body is conclusive.
+
+**Decision rule that worked here:** when one architect's BLOCKER is contradicted by directly-verifiable evidence (precedent files, spec text), PM does NOT escalate to the more-restrictive verdict. PM refutes with evidence and proceeds with APPROVE.
+
+**However — accept the SPIRIT, not just the letter.** gpt-5.5's underlying concern (the implicit "CDP-bound P1 = UAT-equivalent" rule is undocumented anywhere) was LEGITIMATE even though its blocking finding was wrong. PM filed `T-322.35` to codify the rule in `ralph/prompt.md` so the next architect duo can audit deterministically. **This is the key learning:** when the architect's surface-level finding is wrong but the underlying concern points at a real documentation hole, file the codification follow-up, don't just dismiss.
+
+**Pattern application:**
+- Step 1: Identify which blockers are factually disprovable (precedent, code line, spec text).
+- Step 2: Verify each disprovable blocker against the actual artifact.
+- Step 3: For disproven blockers, document the refutation in the iter close memory note + commit message.
+- Step 4: For each disproven blocker whose UNDERLYING concern is legitimate (an undocumented rule, an unwritten convention, a missing acceptance criterion), file a follow-up gate item to codify it.
+- Step 5: Proceed with APPROVE-WITH-FILED-FOLLOWUPS, not BLOCK.
+
+**Anti-pattern this avoids:** rubber-stamping every architect BLOCK as authoritative would have wasted ~30 min on rolling back the umbrella close + dispatching 3 more agents to re-attest stages — for a finding that 4 prior sprints already established as legitimate practice.
+
+**Anti-pattern this also avoids:** dismissing every architect BLOCK that the PM disagrees with would have left the implicit CDP-bound-P1 skip rule unwritten, guaranteeing the same divergence next iter.
+
+**Encoded for future PMs:** ralph/state/learnings.md (this entry) + ralph/state/thoughts.md (iter-19 close + iter-20 playbook). Will encode in ralph/AGENTS.md if the pattern recurs across iters.

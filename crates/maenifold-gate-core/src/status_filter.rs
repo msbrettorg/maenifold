@@ -160,6 +160,21 @@ mod tests {
     }
 
     #[test]
+    fn blocked_only_excludes_done_blocked_rows_when_include_done_false() {
+        let filter = StatusFilter {
+            state: None,
+            ready_only: false,
+            blocked_only: true,
+            include_done: false,
+        };
+        assert!(!filter.matches(&json!({
+            "state": "done",
+            "blocked": true,
+            "blockedBy": []
+        })));
+    }
+
+    #[test]
     fn ready_only_excludes_frontmatter_blocked_rows() {
         let filter = StatusFilter {
             state: None,

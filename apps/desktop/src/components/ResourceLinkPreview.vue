@@ -13,6 +13,7 @@ import type { Component } from 'vue';
 import type { ResourceLinkContentBlock } from '../lib/types';
 import { dispatchResource } from '../lib/resource-mime-dispatcher';
 import type { DispatchedResource, ResourceContent } from '../lib/resource-mime-dispatcher';
+import { sanitizeResourceErrorMessage, warnRawResourceErrorInDev } from '../lib/error-sanitizer';
 import { useMcpResources } from '../composables/useMcpResources';
 import { getErrorMessage } from '../composables/mcpTransport';
 import { Alert, AlertDescription } from './ui/alert';
@@ -54,7 +55,9 @@ async function togglePreview(): Promise<void> {
     dispatched.value = dispatchResource(withDescriptorFallbacks(content));
     isExpanded.value = true;
   } catch (error) {
-    errorMessage.value = getErrorMessage(error);
+    const rawError = getErrorMessage(error);
+    warnRawResourceErrorInDev(rawError);
+    errorMessage.value = sanitizeResourceErrorMessage(rawError);
     isExpanded.value = true;
   } finally {
     isLoading.value = false;

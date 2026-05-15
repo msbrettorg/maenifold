@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2024"
 publish = false
 
+[lib]
+name = "maenifold_pipeline_driver"
+path = "src/lib.rs"
+
 [dependencies]
 maenifold-core = { path = "../maenifold-core", default-features = false }
 maenifold-jockey = { path = "../maenifold-jockey" }

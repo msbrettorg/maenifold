@@ -1,33 +1,18 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import DOMPurify from 'dompurify';
+import { ALLOWED_URI_REGEXP, sanitize } from '../../lib/sanitizer';
 import { getMarkdownIt, repairUnterminatedFences } from '../useMarkdownIt';
 
 describe('useMarkdownIt SVG passthrough regression', () => {
   let render: (source: string) => string;
-  const allowedUriRegexp =
-    /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$)|data:image\/(?:bmp|gif|jpe?g|png|webp);base64,)/i;
   const forbiddenTags = ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'textarea'];
-  const eventAttributeHookInstalledKey = '__maenifoldEventAttributeHookInstalled';
 
   beforeAll(async () => {
     const md = await getMarkdownIt();
     render = (source: string) => md.render(source);
   });
 
-  function installEventAttributeHook(): void {
-    const purifierState = DOMPurify as unknown as Record<string, boolean>;
-    if (purifierState[eventAttributeHookInstalledKey]) return;
-    DOMPurify.addHook('uponSanitizeAttribute', (_node, data) => {
-      if (data.attrName?.toLowerCase().startsWith('on')) {
-        data.keepAttr = false;
-      }
-    });
-    purifierState[eventAttributeHookInstalledKey] = true;
-  }
-
   function sanitizeLikeMarkdownView(html: string): string {
-    installEventAttributeHook();
-    return DOMPurify.sanitize(html, {
+    return sanitize(html, {
       USE_PROFILES: { html: true, svg: true, svgFilters: true },
       ADD_TAGS: ['style', 'foreignObject', 'use'],
       ADD_ATTR: [
@@ -63,7 +48,7 @@ describe('useMarkdownIt SVG passthrough regression', () => {
         'xmlns:xlink',
       ],
       FORBID_TAGS: forbiddenTags,
-      ALLOWED_URI_REGEXP: allowedUriRegexp,
+      ALLOWED_URI_REGEXP,
     });
   }
 
@@ -208,7 +193,7 @@ describe('useMarkdownIt SVG passthrough regression', () => {
       expect(html).not.toContain('&lt;span class="katex"');
     });
 
-    it('keeps KaTeX required attributes after uponSanitizeAttribute hardening', () => {
+    it('keeps KaTeX required attributes after attribute hardening', () => {
       const html = renderSanitized('$x^2$');
 
       expect(html).toContain('class="katex"');

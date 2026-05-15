@@ -4,6 +4,14 @@ use std::path::{Path, PathBuf};
 use std::sync::RwLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[path = "adapter_env.rs"]
+mod adapter_env;
+#[cfg(test)]
+#[path = "adapter_env_tests.rs"]
+mod adapter_env_tests;
+
+use adapter_env::{env_from_command, env_from_file};
+
 fn load_agents_config(root: &Path) -> Result<Value, String> {
     let path = root.join("maenifold.json");
     let contents = std::fs::read_to_string(&path).map_err(|error| {
@@ -63,11 +71,15 @@ fn env_passthrough(config: &Value) -> impl Iterator<Item = &str> {
         .filter_map(Value::as_str)
 }
 
+fn env_contains(env: &[(String, String)], var_name: &str) -> bool {
+    env.iter().any(|(key, _)| key == var_name)
+}
+
 static ADAPTER_CACHE: std::sync::OnceLock<
     DashMap<(String, PathBuf), Result<(String, Vec<String>, Vec<(String, String)>), String>>,
 > = std::sync::OnceLock::new();
-fn adapter_cache()
--> &'static DashMap<(String, PathBuf), Result<(String, Vec<String>, Vec<(String, String)>), String>>
+fn adapter_cache(
+) -> &'static DashMap<(String, PathBuf), Result<(String, Vec<String>, Vec<(String, String)>), String>>
 {
     ADAPTER_CACHE.get_or_init(DashMap::new)
 }
@@ -141,8 +153,18 @@ fn resolve_adapter_for_name(
         return Err(format!("agent '{}' has an empty command", runtime));
     }
     let mut env = entry_env(&entry);
+    for (var_name, value) in env_from_command(&entry) {
+        if !env_contains(&env, &var_name) {
+            env.push((var_name, value));
+        }
+    }
+    for (var_name, value) in env_from_file(&entry) {
+        if !env_contains(&env, &var_name) {
+            env.push((var_name, value));
+        }
+    }
     for var_name in env_passthrough(&config) {
-        if !env.iter().any(|(key, _)| key == var_name) {
+        if !env_contains(&env, var_name) {
             if let Ok(value) = std::env::var(var_name) {
                 env.push((var_name.to_string(), value));
             }

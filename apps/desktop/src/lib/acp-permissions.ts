@@ -19,7 +19,6 @@ import {
 } from './permission-ledger/ledger';
 import { normalizePermissionToolKind } from './permission-ledger/equivalence-key';
 import type { PermissionEvaluateRequestResult } from './permission-ledger/types';
-export { setChatNotificationSink, type ChatNotificationSink } from './acp-chat-notifications';
 
 const PLAN_MODE_SAFE_TOOL_KINDS = new Set(['read', 'fetch', 'search', 'think']);
 

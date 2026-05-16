@@ -1,3 +1,4 @@
+import { useIntervalFn } from '@vueuse/core';
 import type { Ref } from 'vue';
 import type { PipelineView } from '../lib/pipeline-types-view';
 
@@ -17,7 +18,7 @@ export function createPipelinePolling({ pollingError, reconnecting, viewPipeline
     let consecutiveFailures = 0;
     pollingError.value = null;
 
-    const timer = setInterval(async () => {
+    const { pause } = useIntervalFn(async () => {
       if (stopped) return;
 
       try {
@@ -39,13 +40,13 @@ export function createPipelinePolling({ pollingError, reconnecting, viewPipeline
           error instanceof Error ? error.message : String(error)
         }`;
         stopped = true;
-        clearInterval(timer);
+        pause();
       }
-    }, intervalMs);
+    }, intervalMs, { immediate: true });
 
     return () => {
       stopped = true;
-      clearInterval(timer);
+      pause();
     };
   };
 }

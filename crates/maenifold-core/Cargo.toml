@@ -89,6 +89,10 @@ name = "gateway_streamable_http_cors"
 path = "tests/gateway_streamable_http_cors.rs"
 
 [[test]]
+name = "gateway_config_rediscovery"
+path = "tests/gateway_config_rediscovery.rs"
+
+[[test]]
 name = "list_memories_dataless"
 path = "tests/list_memories_dataless.rs"
 

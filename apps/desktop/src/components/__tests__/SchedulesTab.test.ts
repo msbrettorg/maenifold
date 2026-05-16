@@ -96,3 +96,78 @@ describe('SchedulesTab pause-all row', () => {
     expect(empty.text()).toContain('No schedules to pause.');
   });
 });
+
+describe('SchedulesTab column sort', () => {
+  const sortedJobs = [
+    { ...job('delta'), agent: 'sre', schedule: '0 6 * * *', last_run: { status: 'success', timestamp: '2026-05-14T08:00:00Z' } },
+    { ...job('alpha'), agent: 'core', schedule: '15 4 * * 1', last_run: { status: 'success', timestamp: '2026-05-12T08:00:00Z' } },
+    { ...job('echo'), agent: 'workflow', schedule: '30 2 * * *', last_run: { status: 'failed', timestamp: '2026-05-15T08:00:00Z', error: 'failed' } },
+    { ...job('bravo'), agent: 'desktop', schedule: '45 1 * * 2', last_run: { status: 'success', timestamp: '2026-05-11T08:00:00Z' } },
+    { ...job('zeta-null-run'), agent: 'agentless', schedule: '0 0 * * *', last_run: null },
+  ];
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    callTool.mockReset();
+    seedAgents();
+  });
+
+  function header(wrapper: Awaited<ReturnType<typeof mountTab>>, label: string) {
+    const th = wrapper.findAll('th').find((item) => item.text().includes(label));
+    expect(th).toBeDefined();
+    return th!;
+  }
+  function names(wrapper: Awaited<ReturnType<typeof mountTab>>) {
+    return wrapper.findAll('tbody tr').map((row) => row.findAll('td')[0].text());
+  }
+  async function clickHeader(wrapper: Awaited<ReturnType<typeof mountTab>>, label: string) {
+    await header(wrapper, label).find('button').trigger('click');
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+  }
+
+  it('default has no aria-sort', async () => {
+    const wrapper = await mountTab(false, sortedJobs);
+    const active = wrapper.findAll('th').filter((th) => ['ascending', 'descending'].includes(th.attributes('aria-sort') ?? ''));
+    expect(active).toHaveLength(0);
+  });
+
+  it('click Name header sorts ascending', async () => {
+    const wrapper = await mountTab(false, sortedJobs);
+    await clickHeader(wrapper, 'Name');
+    expect(names(wrapper)).toEqual(['alpha', 'bravo', 'delta', 'echo', 'zeta-null-run']);
+    expect(header(wrapper, 'Name').attributes('aria-sort')).toBe('ascending');
+  });
+
+  it('click again sorts descending', async () => {
+    const wrapper = await mountTab(false, sortedJobs);
+    await clickHeader(wrapper, 'Name');
+    await clickHeader(wrapper, 'Name');
+    expect(names(wrapper)).toEqual(['zeta-null-run', 'echo', 'delta', 'bravo', 'alpha']);
+    expect(header(wrapper, 'Name').attributes('aria-sort')).toBe('descending');
+  });
+
+  it('third click resets sort', async () => {
+    const wrapper = await mountTab(false, sortedJobs);
+    await clickHeader(wrapper, 'Name');
+    await clickHeader(wrapper, 'Name');
+    await clickHeader(wrapper, 'Name');
+    const active = wrapper.findAll('th').filter((th) => ['ascending', 'descending'].includes(th.attributes('aria-sort') ?? ''));
+    expect(names(wrapper)).toEqual(['delta', 'alpha', 'echo', 'bravo', 'zeta-null-run']);
+    expect(active).toHaveLength(0);
+  });
+
+  it('aria-sort indicator renders on active column only', async () => {
+    const wrapper = await mountTab(false, sortedJobs);
+    await clickHeader(wrapper, 'Name');
+    await clickHeader(wrapper, 'Agent');
+    expect(header(wrapper, 'Agent').attributes('aria-sort')).toBe('ascending');
+    expect(header(wrapper, 'Name').attributes('aria-sort')).toBeUndefined();
+  });
+
+  it('null/undefined fields sort to end', async () => {
+    const wrapper = await mountTab(false, sortedJobs);
+    await clickHeader(wrapper, 'Last run');
+    expect(names(wrapper).at(-1)).toBe('zeta-null-run');
+  });
+});

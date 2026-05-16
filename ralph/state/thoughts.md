@@ -38,7 +38,7 @@ That's it. No in-flight defects, no "filed for next PM" landmines, no held-for-d
 3. **UAT-only TDD task dispatch pattern** — task-pm should STOP at red-team state, top PM does terminal pass with audit-waived rationale. I made this dispatch-prompt error twice this iter (T-303.3.2, T-303.4.20 auto-moved to done/ before top-PM verification could intercede).
 4. **jq shell-escape pitfall** — for long multi-quote gate notes, use temp JSON file + curl `-d @/tmp/payload.json` instead of inline `jq -n --arg notes "..."`. Verified working pattern in this iter.
 5. **write_agent halt-and-redirect** — when a top PM discovers mid-flight that a task-pm's spec is built on a wrong premise, `write_agent` lets the top PM signal HALT. Used this iter on T-303.3.3 (premise initially wrong; halt arrived after task-pm had already done valuable adjacent work that I accepted and merged).
-6. **CDP UAT task-pm thrash mode** — server-everything fixture installation is the failure surface. Next PM dispatching T-303.18.2 should include: wall-clock budget for install+config phase, fall-back to in-repo fixture, upfront fixture-version compatibility check.
+6. **No-polling-loop dispatch clause** — every worker prompt that polls / waits for async state / retries must include the explicit "do NOT write your own loop; one attempt, then STOP and report" clause. Workers default to human-like retry behavior which is wrong agent behavior. T-303.18.2's `DiscoverMcpTools` infinite loop is the failure mode this prevents. See thoughts.md "CRITICAL DISPATCH-CONTRACT ADDITION" for the verbatim clause.
 
 ## Daemon / process state at iter close
 

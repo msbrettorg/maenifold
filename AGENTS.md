@@ -237,6 +237,42 @@ Rich-renderer surfaces (the maenifold desktop app, GitHub web UI, browser-based 
 
 ---
 
+## Command execution discipline — every command and every test must self-terminate
+
+**The rule.** No commands without timeouts. No tests without timeouts. No CDP waits without timeouts. No polling loops without explicit caps. An unbounded command hangs the iter, requires user interrupt to recover, and discards every parallel agent's working-tree changes if the killed process held a lock. Verified failure mode: T-303.18.2 (2026-05-16) — worker put itself in an infinite `DiscoverMcpTools` polling loop with no exit condition; user had to interrupt manually; iter throughput lost.
+
+**Available primitives on this system (macOS, verified 2026-05-16).** There is NO native `timeout` binary. There is NO `gtimeout` unless `brew install coreutils` is run (it is not). The primitives that actually exist:
+
+| Primitive | Use for | Example |
+|---|---|---|
+| `curl --max-time N` | HTTP requests, MCP gateway calls | `curl --max-time 10 -X POST http://localhost:8080/mcp ...` |
+| `perl -e 'alarm N; exec @ARGV' -- cmd args` | Arbitrary commands when coreutils not available | `perl -e 'alarm 60; exec @ARGV' -- cargo build -p maenifold-cli` |
+| Shell pattern `(cmd) & pid=$!; (sleep N && kill $pid) & wait $pid` | Backgrounded commands with cleanup | `(npm install) & pid=$!; (sleep 300 && kill $pid) & wait $pid` |
+| `agent-browser wait N` (max 5-8) | CDP UI assertion waits | `agent-browser wait 5` — never `wait 30` or `wait 60` |
+| Copilot CLI `bash` tool `initial_wait` | OUTER envelope for sync tool calls | `initial_wait: 120` is the floor for builds, but the command MUST still self-terminate inside that envelope |
+
+**Per-tool budgets.** Defaults; spec author may override:
+
+- `cargo build -p <crate>` — 600s
+- `cargo test -p <crate> <test_name>` — 180s
+- `cd apps/desktop && npm install` — 300s
+- `cd apps/desktop && npm run package` — 600s
+- `cd apps/desktop && npx vue-tsc --noEmit` — 180s
+- `cd apps/desktop && npx vitest run <pattern>` — 120s
+- `curl ... /mcp ...` — `--max-time 10` for most gate calls; `--max-time 30` for discovery; `--max-time 60` for sampling
+- `agent-browser snapshot` / `click` / `type` — 5s wait ceiling per call (per CDP Testing section below)
+- Anything not listed — pick a number, use a primitive, never run unbounded
+
+**Wrapper script.** `ralph/scripts/run-with-timeout.sh <seconds> -- <cmd>` may be added in a future iter; until it exists, use the inline `perl -e 'alarm ...; exec @ARGV'` or `(cmd) & sleep N && kill` patterns directly.
+
+**No-polling-loop clause (mandatory in every worker dispatch prompt that polls anything).** Workers must not write their own retry loops. The `task-pm` escalation triggers (per-stage cap 3, regression cap 2, total dispatch cap 5, wall-clock cap 30 min) only fire on observable gate transitions — a worker silently looping on a single tool call doesn't trip any of them. The clause to paste verbatim in every prompt that involves polling, async-state waits, MCP discovery, daemon-reload waits, network retries, or transient-failure handling:
+
+> Do NOT write your own polling loop or retry loop. Make ONE attempt at any operation that could fail or return empty (MCP discovery, file-watch settle, daemon-reload, network call, agent-browser snapshot, etc.). If it fails or returns empty, report the failure in your WorkResult with the exact tool name + args + response, and STOP. The PM will decide whether to retry, escalate, or close — that decision is not yours.
+
+**Enforcement.** A worker WorkResult that shows N>1 identical or near-identical tool calls in succession is evidence of a self-imposed polling loop. PM treats this as a process failure (not a task failure), discards the WorkResult, and re-dispatches with the no-polling clause hammered home — same task, same worktree, fresh worker. If the same worker model produces a polling loop in three consecutive dispatches across different tasks, escalate the worker-model selection itself.
+
+---
+
 ## Definition of Done
 
 **Backend:** `cargo build --release -p <crate>` succeeds. Debug builds are not delivery.

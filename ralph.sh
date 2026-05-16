@@ -60,10 +60,10 @@ if [[ "${1:-}" == "watch" ]]; then
 fi
 
 MODEL="claude-opus-4.7-1m-internal"
-REASONING_EFFORT="xhigh"
+REASONING_EFFORT="high"
 MAX_ITERATIONS=25
 MAX_RUNTIME_SECONDS=0        # 0 = unlimited; e.g. 14400 = 4 hours
-STUCK_TIMEOUT_SECONDS=1800    # 30 min without log output = stuck
+STUCK_TIMEOUT_SECONDS=3600    # 30 min without log output = stuck
 CRATE=""
 SCOPE_PATH=""
 AGENT="outer-loop"

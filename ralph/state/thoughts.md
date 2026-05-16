@@ -2,7 +2,15 @@
 
 Handoff from this iter to the next. Replace at iter end.
 
-## Iter close 2026-05-16 (iter-3, ralph counter = 3 / historical iter-7 on this dev branch) — sprint 302 FULLY DRAINED, all 3 remaining tasks closed WONTFIX per user
+## Iter close 2026-05-16 (iter-3, ralph counter = 3 / historical iter-7 on this dev branch) — sprint 302 FULLY DRAINED, all 3 remaining tasks closed WONTFIX per user + constitution tightened
+
+## ⚠️ NEXT-PM FIRST READ — open items the next PM owns surfacing this iter (per AGENTS.md rule #16, no silent handoffs)
+
+1. **T-309.3** (sprint 309, P1, blocked) — fs/write permission renderer-trust hardening. **Correctly blocked** per AGENTS.md P0 trigger #5 (anti-cargo-cult-security). Unblocks ONLY when one of: real XSS / supply-chain incident, DOMPurify bypass, user explicit authorization, external review requires it. **Next PM action:** do NOT dispatch. Confirm the residual-risk acceptance is still current; if the user mentions wanting this work, ask explicitly. Otherwise leave in blocked. This is the ONE legitimate cross-iter blocked task in the entire backlog as of iter-3 close.
+
+2. (Sprint 303 P2 follow-ups discovered during sprint 302 — `T-303.20-cmdk-global-keymap` + `T-303.22-katex-backslash-streaming-investigation` — are filed against sprint 303 with `discovered_in: T-302.*`. NOT landmines; they're correctly cross-sprint queued. Next PM working sprint 303 will see them on first scan.)
+
+3. (`/Users/brett/.copilot/skills/visual-explainer/` — user shared the path during this iter without follow-up. PM did not file a task. If user mentions visual-explainer again, propose a fresh task under a future sprint for UAT'ing it through a maenifold-hosted agent in the ACP UI.)
 
 **User redirected this iter twice.** PM asked the 3 blocked sprint-302 questions in plain English. User responded:
 - 2026-05-16 07:06 PT — "Close the item." → PM closed T-302.12 + T-302.65 (render_chart pair).

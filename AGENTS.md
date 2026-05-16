@@ -48,6 +48,7 @@ One product, one monorepo. `crates/` = Rust backend. `apps/desktop/` = Electron 
 - **Help Before Workflow.** Show intent, outputs, and what needs review before exposing orchestration primitives.
 - **WONTFIX is the default for broken premises.** A task whose premise is architecturally invalid, references a thing that doesn't exist, asks us to fix code we don't own, or otherwise can't ship as written is **closed**, not held. The PM's default action is to recommend WONTFIX closure with a one-paragraph rationale and move on — NOT to escalate, hold for input across multiple iters, file a translation layer to bridge the impossible, or build a workaround to make the broken task look shippable. Recommend WONTFIX **in the same iter the bad premise is discovered**; ship the closure once the user confirms with as little as one word ("close it"). Multi-iter holds on a task whose premise is dead are themselves a process failure — they bloat backlog, hide real work, and burn iter budget on no-op runs. See: 5-iter hold on T-302.65 (`render_chart` tool that doesn't exist), iter-3 closure of T-302.64 (jockey ACP adapter premise architecturally invalid).
 - **No patches on patches.** When a task's correct fix lives outside our codebase (upstream library, third-party agent CLI, OS, etc.), do NOT layer a translation, shim, or heuristic in our code to paper over the external bug. Close as WONTFIX in our scope and file the bug upstream (only if user authorizes). The maintenance cost of guess-and-hope translation layers exceeds the rendering ugliness they hide. Counter-example: the T-302.64 proposal to build a `client.rs` translation layer for upstream agent CLI message shapes was correctly rejected as fragile.
+- **Own what you find. No landmines.** When you discover a defect, dead premise, broken assumption, or process gap — you own it for the rest of the iter. "I'll file a gate task and let the next PM handle it" is the landmine pattern. The next PM rediscovers the same thing, files the same amendment, and hands off again — and the loop never closes. Allowed actions on discovery: (a) **fix it now** if it's in scope or trivially adjacent, (b) **recommend WONTFIX to the user now** in plain English if the premise is dead, (c) **file a gate task AND raise it to the user this iter** with an explicit recommendation (fix / close / defer with a date). What is NOT allowed: filing a gate task silently with `blocked: true` + "PM/user decision required" in the spec body and handing it to the next PM. That's a landmine, not a handoff. If you cannot get user input this iter, write the recommendation into `ralph/state/thoughts.md` as the FIRST item the next PM must surface — and tag the task with the date it was first discovered so multi-iter rot is visible. Counter-example: T-302.65 was discovered iter-1 (2026-05-15) and silently held across 5 iters before iter-3 (2026-05-16) finally surfaced it. That cost 5 iter-budgets of no-op runs.
 
 ---
 
@@ -89,6 +90,11 @@ Gate is sacrosanct. The process is followed exactly. No exceptions. No shortcuts
     2. Surfaces a plain-English WONTFIX recommendation to the user.
     3. On user authorization (one word is enough: "close it"), cascades `gate_Pass` through all pipeline stages attributed to `ralph-pm` with stage-waiver notes citing the user authorization timestamp.
     4. Never invents a workaround (translation layer, shim, heuristic, "Option B") just to make the broken task look shippable. That's how patches grow on patches.
+16. **No silent task handoffs to the next PM.** When you file a new gate task mid-iter (defect discovery, scope expansion, follow-up work) you do ONE of the following before iter close:
+    - Fix it this iter if it's trivially in scope.
+    - Surface it to the user this iter with an explicit recommendation (fix / WONTFIX / defer-until-date) and let the user decide.
+    - Write the task ID + recommendation as the **first item** in `ralph/state/thoughts.md` so the next PM cannot miss it on bootstrap. Tag the task spec with `discovered_in: T-XXX.Y` AND `discovered_at: <ISO date>` so multi-iter rot is visible at a glance.
+    Filing a `blocked: true` task with "PM/user decision required" in the body and saying nothing about it in `thoughts.md` is a process violation. The next PM will not telepathically prioritize what you discovered.
 
 ### Gate Processes
 
@@ -353,6 +359,7 @@ Multiple 72h fires came from agents trying to mutate gate state directly: `mv` b
 | Task premise references a thing that doesn't exist (tool, route, file, config key) | **WONTFIX this iter.** Verify with grep + LSP. Document evidence in task body. Recommend close to user in plain English. Don't hold across iters. |
 | Task asks us to fix behavior in code we don't own (upstream lib, third-party CLI, OS) | **WONTFIX this iter.** Recommend close + file upstream issue ONLY with user authorization. Never build a translation/shim layer in our code to paper over an external bug. |
 | Task has been `blocked` for >1 iter | **Surface to user in plain English this iter** with a numbered choice list including "close as WONTFIX". One question, one iter. No more silent holds. |
+| You discovered an issue and your instinct is "I'll file a task for the next PM" | **Stop. That's a landmine.** Either fix it now, recommend WONTFIX to the user now, or write the recommendation as the FIRST item in `ralph/state/thoughts.md` with task ID + discovery date so it cannot be missed on next bootstrap. Silent gate-task filings rot for iters. |
 
 ---
 

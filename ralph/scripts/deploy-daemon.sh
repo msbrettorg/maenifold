@@ -161,10 +161,20 @@ if ! bootstrap_output="$(launchctl bootstrap "${GUI_DOMAIN}" "${plist_path}" 2>&
   printf '%s\n' "${bootstrap_output}" >&2
   exit 6
 fi
-sleep 2
-NEW_DAEMON_PID="$(first_daemon_pid)"
-if [[ -z "${NEW_DAEMON_PID}" || "${NEW_DAEMON_PID}" == "${DAEMON_PID}" ]]; then
-  error "daemon PID did not change after bootstrap (old=${DAEMON_PID}, new=${NEW_DAEMON_PID:-missing})"
+DEPLOY_DAEMON_PID_RETRY_SECONDS="${DEPLOY_DAEMON_PID_RETRY_SECONDS:-5}"
+NEW_DAEMON_PID=""
+for attempt in $(seq 1 "${DEPLOY_DAEMON_PID_RETRY_SECONDS}"); do
+  sleep 1
+  candidate="$(first_daemon_pid)"
+  if [[ -n "${candidate}" && "${candidate}" != "${DAEMON_PID}" ]]; then
+    NEW_DAEMON_PID="${candidate}"
+    info "  daemon up after ${attempt}s, PID=${NEW_DAEMON_PID}"
+    break
+  fi
+done
+if [[ -z "${NEW_DAEMON_PID}" ]]; then
+  error "daemon did not restart within ${DEPLOY_DAEMON_PID_RETRY_SECONDS}s after launchctl bootstrap"
+  error "  old PID=${DAEMON_PID}, no new PID observed"
   exit 7
 fi
 info "New daemon PID=${NEW_DAEMON_PID}"

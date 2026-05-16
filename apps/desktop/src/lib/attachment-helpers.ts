@@ -1,5 +1,19 @@
 export type AttachmentKind = 'image' | 'audio' | 'file';
 
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_BATCH_BYTES = 50 * 1024 * 1024;
+const MAX_TEXT_BYTES = 1024 * 1024;
+
+export type FileSelectionResult = {
+  accepted: File[];
+  rejected: { file: File; reason: string }[];
+};
+
+export type PreparedAttachment = {
+  text?: string;
+  blob?: string;
+};
+
 const IMAGE_MIME: Record<string, string> = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -66,4 +80,43 @@ export function readFileAsBase64(file: File): Promise<string> {
 
     reader.readAsDataURL(file);
   });
+}
+
+export function validateFileSelection(files: File[]): FileSelectionResult {
+  const accepted: File[] = [];
+  const rejected: { file: File; reason: string }[] = [];
+  let acceptedBytes = 0;
+  let batchFull = false;
+
+  for (const file of files) {
+    if (file.size > MAX_FILE_BYTES) {
+      rejected.push({ file, reason: 'File is too large. Maximum size is 10 MB.' });
+      continue;
+    }
+
+    if (batchFull || acceptedBytes + file.size > MAX_BATCH_BYTES) {
+      batchFull = true;
+      rejected.push({ file, reason: 'Batch total exceeds 50 MB.' });
+      continue;
+    }
+
+    accepted.push(file);
+    acceptedBytes += file.size;
+  }
+
+  return { accepted, rejected };
+}
+
+export function attachmentUri(id: string, label: string): string {
+  return `file://attachment/${id}/${encodeURIComponent(label)}`;
+}
+
+export async function prepareAttachment(file: File): Promise<PreparedAttachment> {
+  const isTextSafe = file.type.startsWith('text/') || file.type === 'application/json';
+
+  if (isTextSafe && file.size <= MAX_TEXT_BYTES) {
+    return { text: await file.text() };
+  }
+
+  return { blob: await readFileAsBase64(file) };
 }

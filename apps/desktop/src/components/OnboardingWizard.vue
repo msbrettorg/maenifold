@@ -51,6 +51,7 @@ const {
   goToStep,
   goBack,
   markComplete,
+  restoreProgress,
 } = useOnboarding(stepIds);
 
 const allSteps: Record<OnboardingStepId, StepConfig> = {
@@ -96,8 +97,9 @@ provide('onboarding-go-back', goBack);
 provide('onboarding-mark-complete', handleMarkComplete);
 provide('onboarding-vec0', vec0);
 
-onMounted(() => {
-  void vec0.loadStatus();
+onMounted(async () => {
+  await vec0.loadStatus();
+  restoreProgress();
 });
 </script>
 

@@ -3,14 +3,26 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PREFS_STORE_PATH } from '../../lib/constants';
 import { storageKey } from '../../lib/local-storage';
-import { useOnboarding } from '../useOnboarding';
+import { useOnboarding, type OnboardingStepId } from '../useOnboarding';
 
 const ONBOARDING_KEY = 'onboarding';
+const ONBOARDING_PROGRESS_KEY = 'onboarding-progress';
 const CURRENT_VERSION = 1;
+
+type OnboardingProgressApi = ReturnType<typeof useOnboarding> & {
+  restoreProgress: () => void; markStepDone: (stepId: OnboardingStepId) => void;
+  isStepDone: (stepId: OnboardingStepId) => boolean; resumeAtFirstIncomplete: () => void;
+};
 
 function fullKey(): string {
   return storageKey(PREFS_STORE_PATH, ONBOARDING_KEY);
 }
+
+function progressKey(): string { return storageKey(PREFS_STORE_PATH, ONBOARDING_PROGRESS_KEY); }
+
+function progressState(): { step?: number; highWaterStep?: number; markers?: Record<string, boolean> } { return JSON.parse(window.localStorage.getItem(progressKey()) as string); }
+
+function advanceTo(onboarding: ReturnType<typeof useOnboarding>, target: number): void { Array.from({ length: target }).forEach(() => onboarding.advance()); }
 
 function stubConfigRead(result: { content: string; exists: boolean }): void {
   vi.stubGlobal('electronAPI', {
@@ -229,5 +241,58 @@ describe('useOnboarding', () => {
     await expect(onboarding.checkFirstRunWithConfig()).resolves.toBe(true);
     expect(onboarding.isFirstRun.value).toBe(true);
     expect(window.localStorage.getItem(fullKey())).toBeNull();
+  });
+
+  describe('onboarding idempotency (T-317.1)', () => {
+    it('persists step progress on advance and restores it in a new instance', () => {
+      const onboarding = useOnboarding() as OnboardingProgressApi;
+      advanceTo(onboarding, 2);
+      expect(progressState()).toMatchObject({ step: 2, highWaterStep: 2 });
+      const restarted = useOnboarding() as OnboardingProgressApi;
+      restarted.restoreProgress();
+      expect(restarted.step.value).toBe(2); expect(restarted.currentStepId.value).toBe('agent');
+    });
+    it('resumes on step 3 model after force-quit mid-step 3', () => {
+      const onboarding = useOnboarding() as OnboardingProgressApi;
+      advanceTo(onboarding, 3);
+      const restarted = useOnboarding() as OnboardingProgressApi;
+      restarted.restoreProgress();
+      expect(restarted.step.value).toBe(3); expect(restarted.currentStepId.value).toBe('model');
+    });
+    it('persists highWaterStep after back navigation and restart', () => {
+      const onboarding = useOnboarding() as OnboardingProgressApi;
+      advanceTo(onboarding, 3);
+      onboarding.goBack(); onboarding.goBack();
+      const restarted = useOnboarding() as OnboardingProgressApi;
+      restarted.restoreProgress();
+      expect(restarted.step.value).toBe(1); expect(restarted.highWaterStep.value).toBe(3);
+    });
+    it('persists per-step progress markers for completed onboarding steps', () => {
+      const onboarding = useOnboarding() as OnboardingProgressApi;
+      ['daemon', 'agent', 'model'].forEach((stepId) => onboarding.markStepDone(stepId as OnboardingStepId));
+      expect(progressState().markers).toMatchObject({
+        'daemon-checked': true,
+        'agent-picked': true,
+        'model-installed': true,
+      });
+      expect(onboarding.isStepDone('model')).toBe(true);
+    });
+    it('resumes at the first incomplete step from persisted markers', () => {
+      const onboarding = useOnboarding() as OnboardingProgressApi;
+      ['welcome', 'daemon', 'agent'].forEach((stepId) => onboarding.markStepDone(stepId as OnboardingStepId));
+      const restarted = useOnboarding() as OnboardingProgressApi;
+      restarted.resumeAtFirstIncomplete();
+      expect(restarted.step.value).toBe(3); expect(restarted.currentStepId.value).toBe('model');
+    });
+    it('re-entering a completed step is idempotent and keeps detected state', () => {
+      const onboarding = useOnboarding() as OnboardingProgressApi;
+      onboarding.advance();
+      onboarding.markStepDone('daemon');
+      onboarding.advance();
+      onboarding.goBack();
+      expect(onboarding.step.value).toBe(1); expect(onboarding.currentStepId.value).toBe('daemon');
+      expect(onboarding.isStepDone('daemon')).toBe(true);
+      expect(progressState().markers?.['daemon-checked']).toBe(true);
+    });
   });
 });

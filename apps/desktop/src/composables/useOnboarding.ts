@@ -8,12 +8,28 @@ export const DEFAULT_ONBOARDING_STEPS = ['welcome', 'daemon', 'agent', 'model', 
 export type OnboardingStepId = (typeof ONBOARDING_STEPS)[number];
 
 const ONBOARDING_KEY = 'onboarding';
+const PROGRESS_KEY = 'onboarding-progress';
 const CURRENT_VERSION = 1;
+
+const STEP_MARKER_MAP: Record<OnboardingStepId, string> = {
+  welcome: 'welcome-seen',
+  daemon: 'daemon-checked',
+  agent: 'agent-picked',
+  model: 'model-installed',
+  vec0: 'vec0-configured',
+  done: 'onboarding-done',
+};
 
 interface OnboardingState {
   completed: boolean;
   completedAt?: string;
   version: number;
+}
+
+interface ProgressState {
+  step: number;
+  highWaterStep: number;
+  markers: Record<string, boolean>;
 }
 
 export interface UseOnboardingReturn {
@@ -29,11 +45,30 @@ export interface UseOnboardingReturn {
   advance: () => void;
   goToStep: (target: number) => void;
   goBack: () => void;
+  restoreProgress: () => void;
+  markStepDone: (stepId: OnboardingStepId) => void;
+  isStepDone: (stepId: OnboardingStepId) => boolean;
+  resumeAtFirstIncomplete: () => void;
   markComplete: () => void;
 }
 
 function readOnboardingState(): OnboardingState | null {
   return readStorageValue<OnboardingState>(PREFS_STORE_PATH, ONBOARDING_KEY);
+}
+
+function readProgressState(): ProgressState | null {
+  const state = readStorageValue<Partial<ProgressState>>(PREFS_STORE_PATH, PROGRESS_KEY);
+  if (!isRecord(state)) {
+    return null;
+  }
+  const markers = isRecord(state.markers) ? state.markers : {};
+  return {
+    step: typeof state.step === 'number' ? state.step : 0,
+    highWaterStep: typeof state.highWaterStep === 'number' ? state.highWaterStep : 0,
+    markers: Object.fromEntries(
+      Object.entries(markers).filter((entry): entry is [string, boolean] => typeof entry[1] === 'boolean'),
+    ),
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -74,6 +109,54 @@ export function useOnboarding(
   const canGoBack = computed<boolean>(() => step.value > 0);
   const canGoForward = computed<boolean>(() => step.value < highWaterStep.value);
 
+  function clampStep(value: number): number {
+    return Math.min(Math.max(value, 0), lastIndex.value);
+  }
+
+  function currentMarkers(): Record<string, boolean> {
+    return readProgressState()?.markers ?? {};
+  }
+
+  function persistProgress(markers: Record<string, boolean> = currentMarkers()): void {
+    const state: ProgressState = {
+      step: clampStep(step.value),
+      highWaterStep: clampStep(highWaterStep.value),
+      markers,
+    };
+    writeStorageValue(PREFS_STORE_PATH, PROGRESS_KEY, state);
+  }
+
+  function restoreProgress(): void {
+    const state = readProgressState();
+    if (!state) {
+      return;
+    }
+    highWaterStep.value = clampStep(Math.max(state.step, state.highWaterStep));
+    step.value = clampStep(state.step);
+    persistProgress();
+  }
+
+  function markStepDone(stepId: OnboardingStepId): void {
+    const markers = currentMarkers();
+    markers[STEP_MARKER_MAP[stepId]] = true;
+    persistProgress(markers);
+  }
+
+  function isStepDone(stepId: OnboardingStepId): boolean {
+    return currentMarkers()[STEP_MARKER_MAP[stepId]] === true;
+  }
+
+  function resumeAtFirstIncomplete(): void {
+    const markers = currentMarkers();
+    const firstIncomplete = steps.value.findIndex((stepId) => markers[STEP_MARKER_MAP[stepId]] !== true);
+    const nextStep = firstIncomplete === -1 ? lastIndex.value : firstIncomplete;
+    step.value = nextStep;
+    if (nextStep > highWaterStep.value) {
+      highWaterStep.value = nextStep;
+    }
+    persistProgress(markers);
+  }
+
   function checkFirstRun(): boolean {
     const state = readOnboardingState();
     if (!state || !state.completed || state.version < CURRENT_VERSION) {
@@ -110,6 +193,7 @@ export function useOnboarding(
       highWaterStep.value = nextStep;
     }
     step.value = nextStep;
+    persistProgress();
   }
 
   function goToStep(target: number): void {
@@ -120,6 +204,7 @@ export function useOnboarding(
       return;
     }
     step.value = target;
+    persistProgress();
   }
 
   function goBack(): void {
@@ -127,6 +212,7 @@ export function useOnboarding(
       return;
     }
     step.value -= 1;
+    persistProgress();
   }
 
   function markComplete(): void {
@@ -152,6 +238,10 @@ export function useOnboarding(
     advance,
     goToStep,
     goBack,
+    restoreProgress,
+    markStepDone,
+    isStepDone,
+    resumeAtFirstIncomplete,
     markComplete,
   };
 }

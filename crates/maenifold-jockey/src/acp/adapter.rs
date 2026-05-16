@@ -16,6 +16,9 @@ mod adapter_env_tests;
 #[path = "adapter_resolve.rs"]
 mod adapter_resolve;
 #[cfg(test)]
+#[path = "adapter_resolve_tests.rs"]
+mod adapter_resolve_tests;
+#[cfg(test)]
 #[path = "adapter_t301_31_tests.rs"]
 mod adapter_t301_31_tests;
 

@@ -117,6 +117,9 @@ pub(super) struct SessionLoadParams {
     pub(super) mcp_servers: Vec<acp::McpServer>,
 }
 
+/// Handles ACP relay WebSocket upgrades. The `?agent=` parameter must match a
+/// key in `~/maenifold/maenifold.json`'s `agents` block using a
+/// case-insensitive comparison.
 pub async fn ws_handler(
     ws: WebSocketUpgrade,
     State(_state): State<ApiState>,
@@ -127,7 +130,11 @@ pub async fn ws_handler(
         .filter(|value| !value.trim().is_empty())
         .ok_or_else(|| ApiError::bad_request("Missing ?agent="))?;
     let adapter = jockey::acp::build_stdio_adapter(&agent_name)
-        .map_err(ApiError::bad_request)?
+        .map_err(|e| {
+            ApiError::bad_request(format!(
+                "{e} — add it under the \"agents\" key to enable ACP relay"
+            ))
+        })?
         .ok_or_else(|| ApiError::bad_request(format!("agent '{agent_name}' is not configured")))?;
     let root = jockey::acp::config_root();
     let default_cwd = jockey::acp::resolve_cwd(root.to_string_lossy().as_ref());
@@ -155,7 +162,11 @@ pub async fn close_session_handler(
         .filter(|value| !value.trim().is_empty())
         .ok_or_else(|| ApiError::bad_request("Missing ?agent="))?;
     let adapter = jockey::acp::build_stdio_adapter(&agent_name)
-        .map_err(ApiError::bad_request)?
+        .map_err(|e| {
+            ApiError::bad_request(format!(
+                "{e} — add it under the \"agents\" key to enable ACP relay"
+            ))
+        })?
         .ok_or_else(|| ApiError::bad_request(format!("agent '{agent_name}' is not configured")))?;
     let (result_tx, result_rx) = oneshot::channel();
     jockey::acp::worker_tx()

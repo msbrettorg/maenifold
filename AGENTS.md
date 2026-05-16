@@ -415,6 +415,7 @@ Multiple 72h fires came from agents trying to mutate gate state directly: `mv` b
 - **`prompt` is the only primitive.** Think and workflow chain prompt calls. No direct agent path.
 - All ACP calls MUST specify `model` explicitly. No defaults.
 - WebSocket URI requires `?agent=<name>`. Missing → reject. Bare `/ws/acp` is a test failure.
+- **Agent-name resolution for ACP relay:** The `?agent=<name>` parameter on `/api/acp/session` must match an entry in `~/maenifold/maenifold.json`'s `agents` block (case-insensitive). Requests with an unrecognized agent name receive HTTP 400. UAT tasks using custom agent names must first register the agent in `maenifold.json`.
 - **Versions:** TS `@agentclientprotocol/sdk` `^0.18.2`. Rust `sacp` `11.0.0`, `rmcp` `1.4.0`.
 
 ---

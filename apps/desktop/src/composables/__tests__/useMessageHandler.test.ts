@@ -134,4 +134,58 @@ describe('useMessageHandler', () => {
     );
     expect(saveSessionsToStore).toHaveBeenCalledTimes(1);
   });
+
+  it('marks the active assistant message as cancelled when cancelling a streaming turn', async () => {
+    const session = reactive(createEmptySessionState('local-1', 'Architect', '/repo'));
+    session.session = {
+      id: 'saved-1',
+      agentName: 'Architect',
+      sessionId: 'remote-1',
+      title: 'Architect Session #1',
+      lastUpdated: Date.now(),
+      cwd: '/repo',
+    };
+    session.isLoading = true;
+    session.messages.push(
+      {
+        id: 'user-1',
+        role: 'user',
+        content: 'Please write a long answer',
+        timestamp: Date.now(),
+      },
+      {
+        id: 'assistant-1',
+        role: 'assistant',
+        content: 'Partial streaming answer',
+        timestamp: Date.now(),
+      },
+    );
+
+    const cancel = vi.fn(async () => {});
+    const saveSessionsToStore = vi.fn(async () => {});
+    const sessions = ref(new Map([[session.sessionId, session]]));
+    const savedSessions = ref<SavedSession[]>([{ ...session.session }]);
+    const handler = useMessageHandler({
+      sessions,
+      bridges: new Map([
+        [
+          session.sessionId,
+          {
+            cancel,
+            pendingPermissionRequests: ref([]),
+          } as never,
+        ],
+      ]),
+      activeSessionId: ref(session.sessionId),
+      savedSessions,
+      saveSessionsToStore,
+      cancelPermission: () => {},
+    });
+
+    await handler.cancelOperation();
+
+    expect(cancel).toHaveBeenCalledWith({ sessionId: 'remote-1' });
+    expect(session.messages[1]?.stopReason).toBe('cancelled');
+    expect(savedSessions.value[0]?.messages?.[1]?.stopReason).toBe('cancelled');
+  });
 });

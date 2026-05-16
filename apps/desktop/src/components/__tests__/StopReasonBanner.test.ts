@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
 import StopReasonBanner from '../StopReasonBanner.vue';
+import ChatMessageItem from '../ChatMessageItem.vue';
 
 describe('StopReasonBanner', () => {
   it('renders nothing for end_turn', () => {
@@ -54,5 +55,32 @@ describe('StopReasonBanner', () => {
     const wrapper = mount(StopReasonBanner, { props: { stopReason: 'unknown_reason' as unknown as 'error' } });
 
     expect(wrapper.text()).toBe('');
+  });
+
+  it('renders from ChatMessageItem when an assistant message was cancelled', () => {
+    const wrapper = mount(ChatMessageItem, {
+      props: {
+        message: {
+          id: 'assistant-1',
+          role: 'assistant',
+          content: 'Partial answer',
+          timestamp: Date.now(),
+          stopReason: 'cancelled',
+        },
+        expandedThoughtIds: [],
+        expandedToolCallIds: [],
+      },
+      global: {
+        stubs: {
+          ChatContentBlocks: true,
+          ChatThoughtSection: true,
+          ChatToolCallList: true,
+          KnowledgeNoteRenderer: true,
+          MessageActionToolbar: true,
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain('Cancelled.');
   });
 });

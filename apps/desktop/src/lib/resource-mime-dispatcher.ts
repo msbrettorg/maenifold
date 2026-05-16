@@ -7,6 +7,8 @@ export type ResourceContent = {
   name?: string;
 };
 
+export const MAX_PREVIEW_BYTES = 1_048_576;
+
 export type DispatchedResource =
   | { kind: 'markdown'; text: string }
   | { kind: 'json'; pretty: string }
@@ -14,6 +16,7 @@ export type DispatchedResource =
   | { kind: 'image'; src: string; alt: string }
   | { kind: 'video'; src: string; mimeType: string }
   | { kind: 'audio'; src: string }
+  | { kind: 'too-large'; size: number; mimeType: string; name: string; uri: string }
   | { kind: 'download'; name: string; size?: number; uri: string };
 
 const CODE_MIME_LANGUAGES: Record<string, string> = {
@@ -51,6 +54,24 @@ export function dispatchResource(content: ResourceContent): DispatchedResource {
 
   if (!mimeType) {
     return download(content);
+  }
+
+  if (content.text != null && content.text.length > MAX_PREVIEW_BYTES) {
+    const rendersText =
+      mimeType === 'text/markdown' ||
+      mimeType === 'image/svg+xml' ||
+      mimeType === 'application/json' ||
+      mimeType in CODE_MIME_LANGUAGES ||
+      mimeType.startsWith('text/');
+    if (rendersText) {
+      return {
+        kind: 'too-large',
+        size: content.text.length,
+        mimeType,
+        name: content.name || nameFromUri(content.uri),
+        uri: content.uri,
+      };
+    }
   }
 
   if (mimeType === 'text/markdown' && content.text != null) {

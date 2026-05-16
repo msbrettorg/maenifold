@@ -86,7 +86,19 @@ These are the rules that get bent first when a PM is tired or in a hurry. If you
 
 **UAT priority floor.** UAT tasks (any task whose pipeline is "UAT-only" — gsd or tdd with "UAT" / "CDP UAT" / "verify interactively" in the title and no code-change scope) are the LOWEST priority regardless of sprint number. They go to the bottom of the dispatch queue. Don't dispatch a UAT task while there's a known-bug fix task (any task with concrete code-change scope: implement / fix / hardening / debt / refactor / split / add / remove / replace) still pending in the entire backlog. Bug-fix tasks always preempt UAT tasks.
 
-Concrete sort key now: `(is_uat_task, sprint_number, task_number, priority)` where `is_uat_task` is `1` for UAT-only tasks and `0` for everything else. UAT tasks only fill capacity after every non-UAT pending task is in flight or shipped.
+**Functionally-UAT detection (CDP-bound spec keywords).** A task is functionally out of RALPH autonomous scope — and counts as UAT-equivalent — if its spec body explicitly requires ANY of:
+
+- `agent-browser` interaction with the packaged Electron app
+- CDP-driven verification or measurement
+- human-driven click-through or visual inspection
+- `--remote-debugging-port` launch flags or `MAENIFOLD_UAT=1` env var
+- `scripts/uat-launch.sh` invocation as a required step
+
+Such tasks are treated as UAT-equivalent regardless of task title, pipeline declaration, or priority label. They go to the UAT-priority-floor along with title-flagged UAT tasks. The PM records the skip rationale in the close memory note + iter-end `thoughts.md` update with the specific keyword(s) detected. **Pure backend/test-only tasks** (Rust crates, Vue/TS unit tests via Vitest, doc edits, gate ops, MCP tool changes verifiable via `curl` + `cargo test`) remain in RALPH scope.
+
+Precedent: T-304.3 (P1 agents-perf CDP measurement) was correctly skipped iter-19 by claude-opus-4.6 architect verdict despite not being labeled UAT in title — its spec body explicitly requires the `agent-browser` + packaged Electron + CDP harness.
+
+Concrete sort key now: `(is_uat_task, sprint_number, task_number, priority)` where `is_uat_task` is `1` for UAT-only OR functionally-UAT (CDP-bound) tasks and `0` for everything else. UAT tasks only fill capacity after every non-UAT pending task is in flight or shipped.
 
 Rationale: the backlog already contains hundreds of known defects waiting for fixes (LOC violations T-315.1, unwrap debt T-315.2, inline helpers T-322.20-25, sort UX T-322.1.x, drag-drop T-314.1, attachments T-314.2, dblclick T-318.1, inspector model identity T-318.2, etc.). Running UAT to discover MORE defects while the existing pile sits is the rediscovery-cosplay antipattern. Drain the pile first.
 

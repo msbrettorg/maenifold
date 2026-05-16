@@ -426,3 +426,79 @@ describe('Tool call lifecycle rendering', () => {
     });
   });
 });
+
+describe('Diff rendering fixtures', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  it('renders multi-line additions and removals', () => {
+    const wrapper = mountExtensions(createToolCall({
+      content: [{ type: 'diff', oldText: 'line1\nline2\nline3\n', newText: 'line1\nchanged\nline3\n', path: '/test' }],
+    }));
+    const text = wrapper.find('[data-testid="tool-call-diff"]').text();
+    expect(text).toContain('-line2');
+    expect(text).toContain('+changed');
+    expect(text).toContain('line1');
+    expect(text).toContain('line3');
+  });
+
+  it('renders multi-hunk diff with changes at start and end', () => {
+    const old = 'aaa\nbbb\nccc\nddd\neee\n';
+    const nw = 'AAA\nbbb\nccc\nddd\nEEE\n';
+    const wrapper = mountExtensions(createToolCall({
+      content: [{ type: 'diff', oldText: old, newText: nw, path: '/multi' }],
+    }));
+    const text = wrapper.find('[data-testid="tool-call-diff"]').text();
+    expect(text).toContain('-aaa');
+    expect(text).toContain('+AAA');
+    expect(text).toContain('-eee');
+    expect(text).toContain('+EEE');
+    expect(text).toContain('bbb');
+  });
+
+  it('renders unicode content including CJK and emoji', () => {
+    const wrapper = mountExtensions(createToolCall({
+      content: [{ type: 'diff', oldText: '你好世界\n', newText: '你好宇宙\n', path: '/unicode' }],
+    }));
+    const text = wrapper.find('[data-testid="tool-call-diff"]').text();
+    expect(text).toContain('-你好世界');
+    expect(text).toContain('+你好宇宙');
+  });
+
+  it('renders empty diff when inputs are identical', () => {
+    const same = 'no change\n';
+    const wrapper = mountExtensions(createToolCall({
+      content: [{ type: 'diff', oldText: same, newText: same, path: '/same' }],
+    }));
+    const diffEl = wrapper.find('[data-testid="tool-call-diff"]');
+    const spans = diffEl.findAll('span');
+    const nonHeaderSpans = spans.filter(s => !s.text().startsWith('---') && !s.text().startsWith('+++'));
+    for (const span of nonHeaderSpans) {
+      expect(span.text()).not.toMatch(/^[+-]/);
+    }
+    expect(diffEl.text()).toContain('no change');
+  });
+
+  it('renders new file diff with null oldText', () => {
+    const wrapper = mountExtensions(createToolCall({
+      content: [{ type: 'diff', oldText: null, newText: 'new content\n', path: '/new' }],
+    }));
+    const text = wrapper.find('[data-testid="tool-call-diff"]').text();
+    expect(text).toContain('--- /dev/null');
+    expect(text).toContain('+new content');
+  });
+
+  it('handles large file diff with 100+ lines', () => {
+    const lines = Array.from({ length: 120 }, (_, i) => `line ${i}`).join('\n') + '\n';
+    const changed = lines.replace('line 50', 'CHANGED 50').replace('line 99', 'CHANGED 99');
+    const wrapper = mountExtensions(createToolCall({
+      content: [{ type: 'diff', oldText: lines, newText: changed, path: '/large' }],
+    }));
+    const text = wrapper.find('[data-testid="tool-call-diff"]').text();
+    expect(text).toContain('-line 50');
+    expect(text).toContain('+CHANGED 50');
+    expect(text).toContain('-line 99');
+    expect(text).toContain('+CHANGED 99');
+  });
+});

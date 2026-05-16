@@ -118,10 +118,11 @@ const isAssistant = computed(() => props.message.role === 'assistant');
           @toggle-tool-call="emit('toggle-tool-call', $event)"
         />
 
-        <pre
+        <KnowledgeNoteRenderer
           v-if="streamingTextContent"
-          class="m-0 whitespace-pre-wrap break-words font-[inherit] text-sm leading-6 text-text-primary"
-        >{{ streamingTextContent }}</pre>
+          :content="streamingTextContent"
+          class="text-text-primary"
+        />
 
         <ChatContentBlocks v-else-if="blocks.length" :blocks="blocks" />
 

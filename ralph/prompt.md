@@ -241,6 +241,31 @@ The child tasks ship as separate gate rows + commits + merges. Each child can ru
   - **Inner-loop workers:** may call `gate_Append` to record findings (red-team verdicts, blue-team test reports, SWE WorkResult summaries) but are FORBIDDEN from `gate_Pass` / `gate_Fail`. They return WorkResults; the task-pm advances the gate.
 - The PM relays real agent verdicts. The PM does **not** author notes for another role's stage. **Files move through gate, never via `mv`.** This is sacrosanct.
 
+### E.1 Red-team dispatch: mandatory branch-base artifact warning
+
+Every red-team worker dispatch MUST include a branch-base artifact warning block. PMs and `task-pm`s MUST compute it at dispatch time and paste it into the prompt so the auditor can distinguish stale-branch artifacts from actual SWE scope drift.
+
+Copy-paste template:
+
+```md
+> **Branch-base artifact warning (mandatory for T-<task-id> red-team dispatch)**
+>
+> - Worker branch: `worker-<task-id>`
+> - Branch base SHA: `<base-sha>`
+>   - Compute with: `git merge-base dev worker-<task-id>`
+> - Merges landed on `dev` since the branch base:
+>   - Compute with: `git log --oneline <base-sha>..dev`
+>   - Paste here:
+>     ```text
+>     <merge-list-or-(none)>
+>     ```
+> - Audit diff command (REQUIRED; path-restricted to ONLY the spec-named files):
+>   - `git diff dev -- <file1> <file2> <file3>`
+> - Auditor instruction: **Any file removals or changes outside the path filter are branch-base artifacts, NOT scope violations by the SWE. Ignore them. Your audit scope is ONLY the files listed after `--`.**
+```
+
+Use `ralph/scripts/red-team-prompt-prefix.sh <task-id> <file1> <file2> ...` to emit this block with the live base SHA, merge list, and path-restricted diff command already filled in.
+
 ### F. Hygiene
 - Write memory notes for non-trivial decisions with `[[WikiLinks]]`.
 - Repair concept fragmentation when you see it (`AnalyzeConceptCorruption` → `RepairConcepts` with `dryRun` first).

@@ -10,8 +10,8 @@ import { useAppShellStore } from '../stores/app-shell';
 import { usePromptDialogStore } from '../stores/prompt-dialog';
 import type { PipelineEdge, PipelineNode, ViewNode } from '../lib/pipeline-types';
 import { getViewNodeDisplayLabel } from '../lib/pipeline-types';
+import { extractForkedSessionId } from '../lib/fork-utils';
 import { useInspectorActions } from '../composables/useInspectorActions';
-import { latestAssistantMessageForRemoteSession } from '../composables/usePipelineRefinementSession';
 import GraftNodesDialog from './GraftNodesDialog.vue';
 import PromotionDialog from './PromotionDialog.vue';
 import SemanticZoomOverlayContent from './SemanticZoomOverlayContent.vue';
@@ -111,9 +111,19 @@ watch(
   },
   { flush: 'post' },
 );
+function latestAssistantMessageForRemoteSession(remoteSessionId: string | null | undefined) {
+  const remoteId = remoteSessionId?.trim();
+  if (!remoteId) return null;
+  for (const session of sessionStore.sessions.values()) {
+    if (session.session?.sessionId !== remoteId) continue;
+    const message = [...session.messages].reverse().find((m) => m.role === 'assistant');
+    return message ? { content: message.content, sessionId: remoteId } : null;
+  }
+  return null;
+}
 function handleTakeRefined(): void {
   const nodeId = viewNode.value?.nodeId;
-  const latest = latestAssistantMessageForRemoteSession(sessionStore, viewNode.value?.provenance?.detail.sessionId);
+  const latest = latestAssistantMessageForRemoteSession(viewNode.value?.provenance?.detail.sessionId);
   if (!nodeId || !latest) {
     toast.error('Unable to take refined output: reconnected session is no longer open.');
     return;
@@ -181,22 +191,6 @@ function openPromotionDialog(): void {
   if (canPromote.value && !promotionBusy.value) {
     showPromotionDialog.value = true;
   }
-}
-function extractForkedSessionId(result: unknown): string | null {
-  if (typeof result === 'string') {
-    return result.trim() || null;
-  }
-  if (!result || typeof result !== 'object') {
-    return null;
-  }
-  const record = result as Record<string, unknown>;
-  for (const key of ['sessionId', 'pipelineId', 'newSessionId', 'forkedSessionId']) {
-    const value = record[key];
-    if (typeof value === 'string' && value.trim().length > 0) {
-      return value;
-    }
-  }
-  return null;
 }
 async function forkNode(): Promise<void> {
   if (!viewNode.value?.sessionId || !viewNode.value.nodeId) return;

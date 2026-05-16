@@ -203,7 +203,7 @@ fn dispatch_node(
         .ok_or_else(|| missing_node_state(node_id))?;
 
     match node {
-        PipelineNode::Workflow { .. } => {
+        PipelineNode::Workflow { agent_config, .. } => {
             let response = build_workflow_dispatch_response(node, &node_session_id)?;
             let activated = activate_workflow_node_session(
                 context,
@@ -215,10 +215,14 @@ fn dispatch_node(
             state.completed_at = None;
             state.input_tokens = None;
             state.output_tokens = None;
-            state.model = None;
+            state.model = agent_config.as_ref().and_then(|config| config.model.clone());
             Ok(activated.then_some(response))
         }
-        PipelineNode::Prompt { .. } => {
+        PipelineNode::Prompt {
+            model,
+            agent_config,
+            ..
+        } => {
             let response = build_prompt_dispatch_response(node, &node_session_id)?;
             let activated = activate_non_workflow_node_session(context, &node_session_id)?;
             state.status = NodeStatus::Active;
@@ -226,10 +230,16 @@ fn dispatch_node(
             state.completed_at = None;
             state.input_tokens = None;
             state.output_tokens = None;
-            state.model = None;
+            state.model = model
+                .clone()
+                .or_else(|| agent_config.as_ref().and_then(|config| config.model.clone()));
             Ok(activated.then_some(response))
         }
-        PipelineNode::SequentialThinking { .. } => {
+        PipelineNode::SequentialThinking {
+            model,
+            agent_config,
+            ..
+        } => {
             let response = build_thinking_dispatch_response(node, &node_session_id)?;
             let activated = activate_non_workflow_node_session(context, &node_session_id)?;
             state.status = NodeStatus::Active;
@@ -237,10 +247,16 @@ fn dispatch_node(
             state.completed_at = None;
             state.input_tokens = None;
             state.output_tokens = None;
-            state.model = None;
+            state.model = model
+                .clone()
+                .or_else(|| agent_config.as_ref().and_then(|config| config.model.clone()));
             Ok(activated.then_some(response))
         }
-        PipelineNode::Tool { .. } => {
+        PipelineNode::Tool {
+            model,
+            agent_config,
+            ..
+        } => {
             let response = build_tool_dispatch_response(node, &node_session_id)?;
             let activated = activate_non_workflow_node_session(context, &node_session_id)?;
             state.status = NodeStatus::Active;
@@ -248,7 +264,9 @@ fn dispatch_node(
             state.completed_at = None;
             state.input_tokens = None;
             state.output_tokens = None;
-            state.model = None;
+            state.model = model
+                .clone()
+                .or_else(|| agent_config.as_ref().and_then(|config| config.model.clone()));
             Ok(activated.then_some(response))
         }
     }

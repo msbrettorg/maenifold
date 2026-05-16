@@ -1,5 +1,5 @@
 import type { Ref } from 'vue';
-import type { ContentBlock, McpAppUiMetadata, SavedSession, SessionState, AvailableCommand } from '../lib/types';
+import type { ContentBlock, McpAppUiMetadata, SavedSession, SessionState, AvailableCommand, StopReason } from '../lib/types';
 import type { AcpClientBridge } from '../lib/acp-client';
 import type { SessionNotification } from '@agentclientprotocol/sdk';
 import { trackEvent } from '../lib/telemetry';
@@ -60,7 +60,7 @@ export function useMessageHandler({
     }
   }
 
-  function markAssistantInterrupted(session: SessionState): void {
+  function markLatestAssistantStopReason(session: SessionState, stopReason: StopReason): void {
     let lastUserIndex = -1;
     let lastAssistantIndex = -1;
     for (let i = session.messages.length - 1; i >= 0; i -= 1) {
@@ -70,7 +70,7 @@ export function useMessageHandler({
       if (lastUserIndex !== -1 && lastAssistantIndex !== -1) break;
     }
     if (lastAssistantIndex > lastUserIndex && lastAssistantIndex >= 0) {
-      session.messages[lastAssistantIndex].stopReason = 'connection_lost';
+      session.messages[lastAssistantIndex].stopReason = stopReason;
       return;
     }
     session.messages.push({
@@ -78,8 +78,12 @@ export function useMessageHandler({
       role: 'assistant',
       content: '',
       timestamp: Date.now(),
-      stopReason: 'connection_lost',
+      stopReason,
     });
+  }
+
+  function markAssistantInterrupted(session: SessionState): void {
+    markLatestAssistantStopReason(session, 'connection_lost');
   }
 
   function handleSessionUpdate(localSessionId: string, notification: SessionNotification) {
@@ -295,6 +299,10 @@ export function useMessageHandler({
     await bridge.cancel({
       sessionId: session.session.sessionId,
     });
+    if (session.isLoading) {
+      markLatestAssistantStopReason(session, 'cancelled');
+      await persistSessionMessages(session);
+    }
   }
 
   return {

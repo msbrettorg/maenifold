@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isOfflineProbeError, normalizeAgentProbeResult } from '../agent-probe-types';
+import { isOfflineProbeError, normalizeAgentProbeResult } from '../agent-probe-normalizers';
 
 describe('agent probe error classification', () => {
   it('classifies connection and spawn failures as offline', () => {

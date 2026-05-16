@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { mount } from '@vue/test-utils';
 import AgentProbePreview from '../AgentProbePreview.vue';
-import { isOfflineProbeError, normalizeAgentProbeResult } from '../../lib/agent-probe-types';
+import { isOfflineProbeError, normalizeAgentProbeResult } from '../../lib/agent-probe-normalizers';
 import { useAgentCapabilitiesStore } from '../../stores/agent-capabilities';
 
 describe('AgentProbePreview', () => {

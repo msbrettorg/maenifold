@@ -5,7 +5,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 
 import AddNodeForm from '../AddNodeForm.vue';
 import Select from '../ui/select/Select.vue';
-import { normalizeAgentProbeResult } from '../../lib/agent-probe-types';
+import { normalizeAgentProbeResult } from '../../lib/agent-probe-normalizers';
 
 // Helpers to drive the reka-ui Select component (which renders <button role="combobox">,
 // not a native <select>) by emitting update:modelValue on the wrapping Select component.

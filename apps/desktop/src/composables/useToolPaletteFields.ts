@@ -1,5 +1,5 @@
 import { computed, ref, watch } from 'vue';
-import type { AgentProbeResult } from '../lib/agent-probe-types';
+import type { AgentProbeResult } from '../lib/agent-probe-types-defs';
 import { useMcpToolDiscovery } from './useMcpToolDiscovery';
 import { usePipelineMcp } from './usePipelineMcp';
 import { useReadyAgentProbe } from './useReadyAgentProbe';

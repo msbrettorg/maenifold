@@ -1,7 +1,7 @@
 import {
   normalizeAgentProbeResult,
-  type AgentProbeResult,
-} from './agent-probe-types';
+} from './agent-probe-normalizers';
+import type { AgentProbeResult } from './agent-probe-types-defs';
 import { PREFS_STORE_PATH } from './constants';
 import { readStorageValue, writeStorageValue } from './local-storage';
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
-import type { AgentProbeResult } from '../lib/agent-probe-types';
+import type { AgentProbeResult } from '../lib/agent-probe-types-defs';
 import { useMcpToolDiscovery } from '../composables/useMcpToolDiscovery';
 import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
 import { buildAgentConfigDefaults, formatPipelineAgentOptionLabel, getAgentConfigOptionValue, getAgentModelValue, getAgentThoughtLevelValue, getEditableAgentConfigOptions, getAgentModeValue, isSessionConfigSelectGroup, setAgentConfigOptionValue, setAgentModelValue, setAgentModeValue, setAgentThoughtLevelValue } from '../composables/pipeline-node-form-helpers';

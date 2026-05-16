@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { ref } from 'vue';
 import { persistAgentProbeCache } from '../../lib/agent-probe-cache';
-import { normalizeAgentProbeResult } from '../../lib/agent-probe-types';
+import { normalizeAgentProbeResult } from '../../lib/agent-probe-normalizers';
 import { useConfigStore } from '../config';
 import {
   AGENT_PROBE_CACHE_TTL_MS,

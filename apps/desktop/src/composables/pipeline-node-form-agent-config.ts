@@ -3,7 +3,7 @@
 import type {
   AgentProbeConfigOption,
   AgentProbeResult,
-} from '../lib/agent-probe-types';
+} from '../lib/agent-probe-types-defs';
 import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
 
 const trim = (value: string) => value.trim();

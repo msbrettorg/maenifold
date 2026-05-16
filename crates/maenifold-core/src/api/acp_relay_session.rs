@@ -1,7 +1,9 @@
 use super::acp_relay::{RelayConfig, RelaySession, SessionLoadParams, SessionSetupParams};
 use super::acp_relay_caps::{AgentCaps, caps_for_agent};
 use super::acp_relay_dispatch::forward_event;
-use super::acp_relay_helpers::{build_modes, resolve_session_cwd, rpc_error};
+use super::acp_relay_helpers::{
+    build_modes, reject_client_mcp_servers, resolve_session_cwd, rpc_error,
+};
 use super::acp_relay_mcp::{prewarm_session, reset_session_connection};
 use agent_client_protocol as acp;
 use axum::extract::ws::{Message, WebSocket};
@@ -282,20 +284,6 @@ pub(super) async fn handle_session_load(
 
 async fn cleanup_failed_session_load(relay: &RelayConfig, app_session_id: &str) {
     let _ = reset_session_connection(relay, app_session_id, Value::Null).await;
-}
-
-fn reject_client_mcp_servers(params: &Value, request_id: Value, method: &str) -> Result<(), Value> {
-    let Some(mcp_servers) = params.get("mcpServers") else {
-        return Ok(());
-    };
-    if mcp_servers.as_array().is_none_or(Vec::is_empty) {
-        return Ok(());
-    }
-    Err(rpc_error(
-        request_id,
-        -32602,
-        format!("{method} does not accept client-provided mcpServers"),
-    ))
 }
 
 #[cfg(test)]

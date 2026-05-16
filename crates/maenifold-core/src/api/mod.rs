@@ -2,6 +2,7 @@ pub mod acp_relay;
 pub(crate) mod acp_relay_caps;
 pub(crate) mod acp_relay_dispatch;
 pub(crate) mod acp_relay_helpers;
+pub(crate) mod acp_relay_lifecycle;
 pub(crate) mod acp_relay_mcp;
 pub(crate) mod acp_relay_prompt;
 pub(crate) mod acp_relay_session;

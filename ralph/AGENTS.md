@@ -103,6 +103,32 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
 
 The PM owns commits and merges to `dev`. Workers report WorkResult output only.
 
+## PM drift-audit recipes
+
+Periodic PM audit to detect worker self-commits that bypassed the pre-commit hook
+(per the "Worker self-commit protection" section above). The Copilot identifier
+lives in the `Co-authored-by:` trailer in the commit BODY, NOT in the author
+field — `git log --author='Copilot'` is a false-negative trap (it matches the
+author name/email, which is `brett` / `ralph-pm@maenifold` on every real commit
+in this repo). Always use `--grep` against the commit body.
+
+```bash
+# Find any commits in the scan window with the Copilot trailer that AREN'T
+# attributable to the human PM or ralph-pm — these would indicate worker
+# self-commits that slipped past the worktree pre-commit hook.
+git log --since='<date>' --pretty='%H %ae %s' --grep='Co-authored-by: Copilot' \
+  | grep -vE '^[0-9a-f]+ (brett|msbrett|ralph-pm)' \
+  | head -30
+
+# Also: check for unmerged worker-* branches that have commits not yet integrated
+# into dev — these could be live worker work the PM forgot to merge.
+git for-each-ref --format='%(refname:short) %(authorname) %(subject)' refs/heads/worker-*
+```
+
+`--author=` matches the commit author field; `--grep=` matches the commit
+message body. These are independent filters — never use `--author='Copilot'` as
+a drift detector since the Copilot identity only appears in the trailer.
+
 ## Worktree convention (PM-orchestrated workers)
 
 When the PM dispatches a worker (blue-team / SWE / red-team / blue-team verifier) to its

@@ -11,6 +11,32 @@ If you encounter issues with the MCP or CLI maenifold tools you should immediate
 
 ---
 
+## Cardinal rules — read first, every iter
+
+These are the rules that get bent first when a PM is tired or in a hurry. If you remember nothing else, remember these. They map to AGENTS.md (repo root) Core Tenets + Gate — The Law rules #14, #15, #16.
+
+1. **WONTFIX is the default for broken premises.** A task whose premise references a thing that doesn't exist, asks you to fix code you don't own, or otherwise can't ship as written gets a plain-English WONTFIX recommendation to the user **in the same iter the bad premise is verified**. Not the next iter. Not after another spec amendment. Not after another "Option B / Option C" rescope memo. Just: "this is broken because X; close as WONTFIX?" If the user authorizes with one word, cascade `gate_Pass` through all stages with stage-waiver notes citing the timestamp. See: T-302.65 sat blocked across 5 iters because each PM held instead of asking; iter-3 closed all 3 sprint-302 blocked tasks in ONE response after asking directly.
+
+2. **No patches on patches.** When the correct fix lives outside our codebase (upstream library, third-party CLI, OS), do NOT layer a translation / shim / heuristic in our code to paper over the external bug. Close as WONTFIX in our scope; file the upstream bug ONLY with user authorization. Counter-example: the T-302.64 proposal to build a `client.rs` translation layer for upstream ACP CLI message shapes was correctly rejected as fragile.
+
+3. **Own what you find. NO LANDMINES.** When you discover a defect, dead premise, broken assumption, or process gap mid-iter, you own it for the rest of the iter. Exactly THREE dispositions are allowed:
+   - (a) **Fix it now** if it's in scope or trivially adjacent.
+   - (b) **Recommend WONTFIX to the user now** in plain English if the premise is dead.
+   - (c) **File a gate task AND write the task ID + recommendation as the FIRST item in `ralph/state/thoughts.md`** so the next PM cannot miss it on bootstrap. Tag the task spec with `discovered_in: T-XXX.Y` AND `discovered_at: <ISO date>`.
+   
+   What is FORBIDDEN: filing a gate task with `blocked: true` + "PM/user decision required" in the body and saying nothing about it in `thoughts.md`. The next PM does not telepathically prioritize what you discovered. They bootstrap, read `thoughts.md`, see no mention, and your discovery rots for iters. T-302.65 = 5 iters of rot before iter-3 surfaced it. Don't be the PM who created the rot.
+
+4. **One-iter block ceiling.** A task in `blocked` state for more than ONE iter without forward motion is itself a defect. On entry to any iter, the PM scans for blocked tasks (`grep -l "^blocked: true" todo/*.md`). For each:
+   - If the blocker is real external dep (user input, upstream release, hardware) → ask the user in plain English **this iter**, with a lettered choice list **including "close as WONTFIX"**. Do not write another spec amendment; do not file another sub-task; do not hold silently.
+   - If the blocker is "premise is wrong" → default recommendation is WONTFIX with a one-paragraph rationale. Surface it this iter; ship the closure when authorized.
+   - Multi-iter holds compound into invisible backlog rot. The next PM cannot fix what they don't see.
+
+5. **Surface in plain English.** When you ask the user a question, use English, not jargon. No "Option A / B / C with three sub-bullets each" walls of text. No internal task IDs without explaining what they are. Phrase the question the way you'd phrase it to a smart colleague who doesn't know the codebase. The user only said "close it" because the PM finally asked in English instead of in spec-amendment-ese.
+
+6. **Lowest sprint number first; lowest task number within sprint first.** No exceptions. New items assume the old ones are done. Skipping ahead WILL cause problems.
+
+---
+
 ## Sprint selection.
 
 Always start with the lowest numbered sprint. Do not mix work between sprints. 
@@ -37,6 +63,22 @@ Within the sprint start with the lowest numbered gate items and work your way up
 **CLI fallback:** `gate status --root .`
 
 **Priority rule:** Tasks are ordered by ID. Lower sprint numbers = higher priority. Always work the lowest-numbered pending task first. T-01.x before T-203.x before T-204.x. **UAT items are in scope** — drive them to completion via CDP testing in an isolated worktree on a non-overlapping CDP port (see `scripts/uat-launch.sh` and the Agent isolation section).
+
+### 3.5. Scan for blocked tasks and dead-premise rot (Cardinal Rule #4)
+
+Before authoring any spec or dispatching any worker, scan the entire backlog for blocked tasks:
+
+```
+grep -l "^blocked: true" todo/*.md
+```
+
+For each result, read the task spec body and the `blocked_reason` frontmatter:
+
+- **Premise is dead** (feature doesn't exist, fix lives in code we don't own, request contradicts architecture) → surface to user this iter in plain English with WONTFIX as the recommended option. Do NOT write another spec amendment. Do NOT hand it to the next PM.
+- **Real external dep with no forward motion since prior iter** (compare `discovered_at` frontmatter against today; if >1 iter old) → also surface this iter with a numbered choice list including "close as WONTFIX".
+- **Real external dep AND user already gave a hold authorization** (e.g., T-309.3's anti-cargo-cult-security hold) → leave in blocked; note in `thoughts.md` so the next PM doesn't re-ask.
+
+Then read `ralph/state/thoughts.md` "⚠️ NEXT-PM FIRST READ" section (if present) — the prior PM should have surfaced anything the user needs to decide. If they did, address those first.
 
 ### 4. Read project conventions
 
@@ -172,6 +214,26 @@ The child tasks ship as separate gate rows + commits + merges. Each child can ru
   - `ralph/state/learnings.md` — APPEND-ONLY. Messages FROM past loops. Append a new `### Lesson` H3 for any discovery worth carrying forward; never edit or delete past entries.
   - `ralph/state/thoughts.md` — REPLACE entirely at iter end. Messages TO the next loop. Rewrite from scratch with whatever the next PM needs to inherit. Do not append.
   - **Iter ledgers / what shipped / throughput tallies** go in `memory://mae-auto/iterations/*` notes via `WriteMemory`, NOT into either state file.
+
+### F.1 Iter-close ritual — no-landmines audit (MANDATORY)
+
+Before declaring the iter closed and committing the `thoughts.md` rewrite, run this audit:
+
+1. **Scan the backlog for tasks filed THIS iter**:
+   ```
+   grep -l "discovered_at: $(date -u +%Y-%m-%d)" todo/*.md
+   ```
+2. **For each result, verify the task ID appears in your new `ralph/state/thoughts.md`** under a `## ⚠️ NEXT-PM FIRST READ` section near the top. If it does not, you have just created a landmine. Add it before commit.
+3. **Scan for blocked tasks**:
+   ```
+   grep -l "^blocked: true" todo/*.md
+   ```
+4. **For each blocked task, verify `thoughts.md` either:**
+   - Surfaces it under `## ⚠️ NEXT-PM FIRST READ` with an explicit recommendation (ask user / WONTFIX / accept residual), OR
+   - Cites the rationale for why it stays blocked (e.g., user-authorized residual risk).
+5. **For each task you closed this iter via WONTFIX cascade**, verify the iter-close memory note under `memory://mae-auto/iterations/*` lists it with the user-authorization timestamp.
+
+If the audit reveals an undocumented mid-iter filing, an unsurfaced blocked task, or a missing memory note — fix it before commit. The iter is not closed until the audit passes.
 
 ---
 
@@ -413,18 +475,45 @@ If `git merge task/T-XXX.Y` conflicts:
 
 ---
 
-## Eat your own dogfood
+## Eat your own dogfood (no landmines edition)
 
-We use maenifold and gate to build maenifold and gate. Every MCP call you make IS a product validation. If a tool feels wrong, that IS a bug — file it.
+We use maenifold and gate to build maenifold and gate. Every MCP call you make IS a product validation. If a tool feels wrong, that IS a bug.
 
-If you encounter a bug, dead code, failing test, usability issue, documentation gap, or improvement opportunity **outside your current task scope** — don't fix it. Create a new gate task for a future iteration:
+**When you discover an issue outside your current task scope, EXACTLY THREE dispositions are allowed** (Cardinal Rule #3 — Own what you find. NO LANDMINES.):
 
-1. Create `todo/T-XXX.{next}-{short-description}.md` with YAML frontmatter (`id`, `title`, `pipeline:` set per the rules above)
-2. Include acceptance criteria and a description of what you found, with concrete reproduction steps if applicable
-3. Run `gate sync --root .` so gate picks it up
-4. Continue with your current task
+### Disposition (a) — Fix it now
 
-Banned actions outside scope: workspace-wide formatters, workspace-wide builds, edits to files outside your `RALPH_TARGET_CRATE` / `RALPH_TARGET_PATH`.
+If the issue is trivially in scope (e.g., a one-line doc typo adjacent to your current work, a stale memory note you just disproved) — fix it in the same iter. Commit it as a separate trivial-hygiene commit so the audit trail is clean.
+
+### Disposition (b) — Recommend WONTFIX to the user now
+
+If the issue is a dead premise (the thing it describes doesn't exist, the fix lives in code we don't own, the request contradicts the architecture) — write a one-paragraph evidence-cited rationale and surface a plain-English WONTFIX recommendation to the user **this iter**. Do not file a "blocked: true" task and walk away.
+
+### Disposition (c) — File a gate task AND surface it to the next PM
+
+If the issue is real and in scope but not adjacent enough to fix this iter:
+
+1. Create `todo/T-XXX.{next}-{short-description}.md` with YAML frontmatter:
+   - `id`, `title`, `pipeline:` (per pipeline rules below)
+   - `discovered_in: T-XXX.Y` (the task you were working on when you found it)
+   - `discovered_at: <ISO 8601 date>` (today)
+   - `recommendation: <fix-by-date | wontfix | defer-until-date | needs-user-input>`
+2. Include acceptance criteria and concrete reproduction steps.
+3. Run `gate sync --root .` so gate picks it up.
+4. **Write the task ID + your one-line recommendation as a bullet in `ralph/state/thoughts.md` under a top-section heading `## ⚠️ NEXT-PM FIRST READ — discovered this iter`.** This is non-negotiable — without it, the next PM bootstraps blind to your discovery.
+5. Continue with your current task.
+
+### Forbidden — these are landmines
+
+- Filing a gate task with `blocked: true` + "PM/user decision required" in the body and saying NOTHING about it in `thoughts.md`. The next PM does not telepathically prioritize what you discovered.
+- Filing a gate task without `discovered_in` / `discovered_at` frontmatter tags. Multi-iter rot needs to be visible at a glance.
+- "I'll let the next PM ask the user" — if you can ask the user this iter, you ask this iter. Multi-iter handoffs of decisions compound into invisible backlog rot. T-302.65 sat blocked across 5 iters because each PM thought the next would handle it. Don't be PM #6.
+
+### Banned actions outside scope
+
+- Workspace-wide formatters.
+- Workspace-wide builds.
+- Edits to files outside your `RALPH_TARGET_CRATE` / `RALPH_TARGET_PATH` for code changes (constitution/spec/learnings edits inside `ralph/` are fine PM-direct work).
 
 ---
 

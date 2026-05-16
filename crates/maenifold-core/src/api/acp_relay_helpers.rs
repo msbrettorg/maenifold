@@ -88,6 +88,24 @@ pub(super) fn rpc_error(id: Value, code: i64, message: impl Into<String>) -> Val
     json!({"jsonrpc": "2.0", "id": id, "error": {"code": code, "message": message.into()}})
 }
 
+pub(super) fn reject_client_mcp_servers(
+    params: &Value,
+    request_id: Value,
+    method: &str,
+) -> Result<(), Value> {
+    let Some(mcp_servers) = params.get("mcpServers") else {
+        return Ok(());
+    };
+    if mcp_servers.as_array().is_none_or(Vec::is_empty) {
+        return Ok(());
+    }
+    Err(rpc_error(
+        request_id,
+        -32602,
+        format!("{method} does not accept client-provided mcpServers"),
+    ))
+}
+
 pub(super) async fn send_json(
     sender: &mut futures_util::stream::SplitSink<WebSocket, Message>,
     payload: Value,

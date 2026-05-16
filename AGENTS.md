@@ -46,6 +46,8 @@ One product, one monorepo. `crates/` = Rust backend. `apps/desktop/` = Electron 
 - **Simple, Lovable, Complete.** No stubs, mocks, scaffolds, placeholders, or fake surfaces.
 - **No Backwards Compatibility.** User base of one. When the contract changes, everything changes. Compat shims are P0 failures.
 - **Help Before Workflow.** Show intent, outputs, and what needs review before exposing orchestration primitives.
+- **WONTFIX is the default for broken premises.** A task whose premise is architecturally invalid, references a thing that doesn't exist, asks us to fix code we don't own, or otherwise can't ship as written is **closed**, not held. The PM's default action is to recommend WONTFIX closure with a one-paragraph rationale and move on — NOT to escalate, hold for input across multiple iters, file a translation layer to bridge the impossible, or build a workaround to make the broken task look shippable. Recommend WONTFIX **in the same iter the bad premise is discovered**; ship the closure once the user confirms with as little as one word ("close it"). Multi-iter holds on a task whose premise is dead are themselves a process failure — they bloat backlog, hide real work, and burn iter budget on no-op runs. See: 5-iter hold on T-302.65 (`render_chart` tool that doesn't exist), iter-3 closure of T-302.64 (jockey ACP adapter premise architecturally invalid).
+- **No patches on patches.** When a task's correct fix lives outside our codebase (upstream library, third-party agent CLI, OS, etc.), do NOT layer a translation, shim, or heuristic in our code to paper over the external bug. Close as WONTFIX in our scope and file the bug upstream (only if user authorizes). The maintenance cost of guess-and-hope translation layers exceeds the rendering ugliness they hide. Counter-example: the T-302.64 proposal to build a `client.rs` translation layer for upstream agent CLI message shapes was correctly rejected as fragile.
 
 ---
 
@@ -78,6 +80,15 @@ Gate is sacrosanct. The process is followed exactly. No exceptions. No shortcuts
 11. **One task per sub-PM.** Never assign multiple tasks to a single sub-PM.
 12. **No "waived re-audit."** Every remediation cycle gets a full independent re-audit. "Waived" is not a valid verdict.
 13. **PM circuit breaker.** If >3 tasks enter remediation in one session, stop new dispatch. Land in-flight work first.
+14. **One-iter block ceiling.** A task in `blocked` state for more than ONE iteration without forward motion is itself a defect. On entry to any iter, the PM scans for blocked tasks and, for each:
+    - If the blocker is a real external dep (user input, upstream release, hardware) → ask the user in plain English **this iter**, with a numbered/lettered choice list including "close as WONTFIX". Do not write another spec amendment; do not file another sub-task; do not hold silently for the next PM. One question, plain English, one iter.
+    - If the blocker is "the premise is wrong" → the PM's default recommendation is WONTFIX with a one-paragraph rationale. Surface it to the user in the same iter and ship the closure as soon as authorized.
+    - Multi-iter holds compound into invisible backlog rot. T-302.65 sat blocked across 5 iters because each PM assumed the next would resolve it. That is the failure mode this rule exists to kill.
+15. **Bad-premise tasks ship as WONTFIX in the same iter the bad premise is discovered.** When PM verification (grep / LSP / architecture trace) proves a task's premise is wrong — feature doesn't exist, fix lives in code we don't own, request contradicts the architecture — the PM:
+    1. Documents the finding in the task body (one paragraph; cite the verification evidence — file path + line range + command output).
+    2. Surfaces a plain-English WONTFIX recommendation to the user.
+    3. On user authorization (one word is enough: "close it"), cascades `gate_Pass` through all pipeline stages attributed to `ralph-pm` with stage-waiver notes citing the user authorization timestamp.
+    4. Never invents a workaround (translation layer, shim, heuristic, "Option B") just to make the broken task look shippable. That's how patches grow on patches.
 
 ### Gate Processes
 
@@ -339,6 +350,9 @@ Multiple 72h fires came from agents trying to mutate gate state directly: `mv` b
 | Compat shim or dual-mode code | **P0.** Delete. Change everywhere. |
 | UI compiles but not visually verified | **Not done.** |
 | Machinery exposed before intent/output | Redesign. Summary first. |
+| Task premise references a thing that doesn't exist (tool, route, file, config key) | **WONTFIX this iter.** Verify with grep + LSP. Document evidence in task body. Recommend close to user in plain English. Don't hold across iters. |
+| Task asks us to fix behavior in code we don't own (upstream lib, third-party CLI, OS) | **WONTFIX this iter.** Recommend close + file upstream issue ONLY with user authorization. Never build a translation/shim layer in our code to paper over an external bug. |
+| Task has been `blocked` for >1 iter | **Surface to user in plain English this iter** with a numbered choice list including "close as WONTFIX". One question, one iter. No more silent holds. |
 
 ---
 

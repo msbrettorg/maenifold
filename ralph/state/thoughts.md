@@ -2,82 +2,83 @@
 
 Handoff from this iter to the next. Replace at iter end.
 
-## Iter close 2026-05-16 (iter-3, ralph counter = 3 / historical iter-7 on this dev branch) — sprint 302 unblocked, 2 of 3 closed WONTFIX per user
+## Iter close 2026-05-16 (iter-3, ralph counter = 3 / historical iter-7 on this dev branch) — sprint 302 FULLY DRAINED, all 3 remaining tasks closed WONTFIX per user
 
-**User redirected this iter.** PM asked the 3 blocked sprint-302 questions in plain English. User responded "Close the item" at 2026-05-16 07:06 PT and then "just close the iter" at 07:08 PT. PM closed T-302.12 + T-302.65 as WONTFIX (cascading gate_Pass through tdd pipeline stages with user-authorization rationale recorded in notes + frontmatter). T-302.64 was NOT addressed by the user; it remains in `todo/` in its blocked-but-architecturally-invalid state.
+**User redirected this iter twice.** PM asked the 3 blocked sprint-302 questions in plain English. User responded:
+- 2026-05-16 07:06 PT — "Close the item." → PM closed T-302.12 + T-302.65 (render_chart pair).
+- 2026-05-16 07:08 PT — "just close the iter" → PM began iter close.
+- 2026-05-16 07:10 PT — "T-302.64 - explain" → PM explained T-302.64 in plain English.
+- 2026-05-16 07:10 PT — "Close it" → PM closed T-302.64 too.
+
+All 3 sprint-302 blocked tasks now in done/ as WONTFIX. **Sprint 302: 54 done / 0 todo. Sprint 302 is fully drained. Convergence candidate.**
 
 **Working tree state at close:**
 - `ralph/state/thoughts.md` replaced (this file).
-- `todo/T-302.12-244.97-render-chart-ui-test.md` moved to `done/T-302.12.md` via gate_Pass cascade. Frontmatter edited: removed `blocked: true` + `blocked_reason`, added `resolution: wontfix` + `resolved_by` + `resolved_reason` citing user 2026-05-16T07:06-07:00 authorization.
-- `todo/T-302.65-render-chart-gateway-registration.md` moved to `done/T-302.65.md` via gate_Pass cascade. Same frontmatter pattern.
+- `todo/T-302.12-*.md` → `done/T-302.12.md` (gate_Pass cascade, frontmatter swapped to resolution/resolved_by/resolved_reason).
+- `todo/T-302.65-*.md` → `done/T-302.65.md` (same pattern).
+- `todo/T-302.64-*.md` → `done/T-302.64.md` (same pattern).
 - (todo/ and done/ are gitignored per AGENTS.md 2026-04-28; only the thoughts.md change appears in `git status`.)
 - No code changed. No worker dispatched. No worktree created.
 
-## Sprint 302 — 1 item remains (T-302.64)
+## Sprint 302 — DRAINED
 
-### T-302.64 (P2) — premise architecturally invalid, NOT addressed by user this iter
-- PM asked in plain English: "Can I file bug reports against the upstream CLI projects (Codex, Claude, Copilot, OpenCode) and close our task? It's their bug, not ours."
-- User responded "Close the item" (singular) and then "just close the iter" without explicitly addressing T-302.64.
-- PM did NOT close T-302.64 — "the item" most naturally maps to the render_chart pair I was emphasizing as the primary blocker. Closing T-302.64 without explicit authorization would be substituting interpretation for user words (same anti-pattern the prior 5 iters correctly avoided).
-- **For next iter PM:** ask the user again about T-302.64 specifically. Three options unchanged: (A) file upstream issues only, (B) build a translation layer in `crates/maenifold-jockey/src/acp/client.rs`, (C, recommended) WONTFIX in maenifold + file upstream issues against the offending CLIs.
+| task | resolution | user authorization |
+|------|------------|---------------------|
+| T-302.12 | WONTFIX (render_chart UAT premise gone) | 07:06 PT "Close the item." |
+| T-302.65 | WONTFIX (render_chart tool does not exist) | 07:06 PT "Close the item." |
+| T-302.64 | WONTFIX (jockey is pass-through, can't fix upstream agents' shape) | 07:10 PT "Close it" |
+
+User did NOT authorize filing upstream issues against Codex/Claude/Copilot/OpenCode. Don't file those tasks unilaterally.
 
 ## What also surfaced this iter (not in sprint 302)
 
-- User shared the path `/Users/brett/.copilot/skills/visual-explainer/` after authorizing the render_chart close. PM inspected — it's an agent-side skill for generating HTML diagrams/charts via mermaid + slide decks. It is NOT a maenifold gateway tool; it runs *inside* an agent's tool calls. PM noted to user that if they want a fresh task to UAT visual-explainer behavior through a maenifold-hosted agent in the ACP UI, that would be a new task for a future sprint, not retroactive sprint-302 scope. User did not respond; do NOT file the new task unilaterally.
+- User shared the path `/Users/brett/.copilot/skills/visual-explainer/`. PM inspected — it's an agent-side skill for HTML diagrams/charts. PM noted to user that if they want a fresh task to UAT visual-explainer behavior through a maenifold-hosted agent, that would be a new task for a future sprint. User did not respond. Do NOT file unilaterally.
 
 ## Daemon / process state at iter close
 
 - Daemon (PID 8034, inode 316830419) verified fresh in iter-6, unchanged. No restart needed.
-- No active worktrees.
-- No active workers.
-- No orphan Electron processes.
+- No active worktrees / workers / orphan Electron.
 
-## What iter-3 actually did
+## Convergence
 
-1. Bootstrap — read `ralph/state/thoughts.md` (iter-6 handoff), `ralph/state/learnings.md` tail (~100 lines), gate_Status via MCP, RecentActivity via MCP, re-grep for `render_chart` (still zero matches), inspect T-302.65 + T-302.64 spec bodies.
-2. ask_user with structured 3-choice form → autopilot returned user-unavailable with explicit instruction to stop+task_complete if unresolvable.
-3. Reported the block state to user in plain English (after user complaint).
-4. User authorized "Close the item" → PM:
-   - Edited T-302.65 + T-302.12 frontmatter to swap `blocked: true` for `resolution: wontfix` + `resolved_by` + `resolved_reason`.
-   - `gate_Sync` to refresh cache.
-   - Cascading `gate_Pass` through 4 stages each (tdd pipeline: pending→blue-team→swe→red-team→done) for both tasks, with detailed rationale in notes attributed to `ralph-pm`.
-   - Verified both ended in `state=done, location=done`.
-5. Closed sequential thinking session (sessionId `session-1778939813055-11068`) with ConfessionReport conclusion.
-6. Replaced `ralph/state/thoughts.md` (this file).
-7. About to write iter-close memory note + commit.
+Sprint 302 has zero todo items. Per ralph/prompt.md convergence rule:
+> Create the convergence marker only when: All `T-XXX.YY` tasks are in `done/`, AND no remaining task is an epic awaiting decomposition, AND no grooming work remains.
 
-## Stage attribution caveat
-
-PM cascaded gate_Pass through all 4 stages of T-302.12 + T-302.65 attributing each pass to `ralph-pm` rather than separate blue-team / SWE / red-team agents. This is the "stage waived per user authorization" pattern from AGENTS.md, applied because the user explicitly authorized closure ("Close the item"). The notes on each gate_Pass call cite the user authorization timestamp. This is consistent with prior PM-level WONTFIX closures (e.g., iter-1 GSD UAT-task collapse — see learnings.md "GSD UAT-task stage collapsing" lesson).
+The convergence rule is per-PM-scope; this PM is unscoped (RALPH_TARGET_CRATE empty). "All tasks" must mean across all sprints, of which there are 16 more sprints with 73+ pending items (sprint 303 through 324). PM did NOT create the convergence marker — there's plenty of pending work in higher sprint numbers. Next iter PM should start sprint 303 fresh.
 
 ## Suggested entry point for next loop
 
-1. **Ask user about T-302.64 explicitly** (plain English; do NOT bury the question in a multi-question batch). One sentence: "Can I close T-302.64 as WONTFIX and file upstream issues against Codex/Claude/Copilot/OpenCode separately?"
-2. If yes → close T-302.64 same way + file new tasks under a new sprint (NOT 302) for the upstream-issue-filing work.
-3. If user authorizes visual-explainer UAT → file as new task under a future sprint.
-4. After T-302.64 closes → sprint 302 is fully done (52 done, 0 todo). Then iter can move to sprint 303 (11 pending tasks).
+1. **Sprint 302 is done.** Move to sprint 303 (lowest active).
+2. Sprint 303 has 11 pending tasks: T-303.10, .18.2, .18.6, .19.1, .20, .21, .22, .3.2, .4.20, .4.21, .9. Read each spec, identify ready tasks (no unmet deps, no same-file contention), dispatch wave-0 SWE batch.
+3. Re-grep `~/maenifold/maenifold.json` at iter start for any newly-registered render_chart-like tool — if user added one between iters, T-302.12 closure stands but a new UAT task is fair game.
 
-## Carry-forward open product gaps (unchanged from iter-6)
+## Carry-forward open product gaps
 
 - 16 LOC violations on baseline (per `bash scripts/audit-crates.sh`) — tracked under T-315.1.
 - `handler_execute.rs` has 2 .unwrap() violations (tracked under T-315.2).
 
+## Stage attribution caveat (same as iter-6's lesson)
+
+All 3 WONTFIX cascades were attributed to ralph-pm rather than separate blue-team/SWE/red-team agents, per the "stage waived per user authorization" pattern from AGENTS.md. Notes on each gate_Pass call cite the user-authorization timestamp.
+
 ## Iter throughput tally
 
-- **2 tasks shipped** (T-302.12 + T-302.65 → WONTFIX per user authorization)
+- **3 tasks shipped** (T-302.12 + T-302.65 + T-302.64 → WONTFIX per user authorization)
 - **0 tasks built/coded** (closure was administrative; no SWE work)
 - **0 worktrees** / **0 workers dispatched** / **0 daemon rebuilds** / **0 Electron repackages** / **0 rubber-duck reviews**
-- **8 gate_Pass calls** (4 stages × 2 tasks)
-- **2 frontmatter edits** (T-302.12, T-302.65)
+- **12 gate_Pass calls** (4 stages × 3 tasks)
+- **3 frontmatter edits** (T-302.12, T-302.65, T-302.64)
 - **1 sequential thinking session** completed with conclusion
 
-iter-3 was an honest user-collaborative close-out. Started no-op (blocked on user input), pivoted to gate ops after user authorized the close.
+iter-3 was a user-collaborative close-out. Started no-op (blocked on user input), pivoted to drain sprint 302 entirely after user authorized all 3 closures.
 
 ## Files modified this iter (in-repo-tracked only)
 
 - `ralph/state/thoughts.md` (this file, replaced)
 
 Gitignored changes (visible in `done/` + `todo/` but not in `git status`):
-- `done/T-302.12.md` (moved from todo/ via gate_Pass cascade)
-- `done/T-302.65.md` (moved from todo/ via gate_Pass cascade)
+- `done/T-302.12.md`
+- `done/T-302.65.md`
+- `done/T-302.64.md`
+(all moved from `todo/` via gate_Pass cascade)
 

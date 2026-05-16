@@ -29,6 +29,7 @@ mod dispatch_workflow;
 mod durable_retry_tests;
 mod engine_cascade;
 mod engine_ready;
+mod engine_ready_eval;
 #[cfg(test)]
 mod engine_ready_join_policy_tests;
 #[cfg(test)]
@@ -109,6 +110,7 @@ mod orphan_recovery_tests;
 mod quarantine;
 mod resource_notifications;
 mod session_delete_files;
+mod session_delete_files_orphan;
 mod session_io;
 mod session_read;
 mod session_write;

@@ -59,6 +59,15 @@ pub(super) fn apply_outcome(args: StageNoteArgs, outcome: &str) -> Result<Value,
             actual: state.state.clone(),
         });
     }
+    if args.expected_stage.is_none() {
+        let initial = definition.initial_state()?;
+        if state.state != initial {
+            return Err(GateError::ExpectedStageRequired {
+                task_id: args.task_id,
+                current_stage: state.state.clone(),
+            });
+        }
+    }
     let transition = match outcome {
         "pass" => StateMachine::next_on_pass(&state.state, &definition)?,
         "fail" => StateMachine::next_on_fail(&state.state, &definition)?,

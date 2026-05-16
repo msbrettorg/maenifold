@@ -218,8 +218,14 @@ fn status_row_includes_priority_sprint_and_last_updated_at_when_present() {
     .expect("write task");
 
     GateLifecycle::pass(note(root.path(), "T-250.99", "pm", "first pass")).expect("pass 1");
-    let row =
-        GateLifecycle::pass(note(root.path(), "T-250.99", "swe", "second pass")).expect("pass 2");
+    let row = GateLifecycle::pass(note_with_expected_stage(
+        root.path(),
+        "T-250.99",
+        "swe",
+        "swe",
+        "second pass",
+    ))
+    .expect("pass 2");
 
     assert_eq!(row["priority"], "P1", "priority should be P1");
     assert_eq!(row["sprint"], 250u64, "sprint should be 250");

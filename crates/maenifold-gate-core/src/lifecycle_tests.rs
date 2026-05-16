@@ -37,8 +37,14 @@ fn pass_and_fail_apply_state_machine_transitions() {
         GateLifecycle::pass(note(root.path(), "T-237.2", "pm", "ready")).expect("pass succeeds");
     assert_eq!(after_pass["state"], "swe");
 
-    let after_fail = GateLifecycle::fail(note(root.path(), "T-237.2", "swe", "needs spec work"))
-        .expect("fail succeeds");
+    let after_fail = GateLifecycle::fail(note_with_expected_stage(
+        root.path(),
+        "T-237.2",
+        "swe",
+        "swe",
+        "needs spec work",
+    ))
+    .expect("fail succeeds");
     assert_eq!(after_fail["state"], "pending");
 
     let text = fs::read_to_string(task_path(root.path(), "T-237.2", "todo")).expect("read task");
@@ -144,6 +150,8 @@ fn read_commands_do_not_mutate_task_files() {
 #[path = "lifecycle_sync_status_tests.rs"]
 mod sync_status;
 
+#[path = "lifecycle_cascade_tests.rs"] mod cascade_tests;
+
 #[path = "lifecycle_reopen_tests.rs"] mod reopen;
 fn new_root() -> TempDir {
     let root = tempfile::tempdir().expect("temp root");
@@ -212,7 +220,14 @@ fn status_summary_returns_compact_per_task_rows() {
     }
     GateLifecycle::pass(note(root.path(), "T-303.1", "pm", "ready")).expect("pass");
     GateLifecycle::pass(note(root.path(), "T-303.2", "pm", "ready")).expect("pass");
-    GateLifecycle::fail(note(root.path(), "T-303.2", "swe", "retry")).expect("fail");
+    GateLifecycle::fail(note_with_expected_stage(
+        root.path(),
+        "T-303.2",
+        "swe",
+        "swe",
+        "retry",
+    ))
+    .expect("fail");
 
     let rows = GateLifecycle::status(StatusArgs {
         context: context(root.path()),

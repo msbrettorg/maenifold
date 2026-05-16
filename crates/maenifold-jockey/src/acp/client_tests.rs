@@ -1,8 +1,10 @@
 use super::JockeyUiClient;
+use super::super::worker::AcpEvent;
 use agent_client_protocol::{self as acp, Client};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
+use tokio::sync::mpsc;
 
 fn test_root(name: &str) -> PathBuf {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -19,6 +21,29 @@ fn client(root: &Path) -> JockeyUiClient {
         auto_approve: false,
         workspace_root: root.to_path_buf(),
     }
+}
+
+fn client_with_delta(root: &Path) -> (JockeyUiClient, mpsc::Receiver<AcpEvent>) {
+    let (tx, rx) = mpsc::channel(32);
+    (
+        JockeyUiClient {
+            delta_slot: Arc::new(Mutex::new(Some(tx))),
+            auto_approve: false,
+            workspace_root: root.to_path_buf(),
+        },
+        rx,
+    )
+}
+
+fn text_content(text: &str) -> acp::ToolCallContent {
+    acp::ToolCallContent::from(acp::ContentBlock::Text(acp::TextContent::new(text)))
+}
+
+fn terminal_blocks(content: &[Value]) -> Vec<&Value> {
+    content
+        .iter()
+        .filter(|item| item.get("type").and_then(Value::as_str) == Some("terminal"))
+        .collect()
 }
 
 #[tokio::test]
@@ -139,5 +164,137 @@ async fn rejects_parent_components_before_creating_intermediates() {
 
     assert!(result.unwrap_err().to_string().contains(".."));
     assert!(!outside.exists());
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+async fn execute_text_content_translated_to_terminal() {
+    let root = test_root("execute-terminal");
+    let (client, mut rx) = client_with_delta(&root);
+    let update = acp::SessionUpdate::ToolCall(
+        acp::ToolCall::new("tc-exec-1", "run ls")
+            .kind(acp::ToolKind::Execute)
+            .status(acp::ToolCallStatus::Completed)
+            .content(vec![text_content("ls -la output...")]),
+    );
+
+    client
+        .session_notification(acp::SessionNotification::new("sess-1", update))
+        .await
+        .unwrap();
+    let event = rx.recv().await.unwrap();
+
+    let AcpEvent::ToolCall {
+        content: Some(content),
+        ..
+    } = event
+    else {
+        panic!("expected ToolCall event with content");
+    };
+    let terminals = terminal_blocks(&content);
+    assert!(!terminals.is_empty(), "expected synthesized terminal block");
+    let terminal_id = terminals[0]
+        .get("terminalId")
+        .and_then(Value::as_str)
+        .expect("terminal block should include terminalId");
+    assert!(terminal_id.contains("tc-exec-1"));
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+async fn execute_update_text_content_translated_to_terminal() {
+    let root = test_root("execute-update-terminal");
+    let (client, mut rx) = client_with_delta(&root);
+    let update = acp::SessionUpdate::ToolCallUpdate(acp::ToolCallUpdate::new(
+        "tc-exec-update-1",
+        acp::ToolCallUpdateFields::new()
+            .kind(acp::ToolKind::Execute)
+            .status(acp::ToolCallStatus::Completed)
+            .content(vec![text_content("cargo build output...")]),
+    ));
+
+    client
+        .session_notification(acp::SessionNotification::new("sess-1", update))
+        .await
+        .unwrap();
+    let event = rx.recv().await.unwrap();
+
+    let AcpEvent::ToolCallUpdate {
+        content: Some(content),
+        ..
+    } = event
+    else {
+        panic!("expected ToolCallUpdate event with content");
+    };
+    let terminals = terminal_blocks(&content);
+    assert!(!terminals.is_empty(), "expected synthesized terminal block");
+    let terminal_id = terminals[0]
+        .get("terminalId")
+        .and_then(Value::as_str)
+        .expect("terminal block should include terminalId");
+    assert!(terminal_id.contains("tc-exec-update-1"));
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+async fn non_execute_text_content_not_translated() {
+    let root = test_root("read-content");
+    let (client, mut rx) = client_with_delta(&root);
+    let update = acp::SessionUpdate::ToolCall(
+        acp::ToolCall::new("tc-read-1", "read file")
+            .kind(acp::ToolKind::Read)
+            .status(acp::ToolCallStatus::Completed)
+            .content(vec![text_content("file contents...")]),
+    );
+
+    client
+        .session_notification(acp::SessionNotification::new("sess-1", update))
+        .await
+        .unwrap();
+    let event = rx.recv().await.unwrap();
+
+    let AcpEvent::ToolCall {
+        content: Some(content),
+        ..
+    } = event
+    else {
+        panic!("expected ToolCall event with content");
+    };
+    assert_eq!(content.len(), 1);
+    assert_eq!(content[0].get("type").and_then(Value::as_str), Some("content"));
+    assert!(terminal_blocks(&content).is_empty());
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+async fn execute_with_existing_terminal_content_not_double_translated() {
+    let root = test_root("existing-terminal");
+    let (client, mut rx) = client_with_delta(&root);
+    let update = acp::SessionUpdate::ToolCall(
+        acp::ToolCall::new("tc-exec-existing-1", "run command")
+            .kind(acp::ToolKind::Execute)
+            .status(acp::ToolCallStatus::Completed)
+            .content(vec![acp::ToolCallContent::Terminal(acp::Terminal::new("existing-term"))]),
+    );
+
+    client
+        .session_notification(acp::SessionNotification::new("sess-1", update))
+        .await
+        .unwrap();
+    let event = rx.recv().await.unwrap();
+
+    let AcpEvent::ToolCall {
+        content: Some(content),
+        ..
+    } = event
+    else {
+        panic!("expected ToolCall event with content");
+    };
+    let terminals = terminal_blocks(&content);
+    assert_eq!(terminals.len(), 1);
+    assert_eq!(
+        terminals[0].get("terminalId").and_then(Value::as_str),
+        Some("existing-term")
+    );
     let _ = std::fs::remove_dir_all(root);
 }

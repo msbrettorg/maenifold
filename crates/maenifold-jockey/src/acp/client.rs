@@ -27,6 +27,21 @@ pub(super) struct JockeyUiClient {
     pub(super) workspace_root: PathBuf,
 }
 
+fn maybe_synthesize_terminal(kind: &acp::ToolKind, tool_call_id: &str, content: Vec<acp::ToolCallContent>) -> Vec<acp::ToolCallContent> {
+    if *kind != acp::ToolKind::Execute
+        || content.iter().any(|c| matches!(c, acp::ToolCallContent::Terminal(_)))
+        || !content.iter().any(|c| {
+            matches!(c, acp::ToolCallContent::Content(ct)
+                if matches!(ct.content, acp::ContentBlock::Text(_)))
+        })
+    {
+        return content;
+    }
+    let mut augmented = content;
+    augmented.push(acp::ToolCallContent::Terminal(acp::Terminal::new(format!("synth-term-{tool_call_id}"))));
+    augmented
+}
+
 #[async_trait::async_trait(?Send)]
 impl acp::Client for JockeyUiClient {
     async fn request_permission(
@@ -121,66 +136,69 @@ impl acp::Client for JockeyUiClient {
                 }
                 AcpEvent::ThoughtDelta { text }
             }
-            acp::SessionUpdate::ToolCall(tc) => AcpEvent::ToolCall {
-                tool_call_id: tc.tool_call_id.to_string(),
-                title: tc.title.clone(),
-                tool_kind: serde_json::to_value(&tc.kind)
-                    .and_then(|v| Ok(v.as_str().unwrap_or("unknown").to_string()))
-                    .unwrap_or_else(|_| "unknown".to_string()),
-                status: serde_json::to_value(&tc.status)
-                    .and_then(|v| Ok(v.as_str().unwrap_or("pending").to_string()))
-                    .unwrap_or_else(|_| "pending".to_string()),
-                content: if tc.content.is_empty() {
-                    None
-                } else {
-                    Some(
-                        tc.content
+            acp::SessionUpdate::ToolCall(tc) => {
+                let tool_call_id = tc.tool_call_id.to_string();
+                let content = maybe_synthesize_terminal(&tc.kind, &tool_call_id, tc.content);
+                AcpEvent::ToolCall {
+                    tool_call_id,
+                    title: tc.title.clone(),
+                    tool_kind: serde_json::to_value(&tc.kind)
+                        .and_then(|v| Ok(v.as_str().unwrap_or("unknown").to_string()))
+                        .unwrap_or_else(|_| "unknown".to_string()),
+                    status: serde_json::to_value(&tc.status)
+                        .and_then(|v| Ok(v.as_str().unwrap_or("pending").to_string()))
+                        .unwrap_or_else(|_| "pending".to_string()),
+                    content: (!content.is_empty()).then(|| {
+                        content
                             .iter()
                             .map(|c| serde_json::to_value(c).unwrap_or(json!({})))
-                            .collect(),
-                    )
-                },
-                locations: if tc.locations.is_empty() {
-                    None
-                } else {
-                    Some(
+                            .collect()
+                    }),
+                    locations: (!tc.locations.is_empty()).then(|| {
                         tc.locations
                             .iter()
                             .map(|loc| serde_json::to_value(loc).unwrap_or(json!({})))
-                            .collect(),
-                    )
-                },
-                raw_input: cap_raw(tc.raw_input.clone()),
-                raw_output: cap_raw(tc.raw_output.clone()),
-            },
-            acp::SessionUpdate::ToolCallUpdate(tcu) => AcpEvent::ToolCallUpdate {
-                tool_call_id: tcu.tool_call_id.to_string(),
-                tool_kind: tcu.fields.kind.map(|k| {
-                    serde_json::to_value(&k)
-                        .and_then(|v| Ok(v.as_str().unwrap_or("").to_string()))
-                        .unwrap_or_default()
-                }),
-                status: tcu.fields.status.map(|s| {
-                    serde_json::to_value(&s)
-                        .and_then(|v| Ok(v.as_str().unwrap_or("").to_string()))
-                        .unwrap_or_default()
-                }),
-                title: tcu.fields.title.clone(),
-                content: tcu.fields.content.as_ref().map(|blocks| {
-                    blocks
-                        .iter()
-                        .map(|b| serde_json::to_value(b).unwrap_or(json!({})))
-                        .collect()
-                }),
-                locations: tcu.fields.locations.as_ref().map(|items| {
-                    items
-                        .iter()
-                        .map(|loc| serde_json::to_value(loc).unwrap_or(json!({})))
-                        .collect()
-                }),
-                raw_input: cap_raw(tcu.fields.raw_input.clone()),
-                raw_output: cap_raw(tcu.fields.raw_output.clone()),
-            },
+                            .collect()
+                    }),
+                    raw_input: cap_raw(tc.raw_input.clone()),
+                    raw_output: cap_raw(tc.raw_output.clone()),
+                }
+            }
+            acp::SessionUpdate::ToolCallUpdate(tcu) => {
+                let tool_call_id = tcu.tool_call_id.to_string();
+                let content = tcu.fields.content.map(|blocks| match tcu.fields.kind.as_ref() {
+                    Some(kind) => maybe_synthesize_terminal(kind, &tool_call_id, blocks),
+                    None => blocks,
+                });
+                AcpEvent::ToolCallUpdate {
+                    tool_call_id,
+                    tool_kind: tcu.fields.kind.map(|k| {
+                        serde_json::to_value(&k)
+                            .and_then(|v| Ok(v.as_str().unwrap_or("").to_string()))
+                            .unwrap_or_default()
+                    }),
+                    status: tcu.fields.status.map(|s| {
+                        serde_json::to_value(&s)
+                            .and_then(|v| Ok(v.as_str().unwrap_or("").to_string()))
+                            .unwrap_or_default()
+                    }),
+                    title: tcu.fields.title.clone(),
+                    content: content.map(|blocks| {
+                        blocks
+                            .iter()
+                            .map(|b| serde_json::to_value(b).unwrap_or(json!({})))
+                            .collect()
+                    }),
+                    locations: tcu.fields.locations.as_ref().map(|items| {
+                        items
+                            .iter()
+                            .map(|loc| serde_json::to_value(loc).unwrap_or(json!({})))
+                            .collect()
+                    }),
+                    raw_input: cap_raw(tcu.fields.raw_input.clone()),
+                    raw_output: cap_raw(tcu.fields.raw_output.clone()),
+                }
+            }
             acp::SessionUpdate::Plan(plan) => AcpEvent::Plan {
                 entries: plan
                     .entries

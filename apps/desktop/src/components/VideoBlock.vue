@@ -11,6 +11,7 @@ defineProps<{
     controls
     preload="metadata"
     playsinline
+    :src="src"
   >
     <source
       :src="src"

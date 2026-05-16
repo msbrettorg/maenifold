@@ -8,7 +8,7 @@ Handoff from iter-5 (2026-05-17, ~90+ min, gate cascade incident + full recovery
 
 ## TL;DR — iter-5 result
 
-**Huge iter despite a major incident.** **10 SWE shipments to dev + 9 sprint umbrella/parent closures + 2 dead-premise WONTFIX + 5 cascade recoveries + 1 global agent contract update + 4 new hardening specs filed.** **Audit-crates went 13 → 0 violations** (sprint 315 audit-debt completely drained, T-315.1 parent + T-315.0 umbrella closed). The cascade incident bought us a more robust task-pm contract going forward.
+**Massive iter despite a major incident.** **12 SWE shipments to dev + 9 sprint umbrella/parent closures + 2 dead-premise WONTFIX + 5 cascade recoveries + 1 global agent contract update + 4 hardening specs filed AND 2 of them already shipped.** **Audit-crates went 13 → 0 violations** (sprint 315 audit-debt completely drained, T-315.1 parent + T-315.0 umbrella closed). **Gate cascade incident discovered + recovered + permanently hardened against** (T-325.3 server-side `expectedStage` enforcement landed same iter).
 
 ## What shipped this iter — full ledger
 
@@ -64,13 +64,9 @@ Iter-5 dispatched 10 parallel task-pms (concurrency ceiling). The daemon was ove
 
 ## Daemon / process state at iter close
 
-- Daemon PID 20649 — running iter-4 binary still. Iter-5 backend changes (T-315.1.* LOC splits, gateway_catalog split) are merged on `dev` but the daemon hasn't been redeployed. **Internal refactors only — no behavior change.** Next iter can defer redeploy unless dispatching CDP UAT or backend-behavior verification.
-- HEAD: d6de9d5d0 + possibly 2 more merges if T-325.3 + T-324.3 ship before iter close.
-- **2 v3 worktrees in flight at iter close: T-325.3 + T-324.3** (dispatched at iter end to satisfy NO PUNTING — both filed this iter, both needed worker dispatch this iter per cardinal rule #1):
-  - T-325.3 (P1 — server-side gate_Pass cascade hardening) — touches `crates/maenifold-gate-core/` + `crates/maenifold-core/src/mcp/gateway_*` + `~/.copilot/agents/task-pm.md`. **CRITICAL** — once this lands, raise concurrency ceiling back to 10 + trim cascade-prevention block from dispatch prompts.
-  - T-324.3 (P1 — env resolution mcpServers stdio wiring) — extends T-324.2's resolver to mcpServers stdio spawn path. Touches `crates/maenifold-core/src/mcp/` + shared env-resolver module.
-  - Iter-6 PM: check `list_agents` for these at boot. If returned cleanly, ship per playbook (commit + merge + terminal gate_Pass with `expectedStage` + worktree remove). If still running, give them time. If stuck >30 min wall-clock, send stop message.
-- **T-325.2 + T-324.5 also filed this iter** (P2 each) without dispatch — they have dependencies (T-325.2 best after T-325.3 lands so the gate_Reopen UX matches new server enforcement; T-324.5 docs depend on T-324.3 mcpServers stdio shape). These are next-in-queue for iter-6 once their deps land.
+- **CRITICAL: Daemon needs redeploy in iter-6.** T-325.3 added `gate_Pass` cascade prevention to `maenifold-gate-core` (server-side enforcement of `expectedStage`). The running daemon (PID 20649) is still on iter-4 binary; the new enforcement code is on `dev` but not yet active in the daemon. Next iter-6 PM should redeploy via `./scripts/deploy-daemon.sh` (or rebuild + bounce launchd) BEFORE dispatching any task-pms that will hit gate_Pass. Until then, the runtime is still the permissive iter-4 version.
+- HEAD: post T-325.3 + T-324.3 merges. All worktrees removed at iter close.
+- **Zero worktrees in flight at iter close** — all 12 task-pms dispatched this iter returned + were shipped + cleaned up.
 - One stale `/tmp/uat-fixture-folder` from prior iter — `rm -rf` is safe.
 
 ## What's at the TOP of the iter-6 dispatch queue
@@ -102,13 +98,13 @@ NOT in dispatch queue (UAT-priority-floor or functionally-UAT per the new T-322.
 
 ## Iter throughput tally — record by my read
 
-- **10 SWE shipments merged to dev** (5 wave-1 + 5 wave-2 — all 10 originally dispatched tasks completed, 5 via cascade recovery + 5 via clean v2 dispatch)
+- **12 SWE shipments merged to dev** (5 wave-1 + 5 wave-2 cascade recovery + 2 wave-3: T-325.3 + T-324.3)
 - **3 PM-direct shipments** (T-322.35 + learnings.md + task-pm.md global cascade-prevention update)
 - **9 sprint umbrella/parent closures** (T-313.0, T-317.0, T-318.0, T-319.0, T-321.0, T-323.0 wave-1; T-314.0, T-315.0, T-315.1 wave-2)
 - **2 WONTFIX cascades with cited evidence** (T-302.12 + T-302.65)
 - **5 cascade recoveries via gate_Reopen**
-- **4 new hardening/decomposition specs filed** (T-325.3, T-325.2, T-324.3, T-324.5)
+- **4 new hardening/decomposition specs filed** — 2 shipped same iter (T-325.3 + T-324.3); 2 in queue with deps (T-325.2 + T-324.5)
 - **Audit-crates: 13 → 0 violations** — sprint 315 completely drained
 - **0 user interruptions during dispatch**
-- **1 major systemic incident discovered + recovered + hardened against permanently** (gate_Pass cascade)
+- **1 major systemic incident discovered + recovered + permanently hardened against same iter** (gate_Pass cascade — cardinal example of dogfooding catching real architectural risk)
 - **0 worktrees left at iter close** — clean handoff

@@ -2,7 +2,7 @@
 import type { ContentBlock } from '../lib/types';
 import { dispatchResource } from '../lib/resource-mime-dispatcher';
 import type { ResourceContent } from '../lib/resource-mime-dispatcher';
-import KnowledgeNoteRenderer from './KnowledgeNoteRenderer.vue';
+import MarkdownView from './MarkdownView.vue';
 import ResourceLinkPreview from './ResourceLinkPreview.vue';
 import ResourcePreview from './ResourcePreview.vue';
 import { Card, CardContent } from './ui/card';
@@ -48,7 +48,7 @@ function getBlockAriaLabel(block: ContentBlock): string {
     :aria-label="getBlockAriaLabel(block)"
   >
     <CardContent class="min-w-0 p-3">
-      <KnowledgeNoteRenderer
+      <MarkdownView
         v-if="block.type === 'text'"
         :content="block.text"
         class="text-text-primary"

@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import ChatContentBlocks from './ChatContentBlocks.vue';
 import ChatThoughtSection from './ChatThoughtSection.vue';
 import ChatToolCallList from './ChatToolCallList.vue';
-import KnowledgeNoteRenderer from './KnowledgeNoteRenderer.vue';
+import MarkdownView from './MarkdownView.vue';
 import MessageActionToolbar from './MessageActionToolbar.vue';
 import StopReasonBanner from './StopReasonBanner.vue';
 import type { ChatMessage } from '../lib/types';
@@ -118,7 +118,7 @@ const isAssistant = computed(() => props.message.role === 'assistant');
           @toggle-tool-call="emit('toggle-tool-call', $event)"
         />
 
-        <KnowledgeNoteRenderer
+        <MarkdownView
           v-if="streamingTextContent"
           :content="streamingTextContent"
           class="text-text-primary"
@@ -126,7 +126,7 @@ const isAssistant = computed(() => props.message.role === 'assistant');
 
         <ChatContentBlocks v-else-if="blocks.length" :blocks="blocks" />
 
-        <KnowledgeNoteRenderer
+        <MarkdownView
           v-if="!streamingTextContent && markdownContent"
           :content="markdownContent"
           class="text-text-primary"

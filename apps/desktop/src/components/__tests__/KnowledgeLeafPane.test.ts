@@ -57,7 +57,7 @@ function seedActiveNote(store: ReturnType<typeof useKnowledgeStore>, note: Memor
 
 const sharedStubs = {
   KnowledgeInlineEditor: { template: '<div data-testid="editor-stub" />' },
-  KnowledgeNoteRenderer: true,
+  MarkdownView: true,
   ScrollArea: { template: '<div><slot /></div>' },
 };
 
@@ -142,4 +142,3 @@ describe('KnowledgeLeafPane external-change banner', () => {
     wrapper.unmount();
   });
 });
-

@@ -8,7 +8,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from './ui/collapsible';
-import KnowledgeNoteRenderer from './KnowledgeNoteRenderer.vue';
+import MarkdownView from './MarkdownView.vue';
 
 defineProps<{
   thought: Thought;
@@ -87,7 +87,7 @@ function formatRelativeTime(iso: string): string {
           </div>
 
           <CollapsibleContent>
-            <KnowledgeNoteRenderer :content="thought.content" clamp />
+            <MarkdownView :content="thought.content" clamp />
           </CollapsibleContent>
         </CardContent>
       </Card>

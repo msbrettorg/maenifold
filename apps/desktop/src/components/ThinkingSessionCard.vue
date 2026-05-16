@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { ThinkingSession } from '../lib/workflow-types';
-import KnowledgeNoteRenderer from './KnowledgeNoteRenderer.vue';
+import MarkdownView from './MarkdownView.vue';
 import ThinkingThoughtItem from './ThinkingThoughtItem.vue';
 
 const props = defineProps<{
@@ -134,7 +134,7 @@ const statusMeta = computed(() => statusMetaMap[props.node.status]);
             >
               Conclusion
             </div>
-            <KnowledgeNoteRenderer :content="node.conclusion" />
+            <MarkdownView :content="node.conclusion" />
           </section>
         </CardContent>
       </CollapsibleContent>

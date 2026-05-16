@@ -12,7 +12,7 @@ import { useKnowledgeStore } from '../stores/knowledge';
 import type { MemoryFile, RecentActivityItem } from '../lib/workflow-types';
 import EmptyState from './EmptyState.vue';
 import KnowledgeInlineEditor from './KnowledgeInlineEditor.vue';
-import KnowledgeNoteRenderer from './KnowledgeNoteRenderer.vue';
+import MarkdownView from './MarkdownView.vue';
 
 const store = useKnowledgeStore();
 const memoryApi = useMemoryApi();
@@ -204,7 +204,7 @@ function closeActiveTab(): void {
         </div>
 
         <article v-else class="bg-bg-surface min-w-0 max-w-full rounded-[8px] p-4">
-          <KnowledgeNoteRenderer :content="activeNote.content" />
+          <MarkdownView :content="activeNote.content" />
         </article>
       </div>
     </ScrollArea>

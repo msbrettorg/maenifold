@@ -67,11 +67,11 @@ For any predicate, discriminator, or shape-routing function you write or modify 
 
 1. **Step 1.** List every possible "absent" or "malformed" value the field could take that should route to the negative branch.
 2. **Step 2.** For each case, name which branch the code actually routes it to.
-3. **Step 3.** If any case is unhandled or routes to an empty/blank render or wrong branch, fix it before declaring done.
+3. **Step 3.** If any case is unhandled or routes to an empty/blank render or wrong branch, fix it before declaring done. If the fix is out of task scope, file a gate item and escalate to the PM rather than widening scope or deadlocking.
 
 Apply these absent-value matrices as required checklists:
 
-- **String fields:** undefined, null, empty `""`, whitespace `"   "`, `"\t"`, `"\n"`, only-noise (e.g., literal `"undefined"`).
+- **String fields:** undefined, null, empty `""`, whitespace `"   "`, `"\t"`, `"\n"`, `"\r"`, `"\r\n"`, mixed whitespace (e.g., `"\t\n  "`), only-noise (any value that survives truthiness but carries no domain meaning after trim + normalization — e.g., literal `"undefined"`, `"null"`, `"NaN"`, `"[object Object]"`).
 - **Union types:** every spec-defined sub-shape + malformed (no recognized sub-shape).
 - **Numeric fields:** undefined, null, NaN, Infinity, negative, zero.
 - **Arrays:** undefined, null, empty `[]`, single-item.
@@ -86,6 +86,9 @@ Worked example A — string-field absent matrix for a `terminalId: string` predi
 | `"   "` | Negative branch: no terminal session |
 | `"\t"` | Negative branch: no terminal session |
 | `"\n"` | Negative branch: no terminal session |
+| `"\r"` | Negative branch: no terminal session |
+| `"\r\n"` | Negative branch: no terminal session |
+| `"\t\n  "` | Negative branch: no terminal session |
 | `"undefined"` | Negative branch: no terminal session |
 | `"term-123"` | Positive branch: terminal session present |
 
@@ -98,7 +101,9 @@ Worked example B — union-type absent matrix for the ACP terminal block discrim
 | Partial or mixed terminal shape | Malformed/negative branch; never blank render |
 | Type matches but no recognized terminal sub-shape | Malformed/negative branch; never blank render |
 
-This is a self-audit pass, not new tests; however, tests for the surfaced cases must exist when the code is non-trivial.
+**Note:** Every spec-defined sub-shape must appear in the matrix; the 4-row example above is not a fixed template — add rows for every sub-shape the spec defines.
+
+This is a self-audit pass, not new tests; however, tests for the surfaced cases must exist when the code is non-trivial (any predicate with ≥2 input fields or ≥3 branches).
 
 ## Communication
 

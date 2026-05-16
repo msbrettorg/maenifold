@@ -172,7 +172,7 @@ async fn new_dispatch(
         .await;
     let decision = receiver
         .await
-        .map_err(|_| rmcp::ErrorData::invalid_request("Sampling session cancelled", None))?;
+        .map_err(|_| sampling_denied_error())?;
     let decision_record = sampling_decision_record(&decision.action);
     let dispatch_id = uuid::Uuid::new_v4();
     let app_session_id = uuid::Uuid::new_v4();

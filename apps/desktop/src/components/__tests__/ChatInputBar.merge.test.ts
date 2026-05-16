@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
+import { createPinia } from 'pinia';
 
 import ChatInputBar from '../ChatInputBar.vue';
 import type { AvailableCommand } from '../../lib/types';
@@ -46,6 +47,7 @@ function mountInputBar(availableCommands: AvailableCommand[]) {
       attachmentError: null,
     },
     global: {
+      plugins: [createPinia()],
       stubs: {
         ChatAttachmentBar: true,
         CommandPalette: commandPaletteStub,

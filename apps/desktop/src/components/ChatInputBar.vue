@@ -10,9 +10,11 @@ import ChatAttachmentBar from './ChatAttachmentBar.vue';
 import CommandPalette from './CommandPalette.vue';
 import VoiceInputButton from './VoiceInputButton.vue';
 import { useChatShortcuts } from '../composables/useChatShortcuts';
+import { useFileDrop } from '../composables/useFileDrop';
+import { fileLabel, mimeType, readFileAsBase64, type AttachmentKind } from '../lib/attachment-helpers';
 import { useAppShellStore } from '../stores/app-shell';
 import type { PendingAttachment } from './ChatAttachmentBar.vue';
-import type { AvailableCommand } from '../lib/types';
+import type { AvailableCommand, ContentBlock } from '../lib/types';
 import { mergeWithBuiltInSlashCommands } from '../lib/default-commands';
 
 const props = defineProps<{
@@ -133,6 +135,60 @@ function handleEmbeddedContextClick(): void {
   emit('insert-embedded-context-hint');
 }
 
+function kindForFile(file: File): AttachmentKind {
+  if (file.type.startsWith('image/')) return 'image';
+  if (file.type.startsWith('audio/')) return 'audio';
+  return 'file';
+}
+
+function createContentBlock(kind: AttachmentKind, label: string, resolvedMimeType: string, data: string): ContentBlock {
+  if (kind === 'image') {
+    return { type: 'image', data, mimeType: resolvedMimeType, uri: label };
+  }
+  if (kind === 'audio') {
+    return { type: 'audio', data, mimeType: resolvedMimeType };
+  }
+  return {
+    type: 'resource',
+    resource: {
+      uri: `file://${label}`,
+      mimeType: resolvedMimeType,
+      blob: data,
+    },
+  };
+}
+
+async function processFiles(files: File[]): Promise<void> {
+  if (props.disabled || !files.length) {
+    return;
+  }
+
+  emit('attachment-error', null);
+
+  try {
+    const attachments = await Promise.all(files.map(async (file) => {
+      let kind = kindForFile(file);
+      if ((kind === 'image' && !props.supportsImageAttachments) || (kind === 'audio' && !props.supportsAudioAttachments)) kind = 'file';
+      const label = fileLabel(file.name);
+      const resolvedMimeType = file.type || mimeType(file.name, kind);
+      const data = await readFileAsBase64(file);
+      const block = createContentBlock(kind, label, resolvedMimeType, data);
+      return { id: crypto.randomUUID(), kind, label, block } satisfies PendingAttachment;
+    }));
+    emit('add-attachments', attachments);
+  } catch (error) {
+    emit(
+      'attachment-error',
+      error instanceof Error ? error.message : 'Failed to load attachment(s).',
+    );
+  }
+}
+
+const { dropZoneActive, handleDragOver, handleDragLeave, handleDrop, handlePaste } = useFileDrop({
+  onFiles: processFiles,
+  enabled: () => !props.disabled,
+});
+
 function handleClose(): void { commandPaletteForcedOpen.value = false; }
 </script>
 
@@ -140,7 +196,17 @@ function handleClose(): void { commandPaletteForcedOpen.value = false; }
   <div
     class="relative flex items-end gap-2 px-4 py-3 bg-surface"
     :class="{ 'border-t border-warning/30 bg-warning/10': accent === 'plan' }"
+    @dragover="handleDragOver"
+    @dragleave="handleDragLeave"
+    @drop="handleDrop"
   >
+    <div
+      v-if="dropZoneActive"
+      class="absolute inset-0 z-10 flex items-center justify-center bg-brand/10 border-2 border-dashed border-brand rounded pointer-events-none"
+    >
+      <span class="rounded bg-surface-high px-3 py-2 text-sm font-medium text-text-primary shadow-sm">Drop files to attach</span>
+    </div>
+
     <CommandPalette
       ref="commandPaletteRef"
       :commands="effectiveCommands"
@@ -196,6 +262,7 @@ function handleClose(): void { commandPaletteForcedOpen.value = false; }
         class="flex-1 p-3 border border-border-subtle rounded bg-surface text-text-primary resize-none font-[inherit] text-base transition-[border-color,box-shadow] duration-150 placeholder:text-text-secondary focus:outline-none focus:border-brand focus:shadow-none"
         :class="{ 'border-warning/40 focus:border-warning': accent === 'plan' }"
         @keydown="handleKeyDown"
+        @paste="handlePaste"
       />
     </div>
 

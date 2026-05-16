@@ -163,7 +163,7 @@ function submitNode<T extends EvidenceNodeType>(type: T, fields: PipelineNodeDra
         <p class="evidence-kicker">T-125.3 remediation loop 2</p>
         <h1>Node palette UX evidence harness</h1>
         <p>
-          This page mounts the shipped <code>AddNodeForm</code> + <code>ToolNodeFields</code>
+          This page mounts the shipped <code>AddNodeForm</code> + <code>ToolNodeFieldsTool</code>
           components with a fixed MCP catalog so the red-team acceptance screenshots are reproducible.
         </p>
       </div>

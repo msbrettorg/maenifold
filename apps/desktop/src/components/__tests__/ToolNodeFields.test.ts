@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { flushPromises, mount } from '@vue/test-utils';
 
-import ToolNodeFields from '../ToolNodeFields.vue';
+import ToolNodeFieldsTool from '../ToolNodeFieldsTool.vue';
 import { normalizeAgentProbeResult } from '../../lib/agent-probe-normalizers';
 import { useAgentCapabilitiesStore } from '../../stores/agent-capabilities';
 import { useConfigStore } from '../../stores/config';
@@ -124,13 +124,13 @@ beforeEach(() => {
   installMockLocalStorage();
 });
 
-describe('ToolNodeFields', () => {
+describe('ToolNodeFieldsTool', () => {
   it('shows Quick Add from pinned and recent tools only when search is empty', async () => {
     const { pinia, nodePaletteStore } = createTestEnv();
     nodePaletteStore.togglePinnedTool('filesystem.ReadFile');
     nodePaletteStore.recordRecentTool('maenifold.SearchMemories');
 
-    const wrapper = mount(ToolNodeFields, {
+    const wrapper = mount(ToolNodeFieldsTool, {
       props: {
         active: true,
         toolName: '',
@@ -156,7 +156,7 @@ describe('ToolNodeFields', () => {
   it('shows a flat cross-server result list with result count and escaped highlighting when searching', async () => {
     const { pinia } = createTestEnv();
 
-    const wrapper = mount(ToolNodeFields, {
+    const wrapper = mount(ToolNodeFieldsTool, {
       props: {
         active: true,
         toolName: '',
@@ -183,7 +183,7 @@ describe('ToolNodeFields', () => {
   it('does not block spacebar text entry in the search input', async () => {
     const { pinia } = createTestEnv();
 
-    const wrapper = mount(ToolNodeFields, {
+    const wrapper = mount(ToolNodeFieldsTool, {
       props: {
         active: true,
         toolName: '',
@@ -207,7 +207,7 @@ describe('ToolNodeFields', () => {
   it('supports keyboard listbox navigation and submit without trapping focus', async () => {
     const { pinia } = createTestEnv();
 
-    const wrapper = mount(ToolNodeFields, {
+    const wrapper = mount(ToolNodeFieldsTool, {
       props: {
         active: true,
         toolName: '',
@@ -271,7 +271,7 @@ describe('ToolNodeFields', () => {
 
     const nodePaletteStore = useNodePaletteStore();
 
-    const wrapper = mount(ToolNodeFields, {
+    const wrapper = mount(ToolNodeFieldsTool, {
       props: {
         active: false,
         toolName: '',
@@ -304,7 +304,7 @@ describe('ToolNodeFields', () => {
   it('shows offline fallback for tool agent override when probe fails', async () => {
     const { pinia } = createTestEnv();
 
-    const wrapper = mount(ToolNodeFields, {
+    const wrapper = mount(ToolNodeFieldsTool, {
       props: {
         active: true,
         toolName: 'filesystem.ReadFile',

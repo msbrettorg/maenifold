@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { Input } from '@/components/ui/input';
 import { computed, ref, watch } from 'vue';
-import type { PipelineNode, PipelineNodeType } from '../lib/pipeline-types';
+import type { PipelineNode, PipelineNodeType } from '../lib/pipeline-types-node';
 import {
   cwdHasReasonablePathPrefix,
   getNodeType,
   normalizeNodeCwd,
-} from '../lib/pipeline-types';
+} from '../lib/pipeline-types-node';
 import {
   applyPipelineNodeSchemaFormValue,
   getPipelineNodeSchema,

@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import PipelineRunHistoryPanel from '../PipelineRunHistoryPanel.vue';
-import type { PipelineRunSummary } from '../../lib/pipeline-types';
+import type { PipelineRunSummary } from '../../lib/pipeline-types-view';
 
 function run(overrides: Partial<PipelineRunSummary> & { nodeId: string }): PipelineRunSummary {
   return {

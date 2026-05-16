@@ -10,7 +10,8 @@ import {
   saveDirectionPreference,
   type Direction,
 } from '../lib/composer-canvas-helpers';
-import type { PipelineDefinition, PipelineView } from '../lib/pipeline-types';
+import type { PipelineDefinition } from '../lib/pipeline-types-edge';
+import type { PipelineView } from '../lib/pipeline-types-view';
 
 export interface ComposerCanvasWatchersOptions {
   designMode: () => boolean;

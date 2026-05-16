@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { resolveToolDefinition } from '../lib/tool-categories';
 import { usePipelineStore } from '../stores/pipeline';
 import { useMcpToolDiscoveryStore } from '../stores/mcp-tool-discovery';
-import { getNodeType, isToolNode, type PipelineEdge, type PipelineNode } from '../lib/pipeline-types';
+import type { PipelineEdge } from '../lib/pipeline-types-edge';
+import { getNodeType, isToolNode, type PipelineNode } from '../lib/pipeline-types-node';
 
 interface MappingRow {
   id: string;

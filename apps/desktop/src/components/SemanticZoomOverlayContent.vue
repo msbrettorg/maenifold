@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { SequentialThinkingViewNode, ToolProvenance, WorkflowStepEntry } from '../lib/pipeline-types';
+import type { SequentialThinkingViewNode, ToolProvenance, WorkflowStepEntry } from '../lib/pipeline-types-view';
 import { dispatchResource } from '../lib/resource-mime-dispatcher';
 import {
   Accordion,

@@ -1,7 +1,9 @@
 import type { Ref } from 'vue';
 import { toastSuccess, toastInfo } from '@/composables/useToast';
 import { usePipelineMcp } from '../composables/usePipelineMcp';
-import type { PipelineEdge, PipelineInputs, PipelineNode, PipelineView } from '../lib/pipeline-types';
+import type { PipelineEdge, PipelineInputs } from '../lib/pipeline-types-edge';
+import type { PipelineNode } from '../lib/pipeline-types-node';
+import type { PipelineView } from '../lib/pipeline-types-view';
 
 type PipelineMcp = ReturnType<typeof usePipelineMcp>;
 type WithError = <T>(tool: string, fn: () => Promise<T>) => Promise<T | undefined>;

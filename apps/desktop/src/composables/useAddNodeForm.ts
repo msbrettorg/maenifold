@@ -1,6 +1,6 @@
 import { computed, ref, watch } from 'vue';
 import type { PipelineNodeDraftByType } from '../lib/pipeline-node-factory';
-import type { PipelineNodeType } from '../lib/pipeline-types';
+import type { PipelineNodeType } from '../lib/pipeline-types-node';
 import {
   buildPipelineNodeDraft,
   canSubmitPipelineNodeForm,

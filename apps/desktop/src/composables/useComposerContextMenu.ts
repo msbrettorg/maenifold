@@ -1,7 +1,7 @@
 import { toastError } from '@/composables/useToast';
 import { computed, ref, type ComputedRef, type Ref } from 'vue';
-import type { PipelineView } from '../lib/pipeline-types';
-import type { SessionRef } from '../lib/pipeline-types';
+import type { SessionRef } from '../lib/pipeline-types-node';
+import type { PipelineView } from '../lib/pipeline-types-view';
 import { createNode, createNodeId } from '../lib/pipeline-node-factory';
 import { usePipelineStore } from '../stores/pipeline';
 import { usePromptDialogStore } from '../stores/prompt-dialog';

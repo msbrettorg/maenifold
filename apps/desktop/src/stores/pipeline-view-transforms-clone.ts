@@ -2,12 +2,14 @@
 
 import type {
   NodeProvenance,
-  PipelineInputs,
+  ToolProvenance,
+} from '../lib/pipeline-types-view';
+import type { PipelineInputs } from '../lib/pipeline-types-edge';
+import type {
   PipelineNodeAdopt,
   PipelineNodeAgentConfig,
   SessionRef,
-  ToolProvenance,
-} from '../lib/pipeline-types';
+} from '../lib/pipeline-types-node';
 
 export interface LegacyExecutionFields {
   model?: string;

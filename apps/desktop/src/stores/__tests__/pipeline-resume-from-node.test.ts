@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
-import type { PipelineView } from '../../lib/pipeline-types';
+import type { PipelineView } from '../../lib/pipeline-types-view';
 import { usePipelineStore } from '../pipeline';
 
 const mocks = vi.hoisted(() => {

@@ -9,7 +9,7 @@ import { usePipelineMcp } from '../composables/usePipelineMcp';
 import { useKnowledgeStore } from '../stores/knowledge';
 import { usePipelineStore } from '../stores/pipeline';
 import type { RecentActivityItem } from '../lib/workflow-types';
-import type { PipelineListItem, PipelineView } from '../lib/pipeline-types';
+import type { PipelineListItem, PipelineView } from '../lib/pipeline-types-view';
 import type { SavedSession } from '../lib/types';
 import type { AppShellTab } from '../stores/app-shell';
 

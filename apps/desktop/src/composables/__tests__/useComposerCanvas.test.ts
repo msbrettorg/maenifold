@@ -49,7 +49,8 @@ import { useComposerCanvas } from '../useComposerCanvas';
 import { useAppShellStore } from '../../stores/app-shell';
 import { useSemanticZoomStore } from '../../stores/semantic-zoom';
 import { useSessionStore } from '../../stores/session';
-import type { PipelineDefinition, PipelineView } from '../../lib/pipeline-types';
+import type { PipelineDefinition } from '../../lib/pipeline-types-edge';
+import type { PipelineView } from '../../lib/pipeline-types-view';
 
 function createEventTarget() {
   const nodeElement = document.createElement('div');

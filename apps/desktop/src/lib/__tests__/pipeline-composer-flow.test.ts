@@ -10,7 +10,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { PipelineNode, ViewNode, WorkflowViewNode } from '../pipeline-types';
+import type { PipelineNode } from '../pipeline-types-node';
+import type { ViewNode, WorkflowViewNode } from '../pipeline-types-view';
 import { definitionFromFlow, pipelineNodesToFlow, toPipelineNodeFromViewNode } from '../pipeline-composer-flow';
 import { createNode } from '../pipeline-node-factory';
 

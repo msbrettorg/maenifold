@@ -1,10 +1,12 @@
 import type {
   NodeStatus,
+  PipelineStatus,
+} from './pipeline-types-edge';
+import type {
   PipelineNode,
   PipelineNodeAdopt,
-  PipelineStatus,
   SessionRef,
-} from './pipeline-types';
+} from './pipeline-types-node';
 
 export type NodeCardData = {
   nodeId: string;

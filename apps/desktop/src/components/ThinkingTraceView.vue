@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import type { SequentialThinkingViewNode } from '../lib/pipeline-types';
+import type { SequentialThinkingViewNode } from '../lib/pipeline-types-view';
 import ProvenanceBreadcrumbs from './ProvenanceBreadcrumbs.vue';
 import { useProvenanceNavigation } from '../composables/useProvenanceNavigation';
 import { usePipelineStore } from '../stores/pipeline';

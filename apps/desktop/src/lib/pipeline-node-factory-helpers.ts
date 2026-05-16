@@ -1,7 +1,7 @@
 // Pure helpers (clone/normalize/build) used by createNode in pipeline-node-factory.
 // Extracted to keep pipeline-node-factory.ts under 300 LOC.
-import type { PipelineNodeAdopt, PipelineNodeAgentConfig } from './pipeline-types';
-import { cwdHasReasonablePathPrefix, normalizeNodeCwd } from './pipeline-types';
+import type { PipelineNodeAdopt, PipelineNodeAgentConfig } from './pipeline-types-node';
+import { cwdHasReasonablePathPrefix, normalizeNodeCwd } from './pipeline-types-node';
 import type {
   AnyDisplayLabelPick,
   PipelineNodeExecutionFields,

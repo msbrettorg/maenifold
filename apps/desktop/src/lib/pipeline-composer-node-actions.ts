@@ -2,13 +2,14 @@ import type { Edge, Node } from '@vue-flow/core';
 
 import { createNode, createNodeId } from './pipeline-node-factory';
 import { pipelineNodesToFlow } from './pipeline-composer-flow';
-import type { PipelineDefinition, PipelineNode } from './pipeline-types';
+import type { PipelineDefinition } from './pipeline-types-edge';
+import type { PipelineNode } from './pipeline-types-node';
 import {
   isPromptNode,
   isSequentialThinkingNode,
   isToolNode,
   isWorkflowNode,
-} from './pipeline-types';
+} from './pipeline-types-node';
 
 type Point = { x: number; y: number };
 type SelectedEdge = { source: string; target: string };

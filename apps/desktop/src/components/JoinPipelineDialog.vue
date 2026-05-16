@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { EdgeType, PipelineEdge } from '../lib/pipeline-types';
+import type { EdgeType, PipelineEdge } from '../lib/pipeline-types-edge';
 
 interface JoinEdgeRow {
   source: string;

@@ -3,7 +3,8 @@ import { computed } from 'vue';
 import { X } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import type { PipelineListItem, PipelineRunSummary, PipelineStatus } from '../lib/pipeline-types';
+import type { PipelineStatus } from '../lib/pipeline-types-edge';
+import type { PipelineListItem, PipelineRunSummary } from '../lib/pipeline-types-view';
 
 const props = defineProps<{
   item: PipelineListItem;

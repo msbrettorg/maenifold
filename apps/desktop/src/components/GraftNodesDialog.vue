@@ -19,7 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { PipelineEdge, PipelineNode } from '../lib/pipeline-types';
+import type { PipelineEdge } from '../lib/pipeline-types-edge';
+import type { PipelineNode } from '../lib/pipeline-types-node';
 import { useGraftNodes } from '../composables/useGraftNodes';
 import GraftNodesDialogTypeFields from './GraftNodesDialogTypeFields.vue';
 

@@ -6,7 +6,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import PipelineFlyout from '../PipelineFlyout.vue';
 import ConfirmDialog from '../ConfirmDialog.vue';
 import { usePipelineStore } from '../../stores/pipeline';
-import type { PipelineListItem } from '../../lib/pipeline-types';
+import type { PipelineListItem } from '../../lib/pipeline-types-view';
 
 const toast = vi.hoisted(() => ({
   error: vi.fn(),

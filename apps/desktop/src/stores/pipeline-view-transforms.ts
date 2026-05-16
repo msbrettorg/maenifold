@@ -1,7 +1,7 @@
 // Re-export shim. Implementation split across:
 //   pipeline-view-transforms-clone.ts (clone helpers + legacy field merging)
 //   pipeline-view-transforms-serialize.ts (toLocalDefinition + serializePipelineDefinition)
-import type { PipelineListItem, PipelineView, ViewNode } from '../lib/pipeline-types';
+import type { PipelineListItem, PipelineView, ViewNode } from '../lib/pipeline-types-view';
 import {
   cloneAgentConfig,
   cloneInputs,

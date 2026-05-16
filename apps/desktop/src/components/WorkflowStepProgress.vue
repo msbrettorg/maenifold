@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { WorkflowStepEntry } from '../lib/pipeline-types';
+import type { WorkflowStepEntry } from '../lib/pipeline-types-view';
 
 defineProps<{
   steps: WorkflowStepEntry[];

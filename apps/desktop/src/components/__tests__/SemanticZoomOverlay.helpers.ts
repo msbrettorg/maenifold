@@ -5,7 +5,7 @@ import { mount } from '@vue/test-utils';
 import SemanticZoomOverlay from '../SemanticZoomOverlay.vue';
 import { usePipelineStore } from '../../stores/pipeline';
 import { useSemanticZoomStore } from '../../stores/semantic-zoom';
-import type { ViewNode } from '../../lib/pipeline-types';
+import type { ViewNode } from '../../lib/pipeline-types-view';
 
 export function createNode(overrides: Partial<ViewNode> = {}): ViewNode {
   return {

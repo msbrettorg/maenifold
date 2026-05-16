@@ -10,7 +10,7 @@ import type {
   SequentialThinkingNode,
   ToolNode,
   WorkflowNode,
-} from './pipeline-types';
+} from './pipeline-types-node';
 
 export interface PipelineNodeExecutionFields {
   model?: string;

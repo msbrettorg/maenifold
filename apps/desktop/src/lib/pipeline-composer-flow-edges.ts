@@ -4,7 +4,7 @@ import type {
   EdgeCondition,
   PipelineDefinition,
   PipelineEdge,
-} from './pipeline-types';
+} from './pipeline-types-edge';
 import { toPipelineNode, type FlowNodeData } from './pipeline-composer-flow-nodes';
 
 export function pipelineEdgesToFlow(pipelineEdges: PipelineEdge[]): Edge[] {

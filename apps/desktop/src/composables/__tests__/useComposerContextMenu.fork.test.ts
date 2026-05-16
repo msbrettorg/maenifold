@@ -6,7 +6,7 @@ import { toast } from 'vue-sonner';
 import { useComposerContextMenu } from '../useComposerContextMenu';
 import { usePipelineStore } from '../../stores/pipeline';
 import { usePromptDialogStore } from '../../stores/prompt-dialog';
-import type { PipelineView } from '../../lib/pipeline-types';
+import type { PipelineView } from '../../lib/pipeline-types-view';
 
 const toastMock = vi.hoisted(() => ({
   error: vi.fn(),

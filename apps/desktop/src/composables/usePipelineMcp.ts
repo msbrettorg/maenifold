@@ -3,10 +3,12 @@ import type {
   PipelineDefinition,
   PipelineEdge,
   PipelineInputs,
+} from '../lib/pipeline-types-edge';
+import type { PipelineNode } from '../lib/pipeline-types-node';
+import type {
   PipelineListItem,
-  PipelineNode,
   PipelineView,
-} from '../lib/pipeline-types';
+} from '../lib/pipeline-types-view';
 import type { WorkflowAssetDefinition, WorkflowAssetSummary } from '../lib/workflow-asset-types';
 import { createPipelinePolling } from './pipeline-mcp-polling';
 import { normalizeWorkflowIds, unwrapEnvelope, unwrapToolData } from './pipeline-mcp-transport';

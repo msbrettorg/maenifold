@@ -4,7 +4,7 @@ import type {
   AgentProbeConfigOption,
   AgentProbeResult,
 } from '../lib/agent-probe-types-defs';
-import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
+import type { PipelineNodeAgentConfig } from '../lib/pipeline-types-node';
 
 const trim = (value: string) => value.trim();
 

@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 
 import { Badge } from '@/components/ui/badge';
-import type { PipelineStatus } from '@/lib/pipeline-types';
+import type { PipelineStatus } from '@/lib/pipeline-types-edge';
 
 const props = defineProps<{ status: PipelineStatus | null | undefined }>();
 

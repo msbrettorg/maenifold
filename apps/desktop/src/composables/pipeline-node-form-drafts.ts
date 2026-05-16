@@ -2,9 +2,11 @@
 // pipeline-node-form-helpers.ts to keep modules under 300 LOC.
 import type {
   PipelineNodeDraftByType,
+} from '../lib/pipeline-node-factory';
+import type {
   PipelineNodeType,
-} from '../lib/pipeline-types';
-import { normalizeNodeCwd } from '../lib/pipeline-node-factory';
+} from '../lib/pipeline-types-node';
+import { normalizeNodeCwd } from '../lib/pipeline-types-node';
 import { normalizePipelineNodeAgentConfig } from './pipeline-node-form-agent-config';
 import type { PipelineNodeFormValues } from './pipeline-node-form-types';
 

@@ -1,4 +1,4 @@
-import type { LogEntry, PipelineView } from '../lib/pipeline-types';
+import type { LogEntry, PipelineView } from '../lib/pipeline-types-view';
 
 const OUTPUT_PREVIEW_LENGTH = 100;
 

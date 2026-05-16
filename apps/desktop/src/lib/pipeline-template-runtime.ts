@@ -8,9 +8,11 @@
 import type {
   PipelineDefinition,
   PipelineEdge,
+} from './pipeline-types-edge';
+import type {
   PipelineNode,
-} from './pipeline-types';
-import { getNodeType } from './pipeline-types';
+} from './pipeline-types-node';
+import { getNodeType } from './pipeline-types-node';
 import type {
   PipelineTemplate,
   TemplateVariables,

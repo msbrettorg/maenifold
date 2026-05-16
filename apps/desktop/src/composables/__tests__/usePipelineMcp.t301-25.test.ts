@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PipelineCreateOptions } from '../usePipelineMcp';
 import { usePipelineMcp } from '../usePipelineMcp';
-import type { PipelineDefinition } from '../../lib/pipeline-types';
+import type { PipelineDefinition } from '../../lib/pipeline-types-edge';
 
 const mcpState = vi.hoisted(() => {
   const vue = require('vue') as typeof import('vue');

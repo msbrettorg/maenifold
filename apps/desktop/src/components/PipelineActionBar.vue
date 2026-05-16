@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { computed, ref, type Component } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Pause, Play, RotateCcw, Trash2, XCircle } from 'lucide-vue-next';
-import type { PipelineStatus } from '../lib/pipeline-types';
+import type { PipelineStatus } from '../lib/pipeline-types-edge';
 import { usePipelineStore } from '../stores/pipeline';
 import { useConfirmDialogStore } from '../stores/confirm-dialog';
 import PipelineCreateForm from './PipelineCreateForm.vue';

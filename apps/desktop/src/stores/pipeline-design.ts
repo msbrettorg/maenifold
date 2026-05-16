@@ -4,22 +4,26 @@ import { ref, type Ref } from 'vue';
 import type { usePipelineMcp } from '../composables/usePipelineMcp';
 import type { useConfigStore } from './config';
 import {
-  createNode,
-  type LogEntry,
-  type PipelineDefinition,
-  type PipelineInputs,
-  type PipelineListItem,
-  type PipelineNode,
-  type PipelineNodeType,
-  type PipelineView,
-} from '../lib/pipeline-types';
-import type {
-  PipelineNodeInput,
-  PromptNodeInput,
-  SequentialThinkingNodeInput,
-  ToolNodeInput,
-  WorkflowNodeInput,
+  type PipelineNodeInput,
+  type PromptNodeInput,
+  type SequentialThinkingNodeInput,
+  type ToolNodeInput,
+  type WorkflowNodeInput,
 } from '../lib/pipeline-node-factory';
+import { createNode } from '../lib/pipeline-node-factory';
+import type {
+  PipelineDefinition,
+  PipelineInputs,
+} from '../lib/pipeline-types-edge';
+import type {
+  PipelineNode,
+  PipelineNodeType,
+} from '../lib/pipeline-types-node';
+import type {
+  LogEntry,
+  PipelineListItem,
+  PipelineView,
+} from '../lib/pipeline-types-view';
 import { type PipelineTemplate, type TemplateInputValues } from '../lib/pipeline-templates';
 import { instantiateTemplate, resolveAgents } from '../lib/pipeline-template-runtime';
 import { resolvePreferredAgent } from '../lib/preferred-agent';

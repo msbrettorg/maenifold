@@ -8,7 +8,7 @@ import { useAppShellStore } from '../../stores/app-shell';
 import { usePipelineStore } from '../../stores/pipeline';
 import { useSemanticZoomStore } from '../../stores/semantic-zoom';
 import { useSessionStore } from '../../stores/session';
-import type { PipelineView, ViewNode } from '../../lib/pipeline-types';
+import type { PipelineView, ViewNode } from '../../lib/pipeline-types-view';
 
 function node(overrides: Partial<ViewNode> = {}): ViewNode {
   return {

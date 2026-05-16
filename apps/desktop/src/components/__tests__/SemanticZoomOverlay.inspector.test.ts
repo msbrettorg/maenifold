@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
-import type { PipelineView } from '../../lib/pipeline-types';
+import type { PipelineView } from '../../lib/pipeline-types-view';
 import { normalizeView } from '../../stores/pipeline-view-transforms';
 import {
   completedNodeWithSession,

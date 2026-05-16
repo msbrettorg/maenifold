@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import SessionInspectorPanel from './sessions/SessionInspectorPanel.vue';
 import { usePipelineStore } from '../stores/pipeline';
 import { useSessionStore } from '../stores/session';
-import type { PromptViewNode } from '../lib/pipeline-types';
+import type { PromptViewNode } from '../lib/pipeline-types-view';
 
 interface PromptRuntime {
   nodeId: string;

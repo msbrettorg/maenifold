@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { PipelineView } from '../../lib/pipeline-types';
+import type { PipelineView } from '../../lib/pipeline-types-view';
 import {
   buildNodeOutputPreview,
   hydrateEventLogFromView,

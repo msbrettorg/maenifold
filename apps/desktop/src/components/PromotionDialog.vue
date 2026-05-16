@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { ViewNode } from '../lib/pipeline-types';
+import type { ViewNode } from '../lib/pipeline-types-view';
 import type { MemoryPromotionSource, NormalizedMemoryDocument, NormalizedMemorySearchItem } from '../composables/useMemoryPromotion';
 import { buildPromotionPreview, hasWikiLinkConnection, isStaleMemoryEditError, useMemoryPromotion } from '../composables/useMemoryPromotion';
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard';

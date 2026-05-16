@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { ref } from 'vue';
 import { usePipelineStore } from '../pipeline';
-import type { PipelineView } from '../../lib/pipeline-types';
+import type { PipelineView } from '../../lib/pipeline-types-view';
 
 const connected = ref(true);
 const error = ref<string | null>(null);

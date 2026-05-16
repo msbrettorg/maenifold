@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { mount } from '@vue/test-utils';
-import type { PipelineView } from '../../lib/pipeline-types';
+import type { PipelineView } from '../../lib/pipeline-types-view';
 import PipelineRunner from '../PipelineRunner.vue';
 import { usePipelineStore } from '../../stores/pipeline';
 

@@ -15,7 +15,7 @@ import {
   setAgentThoughtLevelValue,
 } from './pipeline-node-form-helpers';
 import { useReadyAgentProbe } from './useReadyAgentProbe';
-import type { PipelineNodeAgentConfig, PipelineNodeType } from '../lib/pipeline-types';
+import type { PipelineNodeAgentConfig, PipelineNodeType } from '../lib/pipeline-types-node';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 import { useConfigStore } from '../stores/config';
 

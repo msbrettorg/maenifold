@@ -1,5 +1,5 @@
 import type { Ref } from 'vue';
-import type { PipelineView } from '../lib/pipeline-types';
+import type { PipelineView } from '../lib/pipeline-types-view';
 
 interface PipelinePollingOptions {
   pollingError: Ref<string | null>;

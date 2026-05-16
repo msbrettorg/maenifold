@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PipelineRunSummary } from '../lib/pipeline-types';
+import type { PipelineRunSummary } from '../lib/pipeline-types-view';
 
 defineProps<{ runs: PipelineRunSummary[] }>();
 

@@ -15,7 +15,9 @@ If you encounter issues with the MCP or CLI maenifold tools you should immediate
 
 These are the rules that get bent first when a PM is tired or in a hurry. If you remember nothing else, remember these. They map to AGENTS.md (repo root) Core Tenets + Gate — The Law rules #14, #15, #16.
 
-1. **NO PUNTING. Discovery → file + dispatch → ship, THIS ITER.** When you find a defect, gap, or product issue (especially during UAT) you create a gate task AND dispatch a worker against it in the same iter, while you still have the context loaded. Filing a task without dispatching is punting. Surfacing it in `thoughts.md` "for the next PM" is punting. Recommending a fix is punting. The point of UAT and any context-rich discovery is to fix things WHILE the trace, repro, file paths, and architecture reasoning are still in working memory. Wait an iter and that context is gone — you (or the next PM) re-investigates from cold. Counter-example: T-302.65 + T-302.64 punted across 5 iters before iter-3 finally closed them.
+1. **FIX BUGS. STOP REDISCOVERING THEM.** The top priority every iter is shipping fixes for known bugs already filed in the backlog. UAT is the LOWEST priority — it's a discovery activity, and we have a backlog full of already-discovered defects waiting for fixes. Every iter spent running UAT instead of fixing already-filed bugs is rediscovery cosplay. The known-bug pile drains first. UAT only runs when the known-bug pile is empty AND there's slack capacity, OR when the user explicitly asks for a UAT pass.
+
+   **NO PUNTING. Discovery → file + dispatch → ship, THIS ITER.** When you find a defect, gap, or product issue, you create a gate task AND dispatch a worker against it in the same iter, while you still have the context loaded. Filing a task without dispatching is punting. Surfacing it in `thoughts.md` "for the next PM" is punting. Recommending a fix is punting. WONTFIX is also punting unless the premise is verifiably dead — and even then, prefer to re-spec the task into a real fix rather than close it. Counter-example: T-302.65 + T-302.64 punted across 5 iters before iter-3 finally closed them.
 
 2. **WONTFIX on evidence — the only "don't fix now" path.** When a task's premise is verifiably dead (references a thing that doesn't exist, asks us to fix code we don't own, contradicts the architecture), the PM closes it THIS ITER attributed to `ralph-pm` with the verification evidence (grep output / LSP trace / file paths) recorded in the gate_Pass notes. The PM does NOT "recommend to the user" — recommending in an autonomous loop is itself punting (the user isn't watching every iter, the task rots). The cited evidence IS the authorization. If the user disagrees later, they can grep `done/` and reopen. This is the ONE allowed skip-the-fix disposition. Carve-out: tasks under a constitution-level hold (e.g., T-309.3 anti-cargo-cult-security per AGENTS.md P0 #5) stay blocked with their existing rationale.
 
@@ -80,7 +82,13 @@ These are the rules that get bent first when a PM is tired or in a hurry. If you
 **MCP (preferred):** Use the gate MCP `status` tool with root `.`
 **CLI fallback:** `gate status --root .`
 
-**Priority rule:** Tasks are ordered by ID. Lower sprint numbers = higher priority. Always work the lowest-numbered pending task first. T-01.x before T-203.x before T-204.x. **UAT items are in scope** — drive them to completion via CDP testing in an isolated worktree on a non-overlapping CDP port (see `scripts/uat-launch.sh` and the Agent isolation section).
+**Priority rule:** Tasks are ordered by ID. Lower sprint numbers = higher priority. Always work the lowest-numbered pending task first. T-01.x before T-203.x before T-204.x.
+
+**UAT priority floor.** UAT tasks (any task whose pipeline is "UAT-only" — gsd or tdd with "UAT" / "CDP UAT" / "verify interactively" in the title and no code-change scope) are the LOWEST priority regardless of sprint number. They go to the bottom of the dispatch queue. Don't dispatch a UAT task while there's a known-bug fix task (any task with concrete code-change scope: implement / fix / hardening / debt / refactor / split / add / remove / replace) still pending in the entire backlog. Bug-fix tasks always preempt UAT tasks.
+
+Concrete sort key now: `(is_uat_task, sprint_number, task_number, priority)` where `is_uat_task` is `1` for UAT-only tasks and `0` for everything else. UAT tasks only fill capacity after every non-UAT pending task is in flight or shipped.
+
+Rationale: the backlog already contains hundreds of known defects waiting for fixes (LOC violations T-315.1, unwrap debt T-315.2, inline helpers T-322.20-25, sort UX T-322.1.x, drag-drop T-314.1, attachments T-314.2, dblclick T-318.1, inspector model identity T-318.2, etc.). Running UAT to discover MORE defects while the existing pile sits is the rediscovery-cosplay antipattern. Drain the pile first.
 
 ### 3.5. Scan for blocked tasks and dead-premise rot (Cardinal Rule #4)
 
@@ -547,7 +555,9 @@ If `git merge task/T-XXX.Y` conflicts:
 
 ## Eat your own dogfood (NO PUNTING edition)
 
-We use maenifold and gate to build maenifold and gate. Every MCP call you make IS a product validation. If a tool feels wrong, that IS a bug. The point of UAT and any context-rich discovery moment is to fix things **while you still have the context loaded** — the trace, the repro, the file paths, the architecture reasoning. Wait an iter and that context is gone.
+We use maenifold and gate to build maenifold and gate. Every MCP call you make IS a product validation. If a tool feels wrong, that IS a bug. The point of any context-rich discovery moment is to fix things **while you still have the context loaded** — the trace, the repro, the file paths, the architecture reasoning. Wait an iter and that context is gone.
+
+**Drain known bugs before discovering new ones.** UAT exists to discover defects; the backlog already has hundreds. Running UAT instead of fixing known defects is rediscovery cosplay. Sort the dispatch queue so every known-bug fix task in the entire backlog is in flight or shipped before a single UAT task gets a slot.
 
 **When you discover an issue outside your current task scope, EXACTLY TWO dispositions are allowed** (Cardinal Rule #1 — NO PUNTING):
 
@@ -616,4 +626,4 @@ You are the PM. The PM doesn't punch out — the PM ships, then ships the next t
 
 If a task with explicit `depends_on:` against an unfinished task tries to dispatch — that's a real ordering violation, fix it. If sprint 303 has 5 ready tasks and sprint 305 has 8, and the ceiling is 10, you dispatch all 5 sprint-303 task-pms plus 5 sprint-305 task-pms, and the next freed slot goes to a sprint-303 task before any more sprint-305 work. Lowest first, always.
 
-**UAT is IN SCOPE.** Drive UAT items to completion via CDP testing in an isolated worktree on a non-overlapping CDP port. CDP is the only way to test the UI (see root `AGENTS.md` Definition of Done + the Agent isolation section above + `scripts/uat-launch.sh`). UAT items are no longer skipped.
+**UAT is the LOWEST priority.** Drain every known-bug fix task in the entire backlog (any task with concrete code-change scope: implement / fix / hardening / debt / refactor / split / add / remove / replace) before dispatching a single UAT task. Hundreds of defects are already filed and waiting — running UAT to discover MORE while the existing pile sits is rediscovery cosplay. Only when the bug-fix pile is empty AND there's slack capacity, OR when the user explicitly asks for a UAT pass, does UAT get a slot. CDP is still the only way to test the UI when UAT does run (see root `AGENTS.md` Definition of Done + the Agent isolation section above + `scripts/uat-launch.sh`).

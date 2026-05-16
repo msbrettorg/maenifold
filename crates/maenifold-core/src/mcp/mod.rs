@@ -68,6 +68,9 @@ mod sampling_session_registry_tests;
 mod save_workflow_asset_gateway_tests;
 pub mod schema;
 pub mod stdio_pool;
+pub(crate) mod stdio_env_resolver;
+#[cfg(test)]
+mod stdio_env_resolver_tests;
 mod stdio_pool_health;
 mod stdio_pool_lifecycle;
 mod stdio_pool_prompts;

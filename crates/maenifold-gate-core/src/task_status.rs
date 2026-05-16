@@ -50,6 +50,10 @@ impl TaskStatusDeriver {
                     // cancel bypasses the state machine and terminally marks the task as cancelled.
                     state = "cancelled".to_string();
                 }
+                "reopen" => {
+                    attempts += 1;
+                    state = initial.clone();
+                }
                 "outcome" => {
                     let outcome = record.outcome().ok_or_else(|| {
                         GateError::TaskMetadataParse("outcome record missing Outcome".to_string())

@@ -87,6 +87,50 @@ pub(super) fn apply_outcome(args: StageNoteArgs, outcome: &str) -> Result<Value,
     )
 }
 
+pub(super) fn apply_reopen(args: StageNoteArgs) -> Result<Value, GateError> {
+    let root = canonical_root(&args.context.root)?;
+    let _project_lock = GateProjectLock::acquire_exclusive(&root)?;
+    let _task_lock = TaskFileLock::acquire(&root, &args.task_id)?;
+    let task = TaskRepository::find_task(root.clone(), &args.task_id)?;
+
+    if task.location != "todo" {
+        return Err(GateError::Cli(
+            "task is not in todo/; nothing to reopen".to_string(),
+        ));
+    }
+
+    let document = TaskRepository::read_task_document(&root, &task)?;
+    let definition = resolve_definition_for_task(
+        &root,
+        &document.metadata,
+        args.context.requested_pipeline_name.as_deref(),
+    )?;
+
+    match TaskStatusDeriver::derive(&document, &definition, &task.location) {
+        Ok(effective) => {
+            let state_def = definition
+                .find_state(&effective.state)
+                .ok_or_else(|| GateError::UnknownState(effective.state.clone()))?;
+            if !state_def.terminal {
+                return Err(GateError::Cli(
+                    "task is not in a terminal state; use gate_Append or gate_Fail".to_string(),
+                ));
+            }
+        }
+        Err(GateError::UnknownState(message))
+            if message == "task remains in todo/ but effective state is terminal" => {}
+        Err(error) => return Err(error),
+    }
+
+    let section = CanonicalSectionFactory::build_reopen_section(
+        &args.agent,
+        &args.notes,
+        args.model.as_deref(),
+    );
+    TaskRepository::append_task_section(&root, &task, &section)?;
+    status_for_document(&root, &task, &document.metadata.pipeline)
+}
+
 pub(super) fn active_task_state(
     root: &Path,
     task: &TaskPathSet,

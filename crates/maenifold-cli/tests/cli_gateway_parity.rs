@@ -26,6 +26,7 @@ const LEARN_ONLY_TOOLS: &[&str] = &[
     "gate_Append",
     "gate_Pass",
     "gate_Fail",
+    "gate_Reopen",
     "gate_History",
     "gate_TaskBody",
 ];

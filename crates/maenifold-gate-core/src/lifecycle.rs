@@ -21,7 +21,7 @@ mod lifecycle_status_output;
 use lifecycle_create::create_task;
 pub use lifecycle_helpers::resolve_definition;
 use lifecycle_helpers::{
-    active_task_state, apply_outcome, canonical_root, status_for_document, status_row,
+    active_task_state, apply_outcome, apply_reopen, canonical_root, status_for_document, status_row,
 };
 use lifecycle_status_output::{error_status_row, status_summary_row, write_gate_db_snapshot};
 
@@ -237,6 +237,10 @@ impl GateLifecycle {
 
     pub fn fail(args: StageNoteArgs) -> Result<Value, GateError> {
         apply_outcome(args, "fail")
+    }
+
+    pub fn reopen(args: StageNoteArgs) -> Result<Value, GateError> {
+        apply_reopen(args)
     }
 }
 

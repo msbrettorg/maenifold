@@ -12,6 +12,7 @@ const STAGE_HEADINGS: &[(&str, &str)] = &[
     ("plan", "Plan"),
     ("execute", "Execute"),
     ("verify", "Verify"),
+    ("reopened", "Reopened"),
     ("done", "Done"),
 ];
 
@@ -68,6 +69,18 @@ impl CanonicalSectionFactory {
             stage: "cancelled",
             record_kind: "cancel",
             outcome: Some("cancel"),
+            agent,
+            notes,
+            model,
+        }
+        .render()
+    }
+
+    pub fn build_reopen_section(agent: &str, notes: &str, model: Option<&str>) -> String {
+        SectionRecord {
+            stage: "reopened",
+            record_kind: "reopen",
+            outcome: None,
             agent,
             notes,
             model,

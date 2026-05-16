@@ -1,5 +1,15 @@
 <script setup lang="ts">
-import { Download, Loader2, Trash2, Check, Info } from 'lucide-vue-next';
+import { computed } from 'vue';
+import {
+  Check,
+  ChevronDown,
+  ChevronsUpDown,
+  ChevronUp,
+  Download,
+  Info,
+  Loader2,
+  Trash2,
+} from 'lucide-vue-next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,31 +33,106 @@ import {
   statusForModel,
 } from '../composables/useEmbeddingsActions';
 
-defineProps<{
+type SortColumn = 'model' | 'specs' | 'quality' | 'status';
+
+const props = withDefaults(defineProps<{
   models: ModelInfo[];
   pending: Record<string, PendingAction | undefined>;
-}>();
+  sortColumn?: string;
+  sortDirection?: 'asc' | 'desc' | 'none';
+}>(), {
+  sortColumn: '',
+  sortDirection: 'none',
+});
 
 const emit = defineEmits<{
   download: [model: ModelInfo];
   activate: [model: ModelInfo];
   delete: [model: ModelInfo];
+  sort: [column: string];
 }>();
+
+const statusRank: Record<string, number> = {
+  Active: 0,
+  Installed: 1,
+  'Not installed': 2,
+};
+
+function ariaSort(column: SortColumn): 'ascending' | 'descending' | 'none' {
+  if (props.sortColumn !== column) return 'none';
+  return props.sortDirection === 'asc' ? 'ascending' : 'descending';
+}
+
+function compareText(a: string, b: string) {
+  return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+}
+
+function compareModels(a: ModelInfo, b: ModelInfo) {
+  switch (props.sortColumn) {
+    case 'model':
+      return compareText(a.name, b.name);
+    case 'specs':
+      return a.dimensions - b.dimensions
+        || a.maxTokens - b.maxTokens
+        || a.sizeBytes - b.sizeBytes;
+    case 'quality':
+      return (a.mtebRetrieval ?? 0) - (b.mtebRetrieval ?? 0);
+    case 'status':
+      return (statusRank[statusForModel(a).label] ?? 99) - (statusRank[statusForModel(b).label] ?? 99)
+        || compareText(a.name, b.name);
+    default:
+      return 0;
+  }
+}
+
+const sortedModels = computed(() => {
+  if (props.sortDirection === 'none' || !props.sortColumn) return props.models;
+  const dir = props.sortDirection === 'asc' ? 1 : -1;
+  return [...props.models].sort((a, b) => compareModels(a, b) * dir);
+});
 </script>
 
 <template>
   <Table>
     <TableHeader>
       <TableRow>
-        <TableHead>Model</TableHead>
-        <TableHead class="hidden md:table-cell">Specs</TableHead>
-        <TableHead class="hidden lg:table-cell">Quality</TableHead>
-        <TableHead>Status</TableHead>
+        <TableHead :aria-sort="ariaSort('model')">
+          <Button variant="ghost" size="sm" class="-ml-3 h-8" @click="emit('sort', 'model')">
+            <span>Model</span>
+            <ChevronUp v-if="sortColumn === 'model' && sortDirection === 'asc'" class="ml-1 h-3.5 w-3.5" />
+            <ChevronDown v-else-if="sortColumn === 'model' && sortDirection === 'desc'" class="ml-1 h-3.5 w-3.5" />
+            <ChevronsUpDown v-else class="ml-1 h-3.5 w-3.5 opacity-50" />
+          </Button>
+        </TableHead>
+        <TableHead class="hidden md:table-cell" :aria-sort="ariaSort('specs')">
+          <Button variant="ghost" size="sm" class="-ml-3 h-8" @click="emit('sort', 'specs')">
+            <span>Specs</span>
+            <ChevronUp v-if="sortColumn === 'specs' && sortDirection === 'asc'" class="ml-1 h-3.5 w-3.5" />
+            <ChevronDown v-else-if="sortColumn === 'specs' && sortDirection === 'desc'" class="ml-1 h-3.5 w-3.5" />
+            <ChevronsUpDown v-else class="ml-1 h-3.5 w-3.5 opacity-50" />
+          </Button>
+        </TableHead>
+        <TableHead class="hidden lg:table-cell" :aria-sort="ariaSort('quality')">
+          <Button variant="ghost" size="sm" class="-ml-3 h-8" @click="emit('sort', 'quality')">
+            <span>Quality</span>
+            <ChevronUp v-if="sortColumn === 'quality' && sortDirection === 'asc'" class="ml-1 h-3.5 w-3.5" />
+            <ChevronDown v-else-if="sortColumn === 'quality' && sortDirection === 'desc'" class="ml-1 h-3.5 w-3.5" />
+            <ChevronsUpDown v-else class="ml-1 h-3.5 w-3.5 opacity-50" />
+          </Button>
+        </TableHead>
+        <TableHead :aria-sort="ariaSort('status')">
+          <Button variant="ghost" size="sm" class="-ml-3 h-8" @click="emit('sort', 'status')">
+            <span>Status</span>
+            <ChevronUp v-if="sortColumn === 'status' && sortDirection === 'asc'" class="ml-1 h-3.5 w-3.5" />
+            <ChevronDown v-else-if="sortColumn === 'status' && sortDirection === 'desc'" class="ml-1 h-3.5 w-3.5" />
+            <ChevronsUpDown v-else class="ml-1 h-3.5 w-3.5 opacity-50" />
+          </Button>
+        </TableHead>
         <TableHead class="text-right">Actions</TableHead>
       </TableRow>
     </TableHeader>
     <TableBody>
-      <TableRow v-for="model in models" :key="model.id">
+      <TableRow v-for="model in sortedModels" :key="model.id">
         <TableCell class="align-top">
           <div class="flex flex-col gap-1 min-w-0">
             <span class="text-sm font-medium text-text-primary">{{ model.name }}</span>

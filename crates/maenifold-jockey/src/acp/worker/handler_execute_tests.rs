@@ -42,10 +42,7 @@ impl acp::Agent for CapturingAgent {
     }
 }
 
-fn insert_mock_connection(
-    key: &str,
-    agent: CapturingAgent,
-) -> tokio::sync::watch::Sender<bool> {
+fn insert_mock_connection(key: &str, agent: CapturingAgent) -> tokio::sync::watch::Sender<bool> {
     let (client_stream, agent_stream) = tokio::io::duplex(8192);
     let (client_read, client_write) = tokio::io::split(client_stream);
     let (agent_read, agent_write) = tokio::io::split(agent_stream);
@@ -115,8 +112,7 @@ async fn handler_execute_forwards_multipart_prompt_blocks_to_upstream_agent() {
 
             let image =
                 acp::ContentBlock::Image(acp::ImageContent::new("iVBORw0KGgo=", "image/png"));
-            let audio =
-                acp::ContentBlock::Audio(acp::AudioContent::new("UklGRg==", "audio/wav"));
+            let audio = acp::ContentBlock::Audio(acp::AudioContent::new("UklGRg==", "audio/wav"));
             let text = acp::ContentBlock::Text(acp::TextContent::new("keep this text block"));
             let prompt_blocks = vec![image.clone(), audio.clone(), text.clone()];
 

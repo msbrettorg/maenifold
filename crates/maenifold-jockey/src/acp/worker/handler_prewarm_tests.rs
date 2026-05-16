@@ -28,12 +28,7 @@ async fn failed_resume_emits_replay_complete_before_empty_result() {
     let (delta_tx, mut delta_rx) = mpsc::channel(1);
     let (result_tx, result_rx) = oneshot::channel();
 
-    complete_failed_prewarm(
-        Some(delta_tx),
-        Some(result_tx),
-        true,
-    )
-    .await;
+    complete_failed_prewarm(Some(delta_tx), Some(result_tx), true).await;
 
     assert!(matches!(
         delta_rx.try_recv().expect("replay sentinel"),

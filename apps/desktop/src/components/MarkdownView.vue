@@ -162,6 +162,7 @@ async function handleClick(event: MouseEvent): Promise<void> {
   const href = linkTarget?.getAttribute('href') ?? '';
   if (href.startsWith('memory://')) {
     event.preventDefault();
+    if (href === 'memory://' || href === 'memory:///') return;
     if (event.metaKey || event.ctrlKey) knowledgeStore.openInNewTab(href);
     else knowledgeStore.openNote(href);
     appShellStore.setActiveTab('knowledge');

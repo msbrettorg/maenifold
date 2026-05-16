@@ -7,6 +7,7 @@ import "vue-sonner/style.css";
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import App from "./App.vue";
+import { installCdpPerfHarness } from "./lib/cdp-perf-harness";
 import { usePreferencesStore } from "./stores/preferences";
 
 const app = createApp(App);
@@ -19,3 +20,5 @@ const preferencesStore = usePreferencesStore();
 preferencesStore.init();
 
 app.mount("#app");
+
+installCdpPerfHarness();

@@ -91,9 +91,10 @@ describe('pipeline delete T-301.27 store contract', () => {
     expect(listPipelines).toHaveBeenCalled();
     expect(store.currentPipelineId).toBeNull();
     expect(store.successMessage).toBe('Pipeline moved to quarantine for 30 days.');
-    expect(toast.success).toHaveBeenCalledWith('Pipeline moved to quarantine for 30 days.');
+    expect(toast.success).toHaveBeenCalledWith('Pipeline moved to quarantine for 30 days.', { duration: 3000 });
     expect(toast.info).toHaveBeenCalledWith(
       expect.stringContaining('default 30-day quarantine retention'),
+      { duration: 3000 },
     );
   });
 });

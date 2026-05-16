@@ -1,5 +1,5 @@
+import { toastError } from '@/composables/useToast';
 import { toValue, type MaybeRefOrGetter } from 'vue';
-import { toast } from 'vue-sonner';
 import { DEFAULT_SLASH_COMMANDS } from '../lib/default-commands';
 import type { AvailableCommand } from '../lib/types';
 import type { AppShellTab } from '../stores/app-shell';
@@ -37,7 +37,7 @@ export function useBuiltInSlashCommands(deps: BuiltInSlashCommandDeps) {
     const agentName = toValue(deps.currentAgentName)?.trim();
     const cwd = toValue(deps.currentCwd)?.trim();
     if (!agentName || !cwd) {
-      toast.error('Cannot start a new session without an active agent and working directory.');
+      toastError('Cannot start a new session without an active agent and working directory.');
       return false;
     }
     await deps.sessionStore.createSession(agentName, cwd);

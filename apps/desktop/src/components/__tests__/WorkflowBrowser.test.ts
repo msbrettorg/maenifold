@@ -145,7 +145,7 @@ describe('WorkflowBrowser actions', () => {
       'SaveWorkflowAsset',
       expect.objectContaining({ id: 'agent-review-copy' }),
     )
-    expect(mocks.toastSuccess).toHaveBeenCalledWith('Duplicated as agent-review-copy')
+    expect(mocks.toastSuccess).toHaveBeenCalledWith('Duplicated as agent-review-copy', { duration: 3000 })
     expect(selectSpy).not.toHaveBeenCalledWith('agent-review')
     expect(store.pendingWorkflowId).toBeNull()
     wrapper.unmount()
@@ -175,7 +175,7 @@ describe('WorkflowBrowser actions', () => {
     await flushPromises()
 
     expect(mocks.callTool).toHaveBeenCalledWith('DeleteWorkflowAsset', { name: 'agent-review' })
-    expect(mocks.toastSuccess).toHaveBeenCalledWith('Workflow deleted.')
+    expect(mocks.toastSuccess).toHaveBeenCalledWith('Workflow deleted.', { duration: 3000 })
     wrapper.unmount()
   })
 
@@ -201,7 +201,7 @@ describe('WorkflowBrowser actions', () => {
     dialogButton('Delete').click()
     await flushPromises()
 
-    expect(mocks.toastError).toHaveBeenCalledWith(error.message)
+    expect(mocks.toastError).toHaveBeenCalledWith(error.message, { duration: 8000 })
     wrapper.unmount()
   })
 })

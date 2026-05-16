@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { toastInfo } from '@/composables/useToast';
 import { ref } from 'vue';
 import { Image as ImageIcon, Headphones, Paperclip } from 'lucide-vue-next';
-import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
 import { fileLabel, mimeType, readFileAsBase64, type AttachmentKind } from '../lib/attachment-helpers';
 import type { ContentBlock } from '../lib/types';
@@ -35,11 +35,11 @@ const fileInputRef = ref<HTMLInputElement | null>(null);
 function triggerPicker(kind: AttachmentKind): void {
   if (props.isLoading) return;
   if (kind === 'image' && !props.supportsImage) {
-    toast.info('Image attachments are not yet available for this agent.');
+    toastInfo('Image attachments are not yet available for this agent.');
     return;
   }
   if (kind === 'audio' && !props.supportsAudio) {
-    toast.info('Audio attachments are not yet available for this agent.');
+    toastInfo('Audio attachments are not yet available for this agent.');
     return;
   }
   const target = kind === 'image'

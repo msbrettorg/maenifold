@@ -73,7 +73,7 @@ describe('useComposerContextMenu fork handling', () => {
     contextMenu.handleServerNodeAction('forkNode');
     await flushPromises();
 
-    expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/fork|failed|retry/i));
+    expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/fork|failed|retry/i), { duration: 8000 });
     expect(consoleError).toHaveBeenCalledWith('Fork pipeline session failed', expect.any(Error));
   });
 });

@@ -1,6 +1,6 @@
+import { toastWarning } from '@/composables/useToast';
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
-import { toast } from 'vue-sonner';
 import { usePipelineMcp } from '../composables/usePipelineMcp';
 import { type AgentProbeResult } from '../lib/agent-probe-types-defs';
 import {
@@ -175,7 +175,7 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
       }
       probeResults.value = next;
       probeStatus.value = 'error';
-      toast.warning(message);
+      toastWarning(message);
       scheduleRetry();
       return;
     }
@@ -207,7 +207,7 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
       needsRetry = shouldRetryProbe(message);
       const preserveCached = needsRetry;
       warningMessage.value = timedOut ? AGENT_PROBE_FALLBACK_WARNING : null;
-      toast.warning(warningMessage.value ?? message);
+      toastWarning(warningMessage.value ?? message);
       for (const agentName of agentNames) {
         const existing = probeResults.value.get(agentName);
         if (preserveCached && existing?.state === 'ready') {

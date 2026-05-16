@@ -1,6 +1,6 @@
+import { toastError } from '@/composables/useToast';
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
-import { toast } from 'vue-sonner';
 import { usePipelineMcp } from '../composables/usePipelineMcp';
 import {
   type LogEntry,
@@ -68,7 +68,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
     const message = `${tool}: ${err instanceof Error ? err.message : String(err)}`;
     errorMessage.value = message;
     successMessage.value = null;
-    toast.error(message);
+    toastError(message);
   }
   async function withError<T>(tool: string, fn: () => Promise<T>): Promise<T | undefined> {
     clearError();

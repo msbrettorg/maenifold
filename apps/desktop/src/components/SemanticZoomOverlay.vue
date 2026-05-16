@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { toastError } from '@/composables/useToast';
 import { computed, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
-import { toast } from 'vue-sonner';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
 import { usePipelineStore } from '../stores/pipeline';
@@ -125,7 +125,7 @@ function handleTakeRefined(): void {
   const nodeId = viewNode.value?.nodeId;
   const latest = latestAssistantMessageForRemoteSession(viewNode.value?.provenance?.detail.sessionId);
   if (!nodeId || !latest) {
-    toast.error('Unable to take refined output: reconnected session is no longer open.');
+    toastError('Unable to take refined output: reconnected session is no longer open.');
     return;
   }
   pipeline.replaceNodeOutput(nodeId, latest.content, {

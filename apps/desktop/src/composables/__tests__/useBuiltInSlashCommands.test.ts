@@ -64,7 +64,10 @@ describe('useBuiltInSlashCommands', () => {
     const { builtInSlash, sessionStore } = setup({ agentName: '' });
     await expect(builtInSlash.tryHandle(command('new'), [])).resolves.toBe(false);
     expect(sessionStore.createSession).not.toHaveBeenCalled();
-    expect(toastError).toHaveBeenCalledWith('Cannot start a new session without an active agent and working directory.');
+    expect(toastError).toHaveBeenCalledWith(
+      'Cannot start a new session without an active agent and working directory.',
+      { duration: 8000 },
+    );
   });
 
   it('/sessions activates the home tab and returns true', async () => {

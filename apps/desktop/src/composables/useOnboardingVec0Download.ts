@@ -1,5 +1,5 @@
+import { toastError } from '@/composables/useToast';
 import { computed, onUnmounted, ref } from 'vue';
-import { toast } from 'vue-sonner';
 
 import {
   buildVec0TargetPath,
@@ -85,7 +85,7 @@ export function useOnboardingVec0Download() {
     if (!runner) {
       const message = 'Vec0 download is unavailable in this environment.';
       downloadError.value = message;
-      toast.error(message);
+      toastError(message);
       return;
     }
 
@@ -104,7 +104,7 @@ export function useOnboardingVec0Download() {
       stopPolling();
       const message = error instanceof Error ? error.message : String(error);
       downloadError.value = message;
-      toast.error(`Vec0 download failed: ${message}`);
+      toastError(`Vec0 download failed: ${message}`);
     } finally {
       if (!disposed) {
         await loadStatus();

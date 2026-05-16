@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { toastSuccess, toastError } from '@/composables/useToast';
 import { computed, ref } from 'vue';
 import { Copy, Pencil, RotateCcw } from 'lucide-vue-next';
-import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -55,11 +55,11 @@ async function copyMessage(): Promise<void> {
     await navigator.clipboard.writeText(props.messageText);
   } catch {
     if (!copyWithCommand(props.messageText)) {
-      toast.error('Unable to copy message.');
+      toastError('Unable to copy message.');
       return;
     }
   }
-  toast.success('Copied message to clipboard.');
+  toastSuccess('Copied message to clipboard.');
   emit('copy');
 }
 

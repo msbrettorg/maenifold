@@ -368,6 +368,45 @@ describe('MarkdownView rendering regression coverage', () => {
       wrapper.unmount();
     });
 
+    describe('T-322.5: bare memory:// autolink and edge cases', () => {
+      it('bare memory://foo/bar text renders as clickable anchor', async () => {
+        const wrapper = await mountMarkdown('memory://foo/bar');
+        const link = wrapper.find('a[href="memory://foo/bar"]');
+
+        expect(link.exists()).toBe(true);
+        expect(link.attributes('href')).toBe('memory://foo/bar');
+        wrapper.unmount();
+      });
+
+      it('click on empty-path memory:// is a no-op', async () => {
+        const wrapper = await mountMarkdown('[empty](memory://)');
+        const knowledgeStore = useKnowledgeStore();
+        const openNote = vi.spyOn(knowledgeStore, 'openNote');
+        const openInNewTab = vi.spyOn(knowledgeStore, 'openInNewTab');
+
+        await wrapper.find('a[href="memory://"]').trigger('click');
+
+        expect(openNote).not.toHaveBeenCalled();
+        expect(openInNewTab).not.toHaveBeenCalled();
+        wrapper.unmount();
+      });
+
+      it('bare memory://concepts/my-idea renders and routes correctly on click', async () => {
+        const wrapper = await mountMarkdown('memory://concepts/my-idea');
+        const knowledgeStore = useKnowledgeStore();
+        const link = wrapper.find('a[href="memory://concepts/my-idea"]');
+        const openNote = vi.spyOn(knowledgeStore, 'openNote');
+
+        expect(link.exists()).toBe(true);
+        expect(link.attributes('href')).toBe('memory://concepts/my-idea');
+
+        await link.trigger('click');
+
+        expect(openNote).toHaveBeenCalledWith('memory://concepts/my-idea');
+        wrapper.unmount();
+      });
+    });
+
     it('unresolved WikiLink click opens the focused create dialog instead of opening a note', async () => {
       memoryApi.readMemory.mockRejectedValue(
         new ToolEnvelopeError('NOT_FOUND', 'Memory file not found: Missing Concept'),

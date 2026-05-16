@@ -205,6 +205,13 @@ export function getMarkdownIt(): Promise<MarkdownIt> {
       const defaultValidateLink = md.validateLink.bind(md);
       md.validateLink = (url: string): boolean =>
         url.startsWith('memory://') || defaultValidateLink(url);
+      md.linkify.add('memory:', {
+        validate: /\/\/.+/,
+        normalize(match: { url: string }) {
+          void match.url;
+          // keep the URL as-is; linkify lowercases by default for known schemas
+        },
+      });
 
       const shikiHighlighter = await createHighlighter({
         themes: ['github-light', 'github-dark'],

@@ -151,3 +151,53 @@ Prior priority rule was `(sprint_number, task_number, priority)`. UAT tasks domi
 WONTFIX-on-evidence is ONLY for premises that are genuinely dead. A premise is NOT dead when the spec wording is awkward but the underlying intent has a clear implementation path using existing artifacts. Re-spec and dispatch instead.
 
 **Concrete: when a task-pm returns `premise-drift`, the first PM triage move is to grep for adjacent fixtures / helpers / prior implementations that satisfy the underlying intent. Only WONTFIX after that grep confirms nothing exists.**
+
+### Lesson — gate_Reopen primitive eliminates the error-state-after-manual-mv trap (2026-05-17 iter-4)
+
+Iter-3 user demanded "reopen all WONTFIX items" → 6 files moved manually from `done/` → `todo/` → gate cache derived `state=error` because `TaskStatusDeriver` returns `UnknownState("task remains in todo/ but effective state is terminal")` when location=todo + replayed records terminate (`crates/maenifold-gate-core/src/task_status.rs:124-132`). `gate_Fail` couldn't recover because `apply_outcome` calls `active_task_state` (which invokes the same deriver) BEFORE writing the new outcome (`crates/maenifold-gate-core/src/lifecycle_helpers.rs:48-52`) — short-circuit error before the reset-to-initial logic at `task_status.rs:60-69` can fire.
+
+Iter-4 PM PM-direct workaround was a python markdown-stripper that surgically removed canonical outcome sections from the task file. That worked but is a footgun. Iter-4 shipped T-325.1 as a proper `gate_Reopen` MCP primitive that:
+- Accepts {root, taskId, agent, notes}
+- Verifies location == todo + replayed-state-is-terminal preconditions
+- Appends a new `Record Kind: reopen` section that the deriver treats as a reset to initial state + attempts++
+- 8 lifecycle tests across all 5 builtin pipelines
+- Daemon must be redeployed after merge to expose via MCP
+
+After T-325.1 merge + daemon bounce, iter-4 PM used gate_Reopen to clean 5 error-state tasks (T-302.12, T-302.65, T-303.4.21, T-303.10, T-303.18.6) cleanly in <30 sec total. Zero error states remain.
+
+**Rule going forward:** when a user moves a file from `done/` → `todo/` (or you need to reopen any terminal task), use `gate_Reopen` via MCP — do NOT use the python markdown-strip workaround. Available via `GatewayExecute maenifold.gate gate_Reopen {root, taskId, agent, notes}` after daemon redeploy.
+
+### Lesson — gate_Reopen UX gap: spec requires user to manually mv before reopen (2026-05-17 iter-4)
+
+T-325.1 spec authored by iter-4 PM specified `gate_Reopen` requires location == todo (i.e., user must mv from done/ to todo/ FIRST, then call gate_Reopen). That's footgun-prone: the typical use case is "I want this done/ task reopened" — requiring the manual mv first is one extra step that can fail (wrong filename, wrong dir, mv outside repo, etc.). A v2 of gate_Reopen could move the file atomically AND append the reopen record. **Future PM:** consider filing T-325.2 to extend gate_Reopen to accept an `--include-mv` (or `from: 'done'`) flag that atomically moves the file before appending the reopen record. Not blocking; current API works.
+
+### Lesson — task-pm "stop before terminal" is misnamed; the LAST intermediate pass IS the terminal transition (2026-05-17 iter-4 reaffirmation)
+
+Already documented in iter-1 (counter=1) learnings.md as a process gap. Iter-4 reaffirmed: ~8 task-pms this iter passed the "last intermediate" stage (e.g., red-team in tdd) which is the auto-transition to `done` — i.e., the gate file moves to done/ on that pass. Multiple task-pms reported "I violated RACI by passing the terminal stage" in their WorkResults. The work is correct; the bookkeeping is noisy.
+
+The right contract update (not yet codified): "task-pm: stop after passing the SECOND-TO-LAST intermediate stage (e.g., swe in tdd, red-team in sdd). Top PM owns the LAST intermediate gate_Pass (which IS the transition to done)." Update `~/.copilot/agents/task-pm.md` next iter to clarify; until then, top PM accepts that task-pms will fire the terminal pass and just runs `ls done/T-X.Y*` to verify before merging.
+
+### Lesson — deploy-daemon.sh inode check was disk-vs-disk false-equality (now fixed) (2026-05-17 iter-4)
+
+Iter-4 PM hit T-322.36 IRL: after merging T-325.1 (gate_Reopen, gate-core+core changes), `ralph/scripts/deploy-daemon.sh` refused to bounce launchd, claiming "rebuilt daemon binary inode matches running daemon text segment." Root cause: `lsof -p ... | awk '$4 == "txt" { print $9 }'` returned the PATH the daemon was launched with, then `stat -f %i "$running_binary"` got the CURRENT on-disk inode (which IS the rebuilt binary after `cargo build` replaced the file in place). So `running_inode == new_inode` became disk-vs-disk equality — always tripped after a rebuild.
+
+Fix shipped iter-4 (T-322.36): use `lsof`'s NODE column ($8 on macOS) directly — the kernel preserves the mapped inode for the running process even after the file is replaced on disk. So `running_inode` now reflects the daemon's text-segment inode (the OLD binary the process is still mapped to), and `new_inode` reflects the on-disk inode (the NEW binary cargo just produced). Comparison correctly means "no redeploy needed" when they match.
+
+PM workaround when hit on a daemon WITHOUT the fix: manually `launchctl bootout gui/$(id -u) <plist>` + `sleep 2` + `launchctl bootstrap gui/$(id -u) <plist>`. The full workaround is documented in `ralph/AGENTS.md` under "Mid-iter redeploy."
+
+### Lesson — worktree-create.sh's apps/desktop/out symlink slipped past gitignore (now fixed) (2026-05-17 iter-4)
+
+Iter-4 PM merged worker-T-322.19 with `git add -A` and accidentally committed an `apps/desktop/out` symlink as part of the merge. `apps/desktop/.gitignore` has `out/` (matches directories, not symlinks), and the worktree-create.sh script creates a symlink there for CDP UAT workers to find the packaged Electron binary. Result: `apps/desktop/out` got tracked in dev, which would have cascaded to other workers.
+
+Fix shipped iter-4 inline (PM-direct, NO PUNTING):
+1. `git rm --cached apps/desktop/out` + commit
+2. Patched `ralph/scripts/worktree-create.sh` `add_worktree_symlink_excludes` to also add `/apps/desktop/out` to the common `.git/info/exclude` (alongside `/todo` and `/done`)
+3. Manually appended `/apps/desktop/out` to the existing common exclude so the dev tree was also covered
+
+**Rule going forward:** any symlink the worktree-create.sh script adds inside a worktree MUST also have its path appended to the common `.git/info/exclude` so `git add -A` from inside the worktree skips it. The script now handles this for `out`. Watch for other future symlinks (e.g., if we ever symlink target/ or build/).
+
+### Lesson — npm install in PM merge path needed for package.json-touching tasks (2026-05-17 iter-4)
+
+T-313.1 added `diff` npm package via package.json edit. PM merge committed the package.json change but the worktree's node_modules was a symlink to main repo's. Main repo's node_modules didn't have `diff` yet — needed `npm install` after the PM merge to sync. The task-pm correctly noted this in its WorkResult; PM ran `npm install` post-merge to add the dependency to node_modules + sync package-lock.json.
+
+**Rule going forward:** when a task spec mentions adding/removing/changing an npm dependency, PM's post-merge step MUST include `cd apps/desktop && npm install`. Task-pm dispatch prompts should call this out so the worker's WorkResult flags the dep change for the PM.

@@ -11,7 +11,9 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useKnowledgeStore, type KnowledgeFileEntry, type KnowledgeFolderNode } from '../stores/knowledge';
 import KnowledgeRowActions from './KnowledgeRowActions.vue';
 import KnowledgeVaultNode from './KnowledgeVaultNode.vue';
-
+type TreeSortMode = 'name-asc' | 'name-desc' | 'modified-newest';
+type SearchSortMode = 'relevance' | 'name' | 'modified';
+type SortableEntry = { name?: string; title?: string; modifiedAt?: string };
 const store = useKnowledgeStore();
 const {
   folders,
@@ -26,14 +28,26 @@ const {
 } = storeToRefs(store);
 const query = ref(store.searchQuery);
 const searchInput = ref<{ $el?: HTMLInputElement } | null>(null);
-const treeQuery = ref(store.searchQuery);
+const treeQuery = ref('');
 const mode = ref<'tree' | 'search'>('tree');
+const treeSortMode = ref<TreeSortMode>('name-asc');
+const searchSortMode = ref<SearchSortMode>('relevance');
 const hasSubmittedSearch = ref(false);
 const showSearchResults = computed(() => mode.value === 'search');
 const normalizedTreeQuery = computed(() => treeQuery.value.trim().toLocaleLowerCase());
 const isTreeFilterActive = computed(() => normalizedTreeQuery.value.length > 0);
 const visibleRootFiles = computed(() => filterFiles(rootFiles.value, normalizedTreeQuery.value));
 const visibleFolders = computed(() => filterFolders(folders.value, normalizedTreeQuery.value));
+const currentSortMode = computed({
+  get: (): TreeSortMode | SearchSortMode => (mode.value === 'tree' ? treeSortMode.value : searchSortMode.value),
+  set: (value) => {
+    if (mode.value === 'tree') {
+      treeSortMode.value = value as TreeSortMode;
+      return;
+    }
+    searchSortMode.value = value as SearchSortMode;
+  },
+});
 const emptySearchMessage = computed(() => (
   hasSubmittedSearch.value && searchQuery.value.trim()
     ? 'No results'
@@ -76,6 +90,42 @@ function filterFolders(
     })
     .filter((folder): folder is KnowledgeFolderNode => folder !== null);
 }
+
+function getLabel(entry: SortableEntry): string {
+  return entry.title ?? entry.name ?? '';
+}
+
+function getModifiedTime(entry: SortableEntry): number {
+  return Date.parse(entry.modifiedAt ?? '') || 0;
+}
+
+function compareByName(left: SortableEntry, right: SortableEntry, descending = false): number {
+  const order = getLabel(left).localeCompare(getLabel(right));
+  return descending ? -order : order;
+}
+
+function compareByModified(left: SortableEntry, right: SortableEntry): number {
+  return getModifiedTime(right) - getModifiedTime(left) || compareByName(left, right);
+}
+
+const sortedRootFiles = computed(() => {
+  const files = [...visibleRootFiles.value];
+  if (treeSortMode.value === 'modified-newest') return files.sort(compareByModified);
+  return files.sort((left, right) => compareByName(left, right, treeSortMode.value === 'name-desc'));
+});
+
+const sortedFolders = computed(() => {
+  const foldersList = [...visibleFolders.value];
+  if (treeSortMode.value === 'modified-newest') return foldersList.sort(compareByModified);
+  return foldersList.sort((left, right) => compareByName(left, right, treeSortMode.value === 'name-desc'));
+});
+
+const sortedSearchResults = computed(() => {
+  const results = [...searchResults.value];
+  if (searchSortMode.value === 'name') return results.sort((left, right) => compareByName(left, right));
+  if (searchSortMode.value === 'modified') return results.sort(compareByModified);
+  return results.sort((left, right) => (right.score ?? 0) - (left.score ?? 0));
+});
 
 watch(query, (nextQuery) => {
   if (treeFilterTimer) {
@@ -162,6 +212,23 @@ defineExpose({ focusSearchInput });
           <TabsTrigger value="search" class="h-8 rounded-md px-2 py-1">Search</TabsTrigger>
         </TabsList>
       </Tabs>
+
+      <select
+        v-model="currentSortMode"
+        data-testid="vault-sort-select"
+        class="h-9 rounded-md border border-border-subtle bg-bg-surface px-3 text-body-sm text-text-primary"
+      >
+        <template v-if="mode === 'tree'">
+          <option value="name-asc">Name (A-Z)</option>
+          <option value="name-desc">Name (Z-A)</option>
+          <option value="modified-newest">Modified (newest)</option>
+        </template>
+        <template v-else>
+          <option value="relevance">Relevance</option>
+          <option value="name">Name</option>
+          <option value="modified">Modified</option>
+        </template>
+      </select>
     </div>
 
     <ScrollArea class="min-h-0 flex-1 px-2 py-2">
@@ -175,8 +242,15 @@ defineExpose({ focusSearchInput });
             <Skeleton v-for="index in 4" :key="index" class="h-8 rounded-md" />
           </template>
           <template v-else>
+            <KnowledgeVaultNode
+              v-for="folder in sortedFolders"
+              :key="folder.path"
+              :node="folder"
+              :active-tab-uri="activeTabUri"
+              :filter-active="isTreeFilterActive"
+            />
             <div
-              v-for="file in visibleRootFiles"
+              v-for="file in sortedRootFiles"
               :key="file.uri"
               class="flex h-8 items-center gap-1 rounded-md"
               :class="activeTabUri === file.uri ? 'bg-bg-surface text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'"
@@ -187,14 +261,7 @@ defineExpose({ focusSearchInput });
               </Button>
               <KnowledgeRowActions :file="file" />
             </div>
-            <KnowledgeVaultNode
-              v-for="folder in visibleFolders"
-              :key="folder.path"
-              :node="folder"
-              :active-tab-uri="activeTabUri"
-              :filter-active="isTreeFilterActive"
-            />
-            <p v-if="!visibleRootFiles.length && !visibleFolders.length" class="px-2 py-3 text-body-sm text-text-secondary">
+            <p v-if="!sortedRootFiles.length && !sortedFolders.length" class="px-2 py-3 text-body-sm text-text-secondary">
               {{ isTreeFilterActive ? 'No matching notes or folders.' : 'No memory folders were found.' }}
             </p>
           </template>
@@ -207,21 +274,23 @@ defineExpose({ focusSearchInput });
           <template v-else-if="searchLoading">
             <Skeleton v-for="index in 3" :key="index" class="h-10 rounded-md" />
           </template>
-          <template v-else-if="searchResults.length > 0">
-            <Button
-              v-for="result in searchResults"
+          <template v-else-if="sortedSearchResults.length > 0">
+            <div
+              v-for="result in sortedSearchResults"
               :key="result.uri"
-              type="button"
-              variant="ghost"
-              class="h-auto justify-start rounded-md px-2 py-2 text-left"
-              :class="activeTabUri === result.uri ? 'bg-bg-surface text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'"
-              @click="openUri(result.uri, $event)"
+              class="grid min-w-0 gap-1"
             >
-              <div class="grid min-w-0 gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                class="h-auto justify-start rounded-md px-2 py-2 text-left"
+                :class="activeTabUri === result.uri ? 'bg-bg-surface text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'"
+                @click="openUri(result.uri, $event)"
+              >
                 <span class="truncate text-body-sm font-medium">{{ result.title }}</span>
-                <span class="line-clamp-2 text-tiny text-text-tertiary">{{ result.snippet || result.uri }}</span>
-              </div>
-            </Button>
+              </Button>
+              <span class="px-2 text-tiny text-text-tertiary">{{ result.snippet || result.uri }}</span>
+            </div>
           </template>
           <p v-else class="px-2 py-3 text-body-sm text-text-secondary">{{ emptySearchMessage }}</p>
         </template>

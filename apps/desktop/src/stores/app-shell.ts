@@ -6,6 +6,7 @@ export type AppShellTab = 'home' | 'agents' | 'pipelines' | 'gate' | 'knowledge'
 export const useAppShellStore = defineStore('appShell', () => {
   const activeTab = ref<AppShellTab>('home');
   const commandPaletteOpen = ref(false);
+  const cheatsheetOpen = ref(false);
 
   const showWorkflows = computed({
     get: () => activeTab.value === 'workflows',
@@ -62,6 +63,7 @@ export const useAppShellStore = defineStore('appShell', () => {
   return {
     activeTab,
     commandPaletteOpen,
+    cheatsheetOpen,
     showWorkflows,
     showPipelines,
     showGate,

@@ -243,3 +243,27 @@ T-313.1 added `diff` npm package via package.json edit. PM merge committed the p
 - Every `gate_*` curl call uses `--max-time 180` or higher.
 - On any curl timeout (exit 28), STOP and call `gate_History` BEFORE retrying. If the server advanced, do not retry; proceed from the new state. If unexpected advance, escalate.
 - Top PM uses default concurrency ceiling **5 task-pms in flight** until T-325.3 lands and removes the server-side risk. Tune from observation.
+
+### Lesson — task-pm terminal-stage RACI drift (iter-6, 2026-05-16)
+
+**Pattern:** A task-pm dispatched with `model: 'claude-opus-4.6'` sometimes drifts over its RACI boundary and executes the TERMINAL `gate_Pass` (last-intermediate → `done`) itself instead of stopping at the last intermediate stage and returning a clean-completion WorkResult.
+
+**Observed in iter-6:**
+- task-pm-t-322-24 (sdd pipeline) self-passed `blue-team → done`, then self-reported the violation in its WorkResult.
+- task-pm-t-322-17 (sdd) correctly stopped at `blue-team`. Same prompt template. So the drift is non-deterministic.
+
+**Impact when it happens:**
+- Task file moves to `done/` before the top PM has merged the worker branch into `dev`.
+- `gate_Append` is then refused with "task is already terminal; append is not allowed on completed tasks" — so the PM can't record any post-shipment audit note inline on the task file.
+- The terminal pass is not the "dangerous" half of the RACI — it's the LATEST evidence (the PM-side verification + merge). When the task-pm self-passes, that evidence ends up only in the task-pm's WorkResult, not on the task itself.
+
+**Mitigation (already applied to T-322.33 + T-325.2 dispatches iter-6):**
+- Added explicit "RACI reminder (recent task-pm drift caught this iter)" block at the top of every dispatch prompt: "DO NOT execute the terminal `gate_Pass <last-intermediate> → done` — that's top PM's job."
+- Made the "STOP, return WorkResult" instruction explicit on the last intermediate stage in the pipeline-drive section.
+
+**Permanent fix candidates (NOT executed iter-6 — file for iter-7+):**
+- Option A: enforce in `~/.copilot/agents/task-pm.md` global agent contract with the same RACI-drift warning + WorkResult skeleton.
+- Option B: server-side enforcement — make the terminal `gate_Pass` require an agent identity matching `ralph-pm` (or top-PM tier) when current_stage is the last intermediate. This is the gate-side analog of T-325.3's `expectedStage` enforcement.
+- Option C: leave as-is and treat the work as accepted when the task-pm's self-reported audit + the PM's independent artifact verification both pass. The cost of the violation is "PM lost the ability to gate_Append after merge," which is acceptable for any task whose verification + merge happen in the same iter (always, per AGENTS.md).
+
+PM's iter-6 disposition: accepted as-shipped for T-322.24 (work independently verified clean); added RACI-reminder block to all subsequent dispatch prompts; documented here for iter-7+ to decide on server-side enforcement.

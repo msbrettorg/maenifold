@@ -15,25 +15,20 @@ If you encounter issues with the MCP or CLI maenifold tools you should immediate
 
 These are the rules that get bent first when a PM is tired or in a hurry. If you remember nothing else, remember these. They map to AGENTS.md (repo root) Core Tenets + Gate — The Law rules #14, #15, #16.
 
-1. **WONTFIX is the default for broken premises.** A task whose premise references a thing that doesn't exist, asks you to fix code you don't own, or otherwise can't ship as written gets a plain-English WONTFIX recommendation to the user **in the same iter the bad premise is verified**. Not the next iter. Not after another spec amendment. Not after another "Option B / Option C" rescope memo. Just: "this is broken because X; close as WONTFIX?" If the user authorizes with one word, cascade `gate_Pass` through all stages with stage-waiver notes citing the timestamp. See: T-302.65 sat blocked across 5 iters because each PM held instead of asking; iter-3 closed all 3 sprint-302 blocked tasks in ONE response after asking directly.
+1. **NO PUNTING. Discovery → file + dispatch → ship, THIS ITER.** When you find a defect, gap, or product issue (especially during UAT) you create a gate task AND dispatch a worker against it in the same iter, while you still have the context loaded. Filing a task without dispatching is punting. Surfacing it in `thoughts.md` "for the next PM" is punting. Recommending a fix is punting. The point of UAT and any context-rich discovery is to fix things WHILE the trace, repro, file paths, and architecture reasoning are still in working memory. Wait an iter and that context is gone — you (or the next PM) re-investigates from cold. Counter-example: T-302.65 + T-302.64 punted across 5 iters before iter-3 finally closed them.
 
-2. **No patches on patches.** When the correct fix lives outside our codebase (upstream library, third-party CLI, OS), do NOT layer a translation / shim / heuristic in our code to paper over the external bug. Close as WONTFIX in our scope; file the upstream bug ONLY with user authorization. Counter-example: the T-302.64 proposal to build a `client.rs` translation layer for upstream ACP CLI message shapes was correctly rejected as fragile.
+2. **WONTFIX on evidence — the only "don't fix now" path.** When a task's premise is verifiably dead (references a thing that doesn't exist, asks us to fix code we don't own, contradicts the architecture), the PM closes it THIS ITER attributed to `ralph-pm` with the verification evidence (grep output / LSP trace / file paths) recorded in the gate_Pass notes. The PM does NOT "recommend to the user" — recommending in an autonomous loop is itself punting (the user isn't watching every iter, the task rots). The cited evidence IS the authorization. If the user disagrees later, they can grep `done/` and reopen. This is the ONE allowed skip-the-fix disposition. Carve-out: tasks under a constitution-level hold (e.g., T-309.3 anti-cargo-cult-security per AGENTS.md P0 #5) stay blocked with their existing rationale.
 
-3. **Own what you find. NO LANDMINES.** When you discover a defect, dead premise, broken assumption, or process gap mid-iter, you own it for the rest of the iter. Exactly THREE dispositions are allowed:
-   - (a) **Fix it now** if it's in scope or trivially adjacent.
-   - (b) **Recommend WONTFIX to the user now** in plain English if the premise is dead.
-   - (c) **File a gate task AND write the task ID + recommendation as the FIRST item in `ralph/state/thoughts.md`** so the next PM cannot miss it on bootstrap. Tag the task spec with `discovered_in: T-XXX.Y` AND `discovered_at: <ISO date>`.
+3. **No patches on patches.** When the correct fix lives outside our codebase (upstream library, third-party CLI, OS), do NOT layer a translation / shim / heuristic in our code to paper over the external bug. Close as WONTFIX on the evidence trace showing the fix lives upstream. Do NOT file an "upstream tracker" task unless the user has authorized that work; if the user wants upstream issues filed, they'll say so. Counter-example: the T-302.64 proposal to build a `client.rs` translation layer for upstream ACP CLI message shapes was correctly rejected as fragile.
+
+4. **One-iter block ceiling.** A task in `blocked` state for more than ONE iter without forward motion is itself a defect. On entry to any iter, the PM scans for blocked tasks (`grep -l "^blocked: true" todo/*.md`). For each, the PM either:
+   - Closes on cited evidence this iter if the premise is dead, OR
+   - Dispatches a worker on the fix this iter if the blocker has cleared, OR
+   - Leaves blocked ONLY when there's an explicit constitution-level hold (e.g., T-309.3's anti-cargo-cult-security accepted residual risk) and notes the rationale in `thoughts.md` so the next PM doesn't waste cycles re-evaluating.
    
-   What is FORBIDDEN: filing a gate task with `blocked: true` + "PM/user decision required" in the body and saying nothing about it in `thoughts.md`. The next PM does not telepathically prioritize what you discovered. They bootstrap, read `thoughts.md`, see no mention, and your discovery rots for iters. T-302.65 = 5 iters of rot before iter-3 surfaced it. Don't be the PM who created the rot.
+   "Hold for user input" is not a valid disposition in an autonomous loop. Multi-iter holds compound into invisible backlog rot.
 
-4. **One-iter block ceiling.** A task in `blocked` state for more than ONE iter without forward motion is itself a defect. On entry to any iter, the PM scans for blocked tasks (`grep -l "^blocked: true" todo/*.md`). For each:
-   - If the blocker is real external dep (user input, upstream release, hardware) → ask the user in plain English **this iter**, with a lettered choice list **including "close as WONTFIX"**. Do not write another spec amendment; do not file another sub-task; do not hold silently.
-   - If the blocker is "premise is wrong" → default recommendation is WONTFIX with a one-paragraph rationale. Surface it this iter; ship the closure when authorized.
-   - Multi-iter holds compound into invisible backlog rot. The next PM cannot fix what they don't see.
-
-5. **Surface in plain English.** When you ask the user a question, use English, not jargon. No "Option A / B / C with three sub-bullets each" walls of text. No internal task IDs without explaining what they are. Phrase the question the way you'd phrase it to a smart colleague who doesn't know the codebase. The user only said "close it" because the PM finally asked in English instead of in spec-amendment-ese.
-
-6. **Lowest sprint number first; lowest task number within sprint first.** No exceptions. New items assume the old ones are done. Skipping ahead WILL cause problems.
+5. **Lowest sprint number first; lowest task number within sprint first.** No exceptions. New items assume the old ones are done. Skipping ahead WILL cause problems.
 
 ---
 
@@ -72,13 +67,15 @@ Before authoring any spec or dispatching any worker, scan the entire backlog for
 grep -l "^blocked: true" todo/*.md
 ```
 
-For each result, read the task spec body and the `blocked_reason` frontmatter:
+For each result, read the task spec body and the `blocked_reason` frontmatter, then take exactly one of these actions THIS ITER:
 
-- **Premise is dead** (feature doesn't exist, fix lives in code we don't own, request contradicts architecture) → surface to user this iter in plain English with WONTFIX as the recommended option. Do NOT write another spec amendment. Do NOT hand it to the next PM.
-- **Real external dep with no forward motion since prior iter** (compare `discovered_at` frontmatter against today; if >1 iter old) → also surface this iter with a numbered choice list including "close as WONTFIX".
-- **Real external dep AND user already gave a hold authorization** (e.g., T-309.3's anti-cargo-cult-security hold) → leave in blocked; note in `thoughts.md` so the next PM doesn't re-ask.
+- **Premise is dead** (feature doesn't exist, fix lives in code we don't own, request contradicts architecture) → cascade `gate_Pass` through all stages attributed to `ralph-pm` with the verification evidence (grep output / LSP trace / file paths) in the notes. Move on.
+- **Blocker has cleared** (the dep landed, the upstream released, the hardware arrived) → unblock the frontmatter, dispatch a worker on the fix in a fresh worktree, ship through its pipeline.
+- **Constitution-level hold still active** (e.g., T-309.3 anti-cargo-cult-security accepted residual risk per AGENTS.md P0 #5) → leave blocked, note in `thoughts.md` so the next PM doesn't waste cycles re-evaluating.
 
-Then read `ralph/state/thoughts.md` "⚠️ NEXT-PM FIRST READ" section (if present) — the prior PM should have surfaced anything the user needs to decide. If they did, address those first.
+What is FORBIDDEN: leaving a blocked task as-is and moving on, "surfacing" a blocked task to the user when the user isn't watching, filing a "decision needed" amendment and handing it off. Multi-iter blocked rot is the antipattern this rule exists to kill.
+
+Then read `ralph/state/thoughts.md` `## ⚠️ NEXT-PM FIRST READ` section (if present). It should only contain user-input-required carve-outs (constitution-level holds, true product-direction questions the user explicitly owns). If you see in-flight defect tasks there from the prior PM, that's punting; dispatch workers on them this iter.
 
 ### 4. Read project conventions
 
@@ -215,25 +212,36 @@ The child tasks ship as separate gate rows + commits + merges. Each child can ru
   - `ralph/state/thoughts.md` — REPLACE entirely at iter end. Messages TO the next loop. Rewrite from scratch with whatever the next PM needs to inherit. Do not append.
   - **Iter ledgers / what shipped / throughput tallies** go in `memory://mae-auto/iterations/*` notes via `WriteMemory`, NOT into either state file.
 
-### F.1 Iter-close ritual — no-landmines audit (MANDATORY)
+### F.1 Iter-close ritual — NO PUNTING audit (MANDATORY)
 
-Before declaring the iter closed and committing the `thoughts.md` rewrite, run this audit:
+Before declaring the iter closed and committing the `thoughts.md` rewrite, run this audit. Any failure = process violation; fix before commit.
 
 1. **Scan the backlog for tasks filed THIS iter**:
    ```
-   grep -l "discovered_at: $(date -u +%Y-%m-%d)" todo/*.md
+   grep -l "discovered_at: $(date -u +%Y-%m-%d)" todo/*.md done/*.md
    ```
-2. **For each result, verify the task ID appears in your new `ralph/state/thoughts.md`** under a `## ⚠️ NEXT-PM FIRST READ` section near the top. If it does not, you have just created a landmine. Add it before commit.
+2. **For each result, verify it is EITHER**:
+   - In `done/` (shipped this iter), OR
+   - In `todo/` with a `worker-T-XXX.Y` git worktree (`git worktree list | grep T-XXX.Y`) AND an in-flight worker dispatched against it.
+   
+   If a task is in `todo/` with no worktree and no in-flight worker — **YOU PUNTED**. Either dispatch a worker on it now (extend the iter if needed) or `gate_Pass` it as WONTFIX with explicit rationale. Surfacing it in `thoughts.md` does not count.
+
 3. **Scan for blocked tasks**:
    ```
    grep -l "^blocked: true" todo/*.md
    ```
-4. **For each blocked task, verify `thoughts.md` either:**
-   - Surfaces it under `## ⚠️ NEXT-PM FIRST READ` with an explicit recommendation (ask user / WONTFIX / accept residual), OR
-   - Cites the rationale for why it stays blocked (e.g., user-authorized residual risk).
-5. **For each task you closed this iter via WONTFIX cascade**, verify the iter-close memory note under `memory://mae-auto/iterations/*` lists it with the user-authorization timestamp.
+4. **For each blocked task, verify EITHER**:
+   - It's under a constitution-level hold (e.g., T-309.3 anti-cargo-cult-security) with rationale in `blocked_reason` AND noted in `thoughts.md`, OR
+   - It was filed this iter and you've already dispatched a worker on the unblocking work, OR
+   - It's been WONTFIX'd this iter (then it should be in `done/`, not `todo/`).
+   
+   "Blocked, awaiting user input" with no active workflow = punting. Fix before commit.
 
-If the audit reveals an undocumented mid-iter filing, an unsurfaced blocked task, or a missing memory note — fix it before commit. The iter is not closed until the audit passes.
+5. **For each task closed this iter via WONTFIX cascade**, verify the iter-close memory note under `memory://mae-auto/iterations/*` lists it with the cited evidence.
+
+6. **`## ⚠️ NEXT-PM FIRST READ` section in `thoughts.md` must contain ONLY user-input-required carve-outs** (constitution-level holds, true product-direction questions the user explicitly owns). If you put in-flight defect tasks there, that's punting them to the next PM — file + dispatch instead.
+
+The iter is not closed until the audit passes. No punting.
 
 ---
 
@@ -475,39 +483,43 @@ If `git merge task/T-XXX.Y` conflicts:
 
 ---
 
-## Eat your own dogfood (no landmines edition)
+## Eat your own dogfood (NO PUNTING edition)
 
-We use maenifold and gate to build maenifold and gate. Every MCP call you make IS a product validation. If a tool feels wrong, that IS a bug.
+We use maenifold and gate to build maenifold and gate. Every MCP call you make IS a product validation. If a tool feels wrong, that IS a bug. The point of UAT and any context-rich discovery moment is to fix things **while you still have the context loaded** — the trace, the repro, the file paths, the architecture reasoning. Wait an iter and that context is gone.
 
-**When you discover an issue outside your current task scope, EXACTLY THREE dispositions are allowed** (Cardinal Rule #3 — Own what you find. NO LANDMINES.):
+**When you discover an issue outside your current task scope, EXACTLY TWO dispositions are allowed** (Cardinal Rule #1 — NO PUNTING):
 
-### Disposition (a) — Fix it now
+### Disposition (a) — Fix it in your current worker's worktree if trivially adjacent
 
-If the issue is trivially in scope (e.g., a one-line doc typo adjacent to your current work, a stale memory note you just disproved) — fix it in the same iter. Commit it as a separate trivial-hygiene commit so the audit trail is clean.
+If the issue is one-line-adjacent to what your current worker is doing (typo in the file above, missing const right next to the function being modified) — extend the in-flight worker's prompt to also cover it, OR fix it PM-direct if it's truly trivial single-file. Commit as a separate trivial-hygiene change so the audit trail is clean.
 
-### Disposition (b) — Recommend WONTFIX to the user now
+### Disposition (b) — File a gate task AND dispatch a worker against it THIS ITER
 
-If the issue is a dead premise (the thing it describes doesn't exist, the fix lives in code we don't own, the request contradicts the architecture) — write a one-paragraph evidence-cited rationale and surface a plain-English WONTFIX recommendation to the user **this iter**. Do not file a "blocked: true" task and walk away.
-
-### Disposition (c) — File a gate task AND surface it to the next PM
-
-If the issue is real and in scope but not adjacent enough to fix this iter:
+For real defects/gaps that aren't trivially adjacent:
 
 1. Create `todo/T-XXX.{next}-{short-description}.md` with YAML frontmatter:
    - `id`, `title`, `pipeline:` (per pipeline rules below)
    - `discovered_in: T-XXX.Y` (the task you were working on when you found it)
    - `discovered_at: <ISO 8601 date>` (today)
-   - `recommendation: <fix-by-date | wontfix | defer-until-date | needs-user-input>`
-2. Include acceptance criteria and concrete reproduction steps.
+2. Include acceptance criteria and concrete reproduction steps (you have the context — write it down before you lose it).
 3. Run `gate sync --root .` so gate picks it up.
-4. **Write the task ID + your one-line recommendation as a bullet in `ralph/state/thoughts.md` under a top-section heading `## ⚠️ NEXT-PM FIRST READ — discovered this iter`.** This is non-negotiable — without it, the next PM bootstraps blind to your discovery.
-5. Continue with your current task.
+4. **Create a worktree and dispatch a worker against the new task in the same iter** — `scripts/worktree-create.sh T-XXX.next` + dispatch SWE per the new task's pipeline. Ship through gate before iter close.
+5. For multi-iter features: decompose into children per the "CARVE BEFORE DISPATCH" rules (section D.3) and dispatch the FIRST child this iter. At least one child must be in flight.
 
-### Forbidden — these are landmines
+### WONTFIX carve-out
 
-- Filing a gate task with `blocked: true` + "PM/user decision required" in the body and saying NOTHING about it in `thoughts.md`. The next PM does not telepathically prioritize what you discovered.
-- Filing a gate task without `discovered_in` / `discovered_at` frontmatter tags. Multi-iter rot needs to be visible at a glance.
-- "I'll let the next PM ask the user" — if you can ask the user this iter, you ask this iter. Multi-iter handoffs of decisions compound into invisible backlog rot. T-302.65 sat blocked across 5 iters because each PM thought the next would handle it. Don't be PM #6.
+If the "discovery" is actually evidence that a task's premise is dead (the thing doesn't exist, the fix lives upstream, the request contradicts the architecture), use Cardinal Rule #2: PM closes on cited evidence this iter. No new gate task is needed for the close itself; cascade `gate_Pass` on the bad-premise task attributed to `ralph-pm` with evidence in notes.
+
+### Forbidden — these are PUNTING and they are banned
+
+- Filing a gate task without dispatching a worker against it this iter ("I'll let the next PM pick it up").
+- Filing a gate task with `blocked: true` + "PM/user decision required" in the body.
+- Writing a recommendation in `ralph/state/thoughts.md` instead of fixing.
+- "Surfacing" a defect to a user who isn't watching the loop.
+- Adding to a P2 backlog and walking away.
+- Any sentence containing "I'll defer this to" or "next iter can pick this up" or "filing for future consideration".
+
+Counter-example: T-302.65 was discovered iter-1 and punted across 5 iters before iter-3 closed it. Every one of those iters had the PM in context, and every one of those PMs chose to punt. That's 5 iter-budgets of no-op runs caused by the punting reflex.
 
 ### Banned actions outside scope
 

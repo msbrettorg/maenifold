@@ -1,4 +1,5 @@
-import { ref, onScopeDispose } from 'vue';
+import { useEventListener } from '@vueuse/core';
+import { ref } from 'vue';
 
 interface ResizeOptions {
   initial: number;
@@ -26,22 +27,22 @@ export function useResizeHandle(options: ResizeOptions) {
 
     function onUp() {
       isResizing.value = false;
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
+      cleanupDrag?.();
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
       cleanupDrag = null;
     }
 
     cleanupDrag?.();
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
+    const cleanupMove = useEventListener(document, 'mousemove', onMove);
+    const cleanupUp = useEventListener(document, 'mouseup', onUp);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
-    cleanupDrag = onUp;
+    cleanupDrag = () => {
+      cleanupMove();
+      cleanupUp();
+    };
   }
-
-  onScopeDispose(() => cleanupDrag?.());
 
   return { width, isResizing, startResize };
 }

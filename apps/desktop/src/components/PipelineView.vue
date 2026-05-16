@@ -27,12 +27,13 @@ import { usePipelineDialogs } from '../composables/usePipelineDialogs';
 import { usePipelineLoading } from '../composables/usePipelineLoading';
 import { usePipelineMobile } from '../composables/usePipelineMobile';
 import { usePipelineViewState } from '../composables/usePipelineViewState';
+import { useAppShellStore } from '../stores/app-shell';
 import { useProvenanceStore } from '../stores/provenance';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard';
 import type { PipelineDefinition, ViewNode } from '../lib/pipeline-types';
 type PipelineIconRailExpose = { focusPipelineToggle: () => void }; type TemplateGalleryExpose = { resetForNewPipeline: () => void };
-const store = usePipelineStore(); const provenance = useProvenanceStore(); const zoomStore = useSemanticZoomStore();
+const store = usePipelineStore(); const appShellStore = useAppShellStore(); const provenance = useProvenanceStore(); const zoomStore = useSemanticZoomStore();
 const guard = useUnsavedChangesGuard({ title: 'Discard pipeline changes?' });
 const { navigateTo } = useProvenanceNavigation();
 const { currentPipelineId, currentView, designMode: storeDesignMode, error, hasDirtyDraft, localDefinition, savingState, successMessage, workflows } = storeToRefs(store);
@@ -74,6 +75,14 @@ watch([() => currentPipelineId.value, () => String(currentView.value?.status ?? 
   lastStatusByPipeline.value[pipelineId] = status;
 });
 watch(isNarrowViewport, (narrow) => { if (narrow) closeFlyout(); });
+let restoringPipelineTab = false;
+watch(() => appShellStore.activeTab, async (tab, previousTab) => {
+  if (restoringPipelineTab || previousTab !== 'pipelines' || tab === 'pipelines' || !hasDirtyDraft.value) return;
+  guard.markDirty();
+  if (await guard.confirmIfDirty()) { guard.markClean(); return; }
+  restoringPipelineTab = true;
+  appShellStore.setActiveTab('pipelines'); await nextTick(); restoringPipelineTab = false;
+});
 watch(
   [() => provenance.pendingThinkingSessionId, currentView],
   ([thinkingSessionId, view]) => {

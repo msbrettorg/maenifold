@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import { flushPromises, mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import PipelineView from '../PipelineView.vue';
+import { useAppShellStore } from '../../stores/app-shell';
 import { usePipelineStore } from '../../stores/pipeline';
 import type { PipelineView as PipelineViewModel } from '../../lib/pipeline-types';
 
@@ -113,6 +114,8 @@ function mountPipelineView(setupStore?: (store: ReturnType<typeof usePipelineSto
   mockViewport();
   const pinia = createPinia();
   setActivePinia(pinia);
+  const appShellStore = useAppShellStore();
+  appShellStore.setActiveTab('pipelines');
   const store = usePipelineStore();
   store.designMode = false;
   store.currentPipelineId = 'pipeline-1';
@@ -154,7 +157,7 @@ function mountPipelineView(setupStore?: (store: ReturnType<typeof usePipelineSto
     },
   });
 
-  return { store, wrapper };
+  return { appShellStore, store, wrapper };
 }
 
 function runnerToggle(wrapper: ReturnType<typeof mount>) {
@@ -266,6 +269,22 @@ describe('PipelineView design mode toggle', () => {
 
     await designToggle(wrapper).trigger('click');
     expect(guard.confirmIfDirty).toHaveBeenCalled();
+  });
+
+  it('confirms before cross-tab navigation leaves a dirty pipeline draft', async () => {
+    guard.confirmIfDirty.mockResolvedValue(false);
+    const { appShellStore, wrapper } = mountPipelineView();
+
+    await flushPromises();
+    await designToggle(wrapper).trigger('click');
+    await wrapper.get('[data-testid="mutate-pipeline"]').trigger('click');
+    await nextTick();
+    appShellStore.setActiveTab('knowledge');
+    await flushPromises();
+    await nextTick();
+
+    expect(guard.confirmIfDirty).toHaveBeenCalledTimes(1);
+    expect(appShellStore.activeTab).toBe('pipelines');
   });
 });
 

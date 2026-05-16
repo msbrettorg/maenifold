@@ -1,110 +1,105 @@
 # RALPH Thoughts
 
-Handoff from iter-5 (2026-05-17, ~90+ min, gate cascade incident + full recovery).
+Handoff from iter-6 (2026-05-16, ~45 min). **All non-UAT non-blocked backlog drained.** Iter-6 shipped 19 task ships + 3 sprint umbrella closures = 22 things, zero stuck worktrees, zero cascade incidents, T-325.3 expectedStage enforcement validated in production.
 
 ## ⚠️ NEXT-PM FIRST READ — open items requiring carve-outs
 
 1. **T-309.3** (sprint 309, P1, blocked) — fs/write permission renderer-trust hardening. Correctly blocked per AGENTS.md P0 trigger #5 (anti-cargo-cult-security). Unblocks ONLY on real XSS / supply-chain incident, DOMPurify bypass, user explicit authorization, or external review requiring it. **Do NOT dispatch.**
 
-## TL;DR — iter-5 result
+2. **task-pm terminal-stage RACI drift (UNRESOLVED process issue)** — 3 iter-6 task-pms (T-322.24, T-322.1.4, T-324.5) self-passed the terminal stage instead of stopping at the last intermediate. All self-reported the violation honestly and the work was independently verified clean, so iter-6 accepted as-shipped. Mitigation iter-6 was a "RACI reminder" prompt block on subsequent dispatches (none drifted after the addition). **Permanent fix candidates** (filed in `ralph/state/learnings.md` iter-6 entry, NOT yet authored as a spec): (A) `~/.copilot/agents/task-pm.md` global update with the same reminder block hard-coded, (B) server-side enforcement analog of T-325.3 — last-intermediate → done requires agent identity matching `ralph-pm`, (C) accept as-is. Iter-7 PM should decide whether to file a new sprint-326 task and ship the fix.
 
-**Massive iter despite a major incident.** **12 SWE shipments to dev + 9 sprint umbrella/parent closures + 2 dead-premise WONTFIX + 5 cascade recoveries + 1 global agent contract update + 4 hardening specs filed AND 2 of them already shipped.** **Audit-crates went 13 → 0 violations** (sprint 315 audit-debt completely drained, T-315.1 parent + T-315.0 umbrella closed). **Gate cascade incident discovered + recovered + permanently hardened against** (T-325.3 server-side `expectedStage` enforcement landed same iter).
+## TL;DR — iter-6 result
+
+**Massive iter — all known-bug fixes drained.** 19 task ships + 3 sprint umbrella closures (T-322.0, T-324.0, T-325.0). 2 WONTFIX-on-cited-evidence cascades (T-303.10, T-303.4.21). 13 sprint-322 children shipped. 1 sprint-324 child shipped (T-324.5 closing the sprint). 1 sprint-325 child shipped (T-325.2 closing the sprint). 2 new tasks discovered + filed + dispatched + shipped same iter (T-322.1.5, T-322.1.6 from T-322.1.4 UX research — perfect NO PUNTING execution). 1 direct-dispatch SWE remediation (T-322.16 test async-timing, 112s mechanical fix). 0 cascade incidents. 0 user interruptions. 0 worktrees at iter close.
 
 ## What shipped this iter — full ledger
 
-**SWE merges to dev (9 task shipments, all 5 from wave-1 cascade recovery + 4 from wave-2 re-dispatch):**
+**SWE merges to dev (15 task shipments):**
 
-| Task | Sprint | Scope | Net LOC |
-|------|--------|-------|---------|
-| T-315.1.3 | 315 | core/workflow/pipeline LOC splits (3 files: engine_ready, session_delete_files, handler_crud_tests_more) + 3 new siblings | +372/-341 |
-| T-315.1.4 | 315 | core/api LOC splits (acp_relay, acp_relay_session) + lifecycle.rs + split_tests.rs siblings | +227/-179 |
-| T-315.1.5 | 315 | core/tools + core/repair LOC splits (acp_exec 380→181, repair/analysis 303→245) + 2 siblings | +274/-264 |
-| T-322.1.1 | 322 | SchedulesTab.vue sort UX — 10 vitest tests, sortable headers, indicator | +159/-10 |
-| T-322.1.3 | 322 | SettingsEmbeddingsTable.vue sort UX — 5 vitest tests, same pattern | +234/-8 |
-| T-314.2 (v2) | 314 | File attachment hardening — size caps + URI uniqueness + textual blob dispatcher, 21 vitest tests | +223 |
-| T-315.1.1 (v2) | 315 | gate-core LOC splits (task_metadata 349→231, task_repository 369→291) + 2 new siblings | +241/-220 |
-| T-315.1.6 (v2) | 315 | jockey/acp/worker LOC splits (mod.rs 305→57, handler_prewarm 385→268) + 2 siblings | +385/-385 |
-| T-322.1.2 (v2) | 322 | ScheduleRunsDrawer.vue sort UX — 5 sort tests in 21 total, parallel to T-322.1.1 | +177/-54 |
-| T-315.1.2 (v2) | 315 | core/mcp LOC splits (gateway_catalog 321→266, gateway_catalog_domain_tests 762→299) + 3 siblings (helpers, gate_create_tests, test_fixtures) | substantial |
+| Task | Sprint | Scope | Diff |
+|------|--------|-------|------|
+| T-322.31 | 322 | Vitest conversion for check-node-modules-integrity-missing.test.mjs | 1 file, +14/-14 |
+| T-322.32 | 322 | deploy-daemon.sh lsof sanity check (exit 4 on unexpected path) | 1 file, +5 |
+| T-322.17 | 322 | useResizeHandle → VueUse useEventListener | 1 file, +9/-8 |
+| T-322.18 | 322 | pipeline-mcp-polling → VueUse useIntervalFn (3-failure-stop preserved) | 1 file, +5/-4 |
+| T-322.24 | 322 | ToolNodeFields wrapper deleted; ToolNodeFieldsTool used directly | 3 files, +9/-48 |
+| T-322.34 | 322 | Edge-case enumeration rule refinements (9 1-line additive clarifications) | 3 files, +19/-8 |
+| T-322.30 | 322 | sanitizeConceptForWikilinkQuery applied to 2 cross-stack callers + 9 tests | 5 files, +59 |
+| T-322.33 | 322 | deploy-daemon.sh PID-discovery retry loop (DEPLOY_DAEMON_PID_RETRY_SECONDS) | 1 file, +14/-4 |
+| T-322.16 | 322 | local-storage.ts deleted; 4 production files migrated to VueUse useLocalStorage; tests updated for async-write timing | 14 files, +156/-250 |
+| T-324.5 | 324 | docs/DEVELOPMENT.md env-source reference (4 shapes + precedence + spawn-paths + example snippet) | 1 file, +86/-23 |
+| T-322.6 | 322 | memory:// hover preview cards in MarkdownView (reka-ui HoverCard, 300ms delay, T-322.4 cache reuse) | 5 files, +213/-181 (1 modified + 4 new) |
+| T-325.2 | 325 | gate_Reopen accepts done-located tasks + atomic mv done→todo + slug recovery + 3 new TDD tests | 3 files, +113/-31 |
+| T-322.1.4 | 322 | gsd UX research for list-surface sort decisions; 2 child tasks filed + dispatched same iter | (no code) |
+| T-322.1.5 | 322 | RunHistoryPanel sort dropdown (3 options, session persistence) — discovered + shipped iter-6 | 2 files, +80/-6 |
+| T-322.1.6 | 322 | KnowledgeVaultBrowser sort controls (tree+search, folders-first, per-mode persistence) — discovered + shipped iter-6 | 2 files, +354/-23 (1 modified + 1 new test) |
 
-**PM-direct shipments (3):**
-- **T-322.35** — functionally-UAT detection rule codified in `ralph/prompt.md` + `ralph/AGENTS.md` (CDP-bound spec keywords)
-- **`~/.copilot/agents/task-pm.md` global update** — added explicit "Cascade-prevention rules (MANDATORY)" section requiring `expectedStage` + `--max-time 180` + no naive retry after timeout
-- **`ralph/state/learnings.md`** — appended the curl-timeout cascade lesson
+**WONTFIX-on-cited-evidence cascades (2):**
+- T-303.10 (UAT for non-existent test MCP app — verified via apps/desktop/docs/mcp-test-apps.md)
+- T-303.4.21 (multi-turn sampling UI UAT — fixture would require fake or external-LLM, both forbidden)
 
-**Sprint umbrella + parent closures (9, all sdd or tdd cascaded cleanly with expectedStage):**
-- T-313.0 rendering, T-317.0 onboarding, T-318.0 panels-inspectors, T-319.0 shortcuts-a11y, T-321.0 errors-toasts, T-323.0 mcp-test-failures (wave-1)
-- T-314.0 attachments, T-315.0 audit-loc, T-315.1 audit-crates-debt-parent (wave-2 after all sprint 315 children shipped + audit-crates passes)
+**Sprint umbrella closures (3):**
+- T-322.0 — sprint 322 misc backlog (declared child T-322.1 done + 42 sub-task ships)
+- T-324.0 — sprint 324 config env passthrough portability (T-324.1/.2/.3/.5 all done; goal achieved)
+- T-325.0 — sprint 325 gate tooling improvements (T-325.1/.2/.3 all done; cascade incident class permanently fixed)
 
-**WONTFIX-on-cited-evidence (2 — render_chart verifiably non-existent):**
-- T-302.12 (UAT for non-existent tool) + T-302.65 (dead-premise marker)
-- Verified: `grep -r render_chart --include=*.rs --include=*.ts --include=*.vue --include=*.json` → ZERO hits
+**PM-direct shipments (1):**
+- `ralph/state/learnings.md` +24 lines documenting task-pm terminal-stage RACI drift
 
-**New gate hardening + decomposition specs filed (4):**
-- **T-325.3** P1 tdd — server-side gate_Pass hardening (make `expectedStage` REQUIRED + reject mismatch with STAGE_MISMATCH error). HIGHEST PRIORITY for iter-6.
-- **T-325.2** P2 tdd — gate_Reopen UX: handle done/-located tasks atomically (no manual mv required).
-- **T-324.3** P1 tdd — env resolution wired into mcpServers stdio spawn (parity with ACP agents).
-- **T-324.5** P2 sdd — docs for the 3 env-source shapes (literal env, envFromFile, envFromCommand).
+## What's at the TOP of the iter-7 dispatch queue
 
-## The cascade incident — must-read for next PM
+**Critical:** No non-UAT non-blocked work remains in `todo/`. Iter-7 PM options:
 
-Iter-5 dispatched 10 parallel task-pms (concurrency ceiling). The daemon was overloaded — `gate_Pass` MCP calls started taking 30-60+ seconds to respond. Several task-pms used `curl --max-time 10-30s` which fired before the daemon responded. **The daemon STILL processed the request server-side.** Naive retries (without `expectedStage`) advanced the next stage each time. **5 tasks cascaded `pending → done` in 3-4 curl calls** with zero or partial SWE work.
+1. **Wait for user direction** — backlog is fully drained of bug-fix work. Iter-7 PM should ask the user explicitly: "All known-bug work is shipped. Do you want a UAT pass (which would dispatch the 11 UAT-floor items via CDP), close the stale 304/311/316 UAT umbrellas as WONTFIX, file new feature work, or work on the task-pm RACI drift permanent fix?" Per AGENTS.md no-punting rule, asking-as-only-option requires the question to be plain English with numbered choices.
 
-**Recovery (5/5 successful):**
-- 3 had complete SWE work in their worktrees (T-315.1.3, T-315.1.4, T-315.1.5) — verified by build + test + audit, merged + gate cascaded to done with verification notes.
-- 2 had partial blue-team tests (T-314.2, T-322.1.2) — gate_Reopen + worktree preserved + re-dispatched v2 with hardened prompts → shipped clean.
-- 2 of the original 10 ran end-to-end clean despite the cascade pressure (T-322.1.1, T-322.1.3).
+2. **WONTFIX cascade stale UAT umbrellas** — sprint 304 umbrella + 4 UAT children; sprint 311 umbrella + 1 UAT child; sprint 316 umbrella + 1 UAT child. Many of these UAT tasks reference behavior that has changed since their authoring (likely Q1 2026). Iter-7 PM could verify per task body whether the target surface still exists in current code; cascade WONTFIX on any whose premise has decayed.
 
-**Multi-layer fix:**
-1. **Global agent contract update (shipped this iter):** `~/.copilot/agents/task-pm.md` has a new "Cascade-prevention rules (MANDATORY)" section requiring `expectedStage` on every gate_Pass / gate_Fail, `curl --max-time 180` floor, and `gate_History` check before any retry of a timed-out gate call.
-2. **Server-side hardening (filed T-325.3, P1):** make `expectedStage` REQUIRED + reject mismatched calls with STAGE_MISMATCH error.
-3. **Concurrency ceiling lowered to 5** (down from 10) until T-325.3 lands.
+3. **Task-pm RACI drift permanent fix** — file as T-326.1 (start new sprint 326 for process improvements). Either update `~/.copilot/agents/task-pm.md` with explicit WorkResult skeleton + RACI-reminder hardcoded, OR add server-side enforcement to gate-core. Lesson + permanent fix candidates already documented in `ralph/state/learnings.md` iter-6 entry.
 
-**v2 dispatch results validated the fix:** 4 of 4 completed v2 task-pms returned cleanly with zero cascade. The 5th (T-315.1.2) is still in flight at iter close — see below.
+4. **User-requested UAT pass** — if user explicitly asks. Each UAT task uses `scripts/uat-launch.sh <task-id>` for isolated CDP. agent-browser only (NO Python/Playwright per AGENTS.md UI Verification). One UAT task per task-pm dispatch.
+
+## Remaining backlog snapshot (16 items, ALL UAT-floor or constitution-blocked)
+
+- Sprint 303 UAT (4): T-303.9, T-303.18.2, T-303.18.6, T-303.19.1 — older UAT carry-overs
+- Sprint 304 + 4 UAT children: T-304.0 umbrella, T-304.2 reconnect, T-304.3 agents-perf (functionally-UAT CDP measurement), T-304.6 rendering matrix, T-304.19 cdp-uat-16/17
+- Sprint 305 UAT (1): T-305.17 clear-history-test-refresh
+- Sprint 309 constitution-blocked (1): T-309.3 write-permission-renderer-trust-hardening
+- Sprint 311 (1 UAT + umbrella): T-311.0, T-311.2 visual-explainer-skill-uat
+- Sprint 316 (1 UAT-ish + umbrella): T-316.0, T-316.2 plyr-av-player-evaluation
+
+NONE of these are dispatchable autonomously by the PM. UAT requires CDP + user-confirmed scope (per UAT-priority-floor rule).
 
 ## Daemon / process state at iter close
 
-- **CRITICAL: Daemon needs redeploy in iter-6.** T-325.3 added `gate_Pass` cascade prevention to `maenifold-gate-core` (server-side enforcement of `expectedStage`). The running daemon (PID 20649) is still on iter-4 binary; the new enforcement code is on `dev` but not yet active in the daemon. Next iter-6 PM should redeploy via `./scripts/deploy-daemon.sh` (or rebuild + bounce launchd) BEFORE dispatching any task-pms that will hit gate_Pass. Until then, the runtime is still the permissive iter-4 version.
-- HEAD: post T-325.3 + T-324.3 merges. All worktrees removed at iter close.
+- Daemon PID 43641 (started 12:48PM 2026-05-16) on iter-5 binary at iter-6 start; T-325.3 EXPECTED_STAGE_REQUIRED enforcement verified live (binary grep matched + caught a real ralph-pm misstep mid-iter).
+- HEAD: 9a595af49 = "Merge T-322.1.6: KnowledgeVaultBrowser sort controls". 29 commits added iter-6.
 - **Zero worktrees in flight at iter close** — all 12 task-pms dispatched this iter returned + were shipped + cleaned up.
-- One stale `/tmp/uat-fixture-folder` from prior iter — `rm -rf` is safe.
+- One T-325.2 changed crates/maenifold-gate-core — daemon redeploy recommended if iter-7 PM intends to use the new gate_Reopen done→todo path heavily. Otherwise the iter-5 binary continues working (it has T-325.3 enforcement but lacks the T-325.2 reopen extension).
 
-## What's at the TOP of the iter-6 dispatch queue
+## Process improvements landed iter-6 (encoded in repo or docs)
 
-1. **T-325.3** P1 tdd — **HIGHEST PRIORITY**. Server-side gate_Pass hardening (make `expectedStage` REQUIRED). Once shipped, raise concurrency ceiling back to ~10 and trim the cascade-prevention block from dispatch prompts.
-2. **T-322.6** P3 sdd — memory:// link hover preview card (frontend)
-3. **T-322.16** P1 sdd — Replace local-storage helpers with VueUse storage
-4. **T-322.17** P1 sdd — Replace resize handle drag plumbing with VueUse events
-5. **T-322.18** P1 sdd — Replace pipeline polling timer with VueUse interval
-6. **T-322.24** P1 sdd — Collapse ToolNodeFields wrapper component
-7. **T-322.30** P3 tdd — Sanitize wikilink queries in WikilinkCreateDialog + useMemoryPromotion-helpers
-8. **T-322.31** P3 tdd — Convert check-node-modules-integrity-missing.test.mjs to Vitest style
-9. **T-322.32 / T-322.33** P3 sdd — deploy-daemon.sh hardening (verify no conflict with T-322.36 from iter-4)
-10. **T-322.34** P3 sdd — Edge-case enumeration rule refinements (12 1-line edits across 3 agent.md files)
-11. **T-324.3** P1 tdd — env resolution mcpServers stdio (NEW iter-5)
-12. **T-325.2** P2 tdd — gate_Reopen UX done/-location (NEW iter-5)
-13. **T-324.5** P2 sdd — docs env-source (NEW iter-5, depends on T-324.3)
-14. **T-319.1b** (file me!) — remaining 5 Cmd+K palette providers per iter-4 thoughts
+1. `ralph/state/learnings.md` appended with **task-pm terminal-stage RACI drift** lesson + permanent fix candidates (commit 18d5af082).
+2. T-325.3 expectedStage enforcement validated end-to-end in production (caught real cascade attempt + 0 cascade incidents across 12 task-pms).
+3. "RACI reminder" prompt block added to all dispatch prompts after T-322.24 drift detected — subsequent task-pms (T-322.33, T-325.2, T-322.1.5, T-322.1.6) did not drift.
+4. Same-file contention handling pattern documented: T-322.33 worktree recreated AFTER T-322.32 merged so the worker saw current dev.
 
-NOT in dispatch queue (UAT-priority-floor or functionally-UAT per the new T-322.35 rule):
-- T-303.9, T-303.18.2, T-303.18.6, T-303.19.1, T-304.2, T-304.3, T-304.6, T-304.19, T-305.17, T-311.2, T-316.2
+## Open process issues for iter-7
 
-## Open process improvements
+1. **task-pm RACI drift permanent fix** — see "NEXT-PM FIRST READ" item #2. Recommend filing as T-326.1 and shipping iter-7.
+2. **Stale UAT umbrellas** — sprint 304/311/316 UAT umbrellas may have decayed premises. Recommend per-task premise verification before any UAT pass.
+3. **Wave-boundary rubber-duck reviews** — none triggered iter-6 (no cross-cutting umbrella close requiring inter-dependent verification). Iter-7 may need them if filing a new structural sprint (e.g., the task-pm RACI permanent fix).
 
-1. **T-325.3 lands → trim cascade-prevention block from dispatch prompts + raise concurrency ceiling to 10.**
-2. **task-pm.md is now correct on cascade prevention** (this iter, MANDATORY section). Verify future agent customizations preserve the section.
-3. **gate_Reopen UX (T-325.2, P2)** — atomic done/→todo handling. Iter-5 PM did 5 manual mv rounds before reopen worked.
-4. **Wave-boundary rubber-duck reviews** — none triggered this iter (no umbrella close where children inter-depend on cross-cutting outcomes). Iter-6 may need them after T-325.3 ships (gate hardening is structural).
+## Iter-6 throughput tally — for the record
 
-## Iter throughput tally — record by my read
-
-- **12 SWE shipments merged to dev** (5 wave-1 + 5 wave-2 cascade recovery + 2 wave-3: T-325.3 + T-324.3)
-- **3 PM-direct shipments** (T-322.35 + learnings.md + task-pm.md global cascade-prevention update)
-- **9 sprint umbrella/parent closures** (T-313.0, T-317.0, T-318.0, T-319.0, T-321.0, T-323.0 wave-1; T-314.0, T-315.0, T-315.1 wave-2)
-- **2 WONTFIX cascades with cited evidence** (T-302.12 + T-302.65)
-- **5 cascade recoveries via gate_Reopen**
-- **4 new hardening/decomposition specs filed** — 2 shipped same iter (T-325.3 + T-324.3); 2 in queue with deps (T-325.2 + T-324.5)
-- **Audit-crates: 13 → 0 violations** — sprint 315 completely drained
-- **0 user interruptions during dispatch**
-- **1 major systemic incident discovered + recovered + permanently hardened against same iter** (gate_Pass cascade — cardinal example of dogfooding catching real architectural risk)
+- **15 SWE shipments merged to dev** (12 sprint 322 + 1 sprint 324 + 1 sprint 325 + 1 from research-only T-322.1.4)
+- **3 sprint umbrella closures** (T-322.0, T-324.0, T-325.0) — sprint 322 fully drained, sprint 324 + 325 sprint goals achieved
+- **2 WONTFIX cascades** with cited evidence (T-303.10, T-303.4.21)
+- **2 new tasks filed + dispatched + shipped same iter** (T-322.1.5, T-322.1.6) — perfect NO PUNTING execution
+- **1 PM-direct shipment** (`ralph/state/learnings.md` task-pm RACI drift lesson)
+- **1 direct-dispatch SWE remediation** (T-322.16 test async-timing fix, 112s mechanical)
+- **0 cascade incidents** (T-325.3 expectedStage enforcement validated in production)
 - **0 worktrees left at iter close** — clean handoff
+- **0 user interruptions during dispatch**
+- **3 task-pm RACI-drift instances** — all self-reported honestly, all work verified clean independently, mitigation applied mid-iter; permanent fix deferred to iter-7
+- **29 git commits across iter-6** (15 worker commits + 14 PM merge commits)
+- **Wall-clock: ~45 minutes** for the full iter

@@ -87,9 +87,11 @@ async fn discover_mcp_tools(
     let config =
         AgentsConfig::load_or_default(&Config::current().maenifold_root).unwrap_or_default();
     let mut results = Vec::new();
+    let mut pool_server_names = std::collections::HashSet::new();
 
     if let Some(gateway) = gateway {
         for (server_name, tools) in gateway.pool().all_gateway_tools() {
+            pool_server_names.insert(server_name.clone());
             let tools = tools
                 .into_iter()
                 .map(|tool| mcp_discovery::McpDiscoveredTool {
@@ -108,16 +110,16 @@ async fn discover_mcp_tools(
         }
     }
 
-    let non_gateway: Vec<_> = config
+    let unresolved_servers: Vec<_> = config
         .mcp_servers
         .iter()
-        .filter(|server| !server.is_gateway())
+        .filter(|server| !pool_server_names.contains(server.name()))
         .cloned()
         .collect();
-    if !non_gateway.is_empty() {
+    if !unresolved_servers.is_empty() {
         results.extend(
             mcp_discovery::discover_all_mcp_tools(
-                &non_gateway,
+                &unresolved_servers,
                 mcp_discovery::DEFAULT_DISCOVERY_TIMEOUT,
             )
             .await,

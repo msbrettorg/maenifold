@@ -104,12 +104,16 @@ if [[ -z "${running_binary}" ]]; then
   error "could not resolve running daemon text-segment path via lsof for PID=${DAEMON_PID}"
   exit 4
 fi
-running_inode="$(inode_for_path "${running_binary}")"
+running_inode="$(lsof -p "${DAEMON_PID}" | awk '$4 == "txt" && $9 ~ /maenifold$/ { print $8; exit }')"
+if [[ -z "${running_inode}" ]]; then
+  error "could not extract running daemon inode from lsof NODE column for PID=${DAEMON_PID}"
+  exit 4
+fi
 new_inode="$(inode_for_path "${NEW_BINARY}")"
-info "Running daemon binary: ${running_binary} (inode=${running_inode})"
+info "Running daemon binary: ${running_binary} (lsof NODE inode=${running_inode})"
 info "Rebuilt daemon binary: ${NEW_BINARY} (inode=${new_inode})"
 if [[ "${running_inode}" == "${new_inode}" ]]; then
-  error "rebuilt daemon binary inode matches the running daemon text segment"
+  error "rebuilt daemon binary disk inode matches running daemon lsof NODE inode"
   error "this suggests no new daemon binary was produced; refusing to bounce launchd."
   exit 4
 fi

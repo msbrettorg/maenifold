@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import { Square } from 'lucide-vue-next';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -10,6 +10,7 @@ import ChatAttachmentBar from './ChatAttachmentBar.vue';
 import CommandPalette from './CommandPalette.vue';
 import VoiceInputButton from './VoiceInputButton.vue';
 import { useChatShortcuts } from '../composables/useChatShortcuts';
+import { useAppShellStore } from '../stores/app-shell';
 import type { PendingAttachment } from './ChatAttachmentBar.vue';
 import type { AvailableCommand } from '../lib/types';
 import { mergeWithBuiltInSlashCommands } from '../lib/default-commands';
@@ -49,6 +50,7 @@ const emit = defineEmits<{
 const commandPaletteRef = ref<InstanceType<typeof CommandPalette> | null>(null);
 const clearDialogOpen = ref(false);
 const commandPaletteForcedOpen = ref(false);
+const appShell = useAppShellStore();
 const text = computed({
   get: () => props.modelValue,
   set: (value: string) => emit('update:modelValue', value),
@@ -77,19 +79,16 @@ const { handleShortcut } = useChatShortcuts({ submit, recallLast: () => emit('re
 
 function confirmClearChat(): void { clearDialogOpen.value = false; emit('clear-chat'); }
 
-function openCommandPalette(event: KeyboardEvent): void {
-  if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'k') return;
-  event.preventDefault();
+watch(() => appShell.commandPaletteOpen, (open) => {
+  if (!open) return;
+  appShell.commandPaletteOpen = false;
   if (!props.modelValue.trim()) {
     commandPaletteForcedOpen.value = false;
     emit('update:modelValue', '/');
     return;
   }
   commandPaletteForcedOpen.value = true;
-}
-
-onMounted(() => window.addEventListener('keydown', openCommandPalette, true));
-onBeforeUnmount(() => window.removeEventListener('keydown', openCommandPalette, true));
+});
 
 function handleKeyDown(event: KeyboardEvent): void {
   if (event.isComposing || event.keyCode === 229) return;

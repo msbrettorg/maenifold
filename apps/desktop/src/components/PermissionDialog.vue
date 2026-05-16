@@ -12,8 +12,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { PermissionRequest } from '../lib/types';
+import type { PermissionScope } from '../lib/permission-ledger/ledger';
+import { canonicalPermissionTarget, normalizePermissionToolKind } from '../lib/permission-ledger/equivalence-key';
 
 const props = withDefaults(defineProps<{
   request: PermissionRequest;
@@ -23,12 +25,55 @@ const props = withDefaults(defineProps<{
 });
 
 const emit = defineEmits<{
-  select: [optionId: string];
+  select: [optionId: string, scope?: PermissionScope];
   cancel: [];
 }>();
 
+const pendingAlwaysOptionId = ref<string | null>(null);
+const selectedScope = ref<PermissionScope>('agent');
+const scopeChoices: { scope: PermissionScope; title: string; description: string }[] = [
+  { scope: 'session', title: 'This session', description: 'Forget the decision when this session ends.' },
+  { scope: 'agent', title: 'This agent', description: 'Apply across sessions for the same agent.' },
+  { scope: 'forever', title: 'Forever', description: 'Keep until you revoke it from permission management.' },
+];
+
+const pendingOption = computed(() =>
+  props.request.options.find((option) => option.optionId === pendingAlwaysOptionId.value) ?? null
+);
+
+function defaultScope(request: PermissionRequest): PermissionScope {
+  const kind = normalizePermissionToolKind(request.toolCall.kind);
+  const target = canonicalPermissionTarget(request, kind) ?? '';
+  if (kind === 'execute' || kind === 'delete') return 'session';
+  if (kind === 'read' && (target.startsWith('memory://') || target.startsWith('~/maenifold/'))) {
+    return 'forever';
+  }
+  if (kind === 'read' || kind === 'fetch') return 'agent';
+  return 'agent';
+}
+
+watch(
+  () => props.request.toolCall.toolCallId,
+  () => {
+    pendingAlwaysOptionId.value = null;
+    selectedScope.value = defaultScope(props.request);
+  },
+  { immediate: true }
+);
+
 function handleSelect(optionId: string) {
+  const option = props.request.options.find((candidate) => candidate.optionId === optionId);
+  if (option?.kind.endsWith('_always')) {
+    pendingAlwaysOptionId.value = optionId;
+    selectedScope.value = defaultScope(props.request);
+    return;
+  }
   emit('select', optionId);
+}
+
+function confirmScope() {
+  if (!pendingAlwaysOptionId.value) return;
+  emit('select', pendingAlwaysOptionId.value, selectedScope.value);
 }
 
 function handleCancel() {
@@ -183,7 +228,45 @@ function contentBlockText(block: unknown): string {
         </div>
       </div>
 
-      <div class="dialog-actions flex flex-wrap gap-2 border-t border-border-subtle bg-surface px-4 py-4">
+      <div
+        v-if="pendingOption"
+        data-test="permission-scope-picker"
+        class="permission-scope-picker z-[1010] border-t border-border-subtle bg-surface px-4 py-4"
+      >
+        <div class="mb-3">
+          <h3 class="m-0 text-base font-semibold text-text-primary">Remember this decision?</h3>
+          <p class="m-0 mt-1 text-sm text-text-secondary">
+            Choose how long Maenifold should apply "{{ pendingOption.name }}".
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <Button
+            v-for="choice in scopeChoices"
+            :key="choice.scope"
+            variant="outline"
+            :class="[
+              'h-auto justify-start whitespace-normal p-3 text-left',
+              selectedScope === choice.scope && 'border-brand bg-brand-light ring-2 ring-brand',
+            ]"
+            :data-scope="choice.scope"
+            :aria-pressed="selectedScope === choice.scope"
+            @click="selectedScope = choice.scope"
+          >
+            <span>
+              <span class="block font-semibold">{{ choice.title }}</span>
+              <span class="block text-sm text-text-secondary">{{ choice.description }}</span>
+            </span>
+          </Button>
+        </div>
+
+        <div class="mt-4 flex justify-end gap-2">
+          <Button variant="outline" @click="pendingAlwaysOptionId = null">Back</Button>
+          <Button data-test="confirm-permission-scope" @click="confirmScope">Confirm</Button>
+        </div>
+      </div>
+
+      <div v-else class="dialog-actions flex flex-wrap gap-2 border-t border-border-subtle bg-surface px-4 py-4">
         <Button
           v-for="option in request.options"
           :key="option.optionId"

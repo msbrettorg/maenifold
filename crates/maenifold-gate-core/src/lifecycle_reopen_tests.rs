@@ -8,7 +8,11 @@ fn drive_to_done(root: &Path, task_id: &str) {
         if row["location"] == "done" {
             return;
         }
-        GateLifecycle::pass(note(root, task_id, "pm", "advance")).expect("pass");
+        let stage = row["state"].as_str().expect("state");
+        GateLifecycle::pass(note_with_expected_stage(
+            root, task_id, "pm", stage, "advance",
+        ))
+        .expect("pass");
     }
     panic!("{task_id} did not reach done");
 }

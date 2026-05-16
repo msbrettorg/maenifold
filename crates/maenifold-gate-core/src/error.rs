@@ -51,6 +51,14 @@ pub enum GateError {
     },
 
     #[error(
+        "EXPECTED_STAGE_REQUIRED: task '{task_id}' is at stage '{current_stage}' (not the initial stage); expectedStage parameter is required"
+    )]
+    ExpectedStageRequired {
+        task_id: String,
+        current_stage: String,
+    },
+
+    #[error(
         "task '{task_id}' not found. searched directories: {searched_directories}. Task lookup matches frontmatter `id:` (falling back to the filename stem when no `id:` is present)."
     )]
     TaskNotFound {

@@ -1,6 +1,6 @@
 import type { Ref } from 'vue'
-import { toast } from 'vue-sonner'
 import type { WorkflowAssetDefinition, WorkflowAssetSummary } from '../lib/workflow-asset-types'
+import { toastSuccess, toastError } from '@/composables/useToast';
 import { usePipelineMcp } from '../composables/usePipelineMcp'
 import { validateWorkflowDefinition } from '../lib/workflow-asset-runtime'
 import {
@@ -168,7 +168,7 @@ export function createWorkflowLibrarySaveActions(context: SaveActionContext) {
       if (!workflowMcp.connected.value) await workflowMcp.connect()
       await workflowMcp.callTool('SaveWorkflowAsset', { id: copyId, content })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toastError(err instanceof Error ? err.message : String(err))
       return null
     }
     await context.fetchSummaries()
@@ -192,12 +192,12 @@ export function createWorkflowLibrarySaveActions(context: SaveActionContext) {
       const content = `${JSON.stringify(raw, null, 2)}\n`
       await workflowMcp.callTool('SaveWorkflowAsset', { id: copyId, content })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toastError(err instanceof Error ? err.message : String(err))
       return null
     }
 
     await context.fetchSummaries()
-    toast.success(`Duplicated as ${copyId}`)
+    toastSuccess(`Duplicated as ${copyId}`)
     return copyId
   }
 

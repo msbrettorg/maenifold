@@ -1,8 +1,8 @@
+import { toastWarning } from '@/composables/useToast';
 import ELK from 'elkjs/lib/elk-api';
 import type { ElkNode, ElkExtendedEdge } from 'elkjs/lib/elk-api';
 import type { Edge, Node } from '@vue-flow/core';
 import elkWorkerUrl from 'elkjs/lib/elk-worker.min.js?url';
-import { toast } from 'vue-sonner';
 
 const elk = new ELK({ workerUrl: elkWorkerUrl });
 
@@ -92,7 +92,7 @@ export function useLayout() {
         edgeCount: edges.length,
         error,
       });
-      toast.warning('Auto-layout failed. Using fallback layout.');
+      toastWarning('Auto-layout failed. Using fallback layout.');
 
       const fallbackNodes = nodes.map((node, index) => {
         const pos = fixedPositions[node.id] ?? node.position ?? fallbackGridPosition(index);

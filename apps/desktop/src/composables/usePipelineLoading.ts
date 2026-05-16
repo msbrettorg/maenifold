@@ -1,6 +1,6 @@
+import { toastError } from '@/composables/useToast';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
-import { toast } from 'vue-sonner';
 import { usePipelineStore } from '../stores/pipeline';
 
 /**
@@ -39,7 +39,7 @@ export function usePipelineLoading() {
       connectionError.value = cause instanceof Error
         ? cause.message
         : 'Failed to connect to the pipeline service.';
-      toast.error(connectionError.value);
+      toastError(connectionError.value);
     }
   }
 

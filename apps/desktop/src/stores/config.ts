@@ -1,3 +1,4 @@
+import { toastError } from '@/composables/useToast';
 // Maenifold config store. Reads/writes ~/maenifold/maenifold.json directly via Electron IPC.
 //
 // Constitutionally `maenifold.json` is desktop-owned (preferences) — going through MCP would
@@ -7,7 +8,6 @@
 // Reference: https://pinia.vuejs.org/core-concepts/  (Setup Stores)
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
-import { toast } from 'vue-sonner';
 import type { AgentConfig, AgentsConfig } from '../lib/types';
 
 interface ConfigFileApi {
@@ -174,7 +174,7 @@ export const useConfigStore = defineStore('config', () => {
     } catch (e) {
       const message = getErrorMessage(e);
       error.value = message;
-      toast.error(`Config load failed: ${message}`);
+      toastError(`Config load failed: ${message}`);
     } finally {
       loading.value = false;
     }
@@ -201,7 +201,7 @@ export const useConfigStore = defineStore('config', () => {
     } catch (e) {
       const message = getErrorMessage(e);
       error.value = message;
-      toast.error(`Config save failed: ${message}`);
+      toastError(`Config save failed: ${message}`);
       throw new Error(message);
     } finally {
       loading.value = false;

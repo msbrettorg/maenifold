@@ -1,5 +1,5 @@
+import { toastSuccess, toastWarning, toastError } from '@/composables/useToast';
 import { computed, onUnmounted, reactive, ref } from 'vue';
-import { toast } from 'vue-sonner';
 import { useMcpClient } from './useMcpClient';
 
 export interface ModelStatus {
@@ -133,12 +133,12 @@ export function useEmbeddingsActions() {
       });
       ensurePolling();
       await loadData();
-      toast.success(response.message ?? `Downloaded ${model.name}.`);
+      toastSuccess(response.message ?? `Downloaded ${model.name}.`);
     } catch (e) {
       pending[model.id] = undefined;
       const message = e instanceof Error ? e.message : String(e);
       error.value = message;
-      toast.error(`Failed to download ${model.name}: ${message}`);
+      toastError(`Failed to download ${model.name}: ${message}`);
     }
   }
 
@@ -157,14 +157,14 @@ export function useEmbeddingsActions() {
         : '';
       const message = `${response.message ?? `Activated ${model.name}.`}${restartPrompt}`;
       if (response.vectorsCleared === false && response.modelChanged === true) {
-        toast.warning(message);
+        toastWarning(message);
       } else {
-        toast.success(message);
+        toastSuccess(message);
       }
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       error.value = message;
-      toast.error(`Failed to activate ${model.name}: ${message}`);
+      toastError(`Failed to activate ${model.name}: ${message}`);
     } finally {
       pending[model.id] = undefined;
     }
@@ -180,11 +180,11 @@ export function useEmbeddingsActions() {
         modelId: model.id,
       });
       await loadData();
-      toast.success(response.message ?? `Deleted ${model.name}.`);
+      toastSuccess(response.message ?? `Deleted ${model.name}.`);
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       error.value = message;
-      toast.error(`Failed to delete ${model.name}: ${message}`);
+      toastError(`Failed to delete ${model.name}: ${message}`);
     } finally {
       pending[model.id] = undefined;
     }
@@ -198,11 +198,11 @@ export function useEmbeddingsActions() {
       const response = await callTool<EmbeddingActionResponse>('EmbeddingModels', {
         action: 'regenerate',
       });
-      toast.success(response.message ?? 'Embeddings cleared. Run sync to rebuild.');
+      toastSuccess(response.message ?? 'Embeddings cleared. Run sync to rebuild.');
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       error.value = message;
-      toast.error(`Failed to regenerate embeddings: ${message}`);
+      toastError(`Failed to regenerate embeddings: ${message}`);
     } finally {
       regenerating.value = false;
     }

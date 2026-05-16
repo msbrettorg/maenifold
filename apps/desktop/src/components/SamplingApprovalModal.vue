@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { toastWarning } from '@/composables/useToast';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { Sparkles } from 'lucide-vue-next';
-import { toast } from 'vue-sonner';
 import { Button } from './ui/button';
 import {
   Dialog,
@@ -98,7 +98,7 @@ function cancelCountdown(): void {
 
 function reportPersistError(error: unknown): void {
   const message = error instanceof Error ? error.message : String(error);
-  toast.warning(`Sampling preference was not saved: ${message}`);
+  toastWarning(`Sampling preference was not saved: ${message}`);
 }
 
 function persistAllowAlways(): void {

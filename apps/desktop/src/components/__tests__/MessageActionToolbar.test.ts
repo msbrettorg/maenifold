@@ -68,7 +68,7 @@ describe('MessageActionToolbar', () => {
     await flushPromises();
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('hello **markdown**');
-    expect(toast.success).toHaveBeenCalledWith('Copied message to clipboard.');
+    expect(toast.success).toHaveBeenCalledWith('Copied message to clipboard.', { duration: 3000 });
     expect(wrapper.emitted('copy')).toEqual([[]]);
   });
 

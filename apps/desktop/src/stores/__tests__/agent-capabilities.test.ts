@@ -199,7 +199,7 @@ describe('useAgentCapabilitiesStore', () => {
 
     const surfaced = store.getProbe('architect')?.error ?? '';
     expect(surfaced).toBe('Resource server error');
-    expect(toast.warning).toHaveBeenCalledWith('Resource server error');
+    expect(toast.warning).toHaveBeenCalledWith('Resource server error', { duration: 5000 });
     expect(surfaced).not.toContain('/Users/');
     expect(surfaced).not.toContain('/etc/');
     expect(surfaced).not.toContain('tenant-12345');

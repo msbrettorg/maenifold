@@ -1,5 +1,5 @@
+import { toastError } from '@/composables/useToast';
 import { computed, ref, type ComputedRef, type Ref } from 'vue';
-import { toast } from 'vue-sonner';
 import type { PipelineView } from '../lib/pipeline-types';
 import type { SessionRef } from '../lib/pipeline-types';
 import { createNode, createNodeId } from '../lib/pipeline-node-factory';
@@ -168,7 +168,7 @@ export function useComposerContextMenu(options: UseComposerContextMenuOptions) {
             await store.forkPipeline(pipelineId, nodeId, requestedName.trim() || undefined);
           } catch (error) {
             console.error('Fork pipeline session failed', error);
-            toast.error('Fork failed — please retry');
+            toastError('Fork failed — please retry');
           }
         })();
         break;

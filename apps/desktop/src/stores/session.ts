@@ -1,9 +1,9 @@
+import { toastError } from '@/composables/useToast';
 // Session store — thin orchestrator that composes focused composables
 // while preserving the full external API contract unchanged.
 import { AGENT_METHODS } from '@agentclientprotocol/sdk';
 import { defineStore } from 'pinia';
 import { ref, computed, reactive } from 'vue';
-import { toast } from 'vue-sonner';
 import type { SavedSession, SessionState } from '../lib/types';
 import { generateSessionId, createEmptySessionState } from '../lib/types';
 import type { AcpClientBridge } from '../lib/acp-client';
@@ -376,7 +376,7 @@ export const useSessionStore = defineStore('session', () => {
   }
 
   function setError(msg: string) {
-    toast.error(msg);
+    toastError(msg);
     const session = activeSession.value;
     if (session) {
       session.error = msg;

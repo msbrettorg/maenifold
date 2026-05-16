@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { toastWarning } from '@/composables/useToast';
 import { computed, inject, onUnmounted, ref, type Ref } from 'vue';
 import { Check, ExternalLink, Sparkles } from 'lucide-vue-next';
-import { toast } from 'vue-sonner';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -39,7 +39,7 @@ async function onFinish(): Promise<void> {
     const alive = await probeDaemon();
     if (disposed) return;
     if (!alive) {
-      toast.warning('Daemon is not responding. Please start it before continuing.');
+      toastWarning('Daemon is not responding. Please start it before continuing.');
       return;
     }
     markComplete?.();

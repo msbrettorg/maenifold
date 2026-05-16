@@ -127,9 +127,10 @@ describe('PipelineFlyout delete flow', () => {
 
     expect(deletePipeline).toHaveBeenCalledWith('pipeline-1735689600000-t301-27-flyout');
     expect(listPipelines).toHaveBeenCalled();
-    expect(toast.success).toHaveBeenCalledWith('Pipeline moved to quarantine for 30 days.');
+    expect(toast.success).toHaveBeenCalledWith('Pipeline moved to quarantine for 30 days.', { duration: 3000 });
     expect(toast.info).toHaveBeenCalledWith(
       expect.stringContaining('default 30-day quarantine retention'),
+      { duration: 3000 },
     );
   });
 });

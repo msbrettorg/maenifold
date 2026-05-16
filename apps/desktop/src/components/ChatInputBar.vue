@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { toastInfo } from '@/composables/useToast';
 import { computed, ref, watch } from 'vue';
-import { toast } from 'vue-sonner';
 import { Square } from 'lucide-vue-next';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -127,7 +127,7 @@ function handleCommandSelect(command: AvailableCommand): void {
 function handleEmbeddedContextClick(): void {
   if (props.disabled) return;
   if (!props.supportsEmbeddedContext) {
-    toast.info('Embedded file context is not yet available for this agent.');
+    toastInfo('Embedded file context is not yet available for this agent.');
     return;
   }
   emit('insert-embedded-context-hint');

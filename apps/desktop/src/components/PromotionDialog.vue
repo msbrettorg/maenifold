@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { toastError } from '@/composables/useToast';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -161,7 +161,7 @@ function validateCurrentAction(): boolean {
   }
   if (!hasWikiLinkConnection(wikiLinkInput.value)) {
     formError.value = wikiLinkError.value;
-    toast.error('Add at least one connection before saving');
+    toastError('Add at least one connection before saving');
     editorRef.value?.focusWikiLinkInput?.();
     return false;
   }

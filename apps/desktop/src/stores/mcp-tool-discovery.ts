@@ -1,6 +1,6 @@
+import { toastWarning } from '@/composables/useToast';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
-import { toast } from 'vue-sonner';
 import { useMcpClient } from '../composables/useMcpClient';
 import { deriveServerHealth } from '../lib/palette-health';
 import type {
@@ -170,7 +170,7 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
       }
       const message = getErrorMessage(cause);
       error.value = message;
-      toast.warning(message);
+      toastWarning(message);
       return serverResults.value;
     } finally {
       if (activeAbortController === controller) {

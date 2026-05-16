@@ -134,7 +134,7 @@ describe('duplicateCurrentWorkflow', () => {
     const result = await store.duplicateCurrentWorkflow()
 
     expect(result).toBeNull()
-    expect(toast.error).toHaveBeenCalledWith('disk full')
+    expect(toast.error).toHaveBeenCalledWith('disk full', { duration: 8000 })
     expect(listWorkflowSummaries).not.toHaveBeenCalled()
   })
 

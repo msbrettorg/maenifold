@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
 import { checkNodeModulesIntegrity, formatIntegrityResult } from './check-node-modules-integrity.mjs';
 
 const packageLockPath = '/fixture/app/package-lock.json';
@@ -38,20 +39,19 @@ const fileSystem = {
   },
 };
 
-const result = checkNodeModulesIntegrity({
-  packageLockPath,
-  nodeModulesDirectory,
-  fileSystem,
+describe('check node_modules integrity missing-package detection', () => {
+  it('reports missing package and exits 1', () => {
+    const result = checkNodeModulesIntegrity({
+      packageLockPath,
+      nodeModulesDirectory,
+      fileSystem,
+    });
+
+    expect(result.missing).toContain('acorn');
+
+    const formatted = formatIntegrityResult(result);
+    expect(formatted.exitCode).toBe(1);
+
+    process.stderr.write(formatted.output);
+  });
 });
-
-if (!result.missing.includes('acorn')) {
-  throw new Error('expected acorn to be reported missing');
-}
-
-const formatted = formatIntegrityResult(result);
-if (formatted.exitCode !== 1) {
-  throw new Error(`expected exit code 1, got ${formatted.exitCode}`);
-}
-
-process.stderr.write(formatted.output);
-process.exitCode = formatted.exitCode;

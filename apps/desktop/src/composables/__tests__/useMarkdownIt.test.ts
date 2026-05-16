@@ -127,6 +127,14 @@ describe('useMarkdownIt SVG passthrough regression', () => {
       expect(html).toContain('<span class="katex"');
       expect(html).toContain(' here.');
     });
+
+    it('renders the sprint 302 inline Pythagorean equation as KaTeX markup', () => {
+      const html = render('Inline math: $a^2 + b^2 = c^2$');
+
+      expect(html).toContain('Inline math: ');
+      expect(html).toContain('<span class="katex"');
+      expect(html).not.toContain('<p>Inline math: $a^2 + b^2 = c^2$</p>');
+    });
   });
 
   describe('KaTeX block math rendering', () => {

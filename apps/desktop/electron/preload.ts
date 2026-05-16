@@ -125,6 +125,8 @@ const electronAPI = {
     ipcRenderer.invoke('mcp:user-prompt:resolve', payload) as Promise<{ ok: true }>,
   checkEnvVarPresence: (names: string[]) =>
     ipcRenderer.invoke('check-env-vars', names) as Promise<Record<string, boolean>>,
+  checkBinaryExists: (binary: string) =>
+    ipcRenderer.invoke('cli:check-binary', binary) as Promise<{ found: boolean; path: string | null }>,
   gateSetRoot: (params: { root: string | null }) =>
     ipcRenderer.invoke('gate:set-root', params) as Promise<Record<string, never>>,
   configRead: () =>

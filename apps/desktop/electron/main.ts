@@ -8,6 +8,7 @@ import { registerConfigHandlers } from './config-file.js';
 import { registerUserPromptBridge } from './user-prompt-bridge.js';
 import { registerVec0Handlers } from './vec0.js';
 import { registerVoiceHandlers } from './voice.js';
+import { registerCliPreflightHandlers } from './cli-preflight.js';
 import { registerPermissionLedgerHandlers } from './permission-ledger.js';
 import {
   TerminalManager,
@@ -255,6 +256,7 @@ function registerIpcHandlers(): void {
   registerUserPromptBridge(() => mainWindow?.webContents ?? null);
   registerVec0Handlers();
   registerVoiceHandlers();
+  registerCliPreflightHandlers();
   registerPermissionLedgerHandlers();
 }
 app.on('render-process-gone', async (_event, _webContents, details) => {

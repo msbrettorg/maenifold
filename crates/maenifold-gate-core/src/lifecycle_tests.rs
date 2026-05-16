@@ -144,6 +144,7 @@ fn read_commands_do_not_mutate_task_files() {
 #[path = "lifecycle_sync_status_tests.rs"]
 mod sync_status;
 
+#[path = "lifecycle_reopen_tests.rs"] mod reopen;
 fn new_root() -> TempDir {
     let root = tempfile::tempdir().expect("temp root");
     fs::create_dir_all(root.path().join("todo")).expect("todo");

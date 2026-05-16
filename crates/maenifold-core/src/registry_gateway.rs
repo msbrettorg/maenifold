@@ -75,6 +75,11 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
         invoke: gate_fail,
     },
     ToolDescriptor {
+        name: "gate_Reopen",
+        aliases: &["gate_reopen"],
+        invoke: gate_reopen,
+    },
+    ToolDescriptor {
         name: "gate_History",
         aliases: &["gate_history"],
         invoke: gate_history,
@@ -107,6 +112,7 @@ gateway_tool!(gate_sync, "gate_Sync");
 gateway_tool!(gate_append, "gate_Append");
 gateway_tool!(gate_pass, "gate_Pass");
 gateway_tool!(gate_fail, "gate_Fail");
+gateway_tool!(gate_reopen, "gate_Reopen");
 gateway_tool!(gate_history, "gate_History");
 gateway_tool!(gate_task_body, "gate_TaskBody");
 

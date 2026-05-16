@@ -48,6 +48,12 @@ pub(crate) fn commands() -> Vec<CommandEntry> {
             "mutate",
         ),
         command(
+            "gate_Reopen",
+            "Reopen a task that was manually moved from done/ back to todo/.",
+            note_schema(),
+            "mutate",
+        ),
+        command(
             "gate_History",
             "Read gate task stage history.",
             task_schema(),
@@ -106,6 +112,7 @@ fn call_gate(
         "gate_Append" => GateLifecycle::append(note_args(&args)?),
         "gate_Pass" => GateLifecycle::pass(note_args(&args)?),
         "gate_Fail" => GateLifecycle::fail(note_args(&args)?),
+        "gate_Reopen" => GateLifecycle::reopen(note_args(&args)?),
         "gate_History" => GateLifecycle::history(task_args(&args)?),
         "gate_TaskBody" => GateLifecycle::task_body(task_args(&args)?),
         "gate_Sync" => GateLifecycle::sync(SyncArgs {

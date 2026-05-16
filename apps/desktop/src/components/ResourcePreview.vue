@@ -91,6 +91,24 @@ function formatFileSize(bytes: number): string {
     :src="dispatched.src"
   />
   <Card
+    v-else-if="dispatched.kind === 'too-large'"
+    size="sm"
+    class="max-w-full rounded-2xl border-border-subtle bg-bg-app shadow-none"
+  >
+    <CardContent class="flex min-w-0 items-start gap-3 p-3">
+      <Download class="mt-0.5 size-4 shrink-0 text-text-secondary" aria-hidden="true" />
+      <span class="flex min-w-0 flex-col gap-0.5">
+        <span class="truncate text-sm font-medium text-text-primary">{{ dispatched.name }}</span>
+        <span class="text-xs text-text-secondary">
+          {{ formatFileSize(dispatched.size) }} • {{ dispatched.mimeType }}
+        </span>
+        <span class="text-xs text-text-tertiary">
+          Preview too large — open in external viewer
+        </span>
+      </span>
+    </CardContent>
+  </Card>
+  <Card
     v-else
     size="sm"
     class="max-w-full rounded-2xl border-border-subtle bg-bg-app shadow-none"

@@ -1,7 +1,7 @@
 // Pure helpers and types for ComposerCanvas. Extracted from
 // composables/useComposerCanvas.ts to keep modules under 300 LOC.
 import type { Edge } from '@vue-flow/core';
-import type { PipelineView } from './pipeline-types';
+import type { PipelineView } from './pipeline-types-view';
 
 export type Point = { x: number; y: number };
 export type SelectableFlowElement = { selected?: boolean };

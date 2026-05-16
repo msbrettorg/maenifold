@@ -1,6 +1,6 @@
 import { Position, getSmoothStepPath, type EdgeProps } from '@vue-flow/core';
 
-import type { EdgeConditionEquals } from './pipeline-types';
+import type { EdgeConditionEquals } from './pipeline-types-edge';
 
 type FlowEdgeCondition = {
   path: string;

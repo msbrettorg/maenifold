@@ -4,8 +4,8 @@ import type {
   SequentialThinkingNode,
   ToolNode,
   WorkflowNode,
-} from './pipeline-types';
-import { getNodeType } from './pipeline-types';
+} from './pipeline-types-node';
+import { getNodeType } from './pipeline-types-node';
 import {
   OPTIONAL_NONE_VALUE,
   parseToolArgs,

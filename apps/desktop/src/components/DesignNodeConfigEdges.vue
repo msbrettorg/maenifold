@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { computed, ref, watch } from 'vue';
-import type { EdgeConditionEquals, PipelineEdge } from '../lib/pipeline-types';
+import type { EdgeConditionEquals, PipelineEdge } from '../lib/pipeline-types-edge';
 import { usePipelineStore } from '../stores/pipeline';
 import EdgeMappingEditor from './EdgeMappingEditor.vue';
 

@@ -4,7 +4,7 @@ import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { defineComponent, h } from 'vue';
 import SemanticZoomOverlayContent from '../SemanticZoomOverlayContent.vue';
-import type { ToolProvenance } from '../../lib/pipeline-types';
+import type { ToolProvenance } from '../../lib/pipeline-types-view';
 import { dispatchResource, type DispatchedResource } from '../../lib/resource-mime-dispatcher';
 
 vi.mock('../../lib/resource-mime-dispatcher', async (importOriginal) => {

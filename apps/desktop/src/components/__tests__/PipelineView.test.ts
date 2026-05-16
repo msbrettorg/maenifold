@@ -6,7 +6,7 @@ import { nextTick } from 'vue';
 import PipelineView from '../PipelineView.vue';
 import { useAppShellStore } from '../../stores/app-shell';
 import { usePipelineStore } from '../../stores/pipeline';
-import type { PipelineView as PipelineViewModel } from '../../lib/pipeline-types';
+import type { PipelineView as PipelineViewModel } from '../../lib/pipeline-types-view';
 
 const mcpState = vi.hoisted(() => {
   const vue = require('vue') as typeof import('vue');

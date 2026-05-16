@@ -4,11 +4,13 @@ import type { Ref } from 'vue';
 import type { usePipelineMcp } from '../composables/usePipelineMcp';
 import {
   createNode,
-  type PipelineDefinition,
-  type PipelineEdge,
-  type PipelineInputs,
-} from '../lib/pipeline-types';
-import { createNodeId } from '../lib/pipeline-node-factory';
+  createNodeId,
+} from '../lib/pipeline-node-factory';
+import type {
+  PipelineDefinition,
+  PipelineEdge,
+  PipelineInputs,
+} from '../lib/pipeline-types-edge';
 
 interface ToolDefinition {
   name: string;

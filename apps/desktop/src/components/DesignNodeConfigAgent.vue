@@ -13,8 +13,8 @@ import type {
   PromptNode,
   SequentialThinkingNode,
   WorkflowNode,
-} from '../lib/pipeline-types';
-import { getNodeType } from '../lib/pipeline-types';
+} from '../lib/pipeline-types-node';
+import { getNodeType } from '../lib/pipeline-types-node';
 import { usePipelineStore } from '../stores/pipeline';
 
 const props = defineProps<{

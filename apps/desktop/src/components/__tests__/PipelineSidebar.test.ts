@@ -5,7 +5,7 @@ import { mount } from '@vue/test-utils';
 import { ref } from 'vue';
 import PipelineSidebar from '../PipelineSidebar.vue';
 import { usePipelineStore } from '../../stores/pipeline';
-import type { PipelineListItem } from '../../lib/pipeline-types';
+import type { PipelineListItem } from '../../lib/pipeline-types-view';
 
 vi.mock('../../composables/useMcpResources', () => ({
   McpCapabilityUnsupportedError: class extends Error {},

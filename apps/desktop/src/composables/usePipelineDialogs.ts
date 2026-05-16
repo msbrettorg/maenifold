@@ -1,7 +1,8 @@
 import { ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { usePipelineStore } from '../stores/pipeline';
-import type { PipelineEdge, PipelineNode } from '../lib/pipeline-types';
+import type { PipelineEdge } from '../lib/pipeline-types-edge';
+import type { PipelineNode } from '../lib/pipeline-types-node';
 
 /**
  * Manages graft-nodes and join-pipeline dialog state and submit handlers for PipelineView.

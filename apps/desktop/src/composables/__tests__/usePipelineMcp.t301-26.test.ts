@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePipelineMcp } from '../usePipelineMcp';
-import type { PipelineDefinition } from '../../lib/pipeline-types';
+import type { PipelineDefinition } from '../../lib/pipeline-types-edge';
 
 const callTool = vi.fn(async () => ({ data: { pipelineId: 'pipeline-existing' } }));
 

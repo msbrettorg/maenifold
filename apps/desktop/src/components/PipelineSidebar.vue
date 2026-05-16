@@ -8,7 +8,7 @@ import PipelineSidebarItem from './PipelineSidebarItem.vue';
 import { usePipelineStore } from '../stores/pipeline';
 import { McpCapabilityUnsupportedError, useMcpResources } from '../composables/useMcpResources';
 import { useConfirmDialogStore } from '../stores/confirm-dialog';
-import type { PipelineListItem } from '../lib/pipeline-types';
+import type { PipelineListItem } from '../lib/pipeline-types-view';
 
 const props = withDefaults(defineProps<{
   hideHeader?: boolean;

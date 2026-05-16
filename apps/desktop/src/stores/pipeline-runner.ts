@@ -1,7 +1,7 @@
 // Polling, view-refresh, and view-sync helpers extracted from pipeline.ts
 // to keep the main store under the 300 LOC ceiling.
 import type { Ref } from 'vue';
-import type { LogEntry, PipelineView } from '../lib/pipeline-types';
+import type { LogEntry, PipelineView } from '../lib/pipeline-types-view';
 import type { usePipelineMcp } from '../composables/usePipelineMcp';
 import { hydrateEventLogFromView } from '../composables/pipeline-view-diff';
 import { normalizeView } from './pipeline-view-transforms';

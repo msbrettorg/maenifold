@@ -13,7 +13,8 @@ import {
   pipelineNodesToFlow,
   savePositions,
 } from '../lib/pipeline-composer-flow';
-import type { PipelineDefinition, PipelineView } from '../lib/pipeline-types';
+import type { PipelineDefinition } from '../lib/pipeline-types-edge';
+import type { PipelineView } from '../lib/pipeline-types-view';
 import {
   edgeIndicator,
   edgeLabel,

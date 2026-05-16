@@ -2,10 +2,12 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type {
   PipelineDefinition,
+} from '../../lib/pipeline-types-edge';
+import type {
   PipelineListItem,
   PipelineView,
   ViewNode,
-} from '../../lib/pipeline-types';
+} from '../../lib/pipeline-types-view';
 import { useMcpClient } from '../useMcpClient';
 import { usePipelineMcp } from '../usePipelineMcp';
 

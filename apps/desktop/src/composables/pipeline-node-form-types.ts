@@ -1,6 +1,6 @@
 // Form value types extracted to be shared between the field refs composable
 // and the draft builders without circular imports.
-import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
+import type { PipelineNodeAgentConfig } from '../lib/pipeline-types-node';
 
 export interface PipelineNodeFormValues {
   workflowId: string;

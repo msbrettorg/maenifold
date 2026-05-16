@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { ref } from 'vue';
 import { usePipelineStore } from '../pipeline';
-import type { PipelineDefinition, PipelineView } from '../../lib/pipeline-types';
+import type { PipelineDefinition } from '../../lib/pipeline-types-edge';
+import type { PipelineView } from '../../lib/pipeline-types-view';
 
 const createPipeline = vi.fn(async () => ({ pipelineId: 'pipeline-created' }));
 const updatePipeline = vi.fn(async (sessionId: string) => ({ pipelineId: sessionId }));

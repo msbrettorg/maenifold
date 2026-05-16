@@ -9,7 +9,7 @@ import {
   setAgentThoughtLevelValue,
   type getEditableAgentConfigOptions,
 } from './pipeline-node-form-helpers';
-import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
+import type { PipelineNodeAgentConfig } from '../lib/pipeline-types-node';
 import type { ToolPaletteEntry } from '../lib/tool-palette-catalog';
 
 export interface ToolPaletteProps {

@@ -5,8 +5,9 @@ import { Play, CheckCircle, XCircle, AlertTriangle, Pause, Clock } from 'lucide-
 import { storeToRefs } from 'pinia';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePipelineStore } from '../stores/pipeline';
-import type { LogEntry } from '../lib/pipeline-types';
-import { getPipelineNodeDisplayLabel, getViewNodeDisplayLabel } from '../lib/pipeline-types';
+import type { LogEntry } from '../lib/pipeline-types-view';
+import { getPipelineNodeDisplayLabel } from '../lib/pipeline-types-node';
+import { getViewNodeDisplayLabel } from '../lib/pipeline-types-view';
 import { buildNodeOutputPreview, buildAbandonedNodePreview } from '../composables/pipeline-view-diff';
 import PipelineAcpSessionInspectors from './PipelineAcpSessionInspectors.vue';
 import PipelineRunHistoryPanel from './PipelineRunHistoryPanel.vue';

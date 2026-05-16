@@ -8,7 +8,7 @@
  *
  * Templates are resolved at instantiation time by pipeline-template-runtime.ts.
  */
-import type { PipelineDefinition } from './pipeline-types';
+import type { PipelineDefinition } from './pipeline-types-edge';
 
 // ---------------------------------------------------------------------------
 // Types

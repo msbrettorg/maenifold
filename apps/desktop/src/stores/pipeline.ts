@@ -3,12 +3,10 @@ import { defineStore } from 'pinia';
 import { toast } from 'vue-sonner';
 import { usePipelineMcp } from '../composables/usePipelineMcp';
 import {
-  type LogEntry,
   type PipelineDefinition,
   type PipelineInputs,
-  type PipelineListItem,
-  type PipelineView,
-} from '../lib/pipeline-types';
+} from '../lib/pipeline-types-edge';
+import type { LogEntry, PipelineListItem, PipelineView } from '../lib/pipeline-types-view';
 import { resolvePreferredAgent } from '../lib/preferred-agent';
 import { createPipelineLifecycleActions } from './pipeline-lifecycle-actions';
 import { createPipelineMutationActions } from './pipeline-mutation-actions';

@@ -5,7 +5,7 @@ import type {
   SequentialThinkingNode,
   ToolNode,
   WorkflowNode,
-} from './pipeline-types';
+} from './pipeline-types-node';
 
 export type ObjectSchema<PropertyKeys extends string> = JsonSchema & {
   properties: Partial<Record<PropertyKeys, JsonSchema>>;

@@ -1,5 +1,5 @@
 import { computed, ref, type ComputedRef } from 'vue';
-import type { ViewNode } from '../lib/pipeline-types';
+import type { ViewNode } from '../lib/pipeline-types-view';
 import type { ProvenanceLink } from '../lib/provenance';
 import { useProvenanceStore } from '../stores/provenance';
 

@@ -1,6 +1,6 @@
 import type { Ref } from 'vue';
 import { usePipelineMcp } from '../composables/usePipelineMcp';
-import type { PipelineEdge } from '../lib/pipeline-types';
+import type { PipelineEdge } from '../lib/pipeline-types-edge';
 
 type PipelineMcp = ReturnType<typeof usePipelineMcp>;
 type WithError = <T>(tool: string, fn: () => Promise<T>) => Promise<T | undefined>;

@@ -8,7 +8,7 @@ import type {
   SequentialThinkingNode,
   ToolNode,
   WorkflowNode,
-} from './pipeline-types';
+} from './pipeline-types-node';
 import {
   buildDisplayLabel,
   buildExecutionFields,
@@ -27,7 +27,7 @@ import type {
   WorkflowNodeInput,
 } from './pipeline-node-factory-types';
 
-export { normalizeNodeCwd } from './pipeline-types';
+export { normalizeNodeCwd } from './pipeline-types-node';
 export type {
   PipelineNodeInput,
   PipelineNodeInputByType,

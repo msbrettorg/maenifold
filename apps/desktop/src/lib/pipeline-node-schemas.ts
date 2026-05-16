@@ -1,6 +1,6 @@
 import type { JsonSchema } from '@jsonforms/core';
-import type { PipelineNode } from './pipeline-types';
-import { getNodeType } from './pipeline-types';
+import type { PipelineNode } from './pipeline-types-node';
+import { getNodeType } from './pipeline-types-node';
 import {
   applyEnumValues,
   pipelineNodeSchemas,

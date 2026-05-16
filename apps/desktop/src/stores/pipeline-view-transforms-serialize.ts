@@ -2,10 +2,11 @@
 
 import type {
   PipelineDefinition,
+} from '../lib/pipeline-types-edge';
+import type {
   PipelineNode,
-  PipelineView,
-  ViewNode,
-} from '../lib/pipeline-types';
+} from '../lib/pipeline-types-node';
+import type { PipelineView, ViewNode } from '../lib/pipeline-types-view';
 import {
   cloneAndExtractAgentConfig,
   cloneInputs,

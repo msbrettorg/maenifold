@@ -1,6 +1,6 @@
 import { ref, type Ref } from 'vue';
 import { usePipelineStore } from '../stores/pipeline';
-import type { ViewNode } from '../lib/pipeline-types';
+import type { ViewNode } from '../lib/pipeline-types-view';
 
 type PipelineStore = ReturnType<typeof usePipelineStore>;
 type ReadableRef<T> = Readonly<Ref<T>>;

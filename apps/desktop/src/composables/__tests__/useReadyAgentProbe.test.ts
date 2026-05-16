@@ -1,7 +1,7 @@
 import { computed, nextTick, ref } from 'vue';
 import { describe, expect, it, vi } from 'vitest';
 import { normalizeAgentProbeResult } from '../../lib/agent-probe-normalizers';
-import type { PipelineNodeAgentConfig } from '../../lib/pipeline-types';
+import type { PipelineNodeAgentConfig } from '../../lib/pipeline-types-node';
 import { useReadyAgentProbe } from '../useReadyAgentProbe';
 
 describe('useReadyAgentProbe', () => {

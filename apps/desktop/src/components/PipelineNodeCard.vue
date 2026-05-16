@@ -22,7 +22,7 @@ import {
   isToolNode,
   isWorkflowNode,
   nodeLabel,
-} from '../lib/pipeline-types';
+} from '../lib/pipeline-types-node';
 import { getToolCategory } from '../lib/tool-categories';
 import { usePipelineStore } from '../stores/pipeline';
 

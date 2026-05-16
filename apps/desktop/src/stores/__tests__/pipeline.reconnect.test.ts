@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 
 import { usePipelineStore } from '../pipeline';
-import type { PipelineView, ViewNode } from '../../lib/pipeline-types';
+import type { PipelineView, ViewNode } from '../../lib/pipeline-types-view';
 import {
   pipelineNodesToFlow,
   toPipelineNodeFromViewNode,

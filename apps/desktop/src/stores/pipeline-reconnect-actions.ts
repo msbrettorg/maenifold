@@ -1,5 +1,5 @@
 import type { Ref } from 'vue';
-import type { PipelineView, ViewNode } from '../lib/pipeline-types';
+import type { PipelineView, ViewNode } from '../lib/pipeline-types-view';
 
 interface ReplaceNodeOutputMetadata {
   sessionId: string;

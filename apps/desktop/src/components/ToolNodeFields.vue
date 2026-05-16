@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
+import type { PipelineNodeAgentConfig } from '../lib/pipeline-types-node';
 import ToolNodeFieldsTool from './ToolNodeFieldsTool.vue';
 
 const props = withDefaults(defineProps<{

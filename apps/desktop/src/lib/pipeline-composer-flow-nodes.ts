@@ -6,14 +6,13 @@ import type {
   PipelineNodeAgentConfig,
   PipelineNodeType,
   SessionRef,
-  ToolProvenance,
-  ViewNode,
-} from './pipeline-types';
+} from './pipeline-types-node';
+import type { ToolProvenance, ViewNode } from './pipeline-types-view';
 import {
   isSequentialThinkingNode,
   isToolNode,
   isWorkflowNode,
-} from './pipeline-types';
+} from './pipeline-types-node';
 import { getNodeShellClassName, getNodeShellStyle } from './pipeline-node-status';
 import { createNode } from './pipeline-node-factory';
 

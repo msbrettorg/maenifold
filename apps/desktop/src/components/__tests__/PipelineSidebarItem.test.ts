@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import PipelineSidebarItem from '../PipelineSidebarItem.vue';
-import type { PipelineListItem } from '../../lib/pipeline-types';
+import type { PipelineListItem } from '../../lib/pipeline-types-view';
 
 function pipelineItem(overrides: Partial<PipelineListItem> = {}): PipelineListItem {
   return {

@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import AgentProbePreview from './AgentProbePreview.vue';
-import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
+import type { PipelineNodeAgentConfig } from '../lib/pipeline-types-node';
 import type { AgentProbeResult, AgentProbeConfigOption } from '../lib/agent-probe-types-defs';
 import type { SessionConfigSelectGroup, SessionConfigSelectOption } from '../lib/types';
 

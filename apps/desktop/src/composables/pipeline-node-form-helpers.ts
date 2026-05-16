@@ -6,7 +6,7 @@
 // This file owns the form refs composable and select-options helpers, and
 // re-exports everything for backwards compatibility.
 import { ref, type Ref } from 'vue';
-import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
+import type { PipelineNodeAgentConfig } from '../lib/pipeline-types-node';
 import type {
   SessionConfigSelectGroup,
   SessionConfigSelectOption,

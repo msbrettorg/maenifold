@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { ViewNode } from '../lib/pipeline-types';
+import type { ViewNode } from '../lib/pipeline-types-view';
 
 const props = defineProps<{ node: ViewNode }>();
 const emit = defineEmits<{ (e: 'close'): void }>();

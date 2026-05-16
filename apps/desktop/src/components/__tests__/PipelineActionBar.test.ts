@@ -4,7 +4,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import { flushPromises, mount } from '@vue/test-utils';
 import PipelineActionBar from '../PipelineActionBar.vue';
 import { usePipelineStore } from '../../stores/pipeline';
-import type { PipelineDefinition } from '../../lib/pipeline-types';
+import type { PipelineDefinition } from '../../lib/pipeline-types-edge';
 
 function mountCreateActionBar() {
   const pinia = createPinia();

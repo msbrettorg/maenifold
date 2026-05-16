@@ -1,6 +1,7 @@
 import { computed, ref, watch, type Ref } from 'vue';
 import { createNode, createNodeId } from '../lib/pipeline-node-factory';
-import type { EdgeType, PipelineEdge, PipelineNode, PipelineNodeType } from '../lib/pipeline-types';
+import type { EdgeType, PipelineEdge } from '../lib/pipeline-types-edge';
+import type { PipelineNode, PipelineNodeType } from '../lib/pipeline-types-node';
 import {
   buildPipelineNodeDraft,
   canSubmitPipelineNodeForm,

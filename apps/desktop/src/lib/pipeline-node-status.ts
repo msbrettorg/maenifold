@@ -1,4 +1,4 @@
-import type { NodeStatus, PipelineStatus } from './pipeline-types';
+import type { NodeStatus, PipelineStatus } from './pipeline-types-edge';
 
 export type PipelineNodeStatusAppearance =
   | 'pending'

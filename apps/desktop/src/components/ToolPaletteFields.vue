@@ -8,8 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cwdHasReasonablePathPrefix } from '../lib/pipeline-types';
-import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
+import { cwdHasReasonablePathPrefix } from '../lib/pipeline-types-node';
+import type { PipelineNodeAgentConfig } from '../lib/pipeline-types-node';
 import {
   AGENT_DEFAULT_OPTION,
   HEALTH_META,

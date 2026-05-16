@@ -77,9 +77,9 @@ Gate is sacrosanct. The process is followed exactly. No exceptions. No shortcuts
 6. **Never skip or fast-forward.** Each `gate_Pass` references genuine output from the responsible agent.
 7. **1 violation = sprint discarded.** All work reverted regardless of correctness.
 8. **PM skips stages ONLY with explicit written user authorization.** Record: `stage waived per user authorization at <timestamp>`.
-9. **Sub-PMs own SWE stage only.** Dispatch SWE → verify build + delta → record `gate_Pass` for SWE → report back. PM handles red-team/blue-team.
-10. **Sub-PMs escalate after 15 minutes.** Silent long runs are process violations.
-11. **One task per sub-PM.** Never assign multiple tasks to a single sub-PM.
+9. **`task-pm` sub-PMs own intermediate gate stages.** Per the three-tier RACI: top PM dispatches one `task-pm` per ready Gate item (see `/Users/brett/.copilot/agents/task-pm.md`); the task-pm drives the assigned task through its pipeline by dispatching inner-loop workers, runs `gate_Pass` / `gate_Fail` on intermediate stages, and either returns a clean-completion WorkResult (top PM merges + terminal-passes) or an escalation WorkResult. Inner-loop workers may call `gate_Append` only — never `gate_Pass` or `gate_Fail`.
+10. **`task-pm` escalates on any of five triggers:** per-stage failure cap (3), regression cap (2), total dispatch cap (5), wall-clock cap (30 min), or confession-evidence drift (2 consecutive). Silent long runs without escalation are process violations.
+11. **One task per `task-pm`.** Never assign multiple Gate tasks to a single task-pm dispatch.
 12. **No "waived re-audit."** Every remediation cycle gets a full independent re-audit. "Waived" is not a valid verdict.
 13. **PM circuit breaker.** If >3 tasks enter remediation in one session, stop new dispatch. Land in-flight work first.
 14. **One-iter block ceiling.** A task in `blocked` state for more than ONE iteration without forward motion is itself a defect. On entry to any iter, the PM scans for blocked tasks and, for each:
@@ -152,9 +152,15 @@ SWE agents are unreliable narrators. These requirements exist because SWEs have:
 2. **Trace render path before UI work.** Before modifying any Vue component, use LSP `findReferences` to confirm the component is imported and rendered in the active path for the target mode. Dead components are not valid targets.
 3. **Report actual changes.** SWE output must list files modified and lines changed. "No changes needed" requires PM review before acceptance — it is the highest-risk SWE claim.
 
-### Sub-PM Verification Requirements
+### Sub-PM (`task-pm`) Verification Requirements
 
-**Sub-PMs are obsolete.** Pipeline DAGs replace them. Tool nodes advance gate state, prompt nodes dispatch agent work, conditional edges handle failure routing. The pipeline engine handles everything sub-PMs used to do.
+The `task-pm` agent (see `/Users/brett/.copilot/agents/task-pm.md`) drives one Gate task through its pipeline. Top PM verification requirements for any task-pm dispatch:
+
+- **Worktree ownership.** Top PM creates the worktree via `ralph/scripts/worktree-create.sh <task-id>` BEFORE dispatching the task-pm. Task-pm never runs `git worktree`.
+- **Spec path.** Top PM passes the absolute spec path in the dispatch prompt so the task-pm doesn't have to guess.
+- **CDP port (if applicable).** Top PM allocates a non-overlapping CDP port for UAT lanes and passes it in the dispatch prompt.
+- **Escalation triage.** When task-pm returns `{escalate: true, ...}`, the top PM analyzes the `history` + `evidence` and either re-authors the spec, decomposes the task, WONTFIX's on cited evidence, direct-dispatches a senior remediation worker, or accepts residual. Top PM never re-dispatches the same task-pm with the same spec — that's the thrash pattern the escalation rule exists to break.
+- **Terminal `gate_Pass` + merge.** When task-pm returns `{done: true, ...}`, the top PM verifies the artifact (focused build/test for the touched crate, diff hygiene), merges the worktree branch into `dev`, removes the worktree, and runs the terminal `gate_Pass` to move the task file to `done/`.
 
 ### Test Policy
 
@@ -170,7 +176,7 @@ SWE agents are unreliable narrators. These requirements exist because SWEs have:
 - **Red-team:** Audit ONLY files modified by the SWE. Verdict on the delta. Pre-existing issues → informational, not FAIL.
 - **Blue-team:** Run ONLY tests for changed code. Unrelated compilation failure → report blockage, recommend waiver.
 - **SWE:** The task is the task. Adjacent problems → report, don't fix.
-- **Sub-PMs:** Obsolete. Use pipelines instead.
+- **`task-pm` (sub-PM):** drives ONE task through its pipeline. Owns intermediate `gate_Pass` / `gate_Fail`. Escalates to top PM on per-stage cap (3) / regression cap (2) / total dispatch cap (5) / wall-clock (30 min) / drift (2 consecutive). Returns clean-completion WorkResult to top PM for merge + terminal pass. Does not pick tasks, does not own worktrees, does not run `git worktree`.
 
 ### Frontend worktrees
 

@@ -199,10 +199,14 @@ The child tasks ship as separate gate rows + commits + merges. Each child can ru
 - T-305.2 (28 tests, 16 files, 23 min) SHOULD have been: T-305.2a backend (~8 tests, ~6 files, ~8 min) + T-305.2b frontend (~8 tests, ~6 files, ~6 min) + T-305.2c help-doc + remaining tests (~12 tests, ~4 files, ~5 min). All 3 children have a single SWE-implementer in ≤10 min each, and Yb+Yc parallelize after Ya merges.
 - T-305.5 (20 tests, 17 files, 11+ min before interrupt) SHOULD have been: T-305.5a backend allowlist module + supervisor branching (~8 tests, ~5 files, ~7 min) + T-305.5b backend CRUD validation + helpers (~6 tests, ~3 files, ~5 min) + T-305.5c frontend Select + Textarea (~4 tests, ~3 files, ~5 min) + T-305.5d help doc (~2 tests, ~1 file, ~3 min).
 
-### E. Ship the work (gate ops)
-- Drive tasks through their pipeline stages: SWE → red-team → blue-team → done.
+### E. Ship the work (gate ops) — three-tier RACI
+
+- Drive tasks through their pipeline stages: SWE → red-team → blue-team → done (or whatever the pipeline declares).
+- **Three-tier Gate RACI:**
+  - **Top PM (you):** owns the terminal `gate_Pass` that moves a task file to `done/`. Owns sprint-level decisions, worktree creation/merge/removal, and escalation triage.
+  - **`task-pm` agent (per-gate-item):** owns `gate_Pass` and `gate_Fail` for INTERMEDIATE stages. You dispatch one `task-pm` per ready Gate item; it drives the task through its pipeline and either returns a clean-completion WorkResult (for you to merge + terminal-pass) or an escalation WorkResult (>3 stage failures, >2 regressions, >5 total dispatches, 30-min wall-clock, or worker drift — see `/Users/brett/.copilot/agents/task-pm.md`).
+  - **Inner-loop workers:** may call `gate_Append` to record findings (red-team verdicts, blue-team test reports, SWE WorkResult summaries) but are FORBIDDEN from `gate_Pass` / `gate_Fail`. They return WorkResults; the task-pm advances the gate.
 - The PM relays real agent verdicts. The PM does **not** author notes for another role's stage. **Files move through gate, never via `mv`.** This is sacrosanct.
-- Subagents may record their findings with `gate append`, but only the PM may run `gate pass` or `gate fail`.
 
 ### F. Hygiene
 - Write memory notes for non-trivial decisions with `[[WikiLinks]]`.

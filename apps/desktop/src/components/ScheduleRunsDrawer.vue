@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import { Loader2, RotateCcw, Trash2 } from 'lucide-vue-next';
+import { ArrowDown, ArrowUp, ArrowUpDown, Loader2, RotateCcw, Trash2 } from 'lucide-vue-next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -10,42 +10,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useMcpClient } from '@/composables/useMcpClient';
 import { useMcpResources } from '@/composables/useMcpResources';
 
-interface RawRun {
-  fileName?: string;
-  content?: string;
-  timestamp?: string;
-  status?: string;
-  duration_seconds?: number;
-  durationSeconds?: number;
-  stdout?: string;
-  stderr?: string;
-  error?: string;
-  mcp_action?: string | null;
-  mcp_parameters?: unknown;
-  mcp_result?: unknown;
-}
+interface RawRun { fileName?: string; content?: string; timestamp?: string; status?: string; duration_seconds?: number; durationSeconds?: number; stdout?: string; stderr?: string; error?: string; mcp_action?: string | null; mcp_parameters?: unknown; mcp_result?: unknown; }
+interface ScheduleRunRow { id: string; timestamp: string; outcome: 'success' | 'failed' | 'cancelled' | 'running' | 'unknown'; duration: string; stdout: string; stderr: string; mcpAction?: string; mcpParameters?: unknown; mcpResult?: unknown; }
+type SortColumn = 'timestamp' | 'outcome' | 'duration';
 
-interface ScheduleRunRow {
-  id: string;
-  timestamp: string;
-  outcome: 'success' | 'failed' | 'cancelled' | 'running' | 'unknown';
-  duration: string;
-  stdout: string;
-  stderr: string;
-  mcpAction?: string;
-  mcpParameters?: unknown;
-  mcpResult?: unknown;
-}
-
-const props = defineProps<{
-  scheduleId: string;
-  open: boolean;
-  onUpdateOpen?: (value: boolean) => void;
-}>();
-
-const emit = defineEmits<{
-  'update:open': [open: boolean];
-}>();
+const props = defineProps<{ scheduleId: string; open: boolean; onUpdateOpen?: (value: boolean) => void; }>();
+const emit = defineEmits<{ 'update:open': [open: boolean]; }>();
 
 const resources = useMcpResources();
 const { callTool, connect, connected } = useMcpClient();
@@ -56,16 +26,15 @@ const clearing = ref(false);
 const retryingRunId = ref('');
 const error = ref('');
 const clearError = ref('');
+const sortColumn = ref<SortColumn | null>(null);
+const sortDirection = ref<'asc' | 'desc' | null>(null);
 let unsubscribe: (() => void) | null = null;
 let generation = 0;
 
 const encodedScheduleId = computed(() => encodeURIComponent(props.scheduleId));
 const resourceUri = computed(() => `schedule://logs/${encodedScheduleId.value}`);
 
-function updateOpen(value: boolean): void {
-  props.onUpdateOpen?.(value);
-  emit('update:open', value);
-}
+function updateOpen(value: boolean): void { props.onUpdateOpen?.(value); emit('update:open', value); }
 
 function timestampFromFileName(fileName?: string): string {
   const match = fileName?.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/);
@@ -76,8 +45,7 @@ function timestampFromFileName(fileName?: string): string {
 
 function formatTimestamp(value: string): string {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
 }
 
 function normalizeRun(raw: RawRun, index: number): ScheduleRunRow {
@@ -109,6 +77,32 @@ function normalizeRun(raw: RawRun, index: number): ScheduleRunRow {
     ...('mcp_result' in raw ? { mcpResult: raw.mcp_result } : {}),
   };
 }
+function handleSort(column: SortColumn): void {
+  if (sortColumn.value !== column) { sortColumn.value = column; sortDirection.value = 'asc'; return; }
+  if (sortDirection.value === 'asc') { sortDirection.value = 'desc'; return; }
+  sortColumn.value = null; sortDirection.value = null;
+}
+
+function sortAriaOrder(column: SortColumn): 'ascending' | 'descending' | 'none' {
+  return sortColumn.value === column ? sortDirection.value === 'asc' ? 'ascending' : 'descending' : 'none';
+}
+
+function sortIcon(column: SortColumn) {
+  return sortColumn.value !== column ? ArrowUpDown : sortDirection.value === 'asc' ? ArrowUp : ArrowDown;
+}
+
+const sortedRuns = computed(() => {
+  if (!sortColumn.value || !sortDirection.value) return runs.value;
+  return [...runs.value].sort((a, b) => {
+    const value = (run: ScheduleRunRow) => sortColumn.value === 'duration'
+      ? (run.duration === '—' ? Infinity : Number.parseFloat(run.duration.replace(/s$/, '')))
+      : run[sortColumn.value ?? 'timestamp'];
+    const left = value(a);
+    const right = value(b);
+    const result = typeof left === 'number' && typeof right === 'number' ? left - right : String(left).localeCompare(String(right));
+    return sortDirection.value === 'asc' ? result : -result;
+  });
+});
 
 async function loadRuns(): Promise<void> {
   if (!props.open || !props.scheduleId) return;
@@ -172,14 +166,8 @@ async function confirmClearHistory(): Promise<void> {
   }
 }
 
-watch(() => [props.open, props.scheduleId], () => {
-  void resubscribe();
-}, { immediate: true });
-
-onBeforeUnmount(() => {
-  generation += 1;
-  unsubscribe?.();
-});
+watch(() => [props.open, props.scheduleId], () => { void resubscribe(); }, { immediate: true });
+onBeforeUnmount(() => { generation += 1; unsubscribe?.(); });
 </script>
 
 <template>
@@ -234,14 +222,14 @@ onBeforeUnmount(() => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Timestamp</TableHead>
-              <TableHead>Outcome</TableHead>
-              <TableHead>Duration</TableHead>
+              <TableHead :aria-sort="sortAriaOrder('timestamp')"><Button variant="ghost" size="sm" @click="handleSort('timestamp')">Timestamp <component :is="sortIcon('timestamp')" class="h-3.5 w-3.5" /></Button></TableHead>
+              <TableHead :aria-sort="sortAriaOrder('outcome')"><Button variant="ghost" size="sm" @click="handleSort('outcome')">Outcome <component :is="sortIcon('outcome')" class="h-3.5 w-3.5" /></Button></TableHead>
+              <TableHead :aria-sort="sortAriaOrder('duration')"><Button variant="ghost" size="sm" @click="handleSort('duration')">Duration <component :is="sortIcon('duration')" class="h-3.5 w-3.5" /></Button></TableHead>
               <TableHead class="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            <template v-for="run in runs" :key="run.id">
+            <template v-for="run in sortedRuns" :key="run.id">
               <TableRow class="cursor-pointer" @click="expandedRunId = expandedRunId === run.id ? '' : run.id">
                 <TableCell>{{ formatTimestamp(run.timestamp) }}</TableCell>
                 <TableCell>

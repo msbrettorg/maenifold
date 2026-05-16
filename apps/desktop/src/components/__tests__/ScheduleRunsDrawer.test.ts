@@ -319,4 +319,139 @@ describe('ScheduleRunsDrawer', () => {
     expect(document.body.textContent).not.toContain('Clear history');
     wrapper.unmount();
   });
+
+  describe('column sort', () => {
+    const SORT_FIXTURE = [
+      { fileName: '20260429T100000Z.log', status: 'success', duration_seconds: 10, content: 'ok' },
+      { fileName: '20260429T140000Z.log', status: 'failed', duration_seconds: 30, content: 'exit code: 1' },
+      { fileName: '20260429T120000Z.log', status: 'cancelled', duration_seconds: 5, content: 'cancelled' },
+      { fileName: '20260429T130000Z.log', status: 'success', duration_seconds: 20, content: 'ok' },
+      { fileName: '20260429T110000Z.log', status: 'in-progress', duration_seconds: 15, content: 'running' },
+    ];
+
+    function timestampFromFileName(fileName: string) {
+      const [, year, month, day, hour, minute, second] = fileName.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/) ?? [];
+      return `${year}-${month}-${day}T${hour}:${minute}:${second}Z`;
+    }
+
+    function formatTimestamp(value: string) {
+      return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+    }
+
+    function renderedTimestamp(fileName: string) {
+      return formatTimestamp(timestampFromFileName(fileName));
+    }
+
+    function findHeaderButton(label: string) {
+      return Array.from(document.body.querySelectorAll<HTMLButtonElement>('thead th button'))
+        .find((button) => button.textContent?.includes(label));
+    }
+
+    function getAriaSort(label: string) {
+      const th = Array.from(document.body.querySelectorAll('thead th'))
+        .find((header) => header.textContent?.includes(label));
+      return th?.getAttribute('aria-sort');
+    }
+
+    function getRowTexts(cellIndex: number) {
+      return Array.from(document.body.querySelectorAll('tbody tr.cursor-pointer'))
+        .map((row) => row.querySelectorAll('td')[cellIndex]?.textContent?.trim() ?? '');
+    }
+
+    async function mountSortFixture() {
+      readResource.mockResolvedValue({
+        uri: 'schedule://logs/daily-summary',
+        text: JSON.stringify(SORT_FIXTURE),
+      });
+
+      const wrapper = mountDrawer();
+      await flushPromises();
+      return wrapper;
+    }
+
+    async function clickHeader(label: string) {
+      const button = findHeaderButton(label);
+      expect(button).toBeTruthy();
+      button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flushPromises();
+    }
+
+    it('clicking Timestamp header sorts rows ascending by timestamp', async () => {
+      const wrapper = await mountSortFixture();
+
+      await clickHeader('Timestamp');
+
+      expect(getRowTexts(0)).toEqual([
+        '20260429T100000Z.log',
+        '20260429T110000Z.log',
+        '20260429T120000Z.log',
+        '20260429T130000Z.log',
+        '20260429T140000Z.log',
+      ].map(renderedTimestamp));
+      wrapper.unmount();
+    });
+
+    it('clicking Timestamp header twice sorts descending', async () => {
+      const wrapper = await mountSortFixture();
+
+      await clickHeader('Timestamp');
+      await clickHeader('Timestamp');
+
+      expect(getRowTexts(0)).toEqual([
+        '20260429T140000Z.log',
+        '20260429T130000Z.log',
+        '20260429T120000Z.log',
+        '20260429T110000Z.log',
+        '20260429T100000Z.log',
+      ].map(renderedTimestamp));
+      wrapper.unmount();
+    });
+
+    it('clicking Timestamp header three times resets to original order', async () => {
+      const wrapper = await mountSortFixture();
+
+      await clickHeader('Timestamp');
+      await clickHeader('Timestamp');
+      await clickHeader('Timestamp');
+
+      expect(getRowTexts(0)).toEqual(SORT_FIXTURE.map((run) => renderedTimestamp(run.fileName)));
+      wrapper.unmount();
+    });
+
+    it('aria-sort attribute updates on click', async () => {
+      const wrapper = await mountSortFixture();
+
+      expect(getAriaSort('Timestamp')).toBe('none');
+      expect(getAriaSort('Outcome')).toBe('none');
+      expect(getAriaSort('Duration')).toBe('none');
+
+      await clickHeader('Timestamp');
+      expect(getAriaSort('Timestamp')).toBe('ascending');
+      expect(getAriaSort('Outcome')).toBe('none');
+      expect(getAriaSort('Duration')).toBe('none');
+
+      await clickHeader('Timestamp');
+      expect(getAriaSort('Timestamp')).toBe('descending');
+      expect(getAriaSort('Outcome')).toBe('none');
+      expect(getAriaSort('Duration')).toBe('none');
+
+      await clickHeader('Timestamp');
+      expect(getAriaSort('Timestamp')).toBe('none');
+      expect(getAriaSort('Outcome')).toBe('none');
+      expect(getAriaSort('Duration')).toBe('none');
+      wrapper.unmount();
+    });
+
+    it('clicking different column switches sort target', async () => {
+      const wrapper = await mountSortFixture();
+
+      await clickHeader('Timestamp');
+      await clickHeader('Outcome');
+
+      expect(getAriaSort('Timestamp')).toBe('none');
+      expect(getAriaSort('Outcome')).toBe('ascending');
+      expect(getAriaSort('Duration')).toBe('none');
+      wrapper.unmount();
+    });
+  });
 });

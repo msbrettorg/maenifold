@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, nextTick } from 'vue';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import ChatInputBar from '../ChatInputBar.vue';
@@ -9,15 +9,19 @@ vi.mock('vue-sonner', () => ({
 }));
 
 const commandPaletteHandleKeyDown = vi.fn();
+const mountedWrappers: VueWrapper[] = [];
 
 const stubs = {
   ChatAttachmentBar: { template: '<div data-stub="chat-attachment-bar" />' },
   VoiceInputButton: { template: '<div data-stub="voice-input-button" />' },
   CommandPalette: defineComponent({
     name: 'CommandPalette',
-    setup(_, { expose }) {
+    props: {
+      visible: { type: Boolean, required: true },
+    },
+    setup(props, { expose }) {
       expose({ handleKeyDown: commandPaletteHandleKeyDown });
-      return () => h('div', { 'data-stub': 'command-palette' });
+      return () => props.visible ? h('div', { 'data-stub': 'command-palette' }) : null;
     },
   }),
 };
@@ -27,7 +31,7 @@ function mountInput(
   options: { attachTo?: HTMLElement } = {},
 ): VueWrapper {
   commandPaletteHandleKeyDown.mockClear();
-  return mount(ChatInputBar, {
+  const wrapper = mount(ChatInputBar, {
     attachTo: options.attachTo,
     props: {
       modelValue: 'hello',
@@ -46,6 +50,8 @@ function mountInput(
     },
     global: { stubs },
   });
+  mountedWrappers.push(wrapper);
+  return wrapper;
 }
 
 function keyEvent(key: string, options: { isComposing?: boolean; keyCode?: number; shiftKey?: boolean; metaKey?: boolean } = {}) {
@@ -73,6 +79,12 @@ function keyEvent(key: string, options: { isComposing?: boolean; keyCode?: numbe
 function enterEvent(options: { isComposing?: boolean; keyCode?: number; shiftKey?: boolean; metaKey?: boolean } = {}) {
   return keyEvent('Enter', options);
 }
+
+afterEach(() => {
+  for (const wrapper of mountedWrappers.splice(0)) {
+    wrapper.unmount();
+  }
+});
 
 async function dispatchEnter(wrapper: VueWrapper, event: KeyboardEvent): Promise<void> {
   wrapper.find('textarea').element.dispatchEvent(event);
@@ -183,6 +195,37 @@ describe('ChatInputBar', () => {
     const wrapper = mountInput({ disabled: false });
 
     expect(wrapper.find('button[aria-label="Cancel turn (Esc)"]').exists()).toBe(false);
+  });
+
+  it('opens the command palette on window Meta+K when input is empty', async () => {
+    const wrapper = mountInput({ modelValue: '   ' });
+    const { event, preventDefault } = keyEvent('k', { metaKey: true });
+
+    window.dispatchEvent(event);
+    await nextTick();
+
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+    expect(wrapper.emitted('update:modelValue')).toEqual([['/']]);
+    await wrapper.setProps({ modelValue: '/' });
+    expect(wrapper.find('[data-stub="command-palette"]').exists()).toBe(true);
+    wrapper.unmount();
+  });
+
+  it('opens the command palette on window Meta+K without replacing non-empty input', async () => {
+    const draft = 'first paragraph\n\nsecond paragraph';
+    const wrapper = mountInput({ modelValue: draft });
+    const { event, preventDefault } = keyEvent('k', { metaKey: true });
+
+    expect(wrapper.find('[data-stub="command-palette"]').exists()).toBe(false);
+
+    window.dispatchEvent(event);
+    await nextTick();
+
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+    expect(wrapper.find('[data-stub="command-palette"]').exists()).toBe(true);
+    expect(wrapper.find('textarea').element.value).toBe(draft);
+    wrapper.unmount();
   });
 
   it('opens a clear conversation AlertDialog on Cmd+L', async () => {

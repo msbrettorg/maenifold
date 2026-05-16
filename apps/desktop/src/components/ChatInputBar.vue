@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import { Square } from 'lucide-vue-next';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -48,6 +48,7 @@ const emit = defineEmits<{
 
 const commandPaletteRef = ref<InstanceType<typeof CommandPalette> | null>(null);
 const clearDialogOpen = ref(false);
+const commandPaletteForcedOpen = ref(false);
 const text = computed({
   get: () => props.modelValue,
   set: (value: string) => emit('update:modelValue', value),
@@ -56,9 +57,11 @@ const effectiveCommands = computed<AvailableCommand[]>(() =>
   mergeWithBuiltInSlashCommands(props.availableCommands)
 );
 const showCommandPalette = computed(() => {
-  if (!effectiveCommands.value.length || !props.modelValue.startsWith('/')) {
+  if (!effectiveCommands.value.length) {
     return false;
   }
+  if (commandPaletteForcedOpen.value) return true;
+  if (!props.modelValue.startsWith('/')) return false;
   return props.modelValue.indexOf(' ') === -1;
 });
 const commandFilter = computed(() => props.modelValue.startsWith('/') ? props.modelValue.slice(1) : '');
@@ -74,13 +77,31 @@ const { handleShortcut } = useChatShortcuts({ submit, recallLast: () => emit('re
 
 function confirmClearChat(): void { clearDialogOpen.value = false; emit('clear-chat'); }
 
+function openCommandPalette(event: KeyboardEvent): void {
+  if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'k') return;
+  event.preventDefault();
+  if (!props.modelValue.trim()) {
+    commandPaletteForcedOpen.value = false;
+    emit('update:modelValue', '/');
+    return;
+  }
+  commandPaletteForcedOpen.value = true;
+}
+
+onMounted(() => window.addEventListener('keydown', openCommandPalette, true));
+onBeforeUnmount(() => window.removeEventListener('keydown', openCommandPalette, true));
+
 function handleKeyDown(event: KeyboardEvent): void {
   if (event.isComposing || event.keyCode === 229) return;
   if (handleShortcut(event)) return;
   if (showCommandPalette.value) {
     if (event.key === 'Escape') {
       event.preventDefault();
-      emit('update:modelValue', '');
+      if (commandPaletteForcedOpen.value) {
+        commandPaletteForcedOpen.value = false;
+      } else {
+        emit('update:modelValue', '');
+      }
       return;
     }
     if (commandPaletteRef.value && ['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(event.key)) {
@@ -96,6 +117,7 @@ function handleKeyDown(event: KeyboardEvent): void {
 }
 
 function handleCommandSelect(command: AvailableCommand): void {
+  commandPaletteForcedOpen.value = false;
   if (command.name.startsWith('mcp.')) {
     emit('select-mcp-prompt', command);
     return;
@@ -112,7 +134,7 @@ function handleEmbeddedContextClick(): void {
   emit('insert-embedded-context-hint');
 }
 
-function handleClose(): void {}
+function handleClose(): void { commandPaletteForcedOpen.value = false; }
 </script>
 
 <template>

@@ -1,6 +1,7 @@
 mod acp_exec;
 mod acp_exec_context;
 mod acp_exec_payload;
+mod acp_exec_resolve;
 mod catalog;
 mod cancel_sampling;
 mod context;

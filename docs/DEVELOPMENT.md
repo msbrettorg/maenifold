@@ -146,43 +146,106 @@ Request JSON output when needed:
 maenifold tool <name> '<json>' --json
 ```
 
-## Agent Configuration & Environment Variables
+## Environment variable sources
 
-ACP agents are configured in `~/maenifold/maenifold.json` under the `agents` block.
-Use these environment schemas when an agent needs runtime credentials:
+`maenifold.json` supports four ways to provide environment variables to spawned
+child processes. The same env-source shapes work for both ACP agent entries
+under `agents.*` and stdio MCP server entries under `mcpServers.*`.
 
-- `envFromFile`: read an env var from a local file, e.g. `"envFromFile": { "AZURE_OPENAI_API_KEY": "~/.secrets/azure_openai_api_key" }`.
-- `envFromCommand`: read an env var from command stdout, e.g. `"envFromCommand": { "TOKEN": "security find-generic-password -w -s token" }`.
-- `envPassthrough`: inherit existing daemon env vars, e.g. `"envPassthrough": ["AZURE_OPENAI_API_KEY"]`.
+Use the shape that matches where the value already lives:
 
-`envFromFile` supports two schema forms, including optional object-form entries.
-The string form is required by default:
-missing or unreadable files fail preflight. The object form accepts a `path` plus
-`optional: true`, which skips that variable when the file is absent instead of
-failing preflight. Default behavior is fail-closed unless `optional: true` is set.
+- `env` — inline literal key/value pairs. Values are visible in
+  `maenifold.json`, so use this for non-sensitive, static settings.
+- `envPassthrough` — allow-list of variable names to forward from the daemon's
+  own environment. Use this when the daemon already has the value, such as a
+  terminal-launched session inheriting `std::env`.
+- `envFromFile` — read a value from a file path. `~` is expanded to `$HOME` at
+  the start of the path only (`~/foo` → `$HOME/foo`). `~user/` expansion is not
+  supported. Paths not starting with `~/` are used as-is. Use this for secrets
+  stored on disk. Map each variable name to a file path.
+- `envFromCommand` — run a command and use trimmed stdout as the value. There is
+  no implicit shell wrapper: specify the executable and args explicitly. Use
+  this for keychain-backed or dynamically resolved secrets.
 
-Example with required and optional file-backed environment variables side-by-side:
+### Precedence
+
+When the same variable appears in more than one source, maenifold resolves it in
+this order:
+
+| Priority | Source | Notes |
+|---|---|---|
+| 1 (highest) | `env` literal map | string→string, untouched |
+| 2 | `envFromCommand` | spawn command, capture stdout, trim trailing whitespace |
+| 3 | `envFromFile` | read file at path (with `~` expansion), trim trailing whitespace |
+| 4 (lowest) | `envPassthrough` allow-list | pulls from `std::env::var()`, only sets VAR if not already set by 1-3 |
+
+Missing files or non-zero command exits are fail-soft: maenifold logs a warning
+without the secret value and skips that variable instead of injecting a partial
+or empty value.
+
+### Spawn-path applicability
+
+These env-source shapes apply to both supported child-process spawn paths:
+
+1. ACP agent entries under `agents.*` in `maenifold.json`
+2. `mcpServers` stdio entries in `maenifold.json`
+
+### Complete example
 
 ```json
-"Codex": {
-  "command": "/path/to/codex-acp",
-  "envFromFile": {
-    "AZURE_OPENAI_API_KEY": "~/.secrets/azure_openai_api_key",
-    "EXPERIMENTAL_TOKEN": {
-      "path": "~/.secrets/experimental_token",
-      "optional": true
+{
+  "agents": {
+    "Codex": {
+      "command": "/Users/alex/bin/codex-acp",
+      "args": ["serve"],
+      "env": {
+        "OPENAI_API_BASE": "https://my-resource.openai.azure.com",
+        "OPENAI_API_VERSION": "2024-10-21"
+      },
+      "envFromCommand": {
+        "ANTHROPIC_API_KEY": {
+          "command": "/usr/bin/security",
+          "args": ["find-generic-password", "-w", "-s", "anthropic-api-key"]
+        }
+      },
+      "envFromFile": {
+        "AZURE_OPENAI_API_KEY": "~/.secrets/azure_openai_api_key",
+        "EXPERIMENTAL_TOKEN": "~/.secrets/experimental_token"
+      },
+      "envPassthrough": ["HTTP_PROXY", "HTTPS_PROXY"]
+    }
+  },
+  "mcpServers": {
+    "github": {
+      "command": "/Users/alex/bin/github-mcp-server",
+      "args": ["stdio"],
+      "envFromCommand": {
+        "GITHUB_TOKEN": {
+          "command": "/usr/bin/security",
+          "args": ["find-generic-password", "-w", "-s", "github-token"]
+        }
+      },
+      "envPassthrough": ["NO_PROXY"]
     }
   }
 }
 ```
 
+For related secret-helper patterns, see OpenAI Codex `[auth] command/args`
+configuration and Claude Code `apiKeyHelper`:
+
+- <https://developers.openai.com/codex/config-reference>
+- <https://docs.claude.com/en/docs/claude-code/settings>
+
 Example Codex agent configuration:
 
 ```json
-"Codex": {
-  "command": "/path/to/codex-acp",
-  "envFromFile": {
-    "AZURE_OPENAI_API_KEY": "~/.secrets/azure_openai_api_key"
+{
+  "Codex": {
+    "command": "/path/to/codex-acp",
+    "envFromFile": {
+      "AZURE_OPENAI_API_KEY": "~/.secrets/azure_openai_api_key"
+    }
   }
 }
 ```

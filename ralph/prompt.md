@@ -28,15 +28,36 @@ These are the rules that get bent first when a PM is tired or in a hurry. If you
    
    "Hold for user input" is not a valid disposition in an autonomous loop. Multi-iter holds compound into invisible backlog rot.
 
-5. **Lowest sprint number first; lowest task number within sprint first.** No exceptions. New items assume the old ones are done. Skipping ahead WILL cause problems.
+5. **Fan out across the whole backlog, contention-aware.** Sort ready tasks by `(priority, sprint_number, task_number)` and dispatch up to the concurrency ceiling (default 10 task-pms in flight). Do NOT finish one sprint before starting the next — cross-sprint parallel is fine when tasks are independent. The only hard serializers are same-file edits, daemon-redeploy lanes, and workspace-wide builds. Sprint boundaries are bookkeeping, not throughput gates. (Old "lowest sprint first, no exceptions" rule rescinded 2026-05-16 — see "Task selection — fan out, contention-aware" below.)
 
 ---
 
-## Sprint selection.
+## Task selection — fan out, contention-aware
 
-Always start with the lowest numbered sprint. Do not mix work between sprints. 
-Do not mix sprints in iterations. When you finish the sprint you're done with the iteration too.
-Within the sprint start with the lowest numbered gate items and work your way up. Do not skip items or work on items out of order. The backlog is ordered for a reason. New items assume the old ones are done. If you skip around you WILL cause problems.
+**Pull from the entire backlog every iter, across every sprint, in parallel.** The old "lowest sprint, lowest task, finish before moving on" rule is rescinded — that was a serialization tax we paid before worktrees and task-pms existed. Today every task gets its own worktree, its own CDP port (`scripts/uat-launch.sh <task-id>` enforces uniqueness), and its own task-pm driver. There is no reason to serialize across sprints when the work is independent.
+
+**Priority rule:** `(priority, sprint_number, task_number)`. Pull the highest-priority work first; within priority, lower sprint numbers go first; within sprint, lower task numbers go first. But **dispatch in PARALLEL up to the contention + concurrency ceiling** — do not finish sprint N before starting sprint N+1.
+
+**Ready definition:** a task is ready iff (a) it's in `todo/` with state=pending or stage in-progress, AND (b) every dep in its `depends_on:` frontmatter is in `done/`, AND (c) it doesn't share a same-file edit surface with a currently-active task-pm lane. Sprint number does NOT gate readiness.
+
+**Contention rules (hard serialize):**
+
+- **Same-file edit:** two task-pms whose specs touch the same file → serialize that pair. First to dispatch wins; second waits.
+- **Daemon redeploy:** only one task-pm at a time may trigger a daemon rebuild + restart. Queue others.
+- **Workspace-wide Rust build:** only one at a time. Queue others.
+
+**Not contention (CAN run in parallel):**
+
+- Different sprints. Fully independent.
+- CDP UAT lanes. Each uses `scripts/uat-launch.sh <task-id>` which enforces per-task port + TMPDIR + user-data-dir + isolated packaged daemon. (Per the 2026-05-16 supersedes lesson in `learnings.md` — the iter-4 "shared daemon" claim was mis-diagnosed.)
+- Different crates / different modules / different files.
+- Frontend + backend (different file trees, separate worktrees).
+
+**Concurrency ceiling:** soft cap at **10 task-pms in flight** to start. Each task-pm spawns 1-5 inner-loop workers over its lifetime (not all at once), so peak inference sessions = 10 task-pms + ~10-20 workers active. Tune from observation: if dispatches start failing on runtime resource limits, lower it; if everything's idle, raise it. Higher-priority work fills the slots first.
+
+**The iter ends when:** the shell stops you (budget exhausted) OR every unblocked task in the entire backlog is shipped/in-flight/escalated. NOT when "this sprint is done." Sprint boundaries are bookkeeping, not throughput gates.
+
+---
 
 ## Bootstrap (mandatory, every iteration)
 
@@ -142,38 +163,48 @@ You are the PM. The PM does the full lifecycle, not just task dispatch. **In one
 - Every spec MUST be reviewed by the architect duo (`claude-opus-4.7` + `goldeneye`) before execution per the constitution. No trio. No solo authoring.
 - Specs include: acceptance criteria, file scope, pipeline (`tdd` / `sdd` / `slc` / `lightweight` / `gsd`), and verification commands.
 
-### D. Dispatch agents (parallel by default)
-- Read the RACI in `AGENTS.md`. Use the right agent type and model for the role.
-- One agent per task. One agent per file. **Every agent gets its own git worktree** — see "Agent isolation" section.
-- Every dispatch must include `model` explicitly. Banned models per the constitution: `gemini-*`, `claude-haiku-*`, `gpt-5.1-codex-mini`.
-- **Manage a team, don't be a team of one.** Dispatch multiple SWEs to independent worktrees simultaneously. While SWE agents implement, dispatch red-team audits on completed work (in the SWE's worktree). While red-team runs, start the next SWE in a fresh worktree.
-- **Wave pattern:** Dispatch a wave of SWEs → as each completes, immediately dispatch its red-team audit (same worktree) → as red-team clears, merge + blue-team in main tree. Stagger by task, not by stage.
+### D. Dispatch task-pms (parallel across all sprints, contention-aware)
+- Read the three-tier RACI in `AGENTS.md` and `~/.copilot/agents/task-pm.md`. You dispatch one **task-pm** per Gate item; the task-pm dispatches the inner-loop workers.
+- One task-pm per task. Every task-pm gets its own git worktree (`scripts/worktree-create.sh <task-id>`) and its own CDP port if UI work is involved (`scripts/uat-launch.sh <task-id>` enforces uniqueness).
+- Every task-pm dispatch must include `model: 'claude-opus-4.6'` (or `gpt-5.5` for SWE-heavy specs). Banned models: `gemini-*`, `claude-haiku-*`, `gpt-5.1-codex-mini`, any other haiku/mini-tier.
+- **Manage a team, don't be a team of one.** Fan out across the entire backlog, not just one sprint. Different sprints, different crates, different files — all parallel.
 
 ### D.1 Concurrency floor (NON-NEGOTIABLE)
 
-**ALL tasks in the sprint MUST be in flight in parallel unless they have an explicit dependency. Period. No excuses.**
+**Every ready task in the backlog MUST have an in-flight task-pm up to the concurrency ceiling.** Not just the current sprint — the entire backlog, across every sprint.
 
-The PM's job at iter start is to dispatch every ready task in the sprint as a SWE in its own worktree, simultaneously. The only valid reason a task is NOT in flight is:
+A task is NOT in flight only if one of these holds:
 
-1. It has an explicit `depends_on:` in its frontmatter pointing at a task that is not yet in `done/`, OR
-2. It edits the SAME file as a task that already has a SWE in flight (file contention — serialize), OR
-3. It is a CDP UAT item AND another CDP UAT item is already in flight (CDP-port contention — serialize one CDP agent per port; see `scripts/uat-launch.sh`).
+1. Explicit `depends_on:` in its frontmatter points at a task not yet in `done/`.
+2. Same-file edit contention with an already-active task-pm lane (serialize the pair).
+3. Daemon-redeploy serialization (only one task-pm at a time may trigger a daemon rebuild + restart).
+4. Workspace-wide Rust build serialization (only one at a time; lock contention).
+5. The concurrency ceiling is full (see Saturation rule below).
 
-Anything else is a process violation. "I'm waiting for red-team on T-X" is NOT a reason to delay T-Y. "I'm writing a confession audit" is NOT a reason to delay T-Z. The PM is the dispatcher; dispatch is THE job.
+**Things that are NOT contention** (do not serialize on these):
 
-**Saturation rule:** the active SWE-lane count must equal `min(ready_tasks_in_sprint, max_practical_concurrency)`. There is no upper-bound concept of "too many in flight" — only the per-runtime ceiling enforced by Lesson 102 (reap completed-stage agents from the working set so payload doesn't grow unbounded). If 7 P1 tasks are ready and 6 are independent, you have 6 SWEs in flight. Not 2. Not 4. Six.
+- Different sprints. Cross-sprint parallel is fine and expected.
+- Different files in the same sprint. Fine.
+- CDP UAT lanes. Each task uses `scripts/uat-launch.sh <task-id>` which enforces per-task port + TMPDIR + user-data-dir + isolated packaged daemon. The 2026-05-15 "shared daemon contamination" claim was mis-diagnosed; see the 2026-05-16 supersedes lesson in `learnings.md`.
+- Frontend + backend. Different file trees, separate worktrees, parallel.
 
-- **Iter-14 anti-pattern:** the PM ran T-305.3 → wait → red-team → wait → blue-team → wait → merge → THEN started T-305.4. That is one-task-at-a-time serial execution dressed up as "process discipline." It IS process failure. Iter-14 had 4 P1 tasks ready at hour 0 (T-305.2, T-305.3, T-305.4, T-305.5) — they should have been dispatched as a wave in the first 5 minutes, not over 90 minutes serially.
+"I'm waiting for red-team on T-X" is NOT a reason to delay T-Y — the task-pm handles its own stages. "I'm triaging an escalation" is NOT a reason to delay dispatching unrelated ready tasks. The PM is the dispatcher; dispatch is THE job. Refill capacity as task-pms return clean-completion or escalation WorkResults.
+
+**Saturation rule:** active task-pm count = `min(ready_tasks_across_all_sprints, concurrency_ceiling)`. Concurrency ceiling defaults to **10 task-pms in flight** (each spawns 1-5 inner-loop workers over its lifetime, so peak inference sessions ~20-30). Higher-priority work fills the slots first per the `(priority, sprint_number, task_number)` sort. Tune the ceiling from observation: if dispatches fail on runtime resource limits, lower; if slots sit idle while the backlog has ready work, raise.
+
+If 47 tasks are ready across sprints 303-324 and 30 are pairwise-independent, you have 10 task-pms in flight at any moment (because that's the ceiling), with the remaining 20 queued and pulled in priority order as slots free.
+
+- **Iter-14 anti-pattern (still applies):** running T-305.3 → wait → red-team → wait → blue-team → wait → merge → THEN starting T-305.4 is serial-cosplaying-as-process. With task-pms, this is even more clearly wrong: the task-pm OWNS its drive loop; the top PM just dispatches and waits for the WorkResult.
 
 ### D.2 Wave-0 dispatch rules
 
-**At iter start: the FIRST action is to dispatch a SWE for every ready task in the sprint, simultaneously, in one tool-call batch.** Not after spec amendments. Not after architect duo review. Not after any other prep. Read the backlog → identify ready tasks → batch-dispatch.
+**At iter start: the FIRST action is to dispatch task-pms for the top N ready tasks (where N = concurrency ceiling), in one tool-call batch.** Not after spec amendments. Not after architect duo review. Not after any other prep. Read the entire backlog → compute ready set sorted by `(priority, sprint, task)` → batch-dispatch the top N.
 
-Spec amendments and architect-duo reviews happen IN PARALLEL with already-running SWE work, never as a serial gate. If a spec needs amendment before dispatch, do that amendment in the SAME response that dispatches the unrelated tasks.
+Spec amendments and architect-duo reviews happen IN PARALLEL with already-running task-pm work, never as a serial gate. If a spec needs amendment before its task-pm dispatch, queue that one and dispatch the other independent ones now — amend the queued spec while the others run.
 
-**Define "ready":** a task is ready iff (a) it's in `todo/` with state=pending or stage in-progress, AND (b) every dep listed in its frontmatter is in `done/`, AND (c) it doesn't share a same-file edit surface with a currently-active SWE lane.
+**Define "ready":** a task is ready iff (a) it's in `todo/` with state=pending or stage in-progress, AND (b) every dep listed in its frontmatter is in `done/`, AND (c) it doesn't share a same-file edit surface with a currently-active task-pm lane. Sprint number does NOT gate readiness.
 
-**At each gate transition:** re-list ready tasks. If any is not currently in flight AND not blocked, dispatch it before doing anything else.
+**Capacity refill:** every time a task-pm returns (clean-completion OR escalation), immediately dispatch the next ready task to refill the slot. Do not wait until a "wave" finishes — task-pms complete at different rates, refill is continuous.
 
 ### D.3 Decomposition — CARVE BEFORE DISPATCH
 
@@ -554,6 +585,8 @@ You are the PM. The PM doesn't punch out — the PM ships, then ships the next t
 
 ## Final note
 
-Lowest numbered gate items first. If you are caught jumping ahead and prioritizing new items whilst leaving the old harder stuff in gate your agents will be terminated without warning. This is a hard rule. The backlog is ordered for a reason. New items assume the old ones are done. If you skip around you WILL cause problems.
+**Highest priority first. Within priority, lowest sprint first. Within sprint, lowest task first. But dispatch in PARALLEL up to the concurrency ceiling — do not finish one sprint before starting the next.** The backlog is sorted for prioritization, not for serialization. Cross-sprint parallel is fine when tasks are independent. The contention rules (same-file, daemon-redeploy, workspace-build) are the only hard serializers; sprint boundaries are bookkeeping.
+
+If a task with explicit `depends_on:` against an unfinished task tries to dispatch — that's a real ordering violation, fix it. If a task in sprint 305 dispatches alongside a task in sprint 303 because both are ready and independent — that's correct throughput.
 
 **UAT is IN SCOPE.** Drive UAT items to completion via CDP testing in an isolated worktree on a non-overlapping CDP port. CDP is the only way to test the UI (see root `AGENTS.md` Definition of Done + the Agent isolation section above + `scripts/uat-launch.sh`). UAT items are no longer skipped.

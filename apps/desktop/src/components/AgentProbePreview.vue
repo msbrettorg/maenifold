@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { AgentProbeConfigOption, AgentProbeResult } from '../lib/agent-probe-types';
+import type { AgentProbeConfigOption, AgentProbeResult } from '../lib/agent-probe-types-defs';
 import type { ModelInfo, SessionConfigSelectOptions, SessionMode } from '../lib/types';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 import { useAgentSessionOverridesStore } from '../stores/agent-session-overrides';

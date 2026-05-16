@@ -1,5 +1,5 @@
 import { computed, watch, type ComputedRef } from 'vue';
-import type { AgentProbeResult } from '../lib/agent-probe-types';
+import type { AgentProbeResult } from '../lib/agent-probe-types-defs';
 import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
 import { buildAgentConfigDefaults } from './pipeline-node-form-helpers';
 

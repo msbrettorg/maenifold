@@ -1,5 +1,5 @@
 import { computed } from 'vue';
-import type { AgentProbeConfigOption, AgentProbeResult } from '../lib/agent-probe-types';
+import type { AgentProbeConfigOption, AgentProbeResult } from '../lib/agent-probe-types-defs';
 import {
   formatPipelineAgentOptionLabel,
   getAgentConfigOptionValue,

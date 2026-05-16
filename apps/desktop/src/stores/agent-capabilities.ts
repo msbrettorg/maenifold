@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import { usePipelineMcp } from '../composables/usePipelineMcp';
-import { type AgentProbeResult } from '../lib/agent-probe-types';
+import { type AgentProbeResult } from '../lib/agent-probe-types-defs';
 import {
   loadAgentProbeCache,
   persistAgentProbeCache,

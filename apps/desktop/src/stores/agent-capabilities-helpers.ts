@@ -4,8 +4,8 @@ import { unwrapToolData } from '../composables/pipeline-mcp-transport';
 import {
   isOfflineProbeError,
   normalizeAgentProbeResult,
-  type AgentProbeResult,
-} from '../lib/agent-probe-types';
+} from '../lib/agent-probe-normalizers';
+import type { AgentProbeResult } from '../lib/agent-probe-types-defs';
 import type { McpAppUiMetadata } from '../lib/types';
 import type { usePipelineMcp } from '../composables/usePipelineMcp';
 

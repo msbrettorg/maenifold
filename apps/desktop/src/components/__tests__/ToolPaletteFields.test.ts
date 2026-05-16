@@ -5,7 +5,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { ref } from 'vue';
 
 import ToolPaletteFields from '../ToolPaletteFields.vue';
-import { normalizeAgentProbeResult } from '../../lib/agent-probe-types';
+import { normalizeAgentProbeResult } from '../../lib/agent-probe-normalizers';
 import { useAgentCapabilitiesStore } from '../../stores/agent-capabilities';
 import { useConfigStore } from '../../stores/config';
 import { useMcpToolDiscoveryStore } from '../../stores/mcp-tool-discovery';

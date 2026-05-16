@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SessionConfigPanel from '../SessionConfigPanel.vue';
-import { normalizeAgentProbeResult } from '../../lib/agent-probe-types';
+import { normalizeAgentProbeResult } from '../../lib/agent-probe-normalizers';
 import { useAgentCapabilitiesStore } from '../../stores/agent-capabilities';
 import { useAgentSessionOverridesStore } from '../../stores/agent-session-overrides';
 

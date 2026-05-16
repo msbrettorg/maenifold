@@ -4,7 +4,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import { flushPromises, mount } from '@vue/test-utils';
 
 import ToolNodeFields from '../ToolNodeFields.vue';
-import { normalizeAgentProbeResult } from '../../lib/agent-probe-types';
+import { normalizeAgentProbeResult } from '../../lib/agent-probe-normalizers';
 import { useAgentCapabilitiesStore } from '../../stores/agent-capabilities';
 import { useConfigStore } from '../../stores/config';
 import { useMcpToolDiscoveryStore } from '../../stores/mcp-tool-discovery';

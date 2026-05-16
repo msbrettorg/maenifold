@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { useMcpClient } from '../composables/useMcpClient';
 import { deriveServerHealth } from '../lib/palette-health';
+import { sanitizeResourceErrorMessage, warnRawResourceErrorInDev } from '../lib/error-sanitizer';
 import type {
   McpDiscoveredTool,
   McpServerDiscoveryResult,
@@ -11,7 +12,9 @@ import type {
 import { extractAppUiMetadata, isRecord } from './agent-capabilities-helpers';
 
 function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  const rawError = error instanceof Error ? error.message : String(error);
+  warnRawResourceErrorInDev(rawError);
+  return sanitizeResourceErrorMessage(rawError);
 }
 
 export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => {

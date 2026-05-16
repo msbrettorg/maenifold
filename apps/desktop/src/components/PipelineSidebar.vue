@@ -8,6 +8,7 @@ import PipelineSidebarItem from './PipelineSidebarItem.vue';
 import { usePipelineStore } from '../stores/pipeline';
 import { McpCapabilityUnsupportedError, useMcpResources } from '../composables/useMcpResources';
 import { useConfirmDialogStore } from '../stores/confirm-dialog';
+import { sanitizeResourceErrorMessage, warnRawResourceErrorInDev } from '../lib/error-sanitizer';
 import type { PipelineListItem } from '../lib/pipeline-types';
 
 const props = withDefaults(defineProps<{
@@ -67,7 +68,9 @@ function isCapabilityUnsupported(error: unknown): boolean {
 }
 
 function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  const rawError = error instanceof Error ? error.message : String(error);
+  warnRawResourceErrorInDev(rawError);
+  return sanitizeResourceErrorMessage(rawError);
 }
 
 function wait(ms: number): Promise<void> {

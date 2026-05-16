@@ -2,6 +2,7 @@
 
 import type { Ref } from 'vue';
 import { writeLastUsedAgent } from '../lib/preferred-agent';
+import { sanitizeResourceErrorMessage, warnRawResourceErrorInDev } from '../lib/error-sanitizer';
 import {
   setAgentConfigOptionValue,
   setAgentModelValue,
@@ -37,7 +38,9 @@ export type LiveToolEntry = ToolPaletteEntry & {
 };
 
 export function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  const rawError = error instanceof Error ? error.message : String(error);
+  warnRawResourceErrorInDev(rawError);
+  return sanitizeResourceErrorMessage(rawError);
 }
 
 export function isToolEntry(entry: ToolPaletteEntry): entry is LiveToolEntry {

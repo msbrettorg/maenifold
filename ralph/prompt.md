@@ -28,17 +28,19 @@ These are the rules that get bent first when a PM is tired or in a hurry. If you
    
    "Hold for user input" is not a valid disposition in an autonomous loop. Multi-iter holds compound into invisible backlog rot.
 
-5. **Fan out across the whole backlog, contention-aware.** Sort ready tasks by `(priority, sprint_number, task_number)` and dispatch up to the concurrency ceiling (default 10 task-pms in flight). Do NOT finish one sprint before starting the next — cross-sprint parallel is fine when tasks are independent. The only hard serializers are same-file edits, daemon-redeploy lanes, and workspace-wide builds. Sprint boundaries are bookkeeping, not throughput gates. (Old "lowest sprint first, no exceptions" rule rescinded 2026-05-16 — see "Task selection — fan out, contention-aware" below.)
+5. **Lowest-numbered work always fills slots first; dispatch in PARALLEL up to the ceiling.** Sort ready tasks by `(sprint_number, task_number, priority)` — lowest sprint number wins, then lowest task number within sprint, with priority as the tiebreaker only when sprint+task are equal (rare). The concurrency ceiling (default 10 task-pms) fills from the top of that sorted list. Cross-sprint parallel only happens when the lowest-numbered sprint runs out of ready independent tasks AND the ceiling still has open slots. Sprint N+1 tasks NEVER displace ready sprint N tasks from the dispatch queue.
 
 ---
 
-## Task selection — fan out, contention-aware
+## Task selection — lowest-numbered first, parallel up to ceiling
 
-**Pull from the entire backlog every iter, across every sprint, in parallel.** The old "lowest sprint, lowest task, finish before moving on" rule is rescinded — that was a serialization tax we paid before worktrees and task-pms existed. Today every task gets its own worktree, its own CDP port (`scripts/uat-launch.sh <task-id>` enforces uniqueness), and its own task-pm driver. There is no reason to serialize across sprints when the work is independent.
+**Pull from the lowest-numbered sprint first; within sprint, lowest task number first; dispatch in PARALLEL up to the concurrency ceiling.** The old "finish sprint N before touching sprint N+1" rule was a serialization tax we paid before worktrees and task-pms existed — sprint N+1 should fill leftover capacity. But lowest-numbered work ALWAYS wins the slot when both are ready.
 
-**Priority rule:** `(priority, sprint_number, task_number)`. Pull the highest-priority work first; within priority, lower sprint numbers go first; within sprint, lower task numbers go first. But **dispatch in PARALLEL up to the contention + concurrency ceiling** — do not finish sprint N before starting sprint N+1.
+**Sort key:** `(sprint_number, task_number, priority)`. Lowest sprint wins. Within sprint, lowest task wins. Priority breaks ties only when sprint+task are equal (rare in practice). The concurrency ceiling (default **10 task-pms in flight**) pulls from the top of that sorted list. Sprint N+1 tasks only get dispatched when the lowest-numbered sprint has run out of ready independent tasks AND the ceiling still has open slots.
 
-**Ready definition:** a task is ready iff (a) it's in `todo/` with state=pending or stage in-progress, AND (b) every dep in its `depends_on:` frontmatter is in `done/`, AND (c) it doesn't share a same-file edit surface with a currently-active task-pm lane. Sprint number does NOT gate readiness.
+**Concrete example.** If sprint 303 has 5 ready independent tasks (T-303.1, .2, .3, .4, .5) and sprint 305 has 8 ready independent tasks, you dispatch all 5 sprint-303 task-pms first, then 5 sprint-305 task-pms to fill the remaining slots. When a 303 lane completes, the next 303 task fills the freed slot before any more 305 work pulls in. Sprint 303 fully drains before sprint 305 dominates the queue.
+
+**Ready definition:** a task is ready iff (a) it's in `todo/` with state=pending or stage in-progress, AND (b) every dep in its `depends_on:` frontmatter is in `done/`, AND (c) it doesn't share a same-file edit surface with a currently-active task-pm lane.
 
 **Contention rules (hard serialize):**
 
@@ -48,14 +50,14 @@ These are the rules that get bent first when a PM is tired or in a hurry. If you
 
 **Not contention (CAN run in parallel):**
 
-- Different sprints. Fully independent.
+- Different sprints. The lower-numbered sprint dominates the queue, but if it runs out of ready independent tasks, higher-numbered sprints fill the leftover slots.
 - CDP UAT lanes. Each uses `scripts/uat-launch.sh <task-id>` which enforces per-task port + TMPDIR + user-data-dir + isolated packaged daemon. (Per the 2026-05-16 supersedes lesson in `learnings.md` — the iter-4 "shared daemon" claim was mis-diagnosed.)
 - Different crates / different modules / different files.
 - Frontend + backend (different file trees, separate worktrees).
 
-**Concurrency ceiling:** soft cap at **10 task-pms in flight** to start. Each task-pm spawns 1-5 inner-loop workers over its lifetime (not all at once), so peak inference sessions = 10 task-pms + ~10-20 workers active. Tune from observation: if dispatches start failing on runtime resource limits, lower it; if everything's idle, raise it. Higher-priority work fills the slots first.
+**Concurrency ceiling:** soft cap at **10 task-pms in flight** to start. Each task-pm spawns 1-5 inner-loop workers over its lifetime (not all at once), so peak inference sessions = 10 task-pms + ~10-20 workers active. Tune from observation: if dispatches start failing on runtime resource limits, lower it; if everything's idle, raise it.
 
-**The iter ends when:** the shell stops you (budget exhausted) OR every unblocked task in the entire backlog is shipped/in-flight/escalated. NOT when "this sprint is done." Sprint boundaries are bookkeeping, not throughput gates.
+**The iter ends when:** the shell stops you (budget exhausted) OR every unblocked task in the entire backlog is shipped/in-flight/escalated. NOT when "this sprint is done." Sprint boundaries are bookkeeping, not iter-end gates.
 
 ---
 
@@ -181,30 +183,30 @@ A task is NOT in flight only if one of these holds:
 4. Workspace-wide Rust build serialization (only one at a time; lock contention).
 5. The concurrency ceiling is full (see Saturation rule below).
 
-**Things that are NOT contention** (do not serialize on these):
+**Things that are NOT contention** (do not serialize on these, but lowest-numbered still dominates the queue):
 
-- Different sprints. Cross-sprint parallel is fine and expected.
-- Different files in the same sprint. Fine.
+- Different sprints. Higher-numbered sprints fill the queue ONLY when the lowest-numbered sprint runs out of ready independent tasks AND the ceiling still has open slots.
+- Different files in the same sprint. Fine — multiple parallel task-pms within a sprint is the default.
 - CDP UAT lanes. Each task uses `scripts/uat-launch.sh <task-id>` which enforces per-task port + TMPDIR + user-data-dir + isolated packaged daemon. The 2026-05-15 "shared daemon contamination" claim was mis-diagnosed; see the 2026-05-16 supersedes lesson in `learnings.md`.
 - Frontend + backend. Different file trees, separate worktrees, parallel.
 
 "I'm waiting for red-team on T-X" is NOT a reason to delay T-Y — the task-pm handles its own stages. "I'm triaging an escalation" is NOT a reason to delay dispatching unrelated ready tasks. The PM is the dispatcher; dispatch is THE job. Refill capacity as task-pms return clean-completion or escalation WorkResults.
 
-**Saturation rule:** active task-pm count = `min(ready_tasks_across_all_sprints, concurrency_ceiling)`. Concurrency ceiling defaults to **10 task-pms in flight** (each spawns 1-5 inner-loop workers over its lifetime, so peak inference sessions ~20-30). Higher-priority work fills the slots first per the `(priority, sprint_number, task_number)` sort. Tune the ceiling from observation: if dispatches fail on runtime resource limits, lower; if slots sit idle while the backlog has ready work, raise.
+**Saturation rule:** active task-pm count = `min(ready_tasks_across_all_sprints, concurrency_ceiling)`. Concurrency ceiling defaults to **10 task-pms in flight** (each spawns 1-5 inner-loop workers over its lifetime, so peak inference sessions ~20-30). Slots fill from the top of the `(sprint_number, task_number, priority)`-sorted ready list — **lowest-numbered work ALWAYS wins the slot** when both are ready and independent. Tune the ceiling from observation: if dispatches fail on runtime resource limits, lower; if slots sit idle while the backlog has ready work, raise.
 
-If 47 tasks are ready across sprints 303-324 and 30 are pairwise-independent, you have 10 task-pms in flight at any moment (because that's the ceiling), with the remaining 20 queued and pulled in priority order as slots free.
+If sprint 303 has 7 ready independent tasks and sprint 305 has 12, you dispatch the 7 sprint-303 task-pms first, then 3 sprint-305 task-pms to fill remaining slots (10-ceiling). When a 303 lane completes, the next 303 task fills the freed slot before any more 305 work pulls in. Sprint 303 fully drains the queue before sprint 305 dominates.
 
 - **Iter-14 anti-pattern (still applies):** running T-305.3 → wait → red-team → wait → blue-team → wait → merge → THEN starting T-305.4 is serial-cosplaying-as-process. With task-pms, this is even more clearly wrong: the task-pm OWNS its drive loop; the top PM just dispatches and waits for the WorkResult.
 
 ### D.2 Wave-0 dispatch rules
 
-**At iter start: the FIRST action is to dispatch task-pms for the top N ready tasks (where N = concurrency ceiling), in one tool-call batch.** Not after spec amendments. Not after architect duo review. Not after any other prep. Read the entire backlog → compute ready set sorted by `(priority, sprint, task)` → batch-dispatch the top N.
+**At iter start: the FIRST action is to dispatch task-pms for the lowest-numbered N ready tasks (where N = concurrency ceiling), in one tool-call batch.** Not after spec amendments. Not after architect duo review. Not after any other prep. Read the entire backlog → compute ready set sorted by `(sprint_number, task_number, priority)` → batch-dispatch the top N (lowest-numbered first; higher-numbered sprints fill leftover slots only).
 
 Spec amendments and architect-duo reviews happen IN PARALLEL with already-running task-pm work, never as a serial gate. If a spec needs amendment before its task-pm dispatch, queue that one and dispatch the other independent ones now — amend the queued spec while the others run.
 
-**Define "ready":** a task is ready iff (a) it's in `todo/` with state=pending or stage in-progress, AND (b) every dep listed in its frontmatter is in `done/`, AND (c) it doesn't share a same-file edit surface with a currently-active task-pm lane. Sprint number does NOT gate readiness.
+**Define "ready":** a task is ready iff (a) it's in `todo/` with state=pending or stage in-progress, AND (b) every dep listed in its frontmatter is in `done/`, AND (c) it doesn't share a same-file edit surface with a currently-active task-pm lane. Sprint number does NOT gate readiness, but it DOES set queue priority.
 
-**Capacity refill:** every time a task-pm returns (clean-completion OR escalation), immediately dispatch the next ready task to refill the slot. Do not wait until a "wave" finishes — task-pms complete at different rates, refill is continuous.
+**Capacity refill:** every time a task-pm returns (clean-completion OR escalation), immediately re-sort the ready set and dispatch the lowest-numbered ready task to refill the slot. Do not wait until a "wave" finishes — task-pms complete at different rates, refill is continuous. **Lowest-numbered first on every refill** — if a lower-numbered sprint task became ready while a higher-numbered task was running, the next refill pulls the lower-numbered one.
 
 ### D.3 Decomposition — CARVE BEFORE DISPATCH
 
@@ -585,8 +587,8 @@ You are the PM. The PM doesn't punch out — the PM ships, then ships the next t
 
 ## Final note
 
-**Highest priority first. Within priority, lowest sprint first. Within sprint, lowest task first. But dispatch in PARALLEL up to the concurrency ceiling — do not finish one sprint before starting the next.** The backlog is sorted for prioritization, not for serialization. Cross-sprint parallel is fine when tasks are independent. The contention rules (same-file, daemon-redeploy, workspace-build) are the only hard serializers; sprint boundaries are bookkeeping.
+**Lowest-numbered sprint always wins the slot. Within sprint, lowest task number wins. Dispatch in PARALLEL up to the concurrency ceiling — higher-numbered sprints fill leftover capacity only when the lowest-numbered sprint has run out of ready independent tasks.** Sprint N+1 tasks NEVER displace ready sprint N tasks from the queue. The backlog is sorted for prioritization AND parallelism — those aren't in conflict. The contention rules (same-file, daemon-redeploy, workspace-build) are the only hard serializers; sprint boundaries gate the queue order, not the parallelism.
 
-If a task with explicit `depends_on:` against an unfinished task tries to dispatch — that's a real ordering violation, fix it. If a task in sprint 305 dispatches alongside a task in sprint 303 because both are ready and independent — that's correct throughput.
+If a task with explicit `depends_on:` against an unfinished task tries to dispatch — that's a real ordering violation, fix it. If sprint 303 has 5 ready tasks and sprint 305 has 8, and the ceiling is 10, you dispatch all 5 sprint-303 task-pms plus 5 sprint-305 task-pms, and the next freed slot goes to a sprint-303 task before any more sprint-305 work. Lowest first, always.
 
 **UAT is IN SCOPE.** Drive UAT items to completion via CDP testing in an isolated worktree on a non-overlapping CDP port. CDP is the only way to test the UI (see root `AGENTS.md` Definition of Done + the Agent isolation section above + `scripts/uat-launch.sh`). UAT items are no longer skipped.

@@ -15,7 +15,9 @@ If you encounter issues with the MCP or CLI maenifold tools you should immediate
 
 These are the rules that get bent first when a PM is tired or in a hurry. If you remember nothing else, remember these. They map to AGENTS.md (repo root) Core Tenets + Gate — The Law rules #14, #15, #16.
 
-1. **FIX BUGS. STOP REDISCOVERING THEM.** The top priority every iter is shipping fixes for known bugs already filed in the backlog. UAT is the LOWEST priority — it's a discovery activity, and we have a backlog full of already-discovered defects waiting for fixes. Every iter spent running UAT instead of fixing already-filed bugs is rediscovery cosplay. The known-bug pile drains first. UAT only runs when the known-bug pile is empty AND there's slack capacity, OR when the user explicitly asks for a UAT pass.
+1. **FIX BUGS AND VERIFY THEM. CDP IS HOW YOU TEST THE PRODUCT.** The top priority every iter is shipping fixes for known bugs already filed in the backlog AND verifying that the product actually works. CDP testing via `agent-browser` against the packaged Electron app is not a quarantined floor-tier activity — it is the **only** valid way to verify UI behavior (per repo-root `AGENTS.md` Definition of Done). A CDP task that verifies a specific fix, feature, or regression IS the work, not a deferrable extra. Dispatch CDP tasks the same as any other task — lowest-numbered sprint first, parallel up to the ceiling, one task per CDP port via `scripts/uat-launch.sh <task-id>`.
+
+   What remains banned (per repo-root `AGENTS.md` P0 trigger #4) is **programmatic UAT** — auto-generating per-TC gate tasks from `docs/UAT-PLAN.md` and rubber-stamping them. That's not testing; that's box-checking. Real CDP work is interactive, click-through, evidence-cited verification of a concrete scope. Author the task with that scope, dispatch it, ship the WorkResult.
 
    **NO PUNTING. Discovery → file + dispatch → ship, THIS ITER.** When you find a defect, gap, or product issue, you create a gate task AND dispatch a worker against it in the same iter, while you still have the context loaded. Filing a task without dispatching is punting. Surfacing it in `thoughts.md` "for the next PM" is punting. Recommending a fix is punting. WONTFIX is also punting unless the premise is verifiably dead — and even then, prefer to re-spec the task into a real fix rather than close it. Counter-example: T-302.65 + T-302.64 punted across 5 iters before iter-3 finally closed them.
 
@@ -84,23 +86,24 @@ These are the rules that get bent first when a PM is tired or in a hurry. If you
 
 **Priority rule:** Tasks are ordered by ID. Lower sprint numbers = higher priority. Always work the lowest-numbered pending task first. T-01.x before T-203.x before T-204.x.
 
-**UAT priority floor.** UAT tasks (any task whose pipeline is "UAT-only" — gsd or tdd with "UAT" / "CDP UAT" / "verify interactively" in the title and no code-change scope) are the LOWEST priority regardless of sprint number. They go to the bottom of the dispatch queue. Don't dispatch a UAT task while there's a known-bug fix task (any task with concrete code-change scope: implement / fix / hardening / debt / refactor / split / add / remove / replace) still pending in the entire backlog. Bug-fix tasks always preempt UAT tasks.
+**CDP tasks are in scope.** A task whose verification step requires `agent-browser` against the packaged Electron app, `--remote-debugging-port`, `MAENIFOLD_UAT=1`, or `scripts/uat-launch.sh` is normal product-verification work — dispatch it the same as any backend or unit-test task. Each CDP-bearing lane gets its own worktree and its own non-overlapping CDP port via `scripts/uat-launch.sh <task-id>` (which enforces per-task port + TMPDIR + user-data-dir + isolated packaged daemon). One agent per CDP session — visual audits are serial within a lane, but multiple lanes run in parallel because each lane has its own port + Electron instance.
 
-**Functionally-UAT detection (CDP-bound spec keywords).** A task is functionally out of RALPH autonomous scope — and counts as UAT-equivalent — if its spec body explicitly requires ANY of:
+**What stays banned:**
 
-- `agent-browser` interaction with the packaged Electron app
-- CDP-driven verification or measurement
-- human-driven click-through or visual inspection
-- `--remote-debugging-port` launch flags or `MAENIFOLD_UAT=1` env var
-- `scripts/uat-launch.sh` invocation as a required step
+- **Programmatic UAT** — auto-generating per-TC gate tasks from `docs/UAT-PLAN.md` or batch-creating "TC-001 through TC-666" rubber-stamp tasks. UAT-PLAN.md is a human reference guide for what to click, not a data source for code generation. (Repo-root `AGENTS.md` P0 trigger #4.)
+- **Rubber-stamping CDP work** — a CDP gate-pass requires concrete evidence (snapshot output, screenshot, observed state change, asserted DOM ref) just like any other gate stage. "Looked OK" is not evidence.
 
-Such tasks are treated as UAT-equivalent regardless of task title, pipeline declaration, or priority label. They go to the UAT-priority-floor along with title-flagged UAT tasks. The PM records the skip rationale in the close memory note + iter-end `thoughts.md` update with the specific keyword(s) detected. **Pure backend/test-only tasks** (Rust crates, Vue/TS unit tests via Vitest, doc edits, gate ops, MCP tool changes verifiable via `curl` + `cargo test`) remain in RALPH scope.
+**What the PM does NOT do anymore:**
 
-Precedent: T-304.3 (P1 agents-perf CDP measurement) was correctly skipped iter-19 by claude-opus-4.6 architect verdict despite not being labeled UAT in title — its spec body explicitly requires the `agent-browser` + packaged Electron + CDP harness.
+- Skip a task because its spec requires CDP.
+- Sort CDP tasks to the bottom of the queue regardless of sprint number.
+- Treat "this needs CDP verification" as a reason to leave the task in pending across iters.
 
-Concrete sort key now: `(is_uat_task, sprint_number, task_number, priority)` where `is_uat_task` is `1` for UAT-only OR functionally-UAT (CDP-bound) tasks and `0` for everything else. UAT tasks only fill capacity after every non-UAT pending task is in flight or shipped.
+Concrete sort key: `(sprint_number, task_number, priority)` — same for CDP and non-CDP tasks. Lowest sprint wins. Within sprint, lowest task wins. Priority breaks ties only when sprint+task are equal (rare). The concurrency ceiling (default 10 task-pms) pulls from the top of that sorted list regardless of whether the task is CDP-bound.
 
-Rationale: the backlog already contains hundreds of known defects waiting for fixes (LOC violations T-315.1, unwrap debt T-315.2, inline helpers T-322.20-25, sort UX T-322.1.x, drag-drop T-314.1, attachments T-314.2, dblclick T-318.1, inspector model identity T-318.2, etc.). Running UAT to discover MORE defects while the existing pile sits is the rediscovery-cosplay antipattern. Drain the pile first.
+Precedent: T-304.3 (P1 agents-perf CDP measurement) was wrongly skipped iter-19 by treating "uses agent-browser" as auto-disqualifying. That was the antipattern. CDP IS how you test the product; testing the product IS the work.
+
+Rationale: the backlog already contains hundreds of known defects waiting for fixes (LOC violations T-315.1, unwrap debt T-315.2, inline helpers T-322.20-25, sort UX T-322.1.x, drag-drop T-314.1, attachments T-314.2, dblclick T-318.1, inspector model identity T-318.2, etc.). Hand-rolled "discovery passes" that browse the UI looking for new bugs while the existing pile sits ARE rediscovery cosplay — file the task before you browse, not after. But a task with a specific scope (verify T-X fix interactively, exercise feature Y end-to-end, measure perf metric Z) IS real work and ships through gate the same as any other.
 
 ### 3.5. Scan for blocked tasks and dead-premise rot (Cardinal Rule #4)
 
@@ -638,4 +641,4 @@ You are the PM. The PM doesn't punch out — the PM ships, then ships the next t
 
 If a task with explicit `depends_on:` against an unfinished task tries to dispatch — that's a real ordering violation, fix it. If sprint 303 has 5 ready tasks and sprint 305 has 8, and the ceiling is 10, you dispatch all 5 sprint-303 task-pms plus 5 sprint-305 task-pms, and the next freed slot goes to a sprint-303 task before any more sprint-305 work. Lowest first, always.
 
-**UAT is the LOWEST priority.** Drain every known-bug fix task in the entire backlog (any task with concrete code-change scope: implement / fix / hardening / debt / refactor / split / add / remove / replace) before dispatching a single UAT task. Hundreds of defects are already filed and waiting — running UAT to discover MORE while the existing pile sits is rediscovery cosplay. Only when the bug-fix pile is empty AND there's slack capacity, OR when the user explicitly asks for a UAT pass, does UAT get a slot. CDP is still the only way to test the UI when UAT does run (see root `AGENTS.md` Definition of Done + the Agent isolation section above + `scripts/uat-launch.sh`).
+**CDP testing IS testing the product.** A task whose spec requires CDP verification dispatches the same as any other task — its lane uses `scripts/uat-launch.sh <task-id>` for its own port + Electron instance, its worker drives `agent-browser` for click-through evidence, and its `gate_Pass` requires concrete snapshot/screenshot/state-change evidence just like any other stage. Multiple CDP lanes run in parallel (different ports, different worktrees) up to the concurrency ceiling. What stays banned is **programmatic UAT** (auto-generating per-TC gate tasks from `docs/UAT-PLAN.md`) per repo-root `AGENTS.md` P0 trigger #4 — but a task with a concrete scope ("verify T-X fix interactively", "exercise feature Y end-to-end", "measure perf metric Z under CDP") is real work and ships through gate the same as any backend or unit-test task.

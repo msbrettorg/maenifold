@@ -101,12 +101,17 @@ pub(super) fn apply_reopen(args: StageNoteArgs) -> Result<Value, GateError> {
     let _project_lock = GateProjectLock::acquire_exclusive(&root)?;
     let _task_lock = TaskFileLock::acquire(&root, &args.task_id)?;
     let task = TaskRepository::find_task(root.clone(), &args.task_id)?;
-
-    if task.location != "todo" {
-        return Err(GateError::Cli(
-            "task is not in todo/; nothing to reopen".to_string(),
-        ));
-    }
+    let task = if task.location == "done" {
+        TaskRepository::move_to_todo_with_slug(&root, &task)?;
+        TaskRepository::find_task(root.clone(), &args.task_id)?
+    } else if task.location == "todo" {
+        task
+    } else {
+        return Err(GateError::Cli(format!(
+            "task '{}' is in unsupported location '{}'; expected todo or done",
+            args.task_id, task.location
+        )));
+    };
 
     let document = TaskRepository::read_task_document(&root, &task)?;
     let definition = resolve_definition_for_task(

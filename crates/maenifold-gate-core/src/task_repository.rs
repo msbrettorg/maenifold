@@ -164,16 +164,20 @@ impl TaskRepository {
         if task.location == "done" {
             return Ok(());
         }
-
-        Self::move_to_location(root, task, "done")
+        let filename = task
+            .path
+            .file_name()
+            .ok_or_else(|| GateError::MissingTaskPath(task.path.clone()))?;
+        Self::move_to(root, task, root.join("done").join(filename))
     }
 
     pub fn move_to_todo(root: &Path, task: &TaskPathSet) -> Result<(), GateError> {
-        if task.location == "todo" {
-            return Ok(());
-        }
+        Self::move_to_todo_with_slug(root, task)
+    }
 
-        Self::move_to_location(root, task, "todo")
+    pub fn move_to_todo_with_slug(root: &Path, task: &TaskPathSet) -> Result<(), GateError> {
+        if task.location == "todo" { return Ok(()); }
+        Self::move_to(root, task, root.join("todo").join(Self::recover_slug_filename(root, task)?))
     }
 
     pub fn canonical_task_markdown_path(
@@ -219,15 +223,10 @@ impl TaskRepository {
         TaskFileWriter::append_section(&path, section)
     }
 
-    fn move_to_location(root: &Path, task: &TaskPathSet, location: &str) -> Result<(), GateError> {
+    fn move_to(root: &Path, task: &TaskPathSet, destination: PathBuf) -> Result<(), GateError> {
         let source = Self::canonical_task_markdown_path(root, task)?;
-        let destination = root.join(location).join(format!("{}.md", task.task_id));
-        let source_parent = source
-            .parent()
-            .ok_or_else(|| GateError::MissingTaskPath(source.clone()))?;
-        let destination_parent = destination
-            .parent()
-            .ok_or_else(|| GateError::MissingTaskPath(destination.clone()))?;
+        let source_parent = source.parent().ok_or_else(|| GateError::MissingTaskPath(source.clone()))?;
+        let destination_parent = destination.parent().ok_or_else(|| GateError::MissingTaskPath(destination.clone()))?;
         fs::create_dir_all(destination_parent)?;
         validate_destination_directory(root, destination_parent, task)?;
         if fs::symlink_metadata(&destination).is_ok() {
@@ -241,6 +240,14 @@ impl TaskRepository {
         sync_directory(source_parent)?;
         sync_directory(destination_parent)?;
         Ok(())
+    }
+
+    fn recover_slug_filename(_root: &Path, task: &TaskPathSet) -> Result<String, GateError> {
+        task.path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .map(|name| name.to_string())
+            .ok_or_else(|| GateError::MissingTaskPath(task.path.clone()))
     }
 
     fn reject_duplicate_task_id(root: &Path, task_id: &str) -> Result<(), GateError> {

@@ -89,11 +89,9 @@ fn canonical_task_markdown_path_rejects_symlink_escape_outside_root() {
     )
     .expect_err("escaped symlink should be rejected");
 
-    assert!(
-        error
-            .to_string()
-            .contains("resolves outside the gate root corpus")
-    );
+    assert!(error
+        .to_string()
+        .contains("resolves outside the gate root corpus"));
 }
 
 #[cfg(unix)]

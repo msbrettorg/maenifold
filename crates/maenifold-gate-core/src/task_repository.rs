@@ -8,6 +8,14 @@ use crate::task_file::{TaskDocument, TaskFileReader, TaskFileWriter};
 use crate::task_id;
 use crate::task_metadata::TaskMetadataParser;
 
+#[path = "task_repository_paths.rs"]
+mod task_repository_paths;
+
+use task_repository_paths::{
+    searched_directories_display, sync_directory, validate_create_destination,
+    validate_destination_directory, validate_task_path,
+};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TaskPathSet {
     pub task_id: String,
@@ -49,7 +57,7 @@ impl TaskRepository {
             path: destination.clone(),
             location: "todo".to_string(),
         };
-        Self::validate_create_destination(root, &todo_dir, &task)?;
+        validate_create_destination(root, &todo_dir, &task)?;
 
         let mut file = fs::OpenOptions::new()
             .write(true)
@@ -80,7 +88,7 @@ impl TaskRepository {
 
         Err(GateError::TaskNotFound {
             task_id: task_id.to_string(),
-            searched_directories: Self::searched_directories_display(&root),
+            searched_directories: searched_directories_display(&root),
         })
     }
 
@@ -118,7 +126,7 @@ impl TaskRepository {
                     path: path.clone(),
                     location: location.to_string(),
                 };
-                let canonical_task_id = match Self::validate_task_path(
+                let canonical_task_id = match validate_task_path(
                     &canonical_root,
                     &canonical_location,
                     &discovered_task,
@@ -183,34 +191,7 @@ impl TaskRepository {
         let location_dir = root.join(&task.location);
         let canonical_location_dir = fs::canonicalize(&location_dir)?;
 
-        Self::validate_task_path(&canonical_root, &canonical_location_dir, task)
-    }
-
-    fn validate_task_path(
-        canonical_root: &Path,
-        canonical_location_dir: &Path,
-        task: &TaskPathSet,
-    ) -> Result<PathBuf, GateError> {
-        if canonical_location_dir.parent() != Some(canonical_root) {
-            return Err(Self::invalid_gate_task_path(task));
-        }
-
-        let metadata = fs::symlink_metadata(&task.path)?;
-        if metadata.file_type().is_symlink() {
-            return Err(Self::invalid_gate_task_path(task));
-        }
-
-        let canonical_task_path = fs::canonicalize(&task.path)?;
-        if canonical_task_path.parent() != Some(canonical_location_dir)
-            || canonical_task_path
-                .extension()
-                .and_then(|value| value.to_str())
-                != Some("md")
-        {
-            return Err(Self::invalid_gate_task_path(task));
-        }
-
-        Ok(canonical_task_path)
+        validate_task_path(&canonical_root, &canonical_location_dir, task)
     }
 
     pub fn read_task_document(root: &Path, task: &TaskPathSet) -> Result<TaskDocument, GateError> {
@@ -248,7 +229,7 @@ impl TaskRepository {
             .parent()
             .ok_or_else(|| GateError::MissingTaskPath(destination.clone()))?;
         fs::create_dir_all(destination_parent)?;
-        Self::validate_destination_directory(root, destination_parent, task)?;
+        validate_destination_directory(root, destination_parent, task)?;
         if fs::symlink_metadata(&destination).is_ok() {
             return Err(GateError::Cli(format!(
                 "refusing to overwrite existing destination for task '{}': {}",
@@ -303,65 +284,6 @@ impl TaskRepository {
             Err(error) => Err(error),
         }
     }
-
-    fn validate_create_destination(
-        root: &Path,
-        todo_dir: &Path,
-        task: &TaskPathSet,
-    ) -> Result<(), GateError> {
-        let canonical_root = fs::canonicalize(root)?;
-        let canonical_todo = fs::canonicalize(todo_dir)?;
-        if canonical_todo.parent() != Some(canonical_root.as_path()) {
-            return Err(Self::invalid_gate_task_path(task));
-        }
-        if task.path.parent() != Some(todo_dir)
-            || task.path.extension().and_then(|value| value.to_str()) != Some("md")
-        {
-            return Err(Self::invalid_gate_task_path(task));
-        }
-        Ok(())
-    }
-
-    fn validate_destination_directory(
-        root: &Path,
-        destination_parent: &Path,
-        task: &TaskPathSet,
-    ) -> Result<(), GateError> {
-        let metadata = fs::symlink_metadata(destination_parent)?;
-        if metadata.file_type().is_symlink() {
-            return Err(Self::invalid_gate_task_path(task));
-        }
-
-        let canonical_root = fs::canonicalize(root)?;
-        let canonical_destination_parent = fs::canonicalize(destination_parent)?;
-        if !canonical_destination_parent.starts_with(&canonical_root) {
-            return Err(Self::invalid_gate_task_path(task));
-        }
-
-        Ok(())
-    }
-
-    fn invalid_gate_task_path(task: &TaskPathSet) -> GateError {
-        GateError::Cli(format!(
-            "task '{}' resolves outside the gate root corpus or through a symlink: {}",
-            task.task_id,
-            task.path.display()
-        ))
-    }
-
-    fn searched_directories_display(root: &Path) -> String {
-        TASK_LOCATIONS
-            .iter()
-            .map(|location| root.join(location).display().to_string())
-            .collect::<Vec<_>>()
-            .join(", ")
-    }
-}
-
-fn sync_directory(path: &Path) -> Result<(), GateError> {
-    let directory = fs::File::open(path)?;
-    directory.sync_all()?;
-    Ok(())
 }
 
 #[cfg(test)]

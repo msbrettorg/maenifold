@@ -13,7 +13,7 @@
  *
  * Expected: All tests FAIL against the current buggy implementation.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { flushPromises, mount } from '@vue/test-utils';
 
@@ -21,7 +21,12 @@ import OnboardingStepAgent from '../OnboardingStepAgent.vue';
 import { useConfigStore } from '../../stores/config';
 
 beforeEach(() => {
+  vi.useFakeTimers();
   vi.restoreAllMocks();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 function createTestEnv() {
@@ -207,6 +212,10 @@ describe('OnboardingStepAgent', () => {
       if (commandInput) {
         await commandInput.setValue('npx @github/copilot-language-server@latest --acp');
       }
+
+      // Advance past the CLI preflight debounce (500ms) so checking resolves
+      vi.advanceTimersByTime(600);
+      await flushPromises();
 
       // Submit the form
       const buttons = wrapper.findAll('button');

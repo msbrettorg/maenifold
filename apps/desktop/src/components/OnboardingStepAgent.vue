@@ -2,8 +2,9 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { computed, inject, onUnmounted, ref } from 'vue';
-import { Bot } from 'lucide-vue-next';
+import { Bot, CheckCircle, Loader2, XCircle } from 'lucide-vue-next';
 
+import { useCliPreflight, getInstallUrl } from '../composables/useCliPreflight';
 import { useConfigStore } from '../stores/config';
 
 const advance = inject<() => void>('onboarding-advance');
@@ -16,6 +17,11 @@ const existingAgentNames = ref<string[]>([...configStore.agentNames]);
 
 const agentName = ref('Copilot');
 const agentCommand = ref('');
+const { checking, found, binaryName } = useCliPreflight(agentCommand);
+const installUrl = computed(() => {
+  const name = binaryName.value;
+  return name ? getInstallUrl(name) : null;
+});
 const errorMessage = ref<string | null>(null);
 const submitting = ref(false);
 
@@ -171,6 +177,29 @@ onUnmounted(() => {
         <small class="text-xs text-text-tertiary">
           Full shell command including arguments.
         </small>
+        <div v-if="binaryName && trimmedCommand" class="flex items-center gap-2 text-xs">
+          <template v-if="checking">
+            <Loader2 class="h-3.5 w-3.5 animate-spin text-text-tertiary" />
+            <span class="text-text-tertiary">Checking…</span>
+          </template>
+          <template v-else-if="found === true">
+            <CheckCircle class="h-3.5 w-3.5 text-success" />
+            <span class="text-success">{{ binaryName }} found</span>
+          </template>
+          <template v-else-if="found === false">
+            <XCircle class="h-3.5 w-3.5 text-danger" />
+            <span class="text-danger">{{ binaryName }} not found on PATH</span>
+            <a
+              v-if="installUrl"
+              :href="installUrl"
+              target="_blank"
+              rel="noopener"
+              class="ml-1 underline text-brand hover:text-brand-hover"
+            >
+              Install →
+            </a>
+          </template>
+        </div>
       </div>
 
       <p v-if="errorMessage" class="text-danger text-sm">{{ errorMessage }}</p>
@@ -186,7 +215,7 @@ onUnmounted(() => {
 
         <Button
           type="button"
-          :disabled="!isValid || submitting"
+          :disabled="!isValid || submitting || checking"
           class="rounded-lg border-none bg-brand px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
           @click="onSubmit"
         >

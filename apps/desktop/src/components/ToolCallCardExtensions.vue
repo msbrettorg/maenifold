@@ -8,6 +8,7 @@ import { useToolCallTerminal } from '../composables/useToolCallTerminal';
 import { useAppShellStore } from '../stores/app-shell';
 import { useKnowledgeStore } from '../stores/knowledge';
 import type { ToolCallContentBlock, ToolCallInfo } from '../lib/types';
+import { diffLines } from 'diff';
 
 type JsonValue = string | number | boolean | unknown[] | Record<string, unknown> | null;
 type DiffLine = { kind: 'header' | 'context' | 'add' | 'remove'; text: string };
@@ -53,50 +54,25 @@ function isDiffBlock(block: ToolCallContentBlock): block is Extract<ToolCallCont
   return block.type === 'diff';
 }
 
-function splitLines(text: string | null | undefined): string[] {
-  return (text ?? '').split('\n');
-}
-
-function buildDiffOperations(oldLines: string[], newLines: string[]): DiffLine[] {
-  const lengths = Array.from(
-    { length: oldLines.length + 1 },
-    () => Array<number>(newLines.length + 1).fill(0),
-  );
-  for (let oldIndex = oldLines.length - 1; oldIndex >= 0; oldIndex -= 1) {
-    for (let newIndex = newLines.length - 1; newIndex >= 0; newIndex -= 1) {
-      lengths[oldIndex][newIndex] = oldLines[oldIndex] === newLines[newIndex]
-        ? lengths[oldIndex + 1][newIndex + 1] + 1
-        : Math.max(lengths[oldIndex + 1][newIndex], lengths[oldIndex][newIndex + 1]);
+function buildDiffOperations(oldText: string | null | undefined, newText: string | null | undefined): DiffLine[] {
+  const changes = diffLines(oldText ?? '', newText ?? '');
+  const result: DiffLine[] = [];
+  for (const change of changes) {
+    const lines = change.value.replace(/\n$/, '').split('\n');
+    const kind: DiffLine['kind'] = change.added ? 'add' : change.removed ? 'remove' : 'context';
+    const prefix = change.added ? '+' : change.removed ? '-' : ' ';
+    for (const line of lines) {
+      result.push({ kind, text: `${prefix}${line}` });
     }
   }
-
-  const diffLines: DiffLine[] = [];
-  let oldIndex = 0;
-  let newIndex = 0;
-  while (oldIndex < oldLines.length && newIndex < newLines.length) {
-    if (oldLines[oldIndex] === newLines[newIndex]) {
-      diffLines.push({ kind: 'context', text: ` ${oldLines[oldIndex]}` });
-      oldIndex += 1;
-    } else if (lengths[oldIndex + 1][newIndex] >= lengths[oldIndex][newIndex + 1]) {
-      diffLines.push({ kind: 'remove', text: `-${oldLines[oldIndex]}` });
-      oldIndex += 1;
-      continue;
-    } else {
-      diffLines.push({ kind: 'add', text: `+${newLines[newIndex]}` });
-    }
-    newIndex += 1;
-  }
-
-  while (oldIndex < oldLines.length) diffLines.push({ kind: 'remove', text: `-${oldLines[oldIndex++]}` });
-  while (newIndex < newLines.length) diffLines.push({ kind: 'add', text: `+${newLines[newIndex++]}` });
-  return diffLines;
+  return result;
 }
 
 function getUnifiedDiffLines(block: Extract<ToolCallContentBlock, { type: 'diff' }>): DiffLine[] {
   return [
     { kind: 'header', text: `--- ${block.oldText == null ? '/dev/null' : block.path}` },
     { kind: 'header', text: `+++ ${block.path}` },
-    ...buildDiffOperations(splitLines(block.oldText), splitLines(block.newText)),
+    ...buildDiffOperations(block.oldText, block.newText),
   ];
 }
 

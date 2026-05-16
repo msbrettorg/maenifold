@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { nextTick } from 'vue';
 
 import { PREFS_STORE_PATH } from '../../lib/constants';
-import { storageKey } from '../../lib/local-storage';
+import { storageKey } from '../../lib/storage-key';
 import { useOnboarding, type OnboardingStepId } from '../useOnboarding';
 
 const ONBOARDING_KEY = 'onboarding';
@@ -117,10 +118,11 @@ describe('useOnboarding', () => {
     expect(onboarding.step.value).toBe(0);
   });
 
-  it('markComplete persists flag and clears isFirstRun', () => {
+  it('markComplete persists flag and clears isFirstRun', async () => {
     const onboarding = useOnboarding();
     onboarding.markComplete();
     expect(onboarding.isFirstRun.value).toBe(false);
+    await nextTick();
     const raw = window.localStorage.getItem(fullKey());
     expect(raw).not.toBeNull();
     const parsed = JSON.parse(raw as string);
@@ -129,10 +131,11 @@ describe('useOnboarding', () => {
     expect(typeof parsed.completedAt).toBe('string');
   });
 
-  it('round-trip: checkFirstRun -> markComplete -> checkFirstRun returns false', () => {
+  it('round-trip: checkFirstRun -> markComplete -> checkFirstRun returns false', async () => {
     const onboarding = useOnboarding();
     expect(onboarding.checkFirstRun()).toBe(true);
     onboarding.markComplete();
+    await nextTick();
     const next = useOnboarding();
     expect(next.checkFirstRun()).toBe(false);
   });
@@ -147,6 +150,7 @@ describe('useOnboarding', () => {
     await expect(onboarding.checkFirstRunWithConfig()).resolves.toBe(false);
     expect(onboarding.isFirstRun.value).toBe(false);
 
+    await nextTick();
     const raw = window.localStorage.getItem(fullKey());
     expect(raw).not.toBeNull();
     const parsed = JSON.parse(raw as string);
@@ -172,6 +176,7 @@ describe('useOnboarding', () => {
     const onboarding = useOnboarding();
     await expect(onboarding.checkFirstRunWithConfig()).resolves.toBe(false);
     expect(onboarding.isFirstRun.value).toBe(false);
+    await nextTick();
     expect(window.localStorage.getItem(fullKey())).not.toBeNull();
   });
 
@@ -244,32 +249,36 @@ describe('useOnboarding', () => {
   });
 
   describe('onboarding idempotency (T-317.1)', () => {
-    it('persists step progress on advance and restores it in a new instance', () => {
+    it('persists step progress on advance and restores it in a new instance', async () => {
       const onboarding = useOnboarding() as OnboardingProgressApi;
       advanceTo(onboarding, 2);
+      await nextTick();
       expect(progressState()).toMatchObject({ step: 2, highWaterStep: 2 });
       const restarted = useOnboarding() as OnboardingProgressApi;
       restarted.restoreProgress();
       expect(restarted.step.value).toBe(2); expect(restarted.currentStepId.value).toBe('agent');
     });
-    it('resumes on step 3 model after force-quit mid-step 3', () => {
+    it('resumes on step 3 model after force-quit mid-step 3', async () => {
       const onboarding = useOnboarding() as OnboardingProgressApi;
       advanceTo(onboarding, 3);
+      await nextTick();
       const restarted = useOnboarding() as OnboardingProgressApi;
       restarted.restoreProgress();
       expect(restarted.step.value).toBe(3); expect(restarted.currentStepId.value).toBe('model');
     });
-    it('persists highWaterStep after back navigation and restart', () => {
+    it('persists highWaterStep after back navigation and restart', async () => {
       const onboarding = useOnboarding() as OnboardingProgressApi;
       advanceTo(onboarding, 3);
       onboarding.goBack(); onboarding.goBack();
+      await nextTick();
       const restarted = useOnboarding() as OnboardingProgressApi;
       restarted.restoreProgress();
       expect(restarted.step.value).toBe(1); expect(restarted.highWaterStep.value).toBe(3);
     });
-    it('persists per-step progress markers for completed onboarding steps', () => {
+    it('persists per-step progress markers for completed onboarding steps', async () => {
       const onboarding = useOnboarding() as OnboardingProgressApi;
       ['daemon', 'agent', 'model'].forEach((stepId) => onboarding.markStepDone(stepId as OnboardingStepId));
+      await nextTick();
       expect(progressState().markers).toMatchObject({
         'daemon-checked': true,
         'agent-picked': true,
@@ -277,19 +286,21 @@ describe('useOnboarding', () => {
       });
       expect(onboarding.isStepDone('model')).toBe(true);
     });
-    it('resumes at the first incomplete step from persisted markers', () => {
+    it('resumes at the first incomplete step from persisted markers', async () => {
       const onboarding = useOnboarding() as OnboardingProgressApi;
       ['welcome', 'daemon', 'agent'].forEach((stepId) => onboarding.markStepDone(stepId as OnboardingStepId));
+      await nextTick();
       const restarted = useOnboarding() as OnboardingProgressApi;
       restarted.resumeAtFirstIncomplete();
       expect(restarted.step.value).toBe(3); expect(restarted.currentStepId.value).toBe('model');
     });
-    it('re-entering a completed step is idempotent and keeps detected state', () => {
+    it('re-entering a completed step is idempotent and keeps detected state', async () => {
       const onboarding = useOnboarding() as OnboardingProgressApi;
       onboarding.advance();
       onboarding.markStepDone('daemon');
       onboarding.advance();
       onboarding.goBack();
+      await nextTick();
       expect(onboarding.step.value).toBe(1); expect(onboarding.currentStepId.value).toBe('daemon');
       expect(onboarding.isStepDone('daemon')).toBe(true);
       expect(progressState().markers?.['daemon-checked']).toBe(true);

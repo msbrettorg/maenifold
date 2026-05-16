@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { nextTick } from 'vue';
 import { PREFS_STORE_PATH } from '../constants';
-import { storageKey } from '../local-storage';
+import { storageKey } from '../storage-key';
 import { resolveAgents } from '../pipeline-template-runtime';
 import { readLastUsedAgent, resolvePreferredAgent, writeLastUsedAgent } from '../preferred-agent';
 
@@ -9,10 +10,11 @@ describe('preferred agent helpers', () => {
     window.localStorage.clear();
   });
 
-  it('stores and reads the last used agent preference', () => {
+  it('stores and reads the last used agent preference', async () => {
     writeLastUsedAgent('Copilot');
 
     expect(readLastUsedAgent()).toBe('Copilot');
+    await nextTick();
     expect(window.localStorage.getItem(storageKey(PREFS_STORE_PATH, 'lastUsedAgent'))).toBe('"Copilot"');
   });
 

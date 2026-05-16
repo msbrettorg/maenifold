@@ -1,8 +1,9 @@
+import { StorageSerializers, useLocalStorage } from '@vueuse/core';
 import { defineStore } from 'pinia';
-import { ref, watch } from 'vue';
+import { watch } from 'vue';
 import { PREFS_STORE_PATH } from '../lib/constants';
-import { readStorageValue, writeStorageValue } from '../lib/local-storage';
 import { readLastUsedAgent, writeLastUsedAgent } from '../lib/preferred-agent';
+import { storageKey } from '../lib/storage-key';
 
 const STORAGE_KEY = 'agentsSettings';
 const LEGACY_MODEL_PREFERENCE_KEY = 'chatPreferredModelByAgent';
@@ -25,34 +26,25 @@ function createDefaultState(): AgentsSettingsState {
   };
 }
 
-function mergeState(saved: unknown): AgentsSettingsState {
-  const defaults = createDefaultState();
-  if (!saved || typeof saved !== 'object') {
-    return defaults;
-  }
-
-  const value = saved as Partial<AgentsSettingsState>;
-  return {
-    defaults: {
-      defaultAgent: value.defaults?.defaultAgent ?? defaults.defaults.defaultAgent,
-      preferredModelByAgent: value.defaults?.preferredModelByAgent ?? defaults.defaults.preferredModelByAgent,
-    },
-    reconnectRequired: value.reconnectRequired ?? defaults.reconnectRequired,
-  };
-}
-
 export const useAgentsSettingsStore = defineStore('agentsSettings', () => {
-  const settings = ref<AgentsSettingsState>(createDefaultState());
-  const initialized = ref(false);
+  const settings = useLocalStorage<AgentsSettingsState>(
+    storageKey(PREFS_STORE_PATH, STORAGE_KEY),
+    createDefaultState(),
+    {
+      mergeDefaults: true,
+      serializer: StorageSerializers.object,
+    },
+  );
+  const legacyModelPreferences = useLocalStorage<Record<string, string> | null>(
+    storageKey(PREFS_STORE_PATH, LEGACY_MODEL_PREFERENCE_KEY),
+    null,
+    { serializer: StorageSerializers.object },
+  );
 
   watch(
     settings,
     (next) => {
-      if (!initialized.value) {
-        return;
-      }
-      writeStorageValue(PREFS_STORE_PATH, STORAGE_KEY, next);
-      writeStorageValue(PREFS_STORE_PATH, LEGACY_MODEL_PREFERENCE_KEY, next.defaults.preferredModelByAgent);
+      legacyModelPreferences.value = next.defaults.preferredModelByAgent;
     },
     { deep: true },
   );
@@ -74,15 +66,10 @@ export const useAgentsSettingsStore = defineStore('agentsSettings', () => {
   }
 
   function init(agentNames: string[] = []) {
-    settings.value = mergeState(readStorageValue<AgentsSettingsState>(PREFS_STORE_PATH, STORAGE_KEY));
     if (Object.keys(settings.value.defaults.preferredModelByAgent).length === 0) {
-      settings.value.defaults.preferredModelByAgent = readStorageValue<Record<string, string>>(
-        PREFS_STORE_PATH,
-        LEGACY_MODEL_PREFERENCE_KEY,
-      ) ?? {};
+      settings.value.defaults.preferredModelByAgent = legacyModelPreferences.value ?? {};
     }
     ensureDefaultAgent(agentNames);
-    initialized.value = true;
   }
 
   function setDefaultAgent(agentName: string) {

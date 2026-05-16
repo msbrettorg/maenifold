@@ -1,3 +1,4 @@
+import { StorageSerializers, useLocalStorage } from '@vueuse/core';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { useMemoryApi } from '../composables/useMemoryApi';
@@ -10,7 +11,7 @@ import {
   type KnowledgeFileEntry,
   type KnowledgeFolderNode,
 } from '../lib/knowledge-helpers';
-import { readStorageValue, writeStorageValue } from '../lib/local-storage';
+import { storageKey } from '../lib/storage-key';
 import type {
   BuildContextResult,
   MemoryFile,
@@ -38,13 +39,14 @@ const STORAGE_NAMESPACE = 'knowledge';
 const ACTIVE_SUBTAB_STORAGE_KEY = 'activeSubtab';
 export const useKnowledgeStore = defineStore('knowledge', () => {
   const memoryApi = useMemoryApi();
-
   const folders = ref<KnowledgeFolderNode[]>([]);
   const rootFiles = ref<KnowledgeFileEntry[]>([]);
-  const activeSubtab = ref<KnowledgeSubtab>(
-    readStorageValue<KnowledgeSubtab>(STORAGE_NAMESPACE, ACTIVE_SUBTAB_STORAGE_KEY) === 'graph' ? 'graph' : 'memory',
+  const activeSubtab = useLocalStorage<KnowledgeSubtab>(
+    storageKey(STORAGE_NAMESPACE, ACTIVE_SUBTAB_STORAGE_KEY),
+    'memory',
+    { serializer: StorageSerializers.object },
   );
-
+  if (activeSubtab.value !== 'graph') activeSubtab.value = 'memory';
   const searchResults = ref<MemorySearchItem[]>([]);
   const openTabs = ref<string[]>([]);
   const activeTabUri = ref<string | null>(null);
@@ -79,7 +81,6 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
   const relatedConceptsSource = ref<string | null>(null);
   const relatedConceptsLoading = ref(false);
   const relatedConceptsError = ref<string | null>(null);
-
   function titleFromUri(uri: string): string {
     return decodeURIComponent(uri.replace(/^memory:\/\//, '').split('/').at(-1) ?? uri);
   }
@@ -97,7 +98,6 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
 
   function setActiveSubtab(subtab: KnowledgeSubtab): void {
     activeSubtab.value = subtab;
-    writeStorageValue(STORAGE_NAMESPACE, ACTIVE_SUBTAB_STORAGE_KEY, subtab);
   }
   async function loadRootFolders(): Promise<void> {
     foldersLoading.value = true;

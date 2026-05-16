@@ -1,7 +1,7 @@
+import { StorageSerializers, useLocalStorage } from '@vueuse/core';
 import { defineStore } from 'pinia';
-import { ref, watch } from 'vue';
 import { PREFS_STORE_PATH } from '../lib/constants';
-import { readStorageValue, writeStorageValue } from '../lib/local-storage';
+import { storageKey } from '../lib/storage-key';
 
 const STORAGE_KEY = 'mcpSettings';
 
@@ -23,40 +23,17 @@ function createDefaultState(): McpSettingsState {
   };
 }
 
-function mergeState(saved: unknown): McpSettingsState {
-  const defaults = createDefaultState();
-  if (!saved || typeof saved !== 'object') {
-    return defaults;
-  }
-
-  const value = saved as Partial<McpSettingsState>;
-  return {
-    activeTab: value.activeTab ?? defaults.activeTab,
-    selectedServerName: value.selectedServerName ?? defaults.selectedServerName,
-    showOnlyErrored: value.showOnlyErrored ?? defaults.showOnlyErrored,
-    reconnectRequired: value.reconnectRequired ?? defaults.reconnectRequired,
-  };
-}
-
 export const useMcpSettingsStore = defineStore('mcpSettings', () => {
-  const settings = ref<McpSettingsState>(createDefaultState());
-  const initialized = ref(false);
-
-  watch(
-    settings,
-    (next) => {
-      if (!initialized.value) {
-        return;
-      }
-      writeStorageValue(PREFS_STORE_PATH, STORAGE_KEY, next);
+  const settings = useLocalStorage<McpSettingsState>(
+    storageKey(PREFS_STORE_PATH, STORAGE_KEY),
+    createDefaultState(),
+    {
+      mergeDefaults: true,
+      serializer: StorageSerializers.object,
     },
-    { deep: true },
   );
 
-  function init() {
-    settings.value = mergeState(readStorageValue<McpSettingsState>(PREFS_STORE_PATH, STORAGE_KEY));
-    initialized.value = true;
-  }
+  function init() {}
 
   function markConfigChanged() {
     settings.value.reconnectRequired = true;

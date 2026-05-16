@@ -1,11 +1,17 @@
+import { StorageSerializers, useLocalStorage } from '@vueuse/core';
 import {
   normalizeAgentProbeResult,
 } from './agent-probe-normalizers';
 import type { AgentProbeResult } from './agent-probe-types-defs';
 import { PREFS_STORE_PATH } from './constants';
-import { readStorageValue, writeStorageValue } from './local-storage';
+import { storageKey } from './storage-key';
 
 export const AGENT_PROBE_CACHE_STORAGE_KEY = 'agentProbeCache';
+const agentProbeCache = useLocalStorage<PersistedAgentProbeCache | null>(
+  storageKey(PREFS_STORE_PATH, AGENT_PROBE_CACHE_STORAGE_KEY),
+  null,
+  { serializer: StorageSerializers.object },
+);
 
 interface PersistedAgentProbeCache {
   version: 1;
@@ -44,10 +50,7 @@ function stripTransientProbeState(probe: AgentProbeResult): AgentProbeResult {
 }
 
 export function loadAgentProbeCache(): Map<string, AgentProbeResult> {
-  const persisted = readStorageValue<PersistedAgentProbeCache>(
-    PREFS_STORE_PATH,
-    AGENT_PROBE_CACHE_STORAGE_KEY,
-  );
+  const persisted = agentProbeCache.value;
   if (!persisted || persisted.version !== 1 || !isRecord(persisted.probes)) {
     return new Map();
   }
@@ -87,8 +90,8 @@ export function persistAgentProbeCache(
       ),
   );
 
-  writeStorageValue(PREFS_STORE_PATH, AGENT_PROBE_CACHE_STORAGE_KEY, {
+  agentProbeCache.value = {
     version: 1,
     probes: cachedProbes,
-  } satisfies PersistedAgentProbeCache);
+  } satisfies PersistedAgentProbeCache;
 }

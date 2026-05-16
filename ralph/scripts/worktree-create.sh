@@ -89,7 +89,7 @@ add_worktree_symlink_excludes() {
     touch "${exclude_file}"
 
     appended=()
-    for pattern in /todo /done; do
+    for pattern in /todo /done /apps/desktop/out; do
       if ! grep -qx "${pattern}" "${exclude_file}"; then
         if [[ -s "${exclude_file}" ]] && [[ "$(tail -c 1 "${exclude_file}" | od -An -t x1 | tr -d ' ')" != "0a" ]]; then
           printf '\n' >>"${exclude_file}"
@@ -102,7 +102,7 @@ add_worktree_symlink_excludes() {
     if [[ ${#appended[@]} -gt 0 ]]; then
       echo "  added ${appended[*]} to common .git/info/exclude"
     else
-      echo "  /todo, /done already present in common .git/info/exclude (no change)"
+      echo "  /todo, /done, /apps/desktop/out already present in common .git/info/exclude (no change)"
     fi
     cleanup_exclude_lock
   }

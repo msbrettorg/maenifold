@@ -27,6 +27,7 @@ import SessionConfigPanel from './components/SessionConfigPanel.vue';
 import AuthMethodDialog from './components/AuthMethodDialog.vue';
 import FolderPickerDialog from './components/FolderPickerDialog.vue';
 import ConfirmDialog from './components/ConfirmDialog.vue';
+import GlobalCommandPalette from './components/GlobalCommandPalette.vue';
 import PromptDialog from './components/PromptDialog.vue';
 import UserPromptHost from './components/UserPromptHost.vue';
 import TrafficMonitor from './components/TrafficMonitor.vue';
@@ -35,7 +36,6 @@ import { Loader2, MessageSquare } from 'lucide-vue-next';
 import { Toaster } from 'vue-sonner';
 import { useDaemonHealth } from './composables/useDaemonHealth';
 import type { AppShellTab } from './stores/app-shell';
-
 const configStore = useConfigStore();
 const sessionStore = useSessionStore();
 const daemonHealth = useDaemonHealth();
@@ -276,6 +276,7 @@ const agentsEmptyDescription = computed(() =>
       @cancel="folderPickerStore.cancel"
     />
     <ConfirmDialog />
+    <GlobalCommandPalette />
     <PromptDialog />
     <UserPromptHost />
     <PermissionManagementDialog

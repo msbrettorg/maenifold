@@ -45,7 +45,7 @@ export function createSdkMcpClient(options: {
   onError(error: string): void;
   onClose(): void;
 }): { client: SdkClient; transport: SdkTransport } {
-  const client = new Client({ name: 'pipeline-ui', version: '0.1.0' }, { capabilities: {} });
+  const client = new Client({ name: 'pipeline-ui', version: '0.1.0' }, { capabilities: { elicitation: {} } });
   const transport = new StreamableHTTPClientTransport(new URL(options.mcpUrl), { fetch: getHttpFetch() });
   transport.setProtocolVersion(MCP_PROTOCOL_VERSION);
   client.onerror = (err) => options.onError(getSanitizedErrorMessage(err));

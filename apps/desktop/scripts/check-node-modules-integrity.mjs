@@ -6,7 +6,9 @@ const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const defaultAppDirectory = resolve(scriptDirectory, '..');
 
 function hasPlatformFilter(metadata) {
-  return Object.hasOwn(metadata, 'os') || Object.hasOwn(metadata, 'cpu');
+  return Object.hasOwn(metadata, 'os')
+    || Object.hasOwn(metadata, 'cpu')
+    || metadata.optional === true;
 }
 
 function isRootNodeModulesEntry(packagePath) {

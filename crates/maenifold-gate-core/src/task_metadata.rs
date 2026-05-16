@@ -1,11 +1,13 @@
 use regex::Regex;
-use serde::de::Error as DeError;
-use serde::{Deserialize, Deserializer};
-use std::collections::HashSet;
 use std::path::Path;
 use std::sync::LazyLock;
 
 use crate::error::GateError;
+
+#[path = "task_metadata_frontmatter.rs"]
+mod task_metadata_frontmatter;
+
+use task_metadata_frontmatter::{normalize_dependencies, parse_frontmatter, validate_priority};
 
 static LABELED_VALUE_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^\*\*(?P<label>[^*]+)\*\*:\s*(?P<value>.+?)\s*$")
@@ -38,58 +40,6 @@ pub struct LenientTaskMetadata {
     pub id: Option<String>,
     pub title: String,
     pub pipeline: String,
-}
-
-#[derive(Debug, Clone, Default, Deserialize)]
-struct FrontmatterTask {
-    #[serde(default, deserialize_with = "deserialize_optional_string")]
-    id: Option<String>,
-    title: Option<String>,
-    pipeline: Option<String>,
-    state: Option<String>,
-    #[serde(default)]
-    blocked: bool,
-    #[serde(default, deserialize_with = "deserialize_optional_string")]
-    blocked_reason: Option<String>,
-    #[serde(default)]
-    superseded_by: Option<StringOrVec>,
-    #[serde(
-        default,
-        rename = "sessionId",
-        deserialize_with = "deserialize_optional_string"
-    )]
-    session_id: Option<String>,
-    #[serde(default)]
-    depends_on: Option<StringOrVec>,
-    #[serde(default)]
-    depends: Option<StringOrVec>,
-    #[serde(default, deserialize_with = "deserialize_optional_string")]
-    priority: Option<String>,
-    #[serde(default)]
-    sprint: Option<u32>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct StringOrVec(Vec<String>);
-
-impl<'de> Deserialize<'de> for StringOrVec {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        match serde_yml::Value::deserialize(deserializer)? {
-            serde_yml::Value::String(value) => Ok(StringOrVec(vec![value])),
-            serde_yml::Value::Sequence(values) => values
-                .into_iter()
-                .map(|value| match value {
-                    serde_yml::Value::String(value) => Ok(value),
-                    _ => Err(D::Error::custom("depends_on entries must be strings")),
-                })
-                .collect::<Result<Vec<_>, _>>()
-                .map(StringOrVec),
-            _ => Err(D::Error::custom("depends_on must be a string or list")),
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -206,48 +156,6 @@ pub fn is_linked_session_id(session_id: Option<&str>) -> bool {
     )
 }
 
-fn validate_priority(priority: Option<String>) -> Result<Option<String>, GateError> {
-    match priority.as_deref() {
-        None | Some("P0") | Some("P1") | Some("P2") | Some("P3") | Some("P4") => Ok(priority),
-        Some(p) => Err(GateError::TaskMetadataParse(format!(
-            "invalid priority '{p}': must be one of P0, P1, P2, P3, P4"
-        ))),
-    }
-}
-
-fn deserialize_optional_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let value = Option::<serde_yml::Value>::deserialize(deserializer)?;
-    Ok(match value {
-        Some(serde_yml::Value::String(value)) => Some(value),
-        _ => None,
-    })
-}
-
-fn parse_frontmatter(lines: &[&str]) -> Result<Option<FrontmatterTask>, GateError> {
-    if lines.first().copied() != Some("---") {
-        return Ok(None);
-    }
-
-    let mut yaml_lines = Vec::new();
-    for line in lines.iter().skip(1) {
-        if *line == "---" {
-            let yaml = yaml_lines.join("\n");
-            let frontmatter = serde_yml::from_str::<FrontmatterTask>(&yaml).map_err(|error| {
-                GateError::TaskMetadataParse(format!("invalid task frontmatter: {error}"))
-            })?;
-            return Ok(Some(frontmatter));
-        }
-        yaml_lines.push((*line).to_string());
-    }
-
-    Err(GateError::TaskMetadataParse(
-        "frontmatter task is missing closing --- delimiter".to_string(),
-    ))
-}
-
 fn parse_title<'a>(lines: &'a [&str]) -> Result<&'a str, GateError> {
     lines
         .iter()
@@ -316,32 +224,6 @@ fn validate_lenient_task_id(task_id: Option<String>) -> Result<Option<String>, G
             Ok(task_id)
         })
         .transpose()
-}
-
-fn normalize_dependencies(
-    depends_on: Option<StringOrVec>,
-    depends: Option<StringOrVec>,
-    task_id: Option<&str>,
-) -> Result<Vec<String>, GateError> {
-    let mut seen = HashSet::new();
-    let mut normalized = Vec::new();
-    for value in depends_on
-        .into_iter()
-        .chain(depends)
-        .flat_map(|StringOrVec(values)| values)
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
-    {
-        if task_id == Some(value.as_str()) {
-            return Err(GateError::TaskMetadataParse(
-                "task depends on itself".to_string(),
-            ));
-        }
-        if seen.insert(value.clone()) {
-            normalized.push(value);
-        }
-    }
-    Ok(normalized)
 }
 
 #[cfg(test)]

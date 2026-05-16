@@ -117,6 +117,17 @@ pub(super) struct SessionLoadParams {
     pub(super) mcp_servers: Vec<acp::McpServer>,
 }
 
+fn default_agent_cwd(root: &std::path::Path) -> ApiResult<String> {
+    let workdir = root.join("acp-workdir");
+    std::fs::create_dir_all(&workdir).map_err(|error| {
+        ApiError::internal(format!(
+            "Failed to create ACP agent workdir '{}': {error}",
+            workdir.display()
+        ))
+    })?;
+    Ok(jockey::acp::resolve_cwd(workdir.to_string_lossy().as_ref()))
+}
+
 /// Handles ACP relay WebSocket upgrades. The `?agent=` parameter must match a
 /// key in `~/maenifold/maenifold.json`'s `agents` block using a
 /// case-insensitive comparison.
@@ -137,7 +148,7 @@ pub async fn ws_handler(
         })?
         .ok_or_else(|| ApiError::bad_request(format!("agent '{agent_name}' is not configured")))?;
     let root = jockey::acp::config_root();
-    let default_cwd = jockey::acp::resolve_cwd(root.to_string_lossy().as_ref());
+    let default_cwd = default_agent_cwd(&root)?;
     let configured_mcp_servers = load_configured_mcp_servers(&root, &agent_name);
     Ok(ws.on_upgrade(move |socket| {
         relay_socket(

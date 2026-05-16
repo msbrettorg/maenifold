@@ -291,3 +291,7 @@ pub(crate) async fn handle_execute(
 #[cfg(test)]
 #[path = "handler_execute_tests.rs"]
 mod handler_execute_tests;
+
+#[cfg(test)]
+#[path = "handler_execute_consecutive_tests.rs"]
+mod handler_execute_consecutive_tests;

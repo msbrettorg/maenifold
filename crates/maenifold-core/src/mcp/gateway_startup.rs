@@ -80,15 +80,34 @@ pub(super) async fn build_gateway_with_registry(
                 command,
                 args,
                 env,
+                env_from_file,
+                env_from_command,
                 timeout,
                 ..
-            } => StdioServerConfig {
-                name: name.clone(),
-                command: command.clone(),
-                args: args.clone(),
-                env: env.clone(),
-                timeout: timeout.map(std::time::Duration::from_secs),
-            },
+            } => {
+                let resolved_env = match super::stdio_env_resolver::resolve_mcp_server_env(
+                    env,
+                    env_from_file,
+                    env_from_command,
+                ) {
+                    Ok(resolved_env) => resolved_env,
+                    Err(error) => {
+                        tracing::warn!(
+                            server = %name,
+                            err = %error,
+                            "env resolution failed for mcpServer"
+                        );
+                        env.clone()
+                    }
+                };
+                StdioServerConfig {
+                    name: name.clone(),
+                    command: command.clone(),
+                    args: args.clone(),
+                    env: resolved_env,
+                    timeout: timeout.map(std::time::Duration::from_secs),
+                }
+            }
             _ => unreachable!("is_gateway filters to Stdio only"),
         })
         .collect();

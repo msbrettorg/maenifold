@@ -64,9 +64,13 @@ Iter-5 dispatched 10 parallel task-pms (concurrency ceiling). The daemon was ove
 
 ## Daemon / process state at iter close
 
-- Daemon PID 20649 — running iter-4 binary still. Iter-5 backend changes (T-315.1.* LOC splits) are merged on `dev` but the daemon hasn't been redeployed. **Internal refactors only — no behavior change.** Next iter can defer redeploy unless dispatching CDP UAT or backend-behavior verification.
-- HEAD: latest merge commit (post T-315.1.2 ship + T-315.1/T-315.0/T-314.0 umbrella closures). All worktrees removed at iter close.
-- **Zero v2 worktrees in flight at iter close** — all 5 v2 task-pms returned cleanly and were shipped or cleaned up.
+- Daemon PID 20649 — running iter-4 binary still. Iter-5 backend changes (T-315.1.* LOC splits, gateway_catalog split) are merged on `dev` but the daemon hasn't been redeployed. **Internal refactors only — no behavior change.** Next iter can defer redeploy unless dispatching CDP UAT or backend-behavior verification.
+- HEAD: d6de9d5d0 + possibly 2 more merges if T-325.3 + T-324.3 ship before iter close.
+- **2 v3 worktrees in flight at iter close: T-325.3 + T-324.3** (dispatched at iter end to satisfy NO PUNTING — both filed this iter, both needed worker dispatch this iter per cardinal rule #1):
+  - T-325.3 (P1 — server-side gate_Pass cascade hardening) — touches `crates/maenifold-gate-core/` + `crates/maenifold-core/src/mcp/gateway_*` + `~/.copilot/agents/task-pm.md`. **CRITICAL** — once this lands, raise concurrency ceiling back to 10 + trim cascade-prevention block from dispatch prompts.
+  - T-324.3 (P1 — env resolution mcpServers stdio wiring) — extends T-324.2's resolver to mcpServers stdio spawn path. Touches `crates/maenifold-core/src/mcp/` + shared env-resolver module.
+  - Iter-6 PM: check `list_agents` for these at boot. If returned cleanly, ship per playbook (commit + merge + terminal gate_Pass with `expectedStage` + worktree remove). If still running, give them time. If stuck >30 min wall-clock, send stop message.
+- **T-325.2 + T-324.5 also filed this iter** (P2 each) without dispatch — they have dependencies (T-325.2 best after T-325.3 lands so the gate_Reopen UX matches new server enforcement; T-324.5 docs depend on T-324.3 mcpServers stdio shape). These are next-in-queue for iter-6 once their deps land.
 - One stale `/tmp/uat-fixture-folder` from prior iter — `rm -rf` is safe.
 
 ## What's at the TOP of the iter-6 dispatch queue

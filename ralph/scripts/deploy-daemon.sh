@@ -104,6 +104,11 @@ if [[ -z "${running_binary}" ]]; then
   error "could not resolve running daemon text-segment path via lsof for PID=${DAEMON_PID}"
   exit 4
 fi
+if [[ "${running_binary}" != *maenifold* ]]; then
+  error "lsof returned unexpected binary path: ${running_binary} (expected 'maenifold' substring)"
+  error "  This may indicate macOS lsof changed its txt-entry ordering."
+  exit 4
+fi
 running_inode="$(lsof -p "${DAEMON_PID}" | awk '$4 == "txt" && $9 ~ /maenifold$/ { print $8; exit }')"
 if [[ -z "${running_inode}" ]]; then
   error "could not extract running daemon inode from lsof NODE column for PID=${DAEMON_PID}"

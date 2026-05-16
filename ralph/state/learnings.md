@@ -201,3 +201,45 @@ Fix shipped iter-4 inline (PM-direct, NO PUNTING):
 T-313.1 added `diff` npm package via package.json edit. PM merge committed the package.json change but the worktree's node_modules was a symlink to main repo's. Main repo's node_modules didn't have `diff` yet — needed `npm install` after the PM merge to sync. The task-pm correctly noted this in its WorkResult; PM ran `npm install` post-merge to add the dependency to node_modules + sync package-lock.json.
 
 **Rule going forward:** when a task spec mentions adding/removing/changing an npm dependency, PM's post-merge step MUST include `cd apps/desktop && npm install`. Task-pm dispatch prompts should call this out so the worker's WorkResult flags the dep change for the PM.
+
+### Lesson — curl-timeout cascade in gate_Pass (2026-05-17 iter-5)
+
+**The incident.** Iter-5 dispatched 10 parallel task-pms (concurrency ceiling). The daemon was overloaded — `gate_Pass` MCP calls started taking 30-60+ seconds to respond. Five task-pms used `curl --max-time 10-30s` which fired before the daemon responded. The daemon STILL processed the request server-side (advancing the task stage). The task-pms then retried the same gate_Pass without `expectedStage`, and each retry advanced the next stage. Five tasks cascaded `pending → blue-team → swe → red-team → done` in 3-4 curl calls each — with zero real SWE work performed in two of them and incomplete work in three.
+
+**Root cause is multi-factor.** 
+
+1. Daemon under N=10 concurrent task-pm load returns gate_Pass slowly (30-60s).
+2. `curl --max-time` fires at the client BEFORE the server responds → client sees exit 28 (timeout) but the server STILL processes the write.
+3. `gate_Pass` is non-idempotent.
+4. `gate_Pass` accepts `expectedStage` but does NOT require it.
+5. Without `expectedStage`, `gate_Pass` unconditionally advances whatever the current stage is.
+6. task-pm prompts did NOT mandate `expectedStage` on every call.
+7. task-pms naive-retried timed-out curl calls without first reading `gate_History` to see whether the server processed the prior call.
+
+**The fix is multi-layer.**
+
+1. **Global task-pm.md update (this iter, PM-direct):** added explicit "Cascade-prevention rules (MANDATORY)" section requiring `expectedStage` on every gate_Pass / gate_Fail, `curl --max-time 180` floor, and `gate_History` check before any retry of a timed-out gate call. All future task-pm dispatches inherit these rules.
+
+2. **Per-dispatch prompt hardening (this iter, ongoing):** every re-dispatch prompt includes the cascade-prevention rules verbatim until the global update is verified to land in every spawned task-pm context.
+
+3. **Server-side hardening (filed T-325.3, P1):** make `expectedStage` REQUIRED on gate_Pass / gate_Fail; reject mismatched calls with `STAGE_MISMATCH` error; consider an idempotency token. This is the durable fix.
+
+4. **Lower concurrency ceiling (this iter):** dispatching 10 parallel task-pms is the load that caused the daemon to slow enough for the timeout. Tune down to ~5 until T-325.3 lands. Re-evaluate from observation.
+
+5. **Recovery primitive used (T-325.1, shipped iter-4):** `gate_Reopen` resets state to initial. For done/-located tasks (which gate_Reopen rejects today), `mv done/<id>.md → todo/<id-original-slug>.md` then `gate_Reopen`. Filed T-325.2 (P2) to make `gate_Reopen` handle done/-located atomically.
+
+**Recovery in this iter.**
+
+5 tasks cascaded. Of those:
+- 3 had complete SWE work in their worktrees (T-315.1.3, T-315.1.4, T-315.1.5) — verified build+test+audit, merged to dev, gate cascaded to done with verification notes.
+- 2 had partial blue-team test work (T-314.2, T-322.1.2) — gate_Reopen + worktree preserved + re-dispatch with hardened prompt.
+- 3 had zero work (T-315.1.1, T-315.1.2, T-315.1.6) — gate_Reopen + re-dispatch with hardened prompt.
+
+2 tasks ran end-to-end clean despite the cascade pressure (T-322.1.1, T-322.1.3) — these used same v1 prompts but happened to dispatch their gate_Pass calls during lower-load windows.
+
+**Rules going forward (encoded in task-pm.md):**
+
+- Every `gate_Pass` and `gate_Fail` includes `expectedStage`.
+- Every `gate_*` curl call uses `--max-time 180` or higher.
+- On any curl timeout (exit 28), STOP and call `gate_History` BEFORE retrying. If the server advanced, do not retry; proceed from the new state. If unexpected advance, escalate.
+- Top PM uses default concurrency ceiling **5 task-pms in flight** until T-325.3 lands and removes the server-side risk. Tune from observation.

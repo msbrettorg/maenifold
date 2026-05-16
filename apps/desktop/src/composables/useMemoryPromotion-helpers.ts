@@ -1,5 +1,6 @@
 // Pure helpers for memory promotion. Extracted from useMemoryPromotion.ts to keep the composable file slim.
 import { unwrapToolData } from './pipeline-mcp-transport';
+import { sanitizeConceptForWikilinkQuery } from '../lib/wikilink-query-sanitizer';
 
 export const SEARCH_PAGE_SIZE = 5;
 const WIKILINK_PATTERN = /\[\[([^[\]]+)\]\]/g;
@@ -169,7 +170,7 @@ export function normalizeWikiLinkInput(input: string): string[] {
   for (const token of sourceTokens) {
     const normalized = normalizeConceptName(token);
     if (normalized) {
-      deduped.add(`[[${normalized}]]`);
+      deduped.add(`[[${sanitizeConceptForWikilinkQuery(normalized)}]]`);
     }
   }
 

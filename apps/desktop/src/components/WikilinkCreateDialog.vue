@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useMemoryApi } from '../composables/useMemoryApi';
+import { sanitizeConceptForWikilinkQuery } from '../lib/wikilink-query-sanitizer';
 import FolderPicker from './FolderPicker.vue';
 
 const open = defineModel<boolean>('open', { required: true });
@@ -47,7 +48,7 @@ async function createNote(): Promise<void> {
   try {
     const uri = await memoryApi.writeMemory({
       title: props.concept,
-      content: `[[${props.concept}]]`,
+      content: `[[${sanitizeConceptForWikilinkQuery(props.concept)}]]`,
       folder: folder.value.trim() || undefined,
     });
     open.value = false;

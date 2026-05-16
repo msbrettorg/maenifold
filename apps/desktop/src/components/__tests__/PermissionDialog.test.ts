@@ -42,6 +42,7 @@ function createPermissionRequest(): PermissionRequest {
     },
     options: [
       { optionId: 'allow-once', kind: 'allow_once', name: 'Allow once' },
+      { optionId: 'allow-always', kind: 'allow_always', name: 'Always allow' },
       { optionId: 'reject-once', kind: 'reject_once', name: 'Reject once' },
     ],
   };
@@ -69,6 +70,24 @@ describe('PermissionDialog', () => {
 
     await wrapper.get('.cancel-btn').trigger('click');
     expect(wrapper.emitted('cancel')).toEqual([[]]);
+  });
+
+  it('shows the scope picker before resolving an always decision', async () => {
+    const wrapper = mount(PermissionDialog, {
+      props: {
+        request: createPermissionRequest(),
+        totalPending: 1,
+      },
+      global: { stubs: dialogStubs },
+    });
+
+    await wrapper.get('.option-allow_always').trigger('click');
+
+    expect(wrapper.find('[data-test="permission-scope-picker"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('This session');
+    expect(wrapper.text()).toContain('This agent');
+    expect(wrapper.text()).toContain('Forever');
+    expect(wrapper.emitted('select')).toBeUndefined();
   });
 
   it('avoids queue messaging for a single short request', () => {

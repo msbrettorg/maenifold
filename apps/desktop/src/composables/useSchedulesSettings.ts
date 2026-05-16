@@ -1,7 +1,6 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useMcpClient } from '@/composables/useMcpClient';
-import { allowedToolsLabel, parseAllowedTools, permissionLabel, permissionVariant } from '@/composables/useSchedulePermissions';
 import { detectSchedulePlatform } from '@/composables/useSchedulePlatform';
 import { useConfigStore } from '@/stores/config';
 import { useConfirmDialogStore } from '@/stores/confirm-dialog';
@@ -21,6 +20,34 @@ export interface ScheduleForm {
 }
 
 type DialogMode = 'create' | 'edit';
+
+type SchedulePermissionInfo = {
+  auto_grant_permissions: boolean;
+  allowed_tools?: string[];
+};
+
+export type PermissionBadgeVariant = 'default' | 'secondary' | 'destructive';
+
+function permissionLabel(schedule: SchedulePermissionInfo): string {
+  if (schedule.auto_grant_permissions) return 'Auto-grant on';
+  if (schedule.allowed_tools?.length) return 'Approval required · allowlist set';
+  return 'Approval required';
+}
+
+function permissionVariant(schedule: SchedulePermissionInfo): PermissionBadgeVariant {
+  return schedule.auto_grant_permissions ? 'destructive' : 'secondary';
+}
+
+function allowedToolsLabel(schedule: SchedulePermissionInfo): string {
+  return schedule.allowed_tools?.length ? schedule.allowed_tools.join(', ') : 'No tool allowlist';
+}
+
+function parseAllowedTools(value: string): string[] {
+  return value
+    .split(/[\n,]/)
+    .map((tool) => tool.trim())
+    .filter(Boolean);
+}
 
 const timestampFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { History, Loader2, Pencil, Play, Plus, RefreshCw, Trash2, Wrench } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import { ChevronDown, ChevronUp, ChevronsUpDown, History, Loader2, Pencil, Play, Plus, RefreshCw, Trash2, Wrench } from 'lucide-vue-next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -57,6 +57,66 @@ const {
 
 const runsDrawerOpen = ref(false);
 const runsScheduleId = ref('');
+type SortColumn = 'name' | 'schedule' | 'agent' | 'permissions' | 'status' | 'installState' | 'lastRun';
+type SortDirection = 'asc' | 'desc';
+type ScheduleRow = (typeof jobs.value)[number];
+type SortValue = number | string | null | undefined;
+
+const sortColumn = ref<SortColumn | null>(null);
+const sortDirection = ref<SortDirection>('asc');
+
+function toggleSort(column: SortColumn): void {
+  if (sortColumn.value !== column) {
+    sortColumn.value = column;
+    sortDirection.value = 'asc';
+    return;
+  }
+  if (sortDirection.value === 'asc') {
+    sortDirection.value = 'desc';
+    return;
+  }
+  sortColumn.value = null;
+  sortDirection.value = 'asc';
+}
+
+function sortAriaOrder(column: SortColumn): 'ascending' | 'descending' | undefined {
+  if (sortColumn.value !== column) return undefined;
+  return sortDirection.value === 'asc' ? 'ascending' : 'descending';
+}
+
+function sortIcon(column: SortColumn) {
+  if (sortColumn.value !== column) return ChevronsUpDown;
+  return sortDirection.value === 'asc' ? ChevronUp : ChevronDown;
+}
+
+function sortValue(job: ScheduleRow, column: SortColumn): SortValue {
+  if (column === 'name') return job.id;
+  if (column === 'schedule') return job.schedule;
+  if (column === 'agent') return job.agent;
+  if (column === 'permissions') return permissionLabel(job);
+  if (column === 'status') return statusFor(job).label;
+  if (column === 'installState') return installBadgeFor(job).label;
+  if (column === 'lastRun') return job.last_run?.timestamp ? Date.parse(job.last_run.timestamp) : null;
+  return null;
+}
+
+function compareSortValues(a: SortValue, b: SortValue): number {
+  const aMissing = a === null || a === undefined || a === '';
+  const bMissing = b === null || b === undefined || b === '';
+  if (aMissing && bMissing) return 0;
+  if (aMissing) return 1;
+  if (bMissing) return -1;
+  const comparison = typeof a === 'number' && typeof b === 'number'
+    ? a - b
+    : String(a).localeCompare(String(b));
+  return sortDirection.value === 'asc' ? comparison : -comparison;
+}
+
+const sortedJobs = computed(() => {
+  const column = sortColumn.value;
+  if (column === null) return jobs.value;
+  return [...jobs.value].sort((a, b) => compareSortValues(sortValue(a, column), sortValue(b, column)));
+});
 
 function openRunsDrawer(id: string): void {
   runsScheduleId.value = id;
@@ -127,18 +187,32 @@ function openRunsDrawer(id: string): void {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Schedule</TableHead>
-            <TableHead>Agent</TableHead>
-            <TableHead>Permissions</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Install state</TableHead>
-            <TableHead>Last run</TableHead>
+            <TableHead :aria-sort="sortAriaOrder('name')">
+              <Button variant="ghost" size="sm" class="-ml-3 h-8" @click="toggleSort('name')"><span>Name</span><component :is="sortIcon('name')" class="h-3.5 w-3.5" :class="sortColumn !== 'name' ? 'opacity-50' : ''" /></Button>
+            </TableHead>
+            <TableHead :aria-sort="sortAriaOrder('schedule')">
+              <Button variant="ghost" size="sm" class="-ml-3 h-8" @click="toggleSort('schedule')"><span>Schedule</span><component :is="sortIcon('schedule')" class="h-3.5 w-3.5" :class="sortColumn !== 'schedule' ? 'opacity-50' : ''" /></Button>
+            </TableHead>
+            <TableHead :aria-sort="sortAriaOrder('agent')">
+              <Button variant="ghost" size="sm" class="-ml-3 h-8" @click="toggleSort('agent')"><span>Agent</span><component :is="sortIcon('agent')" class="h-3.5 w-3.5" :class="sortColumn !== 'agent' ? 'opacity-50' : ''" /></Button>
+            </TableHead>
+            <TableHead :aria-sort="sortAriaOrder('permissions')">
+              <Button variant="ghost" size="sm" class="-ml-3 h-8" @click="toggleSort('permissions')"><span>Permissions</span><component :is="sortIcon('permissions')" class="h-3.5 w-3.5" :class="sortColumn !== 'permissions' ? 'opacity-50' : ''" /></Button>
+            </TableHead>
+            <TableHead :aria-sort="sortAriaOrder('status')">
+              <Button variant="ghost" size="sm" class="-ml-3 h-8" @click="toggleSort('status')"><span>Status</span><component :is="sortIcon('status')" class="h-3.5 w-3.5" :class="sortColumn !== 'status' ? 'opacity-50' : ''" /></Button>
+            </TableHead>
+            <TableHead :aria-sort="sortAriaOrder('installState')">
+              <Button variant="ghost" size="sm" class="-ml-3 h-8" @click="toggleSort('installState')"><span>Install state</span><component :is="sortIcon('installState')" class="h-3.5 w-3.5" :class="sortColumn !== 'installState' ? 'opacity-50' : ''" /></Button>
+            </TableHead>
+            <TableHead :aria-sort="sortAriaOrder('lastRun')">
+              <Button variant="ghost" size="sm" class="-ml-3 h-8" @click="toggleSort('lastRun')"><span>Last run</span><component :is="sortIcon('lastRun')" class="h-3.5 w-3.5" :class="sortColumn !== 'lastRun' ? 'opacity-50' : ''" /></Button>
+            </TableHead>
             <TableHead class="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow v-for="job in jobs" :key="job.id">
+          <TableRow v-for="job in sortedJobs" :key="job.id">
             <TableCell class="font-medium text-text-primary">{{ job.id }}</TableCell>
             <TableCell class="max-w-[18rem] text-sm text-muted-foreground">{{ scheduleLabel(job) }}</TableCell>
             <TableCell>{{ job.agent }}</TableCell>

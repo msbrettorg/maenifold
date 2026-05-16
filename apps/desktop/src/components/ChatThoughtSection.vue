@@ -7,7 +7,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
-import KnowledgeNoteRenderer from './KnowledgeNoteRenderer.vue';
+import MarkdownView from './MarkdownView.vue';
 
 const props = defineProps<{
   messageId: string;
@@ -52,7 +52,7 @@ function handleUpdate(open: boolean) {
       :id="contentId"
       class="bg-surface-container py-3 pl-5 pr-4 text-base italic leading-relaxed text-text-secondary"
     >
-      <KnowledgeNoteRenderer :content="thought" class="text-text-secondary italic" />
+      <MarkdownView :content="thought" class="text-text-secondary italic" />
     </CollapsibleContent>
   </Collapsible>
 </template>

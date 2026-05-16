@@ -73,7 +73,6 @@ function mountExtensions(toolCall: ToolCallInfo, pinia: Pinia = createPinia()) {
     global: {
       plugins: [pinia],
       stubs: {
-        KnowledgeNoteRenderer: { props: ['content'], template: '<article data-testid="knowledge-note">{{ content }}</article>' },
         MarkdownView: { props: ['content'], template: '<article data-testid="markdown-view">{{ content }}</article>' },
       },
     },

@@ -75,7 +75,7 @@ describe('StopReasonBanner', () => {
           ChatContentBlocks: true,
           ChatThoughtSection: true,
           ChatToolCallList: true,
-          KnowledgeNoteRenderer: true,
+          MarkdownView: true,
           MessageActionToolbar: true,
         },
       },

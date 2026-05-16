@@ -2,7 +2,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, nextTick } from 'vue';
 import { mount, type VueWrapper } from '@vue/test-utils';
+import { createPinia } from 'pinia';
 import ChatInputBar from '../ChatInputBar.vue';
+import { useAppShellStore } from '../../stores/app-shell';
 
 vi.mock('vue-sonner', () => ({
   toast: { info: vi.fn() },
@@ -10,6 +12,7 @@ vi.mock('vue-sonner', () => ({
 
 const commandPaletteHandleKeyDown = vi.fn();
 const mountedWrappers: VueWrapper[] = [];
+const keymapCleanups: Array<() => void> = [];
 
 const stubs = {
   ChatAttachmentBar: { template: '<div data-stub="chat-attachment-bar" />' },
@@ -31,6 +34,7 @@ function mountInput(
   options: { attachTo?: HTMLElement } = {},
 ): VueWrapper {
   commandPaletteHandleKeyDown.mockClear();
+  const pinia = createPinia();
   const wrapper = mount(ChatInputBar, {
     attachTo: options.attachTo,
     props: {
@@ -48,8 +52,16 @@ function mountInput(
       attachmentError: null,
       ...props,
     },
-    global: { stubs },
+    global: { plugins: [pinia], stubs },
   });
+  const store = useAppShellStore(pinia);
+  const handleGlobalKeymap = (event: KeyboardEvent): void => {
+    if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'k') return;
+    event.preventDefault();
+    store.commandPaletteOpen = !store.commandPaletteOpen;
+  };
+  window.addEventListener('keydown', handleGlobalKeymap, true);
+  keymapCleanups.push(() => window.removeEventListener('keydown', handleGlobalKeymap, true));
   mountedWrappers.push(wrapper);
   return wrapper;
 }
@@ -81,6 +93,9 @@ function enterEvent(options: { isComposing?: boolean; keyCode?: number; shiftKey
 }
 
 afterEach(() => {
+  for (const cleanup of keymapCleanups.splice(0)) {
+    cleanup();
+  }
   for (const wrapper of mountedWrappers.splice(0)) {
     wrapper.unmount();
   }

@@ -1,13 +1,17 @@
 // @vitest-environment jsdom
 import { mount } from '@vue/test-utils';
-import { describe, expect, it } from 'vitest';
+import { nextTick } from 'vue';
+import { describe, expect, it, vi } from 'vitest';
 import PermissionDialog from '../PermissionDialog.vue';
 import type { PermissionRequest } from '../../lib/types';
 
 /** Inline stubs so Dialog content renders without Teleport/Portal. */
 const dialogStubs = {
   Dialog: { template: '<div><slot /></div>', props: ['open'] },
-  DialogContent: { template: '<div v-bind="$attrs"><slot /></div>' },
+  DialogContent: {
+    emits: ['escape-key-down'],
+    template: '<div v-bind="$attrs" tabindex="-1" @keydown.escape="$emit(\'escape-key-down\', $event)"><slot /></div>',
+  },
   DialogHeader: { template: '<div class="dialog-header"><slot /></div>' },
   DialogTitle: { template: '<span><slot /></span>' },
   DialogDescription: { template: '<span class="queue-hint"><slot /></span>' },
@@ -91,5 +95,31 @@ describe('PermissionDialog', () => {
     expect(wrapper.find('.entry-details').text()).toContain('really-long-command.js');
     expect(wrapper.find('.entry-details').text()).toContain('line 1');
     expect(wrapper.find('.entry-details').text()).toContain('stdout');
+  });
+
+  it('keeps Escape as a modal no-op without resolving, dismissing, or closing', async () => {
+    const wrapper = mount(PermissionDialog, {
+      props: {
+        request: createPermissionRequest(),
+        totalPending: 1,
+      },
+      attachTo: document.body,
+      global: { stubs: dialogStubs },
+    });
+    const dialog = wrapper.get('.permission-dialog');
+    const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    const stopPropagation = vi.spyOn(event, 'stopPropagation');
+
+    dialog.element.dispatchEvent(event);
+    await nextTick();
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(stopPropagation).toHaveBeenCalledOnce();
+    expect(wrapper.find('.permission-dialog').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Run bash command');
+    expect(wrapper.emitted('select')).toBeUndefined();
+    expect(wrapper.emitted('cancel')).toBeUndefined();
+
+    wrapper.unmount();
   });
 });

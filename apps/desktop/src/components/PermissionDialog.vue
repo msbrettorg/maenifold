@@ -35,6 +35,12 @@ function handleCancel() {
   emit('cancel');
 }
 
+function lockEscape(event: KeyboardEvent) {
+  event.preventDefault();
+  event.stopPropagation?.();
+  event.stopImmediatePropagation?.();
+}
+
 function optionVariant(kind: string): 'default' | 'destructive' | 'outline' {
   if (kind.startsWith('allow')) return 'default';
   if (kind.startsWith('reject')) return 'destructive';
@@ -101,7 +107,7 @@ function contentBlockText(block: unknown): string {
       :force-mount="true"
       @pointer-down-outside="(event) => event.preventDefault()"
       @interact-outside="(event) => event.preventDefault()"
-      @escape-key-down="(event) => event.preventDefault()"
+      @escape-key-down="lockEscape"
     >
       <DialogHeader class="dialog-header flex items-start gap-2 border-b border-border-subtle bg-surface px-4 py-4">
         <div class="flex items-center gap-2">

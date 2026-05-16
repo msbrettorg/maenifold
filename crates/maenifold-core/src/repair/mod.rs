@@ -1,4 +1,5 @@
 mod analysis;
+mod analysis_helpers;
 mod api;
 mod semantics;
 mod wikilinks;

@@ -10,7 +10,11 @@ pub(crate) mod gateway_batch_types;
 pub(crate) mod gateway_catalog;
 #[cfg(test)]
 mod gateway_catalog_domain_tests;
+#[cfg(test)]
+mod gateway_catalog_gate_create_tests;
 mod gateway_catalog_render;
+#[cfg(test)]
+mod gateway_catalog_test_fixtures;
 mod gateway_cli;
 pub mod gateway_consolidation;
 pub mod gateway_dispatch;

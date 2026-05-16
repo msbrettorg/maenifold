@@ -8,6 +8,7 @@ import { toastError } from '@/composables/useToast';
 // Reference: https://pinia.vuejs.org/core-concepts/  (Setup Stores)
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
+import { sanitizeResourceErrorMessage, warnRawResourceErrorInDev } from '../lib/error-sanitizer';
 import type { AgentConfig, AgentsConfig } from '../lib/types';
 
 interface ConfigFileApi {
@@ -32,7 +33,9 @@ function getConfigApi(): ConfigFileApi | null {
 }
 
 function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  const rawError = error instanceof Error ? error.message : String(error);
+  warnRawResourceErrorInDev(rawError);
+  return sanitizeResourceErrorMessage(rawError);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -114,7 +114,7 @@ T-244.110 is the trigger for this rule: the `terminalId` predicate fix took a 4-
 - `field` null — name which branch the code routes it to.
 - `field` empty string `""` — name which branch the code routes it to.
 - `field` whitespace-only `"   "`, `"\t"`, `"\n"` — name which branch the code routes it to.
-- `field` present but only-noise, for example `"undefined"` literal string — name which branch the code routes it to.
+- `field` present but only-noise (any value that survives truthiness but carries no domain meaning after trim + normalization — e.g., literal `"undefined"`, `"null"`, `"NaN"`, `"[object Object]"`) — name which branch the code routes it to.
 
 **Worked example B — discriminator/union-type absent matrix** (REQUIRED in the SWE spec):
 

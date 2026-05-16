@@ -1,6 +1,6 @@
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::domain_mapping;
-use crate::mcp::gateway_catalog_render::strip_schemas;
+use crate::mcp::gateway_catalog_render::{command_entry, strip_schemas};
 use crate::mcp::gateway_consolidation::ConsolidatedServerTool;
 use crate::mcp::gateway_gate;
 use crate::mcp::gateway_metadata;
@@ -12,6 +12,9 @@ use rmcp::model::Tool;
 use serde::Serialize;
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
+
+#[path = "gateway_catalog_helpers.rs"]
+mod helpers;
 
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct DomainEntry {
@@ -260,62 +263,4 @@ impl GatewayCatalog {
         Ok(())
     }
 
-    fn insert_domain(&mut self, name: &str, description: &str) -> Result<&mut CatalogDomain> {
-        Ok(self
-            .domains
-            .entry(name.to_string())
-            .or_insert_with(|| CatalogDomain {
-                description: description.to_string(),
-                commands: BTreeMap::new(),
-            }))
-    }
-
-    fn domain(&self, domain: &str) -> Result<&CatalogDomain> {
-        self.domains.get(domain).ok_or_else(|| {
-            MaenifoldError::GatewayInvalidParams(format!("Unknown gateway domain '{domain}'."))
-        })
-    }
-
-    fn command_record(&self, domain: &str, command: &str) -> Result<&CatalogCommand> {
-        let domain_record = self.domain(domain)?;
-        domain_record.commands.get(command).ok_or_else(|| {
-            let suggestions = self
-                .domains
-                .iter()
-                .filter(|(name, _)| name.as_str() != domain)
-                .filter(|(_, candidate)| candidate.commands.contains_key(command))
-                .map(|(name, _)| format!("{name}/{command}"))
-                .collect::<Vec<_>>();
-
-            let available = domain_record
-                .commands
-                .keys()
-                .map(String::as_str)
-                .collect::<Vec<_>>();
-
-            let mut message = format!("Unknown gateway command '{command}' for domain '{domain}'.");
-            if !suggestions.is_empty() {
-                message.push_str(&format!(" Did you mean: {}?", suggestions.join(", ")));
-            }
-
-            if !available.is_empty() {
-                message.push_str(&format!(
-                    " Available commands in '{domain}': {}.",
-                    available.join(", ")
-                ));
-            }
-
-            MaenifoldError::GatewayInvalidParams(message)
-        })
-    }
-}
-
-fn command_entry(tool: &Tool, safety_class: String) -> CommandEntry {
-    let name = tool.name.to_string();
-    CommandEntry {
-        name: name.clone(),
-        description: tool.description.as_deref().unwrap_or("").to_string(),
-        schema: Value::Object((*tool.input_schema).clone()),
-        safety_class,
-    }
 }

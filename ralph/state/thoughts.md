@@ -1,112 +1,110 @@
 # RALPH Thoughts
 
-Handoff from iter-4 (2026-05-17, ~75 min elapsed).
+Handoff from iter-5 (2026-05-17, ~90+ min, gate cascade incident + full recovery).
 
 ## ⚠️ NEXT-PM FIRST READ — open items requiring carve-outs
 
 1. **T-309.3** (sprint 309, P1, blocked) — fs/write permission renderer-trust hardening. Correctly blocked per AGENTS.md P0 trigger #5 (anti-cargo-cult-security). Unblocks ONLY on real XSS / supply-chain incident, DOMPurify bypass, user explicit authorization, or external review requiring it. **Do NOT dispatch.**
 
-## TL;DR — iter-4 result
+## TL;DR — iter-5 result
 
-**HUGE iter for the bug-fix-first directive.** ~18 code-change tasks shipped + 3 WONTFIX-on-cited-evidence closures + 5 gate-state cleanups (used the new gate_Reopen primitive shipped this iter). Bug-fix queue significantly drained. Sprint 313, 315, 317, 318, 322 made major progress.
+**Huge iter despite a major incident.** **10 SWE shipments to dev + 9 sprint umbrella/parent closures + 2 dead-premise WONTFIX + 5 cascade recoveries + 1 global agent contract update + 4 new hardening specs filed.** **Audit-crates went 13 → 0 violations** (sprint 315 audit-debt completely drained, T-315.1 parent + T-315.0 umbrella closed). The cascade incident bought us a more robust task-pm contract going forward.
 
-## What shipped this iter (the big ledger)
+## What shipped this iter — full ledger
 
-**Real code changes merged into dev (18 tasks):**
+**SWE merges to dev (9 task shipments, all 5 from wave-1 cascade recovery + 4 from wave-2 re-dispatch):**
 
 | Task | Sprint | Scope | Net LOC |
 |------|--------|-------|---------|
-| T-302.64 | 302 | ACP translation layer in jockey/client.rs (Codex execute→terminal synthesis, +4 tests) | +230/-55 |
-| T-313.1 | 313 | Replace hand-rolled LCS with `diff` npm package (6 fixture tests, BSD-3-Clause) | +89/-36 |
-| T-313.3 | 313 | ResourcePreview size cap (1MB) preventing renderer freeze on oversize markdown | +172/-1 |
-| T-315.2 | 315 | Split jockey handler_execute.rs (455→293+162 LOC, 2 .unwrap() fixed) | (split) |
-| T-317.1 | 317 | Onboarding step idempotency on force-quit + 6 new tests | +160 |
-| T-317.2 | 317 | Onboarding agent CLI pre-flight check via Electron IPC + Vue composable (debounced) | +169/-3 |
-| T-318.2 | 318 | Inspector "missing model identity" warning fix (state.model populated at dispatch) | +150/-54 |
-| T-319.1 | 319 | Cmd+K global command palette (shadcn CommandDialog, 2 providers initial) | +220 |
-| T-321.1 | 321 | Toast severity tiers (5 levels with persistence policy for critical) + 21 callsite migration | +75/-70 |
-| T-322.19 | 322 | Delete unused mcp gateway routing module | -118 |
-| T-322.20 | 322 | Inline pipeline refinement session helper into SemanticZoomOverlay + extract fork-utils | -26 |
-| T-322.21 | 322 | Inline schedule permission labels into useSchedulesSettings | 0 |
-| T-322.22 | 322 | Delete acp-chat-notifications.ts dead-singleton (already routed via session events) | -20 |
-| T-322.23 | 322 | Inline KnowledgeNoteRenderer wrapper into MarkdownView (6 sites + 3 tests rewired) | -14 |
-| T-322.25 | 322 | Remove agent-probe-types re-export shim (18 sites rewired to defs+normalizers) | -17 |
-| T-322.26 | 322 | Remove pipeline-types re-export shim (100 sites rewired) [needed v2 retry due to T-322.20+T-322.25 conflicts] | -32 |
-| T-322.36 | 322 | Fix deploy-daemon.sh inode check (disk-vs-disk false equality — real-world hit this iter) | +99/-3 |
-| T-322.13 | 322 | node_modules integrity check skips optional:true entries | +95/-1 |
-| T-325.1 | 325 | **gate_Reopen MCP primitive** — clean reset of error-state tasks | +213/-1 |
-| T-323.2 | 323 | sampling deny error code -1 (was -32600) | +1/-1 |
+| T-315.1.3 | 315 | core/workflow/pipeline LOC splits (3 files: engine_ready, session_delete_files, handler_crud_tests_more) + 3 new siblings | +372/-341 |
+| T-315.1.4 | 315 | core/api LOC splits (acp_relay, acp_relay_session) + lifecycle.rs + split_tests.rs siblings | +227/-179 |
+| T-315.1.5 | 315 | core/tools + core/repair LOC splits (acp_exec 380→181, repair/analysis 303→245) + 2 siblings | +274/-264 |
+| T-322.1.1 | 322 | SchedulesTab.vue sort UX — 10 vitest tests, sortable headers, indicator | +159/-10 |
+| T-322.1.3 | 322 | SettingsEmbeddingsTable.vue sort UX — 5 vitest tests, same pattern | +234/-8 |
+| T-314.2 (v2) | 314 | File attachment hardening — size caps + URI uniqueness + textual blob dispatcher, 21 vitest tests | +223 |
+| T-315.1.1 (v2) | 315 | gate-core LOC splits (task_metadata 349→231, task_repository 369→291) + 2 new siblings | +241/-220 |
+| T-315.1.6 (v2) | 315 | jockey/acp/worker LOC splits (mod.rs 305→57, handler_prewarm 385→268) + 2 siblings | +385/-385 |
+| T-322.1.2 (v2) | 322 | ScheduleRunsDrawer.vue sort UX — 5 sort tests in 21 total, parallel to T-322.1.1 | +177/-54 |
+| T-315.1.2 (v2) | 315 | core/mcp LOC splits (gateway_catalog 321→266, gateway_catalog_domain_tests 762→299) + 3 siblings (helpers, gate_create_tests, test_fixtures) | substantial |
 
-**WONTFIX-on-cited-evidence (3 — premise verifiably dead per Cardinal Rule #2):**
+**PM-direct shipments (3):**
+- **T-322.35** — functionally-UAT detection rule codified in `ralph/prompt.md` + `ralph/AGENTS.md` (CDP-bound spec keywords)
+- **`~/.copilot/agents/task-pm.md` global update** — added explicit "Cascade-prevention rules (MANDATORY)" section requiring `expectedStage` + `--max-time 180` + no naive retry after timeout
+- **`ralph/state/learnings.md`** — appended the curl-timeout cascade lesson
 
-- **T-323.1** — mcp gateway catalog "DiscoverMcpPrompts missing" was already fixed in current codebase; all 20 gateway_catalog_domain_tests pass green.
-- **T-318.1** — sequential-thinking node dblclick handler: 6 code paths inspected, ALL type-agnostic; spec's own resolution path is "close as CDP flake" if no code bug.
-- **T-319.2** — ShortcutCheatsheet test coverage: grep across apps/desktop/src/ → 0 hits for "cheatsheet". Component never shipped. Parent T-244.38 was a paper close.
+**Sprint umbrella + parent closures (9, all sdd or tdd cascaded cleanly with expectedStage):**
+- T-313.0 rendering, T-317.0 onboarding, T-318.0 panels-inspectors, T-319.0 shortcuts-a11y, T-321.0 errors-toasts, T-323.0 mcp-test-failures (wave-1)
+- T-314.0 attachments, T-315.0 audit-loc, T-315.1 audit-crates-debt-parent (wave-2 after all sprint 315 children shipped + audit-crates passes)
 
-**Gate state cleanups (5 — reopened from iter-3 user demand, residue cleared):**
+**WONTFIX-on-cited-evidence (2 — render_chart verifiably non-existent):**
+- T-302.12 (UAT for non-existent tool) + T-302.65 (dead-premise marker)
+- Verified: `grep -r render_chart --include=*.rs --include=*.ts --include=*.vue --include=*.json` → ZERO hits
 
-- T-302.12, T-302.65, T-303.4.21, T-303.10, T-303.18.6 — all reset to `state=pending` via gate_Reopen (no longer error-state). They remain UAT-priority-floor; queued for when bug-fix pile drains.
+**New gate hardening + decomposition specs filed (4):**
+- **T-325.3** P1 tdd — server-side gate_Pass hardening (make `expectedStage` REQUIRED + reject mismatch with STAGE_MISMATCH error). HIGHEST PRIORITY for iter-6.
+- **T-325.2** P2 tdd — gate_Reopen UX: handle done/-located tasks atomically (no manual mv required).
+- **T-324.3** P1 tdd — env resolution wired into mcpServers stdio spawn (parity with ACP agents).
+- **T-324.5** P2 sdd — docs for the 3 env-source shapes (literal env, envFromFile, envFromCommand).
 
-**PM-direct hygiene (3 commits):**
+## The cascade incident — must-read for next PM
 
-- `apps/desktop/out` symlink un-tracked + worktree-create.sh patched to add the path to common git exclude (caught accidental commit from T-322.19 merge).
-- Iter-4 lessons appended to learnings.md.
-- package-lock.json sync for T-313.1 `diff` dep.
+Iter-5 dispatched 10 parallel task-pms (concurrency ceiling). The daemon was overloaded — `gate_Pass` MCP calls started taking 30-60+ seconds to respond. Several task-pms used `curl --max-time 10-30s` which fired before the daemon responded. **The daemon STILL processed the request server-side.** Naive retries (without `expectedStage`) advanced the next stage each time. **5 tasks cascaded `pending → done` in 3-4 curl calls** with zero or partial SWE work.
 
-## Major artifact: gate_Reopen primitive (T-325.1)
+**Recovery (5/5 successful):**
+- 3 had complete SWE work in their worktrees (T-315.1.3, T-315.1.4, T-315.1.5) — verified by build + test + audit, merged + gate cascaded to done with verification notes.
+- 2 had partial blue-team tests (T-314.2, T-322.1.2) — gate_Reopen + worktree preserved + re-dispatched v2 with hardened prompts → shipped clean.
+- 2 of the original 10 ran end-to-end clean despite the cascade pressure (T-322.1.1, T-322.1.3).
 
-The iter's headline ship. Was needed because iter-3 user-demanded "reopen all WONTFIX" left 6 tasks in `state=error` (file in todo/ + history terminal). Iter-4 PM hand-stripped one task (T-302.64) via python markdown surgery, then shipped a proper primitive: `gate_Reopen` accepts `{root, taskId, agent, notes}`, validates location==todo + state-is-terminal, appends a `Record Kind: reopen` section that the deriver resets to initial. 8 lifecycle tests across all 5 builtin pipelines. **Daemon redeploy is required after any gate-core/core change to expose new MCP commands** — this was the iter's only "had to manually bounce launchd" moment (per T-322.36 which shipped the fix for the inode-check footgun that caused it).
+**Multi-layer fix:**
+1. **Global agent contract update (shipped this iter):** `~/.copilot/agents/task-pm.md` has a new "Cascade-prevention rules (MANDATORY)" section requiring `expectedStage` on every gate_Pass / gate_Fail, `curl --max-time 180` floor, and `gate_History` check before any retry of a timed-out gate call.
+2. **Server-side hardening (filed T-325.3, P1):** make `expectedStage` REQUIRED + reject mismatched calls with STAGE_MISMATCH error.
+3. **Concurrency ceiling lowered to 5** (down from 10) until T-325.3 lands.
 
-## Process violations to be aware of
-
-The task-pm contract says "stop before terminal gate_Pass" but the gateway's auto-advance on the LAST intermediate stage IS the terminal pass. Multiple task-pms this iter (~8) inadvertently fired the terminal pass on red-team/blue-team (whichever is last) and self-reported the violation. The work was clean in every case; only the bookkeeping was noisy. The right path forward is to amend `~/.copilot/agents/task-pm.md` to clarify: "stop after passing the SECOND-TO-LAST intermediate stage." Until that lands, top PM just verifies `ls done/T-X.Y*` after each clean-completion WorkResult and skips the terminal gate_Pass call.
+**v2 dispatch results validated the fix:** 4 of 4 completed v2 task-pms returned cleanly with zero cascade. The 5th (T-315.1.2) is still in flight at iter close — see below.
 
 ## Daemon / process state at iter close
 
-- Daemon PID 20649 — running iter-4 binary (rebuilt + bounced mid-iter at 10:56 for T-325.1 gate_Reopen exposure). Has gate_Reopen + sampling_deny=-1 + all iter-4 backend changes.
-- HEAD: ~a06e7cb76 on dev (will move as final 3 task-pms merge).
-- 3 worktrees still in flight at iter-end: T-314.1 (drag-drop), T-322.5 (memory URL autolink), T-322.29 (sanitize 5 more error consumers). If iter ends before they return, next PM merges them.
+- Daemon PID 20649 — running iter-4 binary still. Iter-5 backend changes (T-315.1.* LOC splits) are merged on `dev` but the daemon hasn't been redeployed. **Internal refactors only — no behavior change.** Next iter can defer redeploy unless dispatching CDP UAT or backend-behavior verification.
+- HEAD: latest merge commit (post T-315.1.2 ship + T-315.1/T-315.0/T-314.0 umbrella closures). All worktrees removed at iter close.
+- **Zero v2 worktrees in flight at iter close** — all 5 v2 task-pms returned cleanly and were shipped or cleaned up.
 - One stale `/tmp/uat-fixture-folder` from prior iter — `rm -rf` is safe.
 
-## What's at the TOP of the iter-5 dispatch queue (after the 3 in-flight finish)
+## What's at the TOP of the iter-6 dispatch queue
 
-Sorted by `(is_uat, sprint_number, task_number, priority)` per the iter-3 rule (UAT lowest priority):
+1. **T-325.3** P1 tdd — **HIGHEST PRIORITY**. Server-side gate_Pass hardening (make `expectedStage` REQUIRED). Once shipped, raise concurrency ceiling back to ~10 and trim the cascade-prevention block from dispatch prompts.
+2. **T-322.6** P3 sdd — memory:// link hover preview card (frontend)
+3. **T-322.16** P1 sdd — Replace local-storage helpers with VueUse storage
+4. **T-322.17** P1 sdd — Replace resize handle drag plumbing with VueUse events
+5. **T-322.18** P1 sdd — Replace pipeline polling timer with VueUse interval
+6. **T-322.24** P1 sdd — Collapse ToolNodeFields wrapper component
+7. **T-322.30** P3 tdd — Sanitize wikilink queries in WikilinkCreateDialog + useMemoryPromotion-helpers
+8. **T-322.31** P3 tdd — Convert check-node-modules-integrity-missing.test.mjs to Vitest style
+9. **T-322.32 / T-322.33** P3 sdd — deploy-daemon.sh hardening (verify no conflict with T-322.36 from iter-4)
+10. **T-322.34** P3 sdd — Edge-case enumeration rule refinements (12 1-line edits across 3 agent.md files)
+11. **T-324.3** P1 tdd — env resolution mcpServers stdio (NEW iter-5)
+12. **T-325.2** P2 tdd — gate_Reopen UX done/-location (NEW iter-5)
+13. **T-324.5** P2 sdd — docs env-source (NEW iter-5, depends on T-324.3)
+14. **T-319.1b** (file me!) — remaining 5 Cmd+K palette providers per iter-4 thoughts
 
-1. **T-314.2** P1 tdd — Generic file attachment hardening (size caps + URI uniqueness + textual blob dispatcher). Wait for T-314.1 to merge first; both touch attachment-helpers.ts.
-2. **T-315.1** P1 tdd — audit-crates debt: 13 pre-existing violations across gate-core/core/jockey. **Needs decomposition** before dispatch — too many files for one task-pm. Decompose into T-315.1.1 (gate-core 2 files), T-315.1.2 (core/mcp 2 files), T-315.1.3 (core/workflow/pipeline 3 files), T-315.1.4 (core/api 2 files), T-315.1.5 (core/tools+repair 2 files), T-315.1.6 (jockey 2 remaining files). Note: T-315.2 already covered jockey/handler_execute.rs; spec already excludes that.
-3. **T-322.5** (in flight) — memory URL autolink + edge cases
-4. **T-322.6** P3 sdd — memory:// link hover preview card
-5. **T-322.24** P1 sdd — collapse ToolNodeFields wrapper component (HOLD: this contended with T-322.26-v2 import rewrites; verify after iter-4 merges land that the wrapper file still has no remaining callers)
-6. **T-322.29** (in flight) — sanitize 5 more getErrorMessage consumers
-7. **T-322.30** P3 tdd — sanitize wikilink queries in WikilinkCreateDialog + useMemoryPromotion-helpers
-8. **T-322.31** P3 tdd — convert check-node-modules-integrity-missing.test.mjs to vitest style
-9. **T-322.32** P3 sdd — deploy-daemon.sh sanity-check lsof path contains 'maenifold' (CAREFUL: just merged T-322.36 which already touched deploy-daemon.sh; verify no conflict)
-10. **T-322.33** P3 sdd — deploy-daemon.sh replace 2s sleep with PID-discovery retry loop (same caveat re: T-322.36)
-11. **T-322.34** P3 sdd — Edge-case enumeration rule refinements
-12. **T-322.35** P3 sdd — ralph/prompt.md CDP-bound task-scope rule (PM-direct doc edit, trivial)
-13. **T-319.1b** (file me!) — remaining 5 Cmd+K palette providers (workflows, pipelines, gate tasks, knowledge notes, settings). Architecture from T-319.1 supports easy extension.
-14. **T-324.x** sprint 324 children — config env passthrough decomposition. T-324.0 epic still needs decomposition into the 5 children mentioned in its umbrella spec; T-324.1 and T-324.2 already shipped in earlier sprints. Need T-324.3 (mcpServers stdio spawn wire), T-324.4 (UI Settings view), T-324.5 (docs).
+NOT in dispatch queue (UAT-priority-floor or functionally-UAT per the new T-322.35 rule):
+- T-303.9, T-303.18.2, T-303.18.6, T-303.19.1, T-304.2, T-304.3, T-304.6, T-304.19, T-305.17, T-311.2, T-316.2
 
-NOT in dispatch queue (UAT-priority-floor, do not dispatch unless user asks):
-- T-302.12, T-302.65, T-303.4.21, T-303.10, T-303.18.6 (just reopened via gate_Reopen this iter; still UAT)
-- T-303.9, T-303.18.2, T-303.19.1, T-304.2, T-304.3, T-304.6, T-304.19, T-311.2 (UAT/perf-measurement)
-- T-305.17 (clear-history test refresh — UAT-ish)
-- T-316.2 (plyr AV evaluation — research/eval, low value)
+## Open process improvements
 
-## Open process improvements (file as gate tasks next iter if dispatching)
+1. **T-325.3 lands → trim cascade-prevention block from dispatch prompts + raise concurrency ceiling to 10.**
+2. **task-pm.md is now correct on cascade prevention** (this iter, MANDATORY section). Verify future agent customizations preserve the section.
+3. **gate_Reopen UX (T-325.2, P2)** — atomic done/→todo handling. Iter-5 PM did 5 manual mv rounds before reopen worked.
+4. **Wave-boundary rubber-duck reviews** — none triggered this iter (no umbrella close where children inter-depend on cross-cutting outcomes). Iter-6 may need them after T-325.3 ships (gate hardening is structural).
 
-1. **task-pm contract clarification**: amend `~/.copilot/agents/task-pm.md` line by line: "stop after passing the SECOND-TO-LAST intermediate stage; the LAST intermediate IS the terminal transition (top PM owns it)." 8+ task-pms this iter unintentionally fired the terminal pass.
-2. **gate_Reopen UX**: file T-325.2 to extend gate_Reopen to optionally atomically `mv` the file from `done/` → `todo/` before appending the reopen record. Current API requires the user to manually mv first.
-3. **worker dispatch budget vs npm install path**: package.json-touching tasks need explicit "PM will run npm install after merge" in dispatch prompt + post-merge step in PM playbook.
-4. **Mid-merge conflict resolution from stale worker branches**: T-322.26 needed two attempts because its base was stale. Consider auto-rebasing worker branches against latest dev BEFORE dispatching, or at least flagging stale branches in the PM's saturation check.
+## Iter throughput tally — record by my read
 
-## Iter throughput tally
-
-- **18 task-pm shipments (code merged)**
-- **3 WONTFIX cascades with cited evidence** (NOT user-direction-defying — premise verifiably dead in each case)
-- **5 gate-state cleanups** via new gate_Reopen primitive
-- **22 dev commits** (worker commits + merges + 3 PM-direct hygiene)
-- **1 daemon redeploy** (post-T-325.1 merge; manually bounced after T-322.36's deploy-daemon bug was exposed)
-- **1 major new primitive shipped**: gate_Reopen (T-325.1) — eliminates the manual-mv-from-done error-state trap permanently
-- **0 sprint umbrellas converged**
+- **10 SWE shipments merged to dev** (5 wave-1 + 5 wave-2 — all 10 originally dispatched tasks completed, 5 via cascade recovery + 5 via clean v2 dispatch)
+- **3 PM-direct shipments** (T-322.35 + learnings.md + task-pm.md global cascade-prevention update)
+- **9 sprint umbrella/parent closures** (T-313.0, T-317.0, T-318.0, T-319.0, T-321.0, T-323.0 wave-1; T-314.0, T-315.0, T-315.1 wave-2)
+- **2 WONTFIX cascades with cited evidence** (T-302.12 + T-302.65)
+- **5 cascade recoveries via gate_Reopen**
+- **4 new hardening/decomposition specs filed** (T-325.3, T-325.2, T-324.3, T-324.5)
+- **Audit-crates: 13 → 0 violations** — sprint 315 completely drained
 - **0 user interruptions during dispatch**
+- **1 major systemic incident discovered + recovered + hardened against permanently** (gate_Pass cascade)
+- **0 worktrees left at iter close** — clean handoff

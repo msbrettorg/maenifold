@@ -21,6 +21,12 @@ const TWO_HOURS_BEFORE = NOW_MS - 2 * 60 * 60 * 1000;
 // 2026-05-01T10:00:05Z = 2h before + 5s
 const FIVE_SECS_AFTER = TWO_HOURS_BEFORE + 5000;
 
+const FIXTURE_RUNS: PipelineRunSummary[] = [
+  { nodeId: 'charlie-node', startedAt: 1746100000000, completedAt: 1746100100000, status: 'completed', outcome: 'succeeded' },
+  { nodeId: 'alpha-node', startedAt: 1746100400000, completedAt: 1746100500000, status: 'completed', outcome: 'succeeded' },
+  { nodeId: 'bravo-node', startedAt: 1746100200000, completedAt: 1746100300000, status: 'completed', outcome: 'failed' },
+];
+
 describe('PipelineRunHistoryPanel', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -91,5 +97,41 @@ describe('PipelineRunHistoryPanel', () => {
     expect(wrapper.find('[data-testid="run-started"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="run-started-empty"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="run-started-empty"]').text()).toBe('—');
+  });
+
+  describe('sort controls', () => {
+    it('defaults to Newest activity sort order', () => {
+      const wrapper = mount(PipelineRunHistoryPanel, { props: { runs: FIXTURE_RUNS } });
+
+      const renderedNodeIds = wrapper.findAll('[data-testid="run-node-id"]').map((el) => el.text());
+      expect(renderedNodeIds).toEqual(['alpha-node', 'bravo-node', 'charlie-node']);
+
+      const sortSelect = wrapper.find('[data-testid="sort-select"]');
+      expect(sortSelect.exists()).toBe(true);
+      expect((sortSelect.element as HTMLSelectElement).value).toBe('newest');
+      expect(sortSelect.text()).toContain('Newest activity');
+    });
+
+    it('Oldest activity sorts by startedAt ascending', async () => {
+      const wrapper = mount(PipelineRunHistoryPanel, { props: { runs: FIXTURE_RUNS } });
+
+      const sortSelect = wrapper.find('[data-testid="sort-select"]');
+      await sortSelect.setValue('oldest');
+      await wrapper.vm.$nextTick();
+
+      const renderedNodeIds = wrapper.findAll('[data-testid="run-node-id"]').map((el) => el.text());
+      expect(renderedNodeIds).toEqual(['charlie-node', 'bravo-node', 'alpha-node']);
+    });
+
+    it('Node name sorts alphabetically by nodeId', async () => {
+      const wrapper = mount(PipelineRunHistoryPanel, { props: { runs: FIXTURE_RUNS } });
+
+      const sortSelect = wrapper.find('[data-testid="sort-select"]');
+      await sortSelect.setValue('node-name');
+      await wrapper.vm.$nextTick();
+
+      const renderedNodeIds = wrapper.findAll('[data-testid="run-node-id"]').map((el) => el.text());
+      expect(renderedNodeIds).toEqual(['alpha-node', 'bravo-node', 'charlie-node']);
+    });
   });
 });

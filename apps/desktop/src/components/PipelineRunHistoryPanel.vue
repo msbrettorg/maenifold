@@ -1,7 +1,28 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue';
 import type { PipelineRunSummary } from '../lib/pipeline-types-view';
 
-defineProps<{ runs: PipelineRunSummary[] }>();
+const props = defineProps<{ runs: PipelineRunSummary[] }>();
+type SortKey = 'newest' | 'oldest' | 'node-name';
+
+const sortKey = ref<SortKey>('newest');
+
+const sortedRuns = computed(() => {
+  const copy = [...props.runs];
+
+  switch (sortKey.value) {
+    case 'newest':
+      return copy.sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0));
+    case 'oldest':
+      return copy.sort((a, b) => {
+        if (a.startedAt === null) return 1;
+        if (b.startedAt === null) return -1;
+        return a.startedAt - b.startedAt;
+      });
+    case 'node-name':
+      return copy.sort((a, b) => a.nodeId.localeCompare(b.nodeId));
+  }
+});
 
 const STATUS_CHIP: Record<string, string> = {
   pending:   'bg-status-pending/15 text-status-pending',
@@ -61,12 +82,23 @@ function formatDuration(startedAt: number | null, completedAt: number | null): s
     class="flex flex-col"
     aria-label="Run history"
   >
-    <h4 class="px-3 pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
-      Run History
-    </h4>
+    <div class="flex items-center justify-between gap-2 px-3 pt-3 pb-1">
+      <h4 class="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+        Run History
+      </h4>
+      <select
+        v-model="sortKey"
+        class="rounded border border-border-subtle bg-bg-surface px-1.5 py-0.5 text-xs text-text-secondary"
+        data-testid="sort-select"
+      >
+        <option value="newest">Newest activity</option>
+        <option value="oldest">Oldest activity</option>
+        <option value="node-name">Node name</option>
+      </select>
+    </div>
 
     <p
-      v-if="runs.length === 0"
+      v-if="sortedRuns.length === 0"
       class="px-3 pb-3 text-sm text-text-secondary"
       data-testid="run-history-empty"
     >
@@ -79,7 +111,7 @@ function formatDuration(startedAt: number | null, completedAt: number | null): s
       data-testid="run-history-list"
     >
       <li
-        v-for="(run, idx) in runs"
+        v-for="(run, idx) in sortedRuns"
         :key="`${run.nodeId}-${idx}`"
         class="flex flex-col gap-1 rounded-md border border-border-subtle bg-bg-surface p-2 text-xs"
         :data-testid="`run-row-${idx}`"

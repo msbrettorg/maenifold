@@ -66,9 +66,10 @@ impl McpServerEntry {
                             .collect(),
                     ),
             ),
-            McpServerEntry::Http { name, url } => {
-                acp::McpServer::Http(acp::McpServerHttp::new(name.clone(), url.clone()))
-            }
+            McpServerEntry::Http { name, url } => acp::McpServer::Http(acp::McpServerHttp::new(
+                name.clone(),
+                acp_http_url(name, url),
+            )),
         }
     }
 
@@ -79,6 +80,59 @@ impl McpServerEntry {
                 .unwrap_or(DEFAULT_DISCOVERY_TIMEOUT),
             McpServerEntry::Http { .. } => DEFAULT_DISCOVERY_TIMEOUT,
         }
+    }
+}
+
+fn acp_http_url(name: &str, url: &str) -> String {
+    if name.eq_ignore_ascii_case("maenifold") {
+        return ipv4_loopback_url(url);
+    }
+    url.to_string()
+}
+
+fn ipv4_loopback_url(url: &str) -> String {
+    for prefix in ["http://localhost", "https://localhost"] {
+        let Some(rest) = url.strip_prefix(prefix) else {
+            continue;
+        };
+        if rest.is_empty() || rest.starts_with(':') || rest.starts_with('/') {
+            return format!("{}127.0.0.1{}", prefix.trim_end_matches("localhost"), rest);
+        }
+    }
+    url.to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::McpServerEntry;
+    use agent_client_protocol as acp;
+
+    #[test]
+    fn maenifold_http_mcp_uses_ipv4_loopback_for_acp_agents() {
+        let entry = McpServerEntry::Http {
+            name: "maenifold".to_string(),
+            url: "http://localhost:8080/mcp".to_string(),
+        };
+
+        let acp::McpServer::Http(server) = entry.to_acp() else {
+            panic!("expected HTTP MCP server");
+        };
+
+        assert_eq!(server.url.as_str(), "http://127.0.0.1:8080/mcp");
+    }
+
+    #[test]
+    fn non_maenifold_http_mcp_keeps_configured_hostname() {
+        let entry = McpServerEntry::Http {
+            name: "other-local".to_string(),
+            url: "http://localhost:9999/mcp".to_string(),
+        };
+
+        let acp::McpServer::Http(server) = entry.to_acp() else {
+            panic!("expected HTTP MCP server");
+        };
+
+        assert_eq!(server.url.as_str(), "http://localhost:9999/mcp");
     }
 }
 

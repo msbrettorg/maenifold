@@ -1,7 +1,8 @@
+import { StorageSerializers, useLocalStorage } from '@vueuse/core';
 import { defineStore } from 'pinia';
-import { ref, watch } from 'vue';
+import { watch } from 'vue';
 import { PREFS_STORE_PATH } from '../lib/constants';
-import { readStorageValue, writeStorageValue } from '../lib/local-storage';
+import { storageKey } from '../lib/storage-key';
 import { initTelemetry, setTelemetryEnabled as setTelemetryRuntimeEnabled } from '../lib/telemetry';
 
 const STORAGE_KEY = 'uiPreferencesSettings';
@@ -41,22 +42,6 @@ function createDefaultState(): UiPreferencesSettingsState {
     denseMode: false,
     telemetryEnabled: false,
     restoreLastWorkingDirectory: true,
-  };
-}
-
-function mergeState(saved: unknown): UiPreferencesSettingsState {
-  const defaults = createDefaultState();
-  if (!saved || typeof saved !== 'object') {
-    return defaults;
-  }
-
-  const value = saved as Partial<UiPreferencesSettingsState>;
-  return {
-    theme: value.theme ?? defaults.theme,
-    fontScale: value.fontScale ?? defaults.fontScale,
-    denseMode: value.denseMode ?? defaults.denseMode,
-    telemetryEnabled: value.telemetryEnabled ?? defaults.telemetryEnabled,
-    restoreLastWorkingDirectory: value.restoreLastWorkingDirectory ?? defaults.restoreLastWorkingDirectory,
   };
 }
 
@@ -113,18 +98,30 @@ function applyDenseMode(enabled: boolean) {
 }
 
 export const useUiPreferencesSettingsStore = defineStore('uiPreferencesSettings', () => {
-  const settings = ref<UiPreferencesSettingsState>(createDefaultState());
-  const initialized = ref(false);
+  const settings = useLocalStorage<UiPreferencesSettingsState>(
+    storageKey(PREFS_STORE_PATH, STORAGE_KEY),
+    createDefaultState(),
+    {
+      mergeDefaults: true,
+      serializer: StorageSerializers.object,
+    },
+  );
+  const legacyTelemetryEnabled = useLocalStorage<boolean | null>(
+    storageKey(PREFS_STORE_PATH, LEGACY_TELEMETRY_KEY),
+    null,
+    { serializer: StorageSerializers.object },
+  );
+  const legacyRestoreCwd = useLocalStorage<boolean | null>(
+    storageKey(PREFS_STORE_PATH, LEGACY_RESTORE_CWD_KEY),
+    null,
+    { serializer: StorageSerializers.object },
+  );
 
   watch(
     settings,
     (next) => {
-      if (!initialized.value) {
-        return;
-      }
-      writeStorageValue(PREFS_STORE_PATH, STORAGE_KEY, next);
-      writeStorageValue(PREFS_STORE_PATH, LEGACY_TELEMETRY_KEY, next.telemetryEnabled);
-      writeStorageValue(PREFS_STORE_PATH, LEGACY_RESTORE_CWD_KEY, next.restoreLastWorkingDirectory);
+      legacyTelemetryEnabled.value = next.telemetryEnabled;
+      legacyRestoreCwd.value = next.restoreLastWorkingDirectory;
     },
     { deep: true },
   );
@@ -136,14 +133,13 @@ export const useUiPreferencesSettingsStore = defineStore('uiPreferencesSettings'
   }
 
   function init() {
-    settings.value = mergeState(readStorageValue<UiPreferencesSettingsState>(PREFS_STORE_PATH, STORAGE_KEY));
-    settings.value.telemetryEnabled = readStorageValue<boolean>(PREFS_STORE_PATH, LEGACY_TELEMETRY_KEY)
-      ?? settings.value.telemetryEnabled;
-    settings.value.restoreLastWorkingDirectory =
-      readStorageValue<boolean>(PREFS_STORE_PATH, LEGACY_RESTORE_CWD_KEY)
-      ?? settings.value.restoreLastWorkingDirectory;
+    if (typeof legacyTelemetryEnabled.value === 'boolean') {
+      settings.value.telemetryEnabled = legacyTelemetryEnabled.value;
+    }
+    if (typeof legacyRestoreCwd.value === 'boolean') {
+      settings.value.restoreLastWorkingDirectory = legacyRestoreCwd.value;
+    }
     applyRuntimeState();
-    initialized.value = true;
   }
 
   async function setTelemetryEnabled(enabled: boolean) {

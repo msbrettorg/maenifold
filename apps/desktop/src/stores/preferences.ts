@@ -1,7 +1,7 @@
+import { StorageSerializers, useLocalStorage } from '@vueuse/core';
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
 import { PREFS_STORE_PATH } from '../lib/constants';
-import { readStorageValue, writeStorageValue } from '../lib/local-storage';
+import { storageKey } from '../lib/storage-key';
 
 export type FontDensity = 'compact' | 'default' | 'comfortable';
 
@@ -60,20 +60,24 @@ function applyScale(density: FontDensity): void {
 }
 
 export const usePreferencesStore = defineStore('preferences', () => {
-  const fontDensity = ref<FontDensity>('default');
+  const fontDensity = useLocalStorage<FontDensity>(
+    storageKey(PREFS_STORE_PATH, STORAGE_KEY),
+    'default',
+    { serializer: StorageSerializers.object },
+  );
 
   function setFontDensity(density: FontDensity) {
     fontDensity.value = density;
-    writeStorageValue(PREFS_STORE_PATH, STORAGE_KEY, density);
     applyScale(density);
   }
 
   function init() {
-    const saved = readStorageValue<FontDensity>(PREFS_STORE_PATH, STORAGE_KEY);
-    if (saved && saved in DENSITY_SCALES) {
-      fontDensity.value = saved;
-      applyScale(saved);
+    if (typeof fontDensity.value === 'string' && fontDensity.value in DENSITY_SCALES) {
+      applyScale(fontDensity.value);
+      return;
     }
+    fontDensity.value = 'default';
+    applyScale('default');
   }
 
   return {

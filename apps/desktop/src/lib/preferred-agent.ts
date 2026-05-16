@@ -1,16 +1,20 @@
+import { StorageSerializers, useLocalStorage } from '@vueuse/core';
 import { PREFS_STORE_PATH } from './constants';
-import { readStorageValue, writeStorageValue } from './local-storage';
+import { storageKey } from './storage-key';
 
 export const LAST_USED_AGENT_KEY = 'lastUsedAgent';
+const lastUsedAgent = useLocalStorage<string>(
+  storageKey(PREFS_STORE_PATH, LAST_USED_AGENT_KEY),
+  '',
+  { serializer: StorageSerializers.object },
+);
 
 function normalizeAgentName(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
 export function readLastUsedAgent(): string | null {
-  const agentName = normalizeAgentName(
-    readStorageValue<string>(PREFS_STORE_PATH, LAST_USED_AGENT_KEY),
-  );
+  const agentName = normalizeAgentName(lastUsedAgent.value);
   return agentName || null;
 }
 
@@ -20,7 +24,7 @@ export function writeLastUsedAgent(agentName: string): void {
     return;
   }
 
-  writeStorageValue(PREFS_STORE_PATH, LAST_USED_AGENT_KEY, normalized);
+  lastUsedAgent.value = normalized;
 }
 
 /**

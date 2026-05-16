@@ -1,7 +1,7 @@
+import { StorageSerializers, useLocalStorage } from '@vueuse/core';
 import { defineStore } from 'pinia';
-import { ref, watch } from 'vue';
 import { PREFS_STORE_PATH } from '../lib/constants';
-import { readStorageValue, writeStorageValue } from '../lib/local-storage';
+import { storageKey } from '../lib/storage-key';
 
 const STORAGE_KEY = 'authSettings';
 
@@ -56,56 +56,17 @@ function createDefaultState(): AuthSettingsState {
   };
 }
 
-function mergeState(saved: unknown): AuthSettingsState {
-  const defaults = createDefaultState();
-  if (!saved || typeof saved !== 'object') {
-    return defaults;
-  }
-
-  const value = saved as Partial<AuthSettingsState>;
-  return {
-    identity: {
-      provider: value.identity?.provider ?? defaults.identity.provider,
-      displayName: value.identity?.displayName ?? defaults.identity.displayName,
-      principal: value.identity?.principal ?? defaults.identity.principal,
-      tenant: value.identity?.tenant ?? defaults.identity.tenant,
-    },
-    session: {
-      isSignedIn: value.session?.isSignedIn ?? defaults.session.isSignedIn,
-      lastSignInAt: value.session?.lastSignInAt ?? defaults.session.lastSignInAt,
-      lastSignOutAt: value.session?.lastSignOutAt ?? defaults.session.lastSignOutAt,
-    },
-    token: {
-      label: value.token?.label ?? defaults.token.label,
-      status: value.token?.status ?? defaults.token.status,
-      expiresAt: value.token?.expiresAt ?? defaults.token.expiresAt,
-      autoRefresh: value.token?.autoRefresh ?? defaults.token.autoRefresh,
-      rotateOnReconnect: value.token?.rotateOnReconnect ?? defaults.token.rotateOnReconnect,
-      metadata: value.token?.metadata ?? defaults.token.metadata,
-    },
-    reconnectRequired: value.reconnectRequired ?? defaults.reconnectRequired,
-  };
-}
-
 export const useAuthSettingsStore = defineStore('authSettings', () => {
-  const settings = ref<AuthSettingsState>(createDefaultState());
-  const initialized = ref(false);
-
-  watch(
-    settings,
-    (next) => {
-      if (!initialized.value) {
-        return;
-      }
-      writeStorageValue(PREFS_STORE_PATH, STORAGE_KEY, next);
+  const settings = useLocalStorage<AuthSettingsState>(
+    storageKey(PREFS_STORE_PATH, STORAGE_KEY),
+    createDefaultState(),
+    {
+      mergeDefaults: true,
+      serializer: StorageSerializers.object,
     },
-    { deep: true },
   );
 
-  function init() {
-    settings.value = mergeState(readStorageValue<AuthSettingsState>(PREFS_STORE_PATH, STORAGE_KEY));
-    initialized.value = true;
-  }
+  function init() {}
 
   function markCredentialChanged() {
     settings.value.reconnectRequired = true;

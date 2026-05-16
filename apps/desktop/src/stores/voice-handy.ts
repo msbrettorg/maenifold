@@ -1,6 +1,7 @@
+import { StorageSerializers, useLocalStorage } from '@vueuse/core';
 import { defineStore } from 'pinia';
 import { onUnmounted, ref } from 'vue';
-import { readStorageValue, writeStorageValue } from '../lib/local-storage';
+import { storageKey } from '../lib/storage-key';
 
 const STORE_NS = 'voice';
 const ENABLED_KEY = 'enabled';
@@ -12,7 +13,11 @@ export const useVoiceHandyStore = defineStore('voice-handy', () => {
   const running = ref(false);
   const path = ref<string | null>(null);
   const installHint = ref('');
-  const enabled = ref(readStorageValue<boolean>(STORE_NS, ENABLED_KEY) ?? false);
+  const enabled = useLocalStorage<boolean>(
+    storageKey(STORE_NS, ENABLED_KEY),
+    false,
+    { serializer: StorageSerializers.object },
+  );
   const lastError = ref<string | null>(null);
 
   const hasElectronApi = typeof window !== 'undefined'
@@ -66,7 +71,6 @@ export const useVoiceHandyStore = defineStore('voice-handy', () => {
 
   function setEnabled(value: boolean) {
     enabled.value = value;
-    writeStorageValue(STORE_NS, ENABLED_KEY, value);
   }
 
   function startPolling() {

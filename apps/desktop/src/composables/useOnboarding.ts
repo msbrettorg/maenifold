@@ -1,7 +1,8 @@
+import { StorageSerializers, useLocalStorage } from '@vueuse/core';
 import { computed, toValue, type ComputedRef, ref, type MaybeRefOrGetter, type Ref } from 'vue';
 
 import { PREFS_STORE_PATH } from '../lib/constants';
-import { readStorageValue, writeStorageValue } from '../lib/local-storage';
+import { storageKey } from '../lib/storage-key';
 
 export const ONBOARDING_STEPS = ['welcome', 'daemon', 'agent', 'model', 'vec0', 'done'] as const;
 export const DEFAULT_ONBOARDING_STEPS = ['welcome', 'daemon', 'agent', 'model', 'done'] as const;
@@ -52,12 +53,7 @@ export interface UseOnboardingReturn {
   markComplete: () => void;
 }
 
-function readOnboardingState(): OnboardingState | null {
-  return readStorageValue<OnboardingState>(PREFS_STORE_PATH, ONBOARDING_KEY);
-}
-
-function readProgressState(): ProgressState | null {
-  const state = readStorageValue<Partial<ProgressState>>(PREFS_STORE_PATH, PROGRESS_KEY);
+function normalizeProgressState(state: unknown): ProgressState | null {
   if (!isRecord(state)) {
     return null;
   }
@@ -91,6 +87,16 @@ export async function hasExistingMaenifoldConfig(): Promise<boolean> {
 export function useOnboarding(
   stepSource: MaybeRefOrGetter<readonly OnboardingStepId[]> = DEFAULT_ONBOARDING_STEPS,
 ): UseOnboardingReturn {
+  const onboardingState = useLocalStorage<OnboardingState | null>(
+    storageKey(PREFS_STORE_PATH, ONBOARDING_KEY),
+    null,
+    { serializer: StorageSerializers.object },
+  );
+  const progressState = useLocalStorage<Partial<ProgressState> | null>(
+    storageKey(PREFS_STORE_PATH, PROGRESS_KEY),
+    null,
+    { serializer: StorageSerializers.object },
+  );
   const isFirstRun = ref<boolean | null>(null);
   const step = ref<number>(0);
   const highWaterStep = ref<number>(0);
@@ -114,7 +120,7 @@ export function useOnboarding(
   }
 
   function currentMarkers(): Record<string, boolean> {
-    return readProgressState()?.markers ?? {};
+    return normalizeProgressState(progressState.value)?.markers ?? {};
   }
 
   function persistProgress(markers: Record<string, boolean> = currentMarkers()): void {
@@ -123,11 +129,11 @@ export function useOnboarding(
       highWaterStep: clampStep(highWaterStep.value),
       markers,
     };
-    writeStorageValue(PREFS_STORE_PATH, PROGRESS_KEY, state);
+    progressState.value = state;
   }
 
   function restoreProgress(): void {
-    const state = readProgressState();
+    const state = normalizeProgressState(progressState.value);
     if (!state) {
       return;
     }
@@ -158,7 +164,7 @@ export function useOnboarding(
   }
 
   function checkFirstRun(): boolean {
-    const state = readOnboardingState();
+    const state = onboardingState.value;
     if (!state || !state.completed || state.version < CURRENT_VERSION) {
       isFirstRun.value = true;
       return true;
@@ -168,7 +174,7 @@ export function useOnboarding(
   }
 
   async function checkFirstRunWithConfig(): Promise<boolean> {
-    const localState = readOnboardingState();
+    const localState = onboardingState.value;
     const localSaysReturning =
       !!localState && localState.completed && localState.version >= CURRENT_VERSION;
 
@@ -216,12 +222,11 @@ export function useOnboarding(
   }
 
   function markComplete(): void {
-    const state: OnboardingState = {
+    onboardingState.value = {
       completed: true,
       completedAt: new Date().toISOString(),
       version: CURRENT_VERSION,
     };
-    writeStorageValue(PREFS_STORE_PATH, ONBOARDING_KEY, state);
     isFirstRun.value = false;
   }
 

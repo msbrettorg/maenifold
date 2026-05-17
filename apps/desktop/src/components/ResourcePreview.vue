@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { Download } from 'lucide-vue-next';
 import type { DispatchedResource } from '../lib/resource-mime-dispatcher';
+import AudioBlock from './AudioBlock.vue';
 import MarkdownView from './MarkdownView.vue';
 import VideoBlock from './VideoBlock.vue';
 import { Button } from './ui/button';
@@ -84,11 +85,11 @@ function formatFileSize(bytes: number): string {
     :src="dispatched.src"
     :mime-type="dispatched.mimeType"
   />
-  <audio
+  <AudioBlock
     v-else-if="dispatched.kind === 'audio'"
-    class="w-[min(100%,28rem)]"
-    controls
     :src="dispatched.src"
+    :mime-type="dispatched.mimeType"
+    :label="dispatched.name ?? 'Audio preview'"
   />
   <Card
     v-else-if="dispatched.kind === 'too-large'"

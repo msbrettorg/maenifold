@@ -2,6 +2,7 @@
 import type { ContentBlock } from '../lib/types';
 import { dispatchResource } from '../lib/resource-mime-dispatcher';
 import type { ResourceContent } from '../lib/resource-mime-dispatcher';
+import AudioBlock from './AudioBlock.vue';
 import MarkdownView from './MarkdownView.vue';
 import ResourceLinkPreview from './ResourceLinkPreview.vue';
 import ResourcePreview from './ResourcePreview.vue';
@@ -59,11 +60,11 @@ function getBlockAriaLabel(block: ContentBlock): string {
         :src="getImageSrc(block)"
         :alt="block.uri ?? 'Message image'"
       />
-      <audio
+      <AudioBlock
         v-else-if="block.type === 'audio'"
-        class="w-[min(100%,28rem)]"
-        controls
         :src="getAudioSrc(block)"
+        :mime-type="block.mimeType"
+        label="Audio content"
       />
       <ResourceLinkPreview
         v-else-if="block.type === 'resource_link'"

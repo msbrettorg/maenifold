@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { PipelineRunSummary } from '../lib/pipeline-types-view';
 
 const props = defineProps<{ runs: PipelineRunSummary[] }>();
@@ -86,15 +93,20 @@ function formatDuration(startedAt: number | null, completedAt: number | null): s
       <h4 class="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
         Run History
       </h4>
-      <select
-        v-model="sortKey"
-        class="rounded border border-border-subtle bg-bg-surface px-1.5 py-0.5 text-xs text-text-secondary"
+      <Select
+        :model-value="sortKey"
         data-testid="sort-select"
+        @update:model-value="sortKey = ($event as SortKey)"
       >
-        <option value="newest">Newest activity</option>
-        <option value="oldest">Oldest activity</option>
-        <option value="node-name">Node name</option>
-      </select>
+        <SelectTrigger class="h-7 rounded border-border-subtle bg-bg-surface px-1.5 text-xs text-text-secondary">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="newest">Newest activity</SelectItem>
+          <SelectItem value="oldest">Oldest activity</SelectItem>
+          <SelectItem value="node-name">Node name</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
 
     <p

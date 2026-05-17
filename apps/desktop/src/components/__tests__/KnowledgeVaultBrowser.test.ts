@@ -85,6 +85,16 @@ const uiStubs = {
   KnowledgeRowActions: {
     template: '<div data-testid="row-actions-stub" />',
   },
+  Select: {
+    name: 'Select',
+    props: ['modelValue'],
+    emits: ['update:modelValue'],
+    template: '<div v-bind="$attrs" :data-model-value="modelValue"><slot /></div>',
+  },
+  SelectContent: { template: '<div><slot /></div>' },
+  SelectItem: { props: ['value'], template: '<div :data-value="value"><slot /></div>' },
+  SelectTrigger: { template: '<div><slot /></div>' },
+  SelectValue: { template: '<span />' },
 };
 
 function seedStore(): void {
@@ -105,14 +115,15 @@ async function mountBrowser() {
 }
 
 function getSortControl(wrapper: Awaited<ReturnType<typeof mountBrowser>>) {
-  const byTestId = wrapper.find('[data-testid="vault-sort-select"]');
-  return byTestId.exists() ? byTestId : wrapper.find('select');
+  return wrapper.find('[data-testid="vault-sort-select"]');
 }
 
 async function setSort(wrapper: Awaited<ReturnType<typeof mountBrowser>>, value: string): Promise<void> {
   const control = getSortControl(wrapper);
   expect(control.exists()).toBe(true);
-  await control.setValue(value);
+  const selectVm = wrapper.findComponent({ name: 'Select' });
+  expect(selectVm.exists()).toBe(true);
+  selectVm.vm.$emit('update:modelValue', value);
   await flushPromises();
 }
 
@@ -146,13 +157,19 @@ describe('KnowledgeVaultBrowser sort controls', () => {
     mockCallTool.mockReset();
   });
 
+  it('sort control is not a raw HTML select element', async () => {
+    const wrapper = await mountBrowser();
+    expect(wrapper.find('select').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="vault-sort-select"]').exists()).toBe(true);
+  });
+
   describe('tree mode', () => {
     it('defaults to Name (A-Z) sort', async () => {
       const wrapper = await mountBrowser();
       const control = getSortControl(wrapper);
 
       expect(control.exists()).toBe(true);
-      expect((control.element as HTMLSelectElement).value).toBe('name-asc');
+      expect(control.attributes('data-model-value')).toBe('name-asc');
       expect(renderedTreeEntries(wrapper)).toEqual([
         'alpha-folder',
         'zeta-folder',
@@ -211,7 +228,7 @@ describe('KnowledgeVaultBrowser sort controls', () => {
 
       const control = getSortControl(wrapper);
       expect(control.exists()).toBe(true);
-      expect((control.element as HTMLSelectElement).value).toBe('relevance');
+      expect(control.attributes('data-model-value')).toBe('relevance');
       expect(renderedSearchEntries(wrapper)).toEqual(['cherry.md', 'banana.md', 'apple.md']);
     });
 
@@ -243,13 +260,13 @@ describe('KnowledgeVaultBrowser sort controls', () => {
 
       const searchControl = getSortControl(wrapper);
       expect(searchControl.exists()).toBe(true);
-      expect((searchControl.element as HTMLSelectElement).value).toBe('relevance');
+      expect(searchControl.attributes('data-model-value')).toBe('relevance');
 
       await openTreeMode(wrapper);
 
       const treeControl = getSortControl(wrapper);
       expect(treeControl.exists()).toBe(true);
-      expect((treeControl.element as HTMLSelectElement).value).toBe('name-desc');
+      expect(treeControl.attributes('data-model-value')).toBe('name-desc');
       expect(renderedTreeEntries(wrapper)).toEqual([
         'zeta-folder',
         'alpha-folder',

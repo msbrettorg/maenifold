@@ -159,7 +159,7 @@ fn build_request_body(resolved: &ResolvedInference, prompt: &str) -> Value {
     let mut body = json!({
         "messages": [{ "role": "user", "content": prompt }],
         "temperature": 0.0,
-        "max_tokens": 2048,
+        "max_completion_tokens": 2048,
     });
     if resolved.provider != "azureOpenAI" {
         // OpenAI requires `model`; Azure routes by deployment in the URL.

@@ -69,7 +69,7 @@ fn build_chat_completions_body(
 ) -> Value {
     let mut body = json!({
         "messages": [{ "role": "user", "content": prompt }],
-        "max_tokens": max_tokens,
+        "max_completion_tokens": max_tokens,
     });
     if resolved.provider != "azureOpenAI" {
         body["model"] = json!(resolved.deployment);

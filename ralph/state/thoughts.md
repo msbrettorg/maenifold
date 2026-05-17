@@ -1,16 +1,26 @@
 # RALPH Thoughts
 
-Handoff from **iter-14** (2026-05-16 ~14:30 PT → 18:05 PT, ~3.5h). **23 ships** — the most in a single iter recorded. The 7-iter steady-state ended when the user reversed the prior WONTFIX cascade (12 [[gate_Reopen]] calls) AND fixed the protocol's CDP auto-skip rule.
+Handoff from **iter-14** (2026-05-16 ~14:30 PT → 18:08 PT, ~3.5h). **24 ships** — extended from 23 after T-326.4.1 landed post-close. The 7-iter steady-state ended when the user reversed the prior WONTFIX cascade (12 [[gate_Reopen]] calls) AND fixed the protocol's CDP auto-skip rule.
 
 ## ⚠️ NEXT-PM FIRST READ — open items requiring user direction
 
 **1. T-309.3 unchanged.** Constitution-blocked under [[anti-cargo-cult-security]] hold per AGENTS.md P0 #5. Unblocks ONLY on real XSS / supply-chain incident, DOMPurify bypass, user explicit authorization, or external review requiring it. Path-constraint defense (`requireNonSymlinkWritePath` + `requireWriteWithinMemory`) bounds worst-case bypass to `~/maenifold/memory` regardless. Do NOT dispatch.
 
-**2. T-326.4.1 may still be running at next-PM boot.** The wire-format-fix task-pm (model: claude-opus-4.6) was dispatched at ~17:33 PT and was at ~22 min runtime when the user signaled "no agents in flight" at ~18:02 PT. Worktree alive at `worktrees/T-326.4.1` with branch `worker-T-326.4.1`. Two paths:
-  - If it ever returns clean-completion, top PM verifies the wire-format integration test, merges, terminal-passes, and re-dispatches T-303.4.21 v4 against the fixed daemon
-  - If it doesn't return / hits its 30-min wall-clock, top PM `kill`s the process, removes the worktree, and either re-dispatches with explicit guidance OR direct-dispatches a senior inner-loop worker with the spec's "add stderr logging to initialize request" steps
+**2. T-326.4.1 SHIPPED post-close (~18:08 PT, after iter-14 was nominally closed).** KEY FINDING: the sampling wire format was ALREADY correct (`enable_sampling()` + `enable_sampling_tools()` serialize to `"sampling":{"tools":{}}` in the JSON-RPC initialize). T-303.4.21 v2/v3 failures were caused by a STALE daemon binary — even though I ran `launchctl kickstart -k gui/$UID/com.ma-collective.maenifold` twice mid-iter, the running daemon was apparently NOT replaced with the freshly-built one. Shipped: (1) wire-level integration test `initialize_request_wire_format_includes_sampling_capability`, (2) `tracing::debug!` diagnostic logging at handshake construction time so future UAT failures can grep daemon logs.
 
-**3. T-303.4.21 stays in 'swe' state awaiting T-326.4.1.** Fixture committed iter-14 (`apps/desktop/test-fixtures/mcp-sampling-tool/multiTurnToolLoopServer.ts`). 12 CDP UAT screenshots committed at `evidence/T-303.4.21-v3/`. v4 dispatch ready when T-326.4.1 lands.
+**3. T-303.4.21 is now dispatchable — but verify the daemon binary inode FIRST.** Before iter-15 dispatches T-303.4.21 v4, run:
+```bash
+cargo build --release -p maenifold-cli -p maenifold-pipeline-driver
+launchctl kickstart -k gui/$UID/com.ma-collective.maenifold
+sleep 5
+# Verify the running daemon is actually the freshly-built one:
+DAEMON_PID=$(launchctl list | grep com.ma-collective.maenifold | awk '{print $1}')
+lsof -p $DAEMON_PID | grep txt | head -3
+# Compare the inode/path to:
+ls -i target/release/maenifold
+# They MUST match. If they don't, the launchctl kickstart didn't replace the binary cleanly.
+```
+Also re-`npm run package` BEFORE dispatching CDP UAT (the packaged Electron binary is a separate copy).
 
 ## TL;DR — iter-14 result
 
@@ -68,7 +78,7 @@ These are pure CDP UAT tasks left in mid-pipeline by prior PMs. Per the new prot
 
 ## Iter-14 throughput tally
 
-- 23 tasks closed (21 SWE-driven ships + 2 umbrella closures)
+- 24 tasks closed (22 SWE-driven ships + 2 umbrella closures, T-326.4.1 landed post-close)
 - 1 task-pm escalation with mid-iter senior-remediation (T-302.12 via senior inner-loop worker)
 - 4 new tasks filed this iter (T-316.2.1, T-322.1.7, T-326.4, T-326.4.1) — 3 shipped same iter
 - 2 sprint-326 follow-ups filed (T-326.2, T-326.3) from T-303.4.21 escalations — both shipped same iter

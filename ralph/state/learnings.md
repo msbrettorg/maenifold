@@ -327,3 +327,21 @@ When the user reverses a WONTFIX cascade via `gate_Reopen`, the prior cited evid
 3. **If the task is a rescoping question**: PM owns the rescope (e.g., T-302.65 picked "rescope T-302.12" over "build new render_chart tool"), then ship the rescope.
 
 WONTFIX on cited evidence remains valid (per Cardinal Rule #2) but the bar is higher: the user reversing the original cascade is implicit signal the prior WONTFIX rationale was insufficient. Verify the runtime path, not just the code-level claim.
+
+### Lesson — iter-14 (2026-05-16): launchctl kickstart -k may not replace the running daemon binary
+
+After `cargo build --release -p maenifold-cli` updates `/usr/local/bin/maenifold` (which is a symlink to `target/release/maenifold`), running `launchctl kickstart -k gui/$UID/com.ma-collective.maenifold` changes the PID — but the actual running binary may still be the OLD one. This was the root cause of T-303.4.21 v2/v3 false discoveries — sampling capability was correctly on the wire all along; the running daemon just hadn't been actually replaced by my redeploys.
+
+Verification step required after EVERY mid-iter daemon redeploy:
+
+```bash
+DAEMON_PID=$(launchctl list | grep com.ma-collective.maenifold | awk '{print $1}')
+lsof -p $DAEMON_PID | grep txt | head -3
+# Compare the inode to the freshly-built binary:
+ls -i target/release/maenifold
+# Inodes MUST match. If not, the daemon process is still running the old binary.
+```
+
+If they don't match: try `launchctl unload` then `launchctl load` instead of `kickstart -k`. Or kill the daemon PID directly (launchd will respawn it with the new binary).
+
+This learning was surfaced by T-326.4.1 shipping with the finding that the sampling wire format was already correct in the source — the deployed daemon just wasn't actually running the source code I thought it was.

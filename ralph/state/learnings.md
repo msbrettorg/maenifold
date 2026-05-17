@@ -267,3 +267,63 @@ T-313.1 added `diff` npm package via package.json edit. PM merge committed the p
 - Option C: leave as-is and treat the work as accepted when the task-pm's self-reported audit + the PM's independent artifact verification both pass. The cost of the violation is "PM lost the ability to gate_Append after merge," which is acceptable for any task whose verification + merge happen in the same iter (always, per AGENTS.md).
 
 PM's iter-6 disposition: accepted as-shipped for T-322.24 (work independently verified clean); added RACI-reminder block to all subsequent dispatch prompts; documented here for iter-7+ to decide on server-side enforcement.
+
+### Lesson — iter-14 (2026-05-16): WONTFIX-on-cited-evidence requires runtime, not just compile-time, verification
+
+T-326.4 was WONTFIX'd as "already shipped" because `enable_sampling()` was present at `crates/maenifold-core/src/mcp/client_handler.rs:56` AND its unit test passed. But T-303.4.21-v3 then proved the runtime initialize handshake doesn't actually serialize the sampling capability onto the wire — the TS SDK server rejects createMessage. Unit tests using duplex transport don't catch wire-format gaps in stdio transport.
+
+When closing on cited evidence, the evidence must include:
+
+- For "already shipped" claims: a runtime trace or integration test that exercises the actual transport path the production code uses, not just an in-process unit test
+- For "premise dead" claims: a grep + a manual repro showing the failure mode the task originally asserted does NOT occur
+
+Otherwise the WONTFIX is a false-positive that wastes the next dispatch cycle.
+
+### Lesson — iter-14 (2026-05-16): Packaged Electron embeds its own backend binary copy
+
+`apps/desktop/out/maenifold-darwin-arm64/maenifold.app/Contents/MacOS/maenifold` is COPIED from `target/release/maenifold` at package time (`npm run package`), not a symlink. A backend rebuild + launchctl restart updates `/usr/local/bin/maenifold` and the launchd daemon, but the PACKAGED app launched by `scripts/uat-launch.sh` keeps the OLD binary baked into the .app bundle.
+
+For mid-iter CDP UAT that needs the latest backend, the sequence is:
+
+1. `cargo build --release -p maenifold-cli -p maenifold-pipeline-driver`
+2. `launchctl kickstart -k gui/$UID/com.ma-collective.maenifold` (refreshes the daemon at :8080)
+3. `cd apps/desktop && npm run package` (refreshes the packaged app)
+4. Then `scripts/uat-launch.sh <task-id> <port>` (uses the fresh package)
+
+Skipping step 3 results in confusing "the daemon was rebuilt but the UAT still hits old behavior" symptoms. T-303.4.21-v2 burned 12 min on a false discovery because of this.
+
+### Lesson — iter-14 (2026-05-16): Plyr (and any media lib) needs constructable mock + jsdom polyfills in test setup
+
+Tests for components that wrap Plyr (or any class invoked with `new` in production) MUST use a regular function (or class) as the mock — arrow functions are not constructable and fail at runtime with `TypeError: (_element) => ({ destroy }) is not a constructor`. Pattern:
+
+```ts
+const constructor = vi.fn(function (this: { destroy: typeof destroy }, _element: HTMLMediaElement) {
+  this.destroy = destroy;
+});
+```
+
+Additionally, Plyr touches `window.matchMedia` (module load) and `TextTrack` (player init). jsdom provides neither. Add to `apps/desktop/src/test/setup.ts`:
+
+```ts
+if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
+  Object.defineProperty(window, 'matchMedia', { configurable: true, writable: true, value: (q) => ({ matches: false, media: q, onchange: null, addListener: () => {}, removeListener: () => {}, addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false }) });
+}
+```
+
+When a NON-test sibling component renders one of the Plyr-using components (e.g., `ResourcePreview` rendering `AudioBlock`), the sibling test also needs `vi.mock('plyr', ...)` because the import triggers Plyr's module-level code path even before instantiation.
+
+### Lesson — iter-14 (2026-05-16): Rebase worker branch onto current dev BEFORE merging when branch base is stale
+
+When dispatching multiple parallel task-pms early in an iter, each worktree branches off the same dev SHA. By the time a later task-pm returns clean, dev has merged several other tasks. Naive `git diff dev --stat` from the stale worker branch then shows the OTHER tasks' files as "deletions" — a confusing branch-base artifact that obscures the actual delta.
+
+Workflow: in the worktree, `PM_OWNS_THIS=1 git rebase dev` BEFORE the merge commit. Then `git diff dev --stat` shows only the worker's actual delta. Applied to T-326.2 and T-304.6.2 this iter — caught one real merge conflict (acp_relay.rs in T-304.6.2 vs T-326.3) that would have been invisible otherwise.
+
+### Lesson — iter-14 (2026-05-16): User-reopened WONTFIX cascade needs RE-EVALUATION not auto re-WONTFIX
+
+When the user reverses a WONTFIX cascade via `gate_Reopen`, the prior cited evidence (e.g., "test passes green", "file doesn't exist") may still be FACTUALLY correct — but the user's reopen signals they want REAL ENGAGEMENT, not re-verification + re-closure. The correct disposition is:
+
+1. **If the original work is genuinely complete**: drive the task through its pipeline as "verified already shipped" with concrete runtime evidence, NOT WONTFIX. (e.g., T-323.1 — test green, drove tdd pipeline to terminal pass via verification.)
+2. **If the task needs missing artifacts (component file, test file, etc.)**: re-spec to BUILD the missing pieces, then drive the new work. (e.g., T-319.2 — ShortcutCheatsheet.vue didn't exist, so the SWE built it.)
+3. **If the task is a rescoping question**: PM owns the rescope (e.g., T-302.65 picked "rescope T-302.12" over "build new render_chart tool"), then ship the rescope.
+
+WONTFIX on cited evidence remains valid (per Cardinal Rule #2) but the bar is higher: the user reversing the original cascade is implicit signal the prior WONTFIX rationale was insufficient. Verify the runtime path, not just the code-level claim.

@@ -18,19 +18,19 @@ pub(crate) fn commands() -> Vec<CommandEntry> {
             "TaskCreate",
             "Create and start a pipeline-backed task.",
             create_schema(),
-            "safe",
+            "orchestration",
         ),
         command(
             "TaskGet",
             "Read current task status without blocking.",
             task_id_schema(),
-            "safe",
+            "read",
         ),
         command(
             "TaskResult",
             "Wait for a task result.",
             result_schema(),
-            "safe",
+            "read",
         ),
         command(
             "TaskCancel",
@@ -42,7 +42,7 @@ pub(crate) fn commands() -> Vec<CommandEntry> {
             "TaskList",
             "List pipeline-backed tasks.",
             list_schema(),
-            "safe",
+            "read",
         ),
     ]
 }

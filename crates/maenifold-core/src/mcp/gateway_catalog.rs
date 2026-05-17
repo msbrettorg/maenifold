@@ -143,6 +143,19 @@ impl GatewayCatalog {
         Ok(record.entry.safety_class == safety_class)
     }
 
+    /// Return the canonical safety_class for (domain, command), as registered
+    /// in the catalog. Used by the intent resolver to snap any LLM-emitted
+    /// safety_class to the registry value instead of failing the whole
+    /// candidate when the model paraphrases.
+    pub(crate) fn canonical_safety_class(
+        &self,
+        domain: &str,
+        command: &str,
+    ) -> Result<String> {
+        let record = self.command_record(domain, command)?;
+        Ok(record.entry.safety_class.clone())
+    }
+
     pub(crate) fn render_index(
         &self,
         domain: Option<&str>,

@@ -9,6 +9,11 @@ pub(crate) enum SafetyClass {
     Mutate,
     Destructive,
     Orchestration,
+    /// Capture any value the LLM emits that does not match the canonical
+    /// vocabulary. The intent resolver snaps Unknown to the catalog's
+    /// canonical safety_class before returning the candidate.
+    #[serde(other)]
+    Unknown,
 }
 
 impl fmt::Display for SafetyClass {
@@ -19,8 +24,24 @@ impl fmt::Display for SafetyClass {
             Self::Mutate => "mutate",
             Self::Destructive => "destructive",
             Self::Orchestration => "orchestration",
+            Self::Unknown => "unknown",
         };
         f.write_str(value)
+    }
+}
+
+impl std::str::FromStr for SafetyClass {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "read" => Ok(Self::Read),
+            "write" => Ok(Self::Write),
+            "mutate" => Ok(Self::Mutate),
+            "destructive" => Ok(Self::Destructive),
+            "orchestration" => Ok(Self::Orchestration),
+            _ => Err(()),
+        }
     }
 }
 

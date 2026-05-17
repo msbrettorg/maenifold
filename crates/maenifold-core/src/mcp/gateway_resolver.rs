@@ -34,22 +34,30 @@ pub(crate) fn parse_and_validate_output(
             message: err.to_string(),
             fallback: fallback(),
         })?;
-    for candidate in &parsed.candidates {
+    for candidate in &mut parsed.candidates {
         if !(0.0..=1.0).contains(&candidate.confidence) {
             return malformed("candidate confidence must be between 0.0 and 1.0");
         }
-        let safety = candidate.safety_class.to_string();
-        if !catalog
-            .validate_candidate(&candidate.domain, &candidate.command, &safety)
+        // (domain, command) must exist in the catalog. Look up canonical
+        // safety_class and SNAP the candidate value to the registry instead
+        // of failing the whole response when the LLM paraphrases. We always
+        // trust the registry over the model.
+        let canonical = catalog
+            .canonical_safety_class(&candidate.domain, &candidate.command)
             .map_err(|err| ResolverError::Malformed {
                 message: err.to_string(),
                 fallback: fallback(),
-            })?
-        {
-            return malformed("candidate safetyClass does not match the registry");
+            })?;
+        if canonical != candidate.safety_class.to_string() {
+            // Snap to canonical so callers see the registry truth.
+            if let Ok(parsed_safety) = canonical.parse::<SafetyClass>() {
+                candidate.safety_class = parsed_safety;
+            }
         }
-        if candidate.safety_class != SafetyClass::Read && !candidate.requires_exact_execute {
-            return malformed("non-read candidates must set requiresExactExecute=true");
+        // Derive requiresExactExecute from the canonical safety class so the
+        // LLM cannot accidentally green-light a non-read auto-execute.
+        if candidate.safety_class != SafetyClass::Read {
+            candidate.requires_exact_execute = true;
         }
     }
     parsed
@@ -81,8 +89,17 @@ pub(crate) fn resolver_prompt(
     user_intent: &str,
 ) -> String {
     format!(
-        "Return only JSON matching {{\"intentSummary\":string,\"candidates\":[{{\"domain\":string,\"command\":string,\"confidence\":number,\"reason\":string,\"safetyClass\":\"read|write|mutate|destructive|orchestration\",\"requiresExactExecute\":boolean,\"parametersDraft\":{{}}}}]}}.\n\
-         Validate against this catalog; never execute commands. Max candidates: {}.\n\nCatalog:\n{}\n\nUser intent:\n{}",
+        "You are a routing assistant. Map the user's intent to gateway commands.\n\
+         OUTPUT: Return ONLY a JSON object matching exactly:\n\
+         {{\"intentSummary\":string,\"candidates\":[{{\"domain\":string,\"command\":string,\"confidence\":number,\"reason\":string,\"safetyClass\":\"read|write|mutate|destructive|orchestration\",\"requiresExactExecute\":boolean,\"parametersDraft\":{{}}}}]}}\n\
+         RULES:\n\
+         - domain and command MUST be drawn verbatim from the catalog below.\n\
+         - safetyClass MUST be copied verbatim from the catalog entry for the chosen command. Do not infer it from the intent.\n\
+         - Rank candidates by confidence (highest first). Up to {} candidates.\n\
+         - Never execute anything. Never wrap the JSON in markdown fences.\n\
+         - parametersDraft should populate as many required parameters as you can infer from the intent.\n\
+         CATALOG (authoritative):\n{}\n\
+         USER INTENT:\n{}",
         settings.max_candidates.unwrap_or(5),
         render_compact_catalog(catalog, settings.max_catalog_characters),
         user_intent

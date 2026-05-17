@@ -103,12 +103,28 @@ fn can_auto_execute(
     state: &GatewayState,
     candidates: &[crate::mcp::gateway_resolver_types::ResolverCandidate],
 ) -> bool {
+    // Auto-execute when the top candidate clearly wins. Requiring
+    // `candidates.len() == 1` was wrong: the LLM is prompted to return up to
+    // `max_candidates` (default 5), so a single-candidate response is rare even
+    // when the route is obvious. Instead: look at the top candidate, and only
+    // suppress auto-execute when the runner-up is close enough to suggest the
+    // route is genuinely ambiguous.
+    const DOMINANCE_GAP: f64 = 0.2;
     let settings = state.intent_settings();
-    settings.auto_execute_read_safe
-        && candidates.len() == 1
-        && candidates[0].safety_class == SafetyClass::Read
-        && candidates[0].confidence >= settings.auto_execute_confidence_threshold
-        && !candidates[0].requires_exact_execute
+    if !settings.auto_execute_read_safe || candidates.is_empty() {
+        return false;
+    }
+    let top = &candidates[0];
+    if top.safety_class != SafetyClass::Read
+        || top.requires_exact_execute
+        || top.confidence < settings.auto_execute_confidence_threshold
+    {
+        return false;
+    }
+    match candidates.get(1) {
+        Some(next) => top.confidence - next.confidence >= DOMINANCE_GAP,
+        None => true,
+    }
 }
 
 fn execute_plan(candidate: &crate::mcp::gateway_resolver_types::ResolverCandidate) -> Value {

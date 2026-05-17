@@ -1,6 +1,8 @@
 mod client_handler;
 #[cfg(test)]
 mod client_handler_tests;
+#[cfg(test)]
+mod client_handler_wire_tests;
 mod cors;
 pub(crate) mod discovery_tools;
 pub(crate) mod domain_mapping;

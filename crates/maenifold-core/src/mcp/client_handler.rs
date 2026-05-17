@@ -52,6 +52,7 @@ impl MaenifoldClient {
         sampling_registry: Arc<SamplingSessionRegistry>,
         server_name: impl Into<String>,
     ) -> Self {
+        let server_name = server_name.into();
         let capabilities = ClientCapabilities::builder()
             .enable_sampling()
             .enable_sampling_tools()
@@ -60,12 +61,17 @@ impl MaenifoldClient {
             .build();
         let info = ClientInfo::new(capabilities, Implementation::new("maenifold-core", "0.1.0"))
             .with_protocol_version(ProtocolVersion::V_2025_03_26);
+        tracing::debug!(
+            server = server_name.as_str(),
+            capabilities = %serde_json::to_string(&info.capabilities).unwrap_or_default(),
+            "MCP client capabilities for initialize handshake"
+        );
         Self {
             info,
             registry,
             sampling_agent,
             sampling_registry,
-            server_name: server_name.into(),
+            server_name,
         }
     }
 }

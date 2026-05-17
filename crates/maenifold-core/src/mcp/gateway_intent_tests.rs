@@ -12,6 +12,51 @@ use serial_test::serial;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+mod scoped_env {
+    /// Unset every env var that could otherwise satisfy
+    /// `IntentResolverSettings::resolved_direct_inference()` for the duration
+    /// of one test. Restores prior values on drop.
+    pub(super) fn unset_inference_env() -> InferenceEnvGuard {
+        const KEYS: &[&str] = &[
+            "AZURE_OPENAI_ENDPOINT",
+            "AZURE_OPENAI_API_KEY",
+            "AZURE_OPENAI_CHAT_DEPLOYMENT_NAME",
+            "AZURE_OPENAI_DEPLOYMENT_NAME",
+            "OPENAI_BASE_URL",
+            "OPENAI_API_KEY",
+        ];
+        let prior: Vec<(&'static str, Option<String>)> = KEYS
+            .iter()
+            .map(|key| {
+                let prev = std::env::var(key).ok();
+                // SAFETY: tests using this guard are tagged #[serial] so env
+                // mutations cannot race with other tests.
+                unsafe { std::env::remove_var(key) };
+                (*key, prev)
+            })
+            .collect();
+        InferenceEnvGuard { prior }
+    }
+
+    pub(super) struct InferenceEnvGuard {
+        prior: Vec<(&'static str, Option<String>)>,
+    }
+
+    impl Drop for InferenceEnvGuard {
+        fn drop(&mut self) {
+            for (key, value) in &self.prior {
+                // SAFETY: see unset_inference_env above.
+                unsafe {
+                    match value {
+                        Some(v) => std::env::set_var(key, v),
+                        None => std::env::remove_var(key),
+                    }
+                }
+            }
+        }
+    }
+}
+
 async fn state(settings: IntentResolverSettings) -> GatewayState {
     let pool = Arc::new(StdioPool::start(vec![]).await.expect("empty pool"));
     let routing = ToolRoutingRegistry::build(&[], pool.as_ref()).expect("routing");
@@ -125,9 +170,13 @@ async fn auto_execute_disabled_returns_candidates_for_read() {
 }
 
 #[tokio::test]
+#[serial]
 async fn resolver_error_returns_fallback_instructions() {
     // Enabled but no direct inference configured AND no client sampling:
     // should hit ResolverError::DirectInferenceSetup, NOT fall back to ACP.
+    // Clear env vars on this thread so an Azure OpenAI endpoint that happens
+    // to be set on the test host does not satisfy the resolver.
+    let _guard = scoped_env::unset_inference_env();
     let mut intent_settings = IntentResolverSettings::default();
     intent_settings.enabled = true;
     let state = state(intent_settings).await;

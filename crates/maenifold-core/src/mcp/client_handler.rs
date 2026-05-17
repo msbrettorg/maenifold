@@ -16,6 +16,7 @@ use super::sampling_session_registry::SamplingSessionRegistry;
 pub struct MaenifoldClient {
     info: ClientInfo,
     registry: Arc<PendingRequestRegistry>,
+    #[allow(dead_code)]
     sampling_agent: Option<String>,
     sampling_registry: Arc<SamplingSessionRegistry>,
     server_name: String,
@@ -100,12 +101,6 @@ impl ClientHandler for MaenifoldClient {
         request: CreateMessageRequestParams,
         context: RequestContext<RoleClient>,
     ) -> Result<CreateMessageResult, rmcp::ErrorData> {
-        let Some(sampling_agent) = self.sampling_agent.clone() else {
-            return Err(rmcp::ErrorData::internal_error(
-                "No sampling agent configured. Set 'samplingAgent' in maenifold.json to enable sampling.",
-                None,
-            ));
-        };
         let server_name = if self.server_name.is_empty() {
             server_name_from_context(&context).unwrap_or_else(|| "maenifold".to_string())
         } else {
@@ -113,7 +108,6 @@ impl ClientHandler for MaenifoldClient {
         };
         sampling_client_flow::create_message(
             Arc::clone(&self.registry),
-            sampling_agent,
             Arc::clone(&self.sampling_registry),
             server_name,
             request,

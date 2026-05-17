@@ -199,7 +199,11 @@ async fn concurrent_elicitations_each_receive_matching_response() -> anyhow::Res
 }
 
 #[tokio::test]
-async fn create_message_without_sampling_agent_returns_negative_32603() -> anyhow::Result<()> {
+#[serial_test::serial]
+async fn create_message_without_inference_configured_returns_negative_32603() -> anyhow::Result<()> {
+    // T-327.2: sampling/createMessage must fail with -32603 when no direct
+    // inferencing backend is configured. ACP/Jockey is no longer a fallback.
+    let _guard = ScopedClearInferenceEnv::new();
     let (server_transport, client_transport) = tokio::io::duplex(4096);
 
     let server_task = tokio::spawn(async move {
@@ -230,6 +234,46 @@ async fn create_message_without_sampling_agent_returns_negative_32603() -> anyho
 
     assert_eq!(error.code.0, -32603);
     Ok(())
+}
+
+struct ScopedClearInferenceEnv {
+    prior: Vec<(&'static str, Option<String>)>,
+}
+
+impl ScopedClearInferenceEnv {
+    fn new() -> Self {
+        const KEYS: &[&str] = &[
+            "AZURE_OPENAI_ENDPOINT",
+            "AZURE_OPENAI_API_KEY",
+            "AZURE_OPENAI_CHAT_DEPLOYMENT_NAME",
+            "AZURE_OPENAI_DEPLOYMENT_NAME",
+            "OPENAI_BASE_URL",
+            "OPENAI_API_KEY",
+        ];
+        let prior: Vec<_> = KEYS
+            .iter()
+            .map(|key| {
+                let prev = std::env::var(key).ok();
+                // SAFETY: tagged #[serial], no concurrent env mutation.
+                unsafe { std::env::remove_var(key) };
+                (*key, prev)
+            })
+            .collect();
+        Self { prior }
+    }
+}
+
+impl Drop for ScopedClearInferenceEnv {
+    fn drop(&mut self) {
+        for (key, value) in &self.prior {
+            unsafe {
+                match value {
+                    Some(v) => std::env::set_var(key, v),
+                    None => std::env::remove_var(key),
+                }
+            }
+        }
+    }
 }
 
 fn form_params() -> CreateElicitationRequestParams {

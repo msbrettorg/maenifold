@@ -45,7 +45,7 @@ fn gateway_defaults_when_absent() {
 fn explicit_gateway_settings_deserialize() {
     let settings: GatewaySettings = serde_json::from_value(json!({
         "intentResolver": {
-            "enabled": true, "agent": "resolver", "model": "gpt-5.4",
+            "enabled": true, "model": "gpt-5.4",
             "thoughtLevel": "high", "timeoutSeconds": 30, "maxCandidates": 8,
             "autoExecuteReadSafe": true, "autoExecuteConfidenceThreshold": 0.75,
             "maxCatalogCharacters": 12000,
@@ -55,7 +55,6 @@ fn explicit_gateway_settings_deserialize() {
 
     let resolver = settings.intent_resolver;
     assert!(resolver.enabled);
-    assert_eq!(resolver.agent.as_deref(), Some("resolver"));
     assert_eq!(resolver.model, "gpt-5.4");
     assert_eq!(resolver.effective_thought_level(), Some("high"));
     assert_eq!(resolver.timeout_seconds, Some(30));
@@ -79,20 +78,14 @@ fn valid_enabled_resolver_passes_validation() {
 
 #[test]
 fn enabled_resolver_does_not_require_an_agent() {
-    for agent in [
-        None,
-        Some("".to_string()),
-        Some("   ".to_string()),
-        Some("missing".to_string()),
-    ] {
-        let settings = IntentResolverSettings {
-            enabled: true,
-            agent,
-            ..IntentResolverSettings::default()
-        };
-        validate_intent_resolver_config(&settings, &config_with_agent("resolver"))
-            .expect("enabled resolver should not require an agent");
-    }
+    // Sanity: enabled resolver with NO ACP agent config still validates.
+    // GatewayIntent resolver paths are sampling + direct inferencing only.
+    let settings = IntentResolverSettings {
+        enabled: true,
+        ..IntentResolverSettings::default()
+    };
+    validate_intent_resolver_config(&settings, &AgentsConfig::default())
+        .expect("enabled resolver should not require an agent");
 }
 
 #[test]
@@ -141,7 +134,6 @@ fn gateway_settings_roundtrip_uses_camel_case() {
     let settings = GatewaySettings {
         intent_resolver: IntentResolverSettings {
             enabled: true,
-            agent: Some("resolver".to_string()),
             model: "gpt-5.4".to_string(),
             thought_level: Some("low".to_string()),
             timeout_seconds: Some(5),
@@ -153,6 +145,7 @@ fn gateway_settings_roundtrip_uses_camel_case() {
                 name: "m".to_string(),
                 url: "http://localhost".to_string(),
             }],
+            direct_inference: None,
         },
     };
     let value = serde_json::to_value(&settings).expect("gateway settings should serialize");

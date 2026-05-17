@@ -34,6 +34,7 @@ pub(crate) struct GatewayState {
     hidden_tool_domains: HashMap<String, String>,
     batch_state: crate::mcp::gateway_batch_types::BatchState,
     intent_settings: IntentResolverSettings,
+    #[allow(dead_code)]
     workspace_root: PathBuf,
 }
 
@@ -85,6 +86,7 @@ impl GatewayState {
         &self.intent_settings
     }
 
+    #[allow(dead_code)]
     pub(crate) fn workspace_root(&self) -> &Path {
         &self.workspace_root
     }

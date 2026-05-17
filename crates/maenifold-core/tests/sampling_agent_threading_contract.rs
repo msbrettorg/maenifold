@@ -76,15 +76,21 @@ fn restart_server_reuses_pool_sampling_agent() {
 }
 
 #[test]
-fn no_agent_negative_32603_contract_remains_present() {
+fn no_inference_negative_32603_contract_remains_present() {
+    // T-327.2: renamed from no_agent_*. The legacy samplingAgent-based test
+    // (`create_message_without_sampling_agent_returns_negative_32603`) became
+    // `create_message_without_inference_configured_returns_negative_32603`
+    // when ACP/Jockey was removed from sampling fulfillment. -32603 still
+    // fires, but the trigger is "direct inference not configured" instead of
+    // "samplingAgent missing".
     let source = client_handler_tests_source();
 
     assert!(
-        source.contains("create_message_without_sampling_agent_returns_negative_32603"),
-        "T-303.4.15: existing no-agent -32603 regression test must not be deleted or renamed"
+        source.contains("create_message_without_inference_configured_returns_negative_32603"),
+        "T-327.2: no-inference -32603 regression test must remain present"
     );
     assert!(
         source.contains("-32603"),
-        "T-303.4.15: existing no-agent test must continue to assert JSON-RPC -32603 when samplingAgent is unset"
+        "T-327.2: no-inference test must continue to assert JSON-RPC -32603 when neither sampling nor direct inference is configured"
     );
 }

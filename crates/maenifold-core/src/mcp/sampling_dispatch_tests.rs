@@ -33,11 +33,53 @@ impl ServerHandler for TestServer {
 }
 
 #[tokio::test]
-async fn sampling_with_unconfigured_sampling_agent_rejects_negative_32603() -> anyhow::Result<()> {
+#[serial_test::serial]
+async fn sampling_without_inference_configured_rejects_negative_32603() -> anyhow::Result<()> {
+    // T-327.2: When no direct inferencing backend is configured (neither
+    // explicit config nor AZURE_OPENAI_* env vars), sampling/createMessage must
+    // return -32603. The legacy samplingAgent ACP path is removed.
+    let _guard = clear_inference_env();
     let error = send_sampling_request(valid_sampling_params(), None, None).await?;
 
     assert_eq!(error.code.0, -32603);
     Ok(())
+}
+
+fn clear_inference_env() -> ClearInferenceEnvGuard {
+    const KEYS: &[&str] = &[
+        "AZURE_OPENAI_ENDPOINT",
+        "AZURE_OPENAI_API_KEY",
+        "AZURE_OPENAI_CHAT_DEPLOYMENT_NAME",
+        "AZURE_OPENAI_DEPLOYMENT_NAME",
+        "OPENAI_BASE_URL",
+        "OPENAI_API_KEY",
+    ];
+    let prior: Vec<_> = KEYS
+        .iter()
+        .map(|key| {
+            let prev = std::env::var(key).ok();
+            unsafe { std::env::remove_var(key) };
+            (*key, prev)
+        })
+        .collect();
+    ClearInferenceEnvGuard { prior }
+}
+
+struct ClearInferenceEnvGuard {
+    prior: Vec<(&'static str, Option<String>)>,
+}
+
+impl Drop for ClearInferenceEnvGuard {
+    fn drop(&mut self) {
+        for (key, value) in &self.prior {
+            unsafe {
+                match value {
+                    Some(v) => std::env::set_var(key, v),
+                    None => std::env::remove_var(key),
+                }
+            }
+        }
+    }
 }
 
 #[test]
@@ -98,22 +140,20 @@ async fn sampling_deny_returns_negative_1() -> anyhow::Result<()> {
 }
 
 #[test]
-fn sampling_allow_dispatch_passes_selected_model_to_runtime_sampling() {
+fn sampling_allow_dispatch_uses_direct_inference_not_acp() {
+    // T-327.2: downstream `sampling/createMessage` fulfillment must use direct
+    // inferencing, NEVER ACP/Jockey. Source-grep enforces:
+    //   1. The legacy `jockey::acp::execute_runtime_sampling` symbol is NOT
+    //      referenced from sampling_client_flow.rs.
+    //   2. The new `execute_direct_inference_sampling` symbol IS referenced.
     let source = include_str!("sampling_client_flow.rs");
-    let dispatch_start = source
-        .find("jockey::acp::execute_runtime_sampling")
-        .expect("client_handler must dispatch approved sampling through execute_runtime_sampling");
-    let dispatch = &source[dispatch_start..];
-    let dispatch_end = dispatch
-        .find(".await")
-        .expect("execute_runtime_sampling call must be awaited");
-    let call = &dispatch[..dispatch_end];
-
-    // Format-tolerant: strip whitespace and check the model expression is passed through.
-    let call_no_ws: String = call.chars().filter(|c| !c.is_whitespace()).collect();
     assert!(
-        call_no_ws.contains("decision.selected_model.clone()"),
-        "T-303.4.19: approved sampling must pass decision.selected_model.clone() to execute_runtime_sampling"
+        !source.contains("jockey::acp::execute_runtime_sampling"),
+        "AGENTS.md P0 #7: sampling_client_flow.rs must not call jockey::acp::execute_runtime_sampling. ACP/Jockey is product UX, not gateway infrastructure."
+    );
+    assert!(
+        source.contains("execute_direct_inference_sampling"),
+        "T-327.2: sampling_client_flow.rs must dispatch approved sampling through execute_direct_inference_sampling (direct inference HTTP)"
     );
 }
 

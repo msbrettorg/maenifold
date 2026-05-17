@@ -69,9 +69,14 @@ async fn test_update_acp_session_transitions_status() {
 
 #[tokio::test]
 async fn test_update_acp_session_is_referenced_from_dispatch_path() {
+    // T-327.2: the dispatch path still records the result session id into the
+    // registry, but it lives in response_from_sampling now (post direct-inference
+    // HTTP call) rather than in a pre-dispatch session_id_rx channel.
     let source = include_str!("sampling_client_flow.rs");
-    assert!(source.contains(".update_acp_session(dispatch_id, acp_session_id)"));
-    assert!(source.contains("session_id_rx.await"));
+    assert!(
+        source.contains(".update_acp_session(dispatch_id, result.acp_session_id"),
+        "response_from_sampling must record the result session id into the registry so the desktop Logs tab can correlate inference events"
+    );
 
     let registry = SamplingSessionRegistry::new();
     let dispatch = dispatch_fixture("test-server");

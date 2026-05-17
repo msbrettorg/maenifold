@@ -42,6 +42,7 @@ mod gateway_resolver;
 #[cfg(test)]
 mod gateway_resolver_tests;
 mod gateway_resolver_types;
+mod gateway_direct_inference_resolver;
 mod gateway_sampling_resolver;
 mod gateway_schema_validation;
 mod gateway_startup;
@@ -61,6 +62,7 @@ mod pending_requests_tests;
 mod resource_routing;
 pub mod resources;
 pub(crate) mod sampling_client_flow;
+pub(crate) mod sampling_direct_inference;
 pub(crate) mod sampling_client_helpers;
 #[cfg(test)]
 mod sampling_dispatch_tests;

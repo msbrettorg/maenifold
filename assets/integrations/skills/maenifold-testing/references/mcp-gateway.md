@@ -11,6 +11,30 @@ GatewayIndex parameters={"domain":"maenifold.gate","includeSchemas":true}
 GatewayExecute domain="maenifold.gate" command="<gate_*>" parameters={...}
 ```
 
+## Use the `mae_mcp` helper, do not hand-roll curl envelopes
+
+A `mae_mcp` bash function is defined in `~/.copilot/copilot-instructions.md` (preloaded every session). Use it for every gateway call instead of writing the curl envelope by hand. Pattern:
+
+```bash
+mae_mcp <command> <params-json> [domain=maenifold.gate] [timeout=30]
+```
+
+Examples:
+
+```bash
+# Sync the gate cache (default domain = maenifold.gate)
+mae_mcp gate_Sync '{"root":"/Users/brett/src/ma-collective/maenifold-rs","rebuild":true}'
+
+# Terminal pass — floor timeout at 180 per the iter-5 cascade-prevention rule
+mae_mcp gate_Pass '{"root":"/Users/brett/src/ma-collective/maenifold-rs","taskId":"T-X.Y","agent":"ralph-pm","notes":"...","expectedStage":"red-team"}' maenifold.gate 180
+
+# Cross-domain
+mae_mcp WriteMemory '{"title":"...","folder":"mae-auto/iterations","content":"..."}' maenifold.memory
+mae_mcp BuildContext '{"conceptName":"sampling","depth":2,"includeContent":true}' maenifold.graph
+```
+
+Why the helper exists: in iter-14 alone, hand-rolled `TOKEN=$(cat ~/maenifold/auth/localhost.token); curl --max-time ... http://127.0.0.1:8080/mcp -H ... -d ...` envelopes appeared 400+ times across bash calls — each a chance to typo a header, forget a flag, or use single-quotes around `$TOKEN`. The helper enforces the iter-5 minimum 180s `--max-time` floor for `gate_Pass` / `gate_Fail`, includes `Mcp-Protocol-Version`, and reads the bearer token from `~/maenifold/auth/localhost.token` every call (so a token rotation is picked up without restart).
+
 ## Raw response discipline
 
 MCP responses may have `.result` on success or `.error` on failure. Inspect raw responses before applying `jq` filters:

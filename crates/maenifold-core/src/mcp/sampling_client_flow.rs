@@ -10,17 +10,33 @@ use super::sampling_client_helpers::{
     incoming_tool_result_ids, sampling_messages_to_prompt, text_result, tool_use_ids,
     tool_use_result,
 };
+use super::sampling_direct_inference::execute_direct_inference_sampling;
 use super::sampling_session_registry::{
     SamplingDecisionRecord, SamplingDispatch, SamplingSessionRegistry, SamplingSessionStatus,
 };
+use crate::acp_config::AgentsConfig;
+use crate::config::Config;
 
 pub(crate) async fn create_message(
     registry: Arc<PendingRequestRegistry>,
-    sampling_agent: String,
     sampling_registry: Arc<SamplingSessionRegistry>,
     server_name: String,
     request: CreateMessageRequestParams,
 ) -> Result<CreateMessageResult, rmcp::ErrorData> {
+    // Resolve direct-inference config up front. If it's not configured,
+    // sampling fulfillment cannot proceed — we do NOT fall back to ACP / Jockey
+    // (the old samplingAgent path is removed).
+    let resolved = match resolve_direct_inference_config() {
+        Ok(resolved) => resolved,
+        Err(message) => {
+            return Err(rmcp::ErrorData::internal_error(
+                format!(
+                    "sampling/createMessage cannot be fulfilled: direct inference not configured. {message}"
+                ),
+                None,
+            ));
+        }
+    };
     let incoming_tool_ids = incoming_tool_result_ids(&request.messages);
     let continuation = if incoming_tool_ids.is_empty() {
         None
@@ -41,7 +57,7 @@ pub(crate) async fn create_message(
         }
     };
 
-    let (dispatch_id, app_session_id, model, role_name, resume_session_id, decision) =
+    let (dispatch_id, _app_session_id, model, role_name, _resume_session_id, decision) =
         if let Some(existing_id) = continuation {
             existing_dispatch(
                 Arc::clone(&registry),
@@ -57,7 +73,7 @@ pub(crate) async fn create_message(
                 registry,
                 &sampling_registry,
                 &server_name,
-                sampling_agent,
+                &resolved.deployment,
                 &request,
             )
             .await?
@@ -69,45 +85,25 @@ pub(crate) async fn create_message(
         .map_err(|err| rmcp::ErrorData::internal_error(err, None))?;
 
     let prompt = sampling_messages_to_prompt(&request.messages)?;
-    let (session_id_tx, session_id_rx) = tokio::sync::oneshot::channel::<String>();
-    let event_tx = crate::mcp::sampling_events::sender_for(app_session_id);
-    let streaming_registry = Arc::clone(&sampling_registry);
-    tokio::spawn(async move {
-        match session_id_rx.await {
-            Ok(acp_session_id) => {
-                let _ = streaming_registry
-                    .update_acp_session(dispatch_id, acp_session_id)
-                    .await;
-                let _ = streaming_registry
-                    .update_status(dispatch_id, SamplingSessionStatus::Streaming)
-                    .await;
-            }
-            Err(_) => {
-                let _ = streaming_registry
-                    .update_status(dispatch_id, SamplingSessionStatus::Failed)
-                    .await;
-            }
-        }
-    });
+    let _ = sampling_registry
+        .update_status(dispatch_id, SamplingSessionStatus::Streaming)
+        .await;
 
-    let result = jockey::acp::execute_runtime_sampling(
-        &role_name,
-        &role_name,
-        app_session_id,
+    let selected_model = decision
+        .selected_model
+        .clone()
+        .filter(|model| !model.trim().is_empty())
+        .or_else(|| Some(model.clone()));
+    let _ = role_name; // kept for symmetry with prior contract; not needed for direct inference
+    let max_tokens = u64::from(request.max_tokens.max(0) as u32);
+    let result = execute_direct_inference_sampling(
+        &resolved,
         prompt,
-        Some(
-            decision
-                .selected_model
-                .clone()
-                .unwrap_or_else(|| model.clone()),
-        ),
-        session_id_tx,
-        event_tx,
-        resume_session_id,
+        selected_model,
         request.tools.clone(),
+        if max_tokens == 0 { None } else { Some(max_tokens) },
     )
     .await;
-    crate::mcp::sampling_events::unregister(app_session_id);
 
     match result {
         Ok(result) => {
@@ -123,6 +119,18 @@ pub(crate) async fn create_message(
             ))
         }
     }
+}
+
+fn resolve_direct_inference_config() -> Result<crate::acp_config::ResolvedInference, String> {
+    let config = Config::current();
+    let agents = AgentsConfig::load_or_default(&config.maenifold_root)
+        .map_err(|err| format!("failed to load maenifold.json: {err}"))?;
+    let intent_resolver = agents
+        .settings
+        .as_ref()
+        .map(|s| s.gateway.intent_resolver.clone())
+        .unwrap_or_default();
+    intent_resolver.resolved_direct_inference()
 }
 
 async fn existing_dispatch(
@@ -219,7 +227,7 @@ async fn new_dispatch(
     registry: Arc<PendingRequestRegistry>,
     sampling_registry: &SamplingSessionRegistry,
     server_name: &str,
-    sampling_agent: String,
+    default_model: &str,
     request: &CreateMessageRequestParams,
 ) -> Result<
     (
@@ -246,8 +254,11 @@ async fn new_dispatch(
     let model = decision
         .selected_model
         .clone()
-        .unwrap_or_else(|| sampling_agent.clone());
-    let role_name = decision.selected_agent.clone().unwrap_or(sampling_agent);
+        .unwrap_or_else(|| default_model.to_string());
+    let role_name = decision
+        .selected_agent
+        .clone()
+        .unwrap_or_else(|| "direct-inference".to_string());
     sampling_registry
         .insert(SamplingDispatch {
             sampling_request_id: dispatch_id,

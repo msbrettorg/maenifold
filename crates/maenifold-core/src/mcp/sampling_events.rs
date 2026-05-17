@@ -17,6 +17,7 @@ type SenderMap = HashMap<String, jockey::EventSender>;
 
 static SENDERS: LazyLock<Mutex<SenderMap>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 
+#[allow(dead_code)]
 pub(crate) fn sender_for(app_session_id: uuid::Uuid) -> jockey::EventSender {
     let key = app_session_id.to_string();
     let mut senders = SENDERS.lock().expect("sampling event sender map mutex");
@@ -26,6 +27,7 @@ pub(crate) fn sender_for(app_session_id: uuid::Uuid) -> jockey::EventSender {
         .clone()
 }
 
+#[allow(dead_code)]
 pub(crate) fn unregister(app_session_id: uuid::Uuid) {
     if let Ok(mut senders) = SENDERS.lock() {
         senders.remove(&app_session_id.to_string());

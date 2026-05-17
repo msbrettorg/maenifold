@@ -6,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useKnowledgeStore, type KnowledgeFileEntry, type KnowledgeFolderNode } from '../stores/knowledge';
@@ -40,19 +41,13 @@ const visibleRootFiles = computed(() => filterFiles(rootFiles.value, normalizedT
 const visibleFolders = computed(() => filterFolders(folders.value, normalizedTreeQuery.value));
 const currentSortMode = computed({
   get: (): TreeSortMode | SearchSortMode => (mode.value === 'tree' ? treeSortMode.value : searchSortMode.value),
-  set: (value) => {
-    if (mode.value === 'tree') {
-      treeSortMode.value = value as TreeSortMode;
-      return;
-    }
-    searchSortMode.value = value as SearchSortMode;
-  },
+  set: (value) => (mode.value === 'tree'
+    ? treeSortMode.value = value as TreeSortMode
+    : searchSortMode.value = value as SearchSortMode),
 });
-const emptySearchMessage = computed(() => (
-  hasSubmittedSearch.value && searchQuery.value.trim()
-    ? 'No results'
-    : 'Search the vault to show matching notes.'
-));
+const emptySearchMessage = computed(() => (hasSubmittedSearch.value && searchQuery.value.trim()
+  ? 'No results'
+  : 'Search the vault to show matching notes.'));
 let treeFilterTimer: number | null = null;
 
 function entryMatches(values: string[], normalizedQuery: string): boolean {
@@ -68,8 +63,7 @@ function folderMatches(folder: KnowledgeFolderNode, normalizedQuery: string): bo
 }
 
 function filterFiles(files: KnowledgeFileEntry[], normalizedQuery: string): KnowledgeFileEntry[] {
-  if (!normalizedQuery) return files;
-  return files.filter((file) => fileMatches(file, normalizedQuery));
+  return !normalizedQuery ? files : files.filter((file) => fileMatches(file, normalizedQuery));
 }
 
 function filterFolders(
@@ -138,9 +132,7 @@ watch(query, (nextQuery) => {
 });
 
 onBeforeUnmount(() => {
-  if (treeFilterTimer) {
-    window.clearTimeout(treeFilterTimer);
-  }
+  if (treeFilterTimer) window.clearTimeout(treeFilterTimer);
 });
 
 async function runSearch(): Promise<void> {
@@ -213,22 +205,27 @@ defineExpose({ focusSearchInput });
         </TabsList>
       </Tabs>
 
-      <select
-        v-model="currentSortMode"
+      <Select
+        :model-value="currentSortMode"
         data-testid="vault-sort-select"
-        class="h-9 rounded-md border border-border-subtle bg-bg-surface px-3 text-body-sm text-text-primary"
+        @update:model-value="currentSortMode = ($event as TreeSortMode | SearchSortMode)"
       >
-        <template v-if="mode === 'tree'">
-          <option value="name-asc">Name (A-Z)</option>
-          <option value="name-desc">Name (Z-A)</option>
-          <option value="modified-newest">Modified (newest)</option>
-        </template>
-        <template v-else>
-          <option value="relevance">Relevance</option>
-          <option value="name">Name</option>
-          <option value="modified">Modified</option>
-        </template>
-      </select>
+        <SelectTrigger class="h-9 border-border-subtle bg-bg-surface text-body-sm text-text-primary">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <template v-if="mode === 'tree'">
+            <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+            <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+            <SelectItem value="modified-newest">Modified (newest)</SelectItem>
+          </template>
+          <template v-else>
+            <SelectItem value="relevance">Relevance</SelectItem>
+            <SelectItem value="name">Name</SelectItem>
+            <SelectItem value="modified">Modified</SelectItem>
+          </template>
+        </SelectContent>
+      </Select>
     </div>
 
     <ScrollArea class="min-h-0 flex-1 px-2 py-2">

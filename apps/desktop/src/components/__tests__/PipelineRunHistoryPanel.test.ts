@@ -27,6 +27,39 @@ const FIXTURE_RUNS: PipelineRunSummary[] = [
   { nodeId: 'bravo-node', startedAt: 1746100200000, completedAt: 1746100300000, status: 'completed', outcome: 'failed' },
 ];
 
+const selectStubs = {
+  Select: {
+    name: 'Select',
+    props: ['modelValue'],
+    emits: ['update:modelValue'],
+    template: '<div v-bind="$attrs" :data-model-value="modelValue"><slot /></div>',
+  },
+  SelectContent: { template: '<div><slot /></div>' },
+  SelectItem: { props: ['value'], template: '<div :data-value="value"><slot /></div>' },
+  SelectTrigger: { template: '<div><slot /></div>' },
+  SelectValue: { template: '<span />' },
+};
+
+function mountPanel(runs: PipelineRunSummary[]) {
+  return mount(PipelineRunHistoryPanel, {
+    props: { runs },
+    global: { stubs: selectStubs },
+  });
+}
+
+function getSortControl(wrapper: ReturnType<typeof mountPanel>) {
+  return wrapper.find('[data-testid="sort-select"]');
+}
+
+async function setSort(wrapper: ReturnType<typeof mountPanel>, value: 'oldest' | 'node-name'): Promise<void> {
+  const control = getSortControl(wrapper);
+  expect(control.exists()).toBe(true);
+  const selectVm = wrapper.findComponent({ name: 'Select' });
+  expect(selectVm.exists()).toBe(true);
+  selectVm.vm.$emit('update:modelValue', value);
+  await wrapper.vm.$nextTick();
+}
+
 describe('PipelineRunHistoryPanel', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -44,7 +77,7 @@ describe('PipelineRunHistoryPanel', () => {
       run({ nodeId: 'review-node', startedAt: TWO_HOURS_BEFORE, completedAt: FIVE_SECS_AFTER, status: 'completed', outcome: 'failed' }),
     ];
 
-    const wrapper = mount(PipelineRunHistoryPanel, { props: { runs } });
+    const wrapper = mountPanel(runs);
 
     const rows = wrapper.findAll('[data-testid^="run-row-"]');
     expect(rows).toHaveLength(3);
@@ -68,7 +101,7 @@ describe('PipelineRunHistoryPanel', () => {
       run({ nodeId: 'n4', status: 'stuck' }),
     ];
 
-    const wrapper = mount(PipelineRunHistoryPanel, { props: { runs } });
+    const wrapper = mountPanel(runs);
 
     const chips = wrapper.findAll('[data-testid="run-status-chip"]');
     expect(chips).toHaveLength(4);
@@ -80,7 +113,7 @@ describe('PipelineRunHistoryPanel', () => {
   });
 
   it('shows empty state when runs array is empty', () => {
-    const wrapper = mount(PipelineRunHistoryPanel, { props: { runs: [] } });
+    const wrapper = mountPanel([]);
 
     expect(wrapper.find('[data-testid="run-history-empty"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="run-history-empty"]').text()).toBe('No runs recorded yet');
@@ -92,7 +125,7 @@ describe('PipelineRunHistoryPanel', () => {
       run({ nodeId: 'waiting-node', startedAt: null, status: 'pending' }),
     ];
 
-    const wrapper = mount(PipelineRunHistoryPanel, { props: { runs } });
+    const wrapper = mountPanel(runs);
 
     expect(wrapper.find('[data-testid="run-started"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="run-started-empty"]').exists()).toBe(true);
@@ -100,35 +133,34 @@ describe('PipelineRunHistoryPanel', () => {
   });
 
   describe('sort controls', () => {
+    it('sort control is not a raw HTML select element', () => {
+      const wrapper = mountPanel(FIXTURE_RUNS);
+      expect(wrapper.find('select').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="sort-select"]').exists()).toBe(true);
+    });
+
     it('defaults to Newest activity sort order', () => {
-      const wrapper = mount(PipelineRunHistoryPanel, { props: { runs: FIXTURE_RUNS } });
+      const wrapper = mountPanel(FIXTURE_RUNS);
 
       const renderedNodeIds = wrapper.findAll('[data-testid="run-node-id"]').map((el) => el.text());
       expect(renderedNodeIds).toEqual(['alpha-node', 'bravo-node', 'charlie-node']);
 
-      const sortSelect = wrapper.find('[data-testid="sort-select"]');
+      const sortSelect = getSortControl(wrapper);
       expect(sortSelect.exists()).toBe(true);
-      expect((sortSelect.element as HTMLSelectElement).value).toBe('newest');
-      expect(sortSelect.text()).toContain('Newest activity');
+      expect(sortSelect.attributes('data-model-value')).toBe('newest');
     });
 
     it('Oldest activity sorts by startedAt ascending', async () => {
-      const wrapper = mount(PipelineRunHistoryPanel, { props: { runs: FIXTURE_RUNS } });
-
-      const sortSelect = wrapper.find('[data-testid="sort-select"]');
-      await sortSelect.setValue('oldest');
-      await wrapper.vm.$nextTick();
+      const wrapper = mountPanel(FIXTURE_RUNS);
+      await setSort(wrapper, 'oldest');
 
       const renderedNodeIds = wrapper.findAll('[data-testid="run-node-id"]').map((el) => el.text());
       expect(renderedNodeIds).toEqual(['charlie-node', 'bravo-node', 'alpha-node']);
     });
 
     it('Node name sorts alphabetically by nodeId', async () => {
-      const wrapper = mount(PipelineRunHistoryPanel, { props: { runs: FIXTURE_RUNS } });
-
-      const sortSelect = wrapper.find('[data-testid="sort-select"]');
-      await sortSelect.setValue('node-name');
-      await wrapper.vm.$nextTick();
+      const wrapper = mountPanel(FIXTURE_RUNS);
+      await setSort(wrapper, 'node-name');
 
       const renderedNodeIds = wrapper.findAll('[data-testid="run-node-id"]').map((el) => el.text());
       expect(renderedNodeIds).toEqual(['alpha-node', 'bravo-node', 'charlie-node']);

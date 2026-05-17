@@ -15,7 +15,7 @@ export type DispatchedResource =
   | { kind: 'code'; text: string; language: string }
   | { kind: 'image'; src: string; alt: string }
   | { kind: 'video'; src: string; mimeType: string }
-  | { kind: 'audio'; src: string }
+  | { kind: 'audio'; src: string; mimeType?: string; name?: string }
   | { kind: 'too-large'; size: number; mimeType: string; name: string; uri: string }
   | { kind: 'download'; name: string; size?: number; uri: string };
 
@@ -112,7 +112,12 @@ export function dispatchResource(content: ResourceContent): DispatchedResource {
   }
 
   if (mimeType.startsWith('audio/') && content.blob) {
-    return { kind: 'audio', src: `data:${mimeType};base64,${content.blob}` };
+    return {
+      kind: 'audio',
+      src: `data:${mimeType};base64,${content.blob}`,
+      mimeType,
+      name: content.name || nameFromUri(content.uri),
+    };
   }
 
   return download(content);

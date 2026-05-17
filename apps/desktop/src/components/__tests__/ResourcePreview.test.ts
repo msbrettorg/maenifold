@@ -41,13 +41,23 @@ describe('ResourcePreview', () => {
 
   it('renders an audio preview', () => {
     const wrapper = mount(ResourcePreview, {
-      props: { dispatched: { kind: 'audio', src: 'data:audio/mpeg;base64,YXVkaW8=' } },
+      props: {
+        dispatched: {
+          kind: 'audio',
+          src: 'data:audio/mpeg;base64,YXVkaW8=',
+          mimeType: 'audio/mpeg',
+          name: 'sample.mp3',
+        },
+      },
     });
 
+    const container = wrapper.find('[data-testid="audio-plyr-container"]');
     const audio = wrapper.find('audio');
+    expect(container.exists()).toBe(true);
     expect(audio.exists()).toBe(true);
-    expect(audio.attributes('controls')).toBeDefined();
+    expect(audio.attributes('controls')).toBeUndefined();
     expect(audio.attributes('src')).toBe('data:audio/mpeg;base64,YXVkaW8=');
+    expect(audio.attributes('aria-label')).toBe('sample.mp3');
     wrapper.unmount();
   });
 

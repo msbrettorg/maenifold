@@ -46,6 +46,8 @@ describe('dispatchResource', () => {
     expect(dispatchResource({ uri: 'file:///sound.mp3', mimeType: 'audio/mpeg', blob: 'YXVkaW8=' })).toEqual({
       kind: 'audio',
       src: 'data:audio/mpeg;base64,YXVkaW8=',
+      mimeType: 'audio/mpeg',
+      name: 'sound.mp3',
     });
   });
 
@@ -198,6 +200,8 @@ describe('dispatchResource size cap', () => {
     }
     if (audio.kind === 'audio') {
       expect(audio.src).toBe(`data:audio/mpeg;base64,${blob}`);
+      expect(audio.mimeType).toBe('audio/mpeg');
+      expect(audio.name).toBe('large.mp3');
     }
   });
 });

@@ -84,24 +84,17 @@ async fn gateway_resolver_disabled_without_invoking_acp() {
 }
 
 #[tokio::test]
-async fn gateway_resolver_timeout_is_structured() {
+async fn gateway_resolver_enabled_without_config_returns_direct_inference_setup() {
     let catalog = catalog().await;
     let root = tempfile::tempdir().expect("root");
-    std::fs::write(
-        root.path().join("maenifold.json"),
-        json!({"agents":{"resolver":{"command":"/bin/echo claude"}}}).to_string(),
-    )
-    .expect("config");
     let settings = IntentResolverSettings {
         enabled: true,
-        agent: Some("resolver".to_string()),
-        timeout_seconds: Some(0),
         ..IntentResolverSettings::default()
     };
     let err = resolve_intent(&catalog, &settings, "read memory", root.path())
         .await
-        .expect_err("timeout");
-    assert!(matches!(err, ResolverError::Timeout { .. }));
+        .expect_err("setup");
+    assert!(matches!(err, ResolverError::DirectInferenceSetup { .. }));
 }
 
 #[tokio::test]

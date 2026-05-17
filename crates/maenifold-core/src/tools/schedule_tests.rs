@@ -185,7 +185,9 @@ fn verify_installed_with_known_schedule_id_returns_array_of_one() {
     )
     .expect("known schedule verify should succeed");
     let payload: Value = serde_json::from_str(&rendered).expect("verify result should be json");
-    let statuses = payload.as_array().expect("single verify should return array");
+    let statuses = payload
+        .as_array()
+        .expect("single verify should return array");
 
     assert_eq!(statuses.len(), 1);
     assert_eq!(statuses[0]["id"], "known-schedule");

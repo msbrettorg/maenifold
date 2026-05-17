@@ -62,9 +62,9 @@ where
 
 fn event_app_session_id(event: &jockey::JockeyEvent) -> Option<&str> {
     match event {
-        jockey::JockeyEvent::AcpDelta(value) | jockey::JockeyEvent::AcpStream(value) => {
-            value.get("appSessionId").and_then(serde_json::Value::as_str)
-        }
+        jockey::JockeyEvent::AcpDelta(value) | jockey::JockeyEvent::AcpStream(value) => value
+            .get("appSessionId")
+            .and_then(serde_json::Value::as_str),
         _ => None,
     }
 }
@@ -73,8 +73,9 @@ pub(crate) async fn sse_handler(
     Path(app_session_id): Path<String>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let receiver = subscribe(&app_session_id);
-    let stream =
-        fut_stream::unfold((receiver, app_session_id), |(mut receiver, app_session_id)| async move {
+    let stream = fut_stream::unfold(
+        (receiver, app_session_id),
+        |(mut receiver, app_session_id)| async move {
             loop {
                 match receiver.recv().await {
                     Ok(jockey_event) => {
@@ -90,8 +91,13 @@ pub(crate) async fn sse_handler(
                     Err(RecvError::Closed) => return None,
                 };
             }
-        });
-    Sse::new(stream).keep_alive(KeepAlive::new().interval(Duration::from_secs(30)).text("ping"))
+        },
+    );
+    Sse::new(stream).keep_alive(
+        KeepAlive::new()
+            .interval(Duration::from_secs(30))
+            .text("ping"),
+    )
 }
 
 #[cfg(test)]
@@ -116,9 +122,16 @@ mod tests {
             .send(event)
             .expect("same-channel receiver should keep send open");
 
-        match receiver.recv().await.expect("receiver should see sender_b event") {
+        match receiver
+            .recv()
+            .await
+            .expect("receiver should see sender_b event")
+        {
             jockey::JockeyEvent::AcpDelta(value) => {
-                assert_eq!(value.get("delta").and_then(serde_json::Value::as_str), Some("hello"));
+                assert_eq!(
+                    value.get("delta").and_then(serde_json::Value::as_str),
+                    Some("hello")
+                );
             }
             other => panic!("unexpected event: {other:?}"),
         }
@@ -162,7 +175,10 @@ mod tests {
         let missing = jockey::JockeyEvent::AcpDelta(json!({ "delta": "skip" }));
 
         assert!(event_app_session_id(&matching).is_some());
-        assert_ne!(event_app_session_id(&matching), event_app_session_id(&non_matching));
+        assert_ne!(
+            event_app_session_id(&matching),
+            event_app_session_id(&non_matching)
+        );
         assert_eq!(event_app_session_id(&missing), None);
     }
 }

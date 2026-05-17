@@ -55,8 +55,10 @@ async fn prompt_aggregation_two_servers_same_name() {
         .get_prompt("fixtureB", "summarize", None)
         .await
         .expect("fixtureB prompt should resolve");
-    let fixture_a_json = serde_json::to_string(&fixture_a).expect("fixtureA prompt should serialize");
-    let fixture_b_json = serde_json::to_string(&fixture_b).expect("fixtureB prompt should serialize");
+    let fixture_a_json =
+        serde_json::to_string(&fixture_a).expect("fixtureA prompt should serialize");
+    let fixture_b_json =
+        serde_json::to_string(&fixture_b).expect("fixtureB prompt should serialize");
     assert!(fixture_a_json.contains("server-id:fixtureA prompt:summarize"));
     assert!(fixture_b_json.contains("server-id:fixtureB prompt:summarize"));
 

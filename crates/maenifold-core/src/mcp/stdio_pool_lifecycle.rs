@@ -85,7 +85,10 @@ impl StdioPool {
                     };
                     Ok((
                         Some(old),
-                        Some((collect_gateway_tools(&servers)?, collect_gateway_prompts(&servers))),
+                        Some((
+                            collect_gateway_tools(&servers)?,
+                            collect_gateway_prompts(&servers),
+                        )),
                     ))
                 }
             }

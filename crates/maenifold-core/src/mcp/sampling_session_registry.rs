@@ -26,6 +26,8 @@ pub(crate) struct SamplingDispatch {
     pub decision: SamplingDecisionRecord,
     pub created_at: String,
     pub token_usage: Option<TokenUsage>,
+    pub request_payload: Option<String>,
+    pub response_payload: Option<String>,
     pub tool_call_count: u32,
     pub tool_loop_budget: u32,
     pub turn_count: u32,
@@ -39,6 +41,8 @@ pub(crate) struct SamplingDispatch {
 pub(crate) enum SamplingDecisionRecord {
     AllowOnce,
     AllowAlways,
+    ClientSampling,
+    Inferencing,
     Deny,
     Cancelled,
     Expired,
@@ -220,6 +224,21 @@ impl SamplingSessionRegistry {
             return Err(SamplingRegistryError::NotFound);
         };
         dispatch.token_usage = Some(usage);
+        drop(sessions);
+        notify_resource_updated(SAMPLING_SESSIONS_URI).await;
+        Ok(())
+    }
+
+    pub(crate) async fn record_response(
+        &self,
+        id: Uuid,
+        response_payload: String,
+    ) -> Result<(), SamplingRegistryError> {
+        let mut sessions = self.sessions.lock().await;
+        let Some(dispatch) = sessions.get_mut(&id) else {
+            return Err(SamplingRegistryError::NotFound);
+        };
+        dispatch.response_payload = Some(response_payload);
         drop(sessions);
         notify_resource_updated(SAMPLING_SESSIONS_URI).await;
         Ok(())

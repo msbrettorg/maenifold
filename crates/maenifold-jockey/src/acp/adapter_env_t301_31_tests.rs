@@ -1,5 +1,5 @@
 use super::adapter_env::validate_env;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 
 // T-301.31 test design: validate_env is the new fail-closed contract for

@@ -22,9 +22,17 @@ pub enum McpServerEntry {
         timeout: Option<u64>,
         #[serde(default, skip_serializing_if = "HashMap::is_empty")]
         env: HashMap<String, String>,
-        #[serde(default, rename = "envFromFile", skip_serializing_if = "HashMap::is_empty")]
+        #[serde(
+            default,
+            rename = "envFromFile",
+            skip_serializing_if = "HashMap::is_empty"
+        )]
         env_from_file: HashMap<String, String>,
-        #[serde(default, rename = "envFromCommand", skip_serializing_if = "HashMap::is_empty")]
+        #[serde(
+            default,
+            rename = "envFromCommand",
+            skip_serializing_if = "HashMap::is_empty"
+        )]
         env_from_command: HashMap<String, EnvFromCommand>,
         #[serde(default)]
         gateway: bool,
@@ -150,9 +158,17 @@ pub struct AgentEntry {
     pub command: String,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub env: HashMap<String, String>,
-    #[serde(default, rename = "envFromFile", skip_serializing_if = "HashMap::is_empty")]
+    #[serde(
+        default,
+        rename = "envFromFile",
+        skip_serializing_if = "HashMap::is_empty"
+    )]
     pub env_from_file: HashMap<String, String>,
-    #[serde(default, rename = "envFromCommand", skip_serializing_if = "HashMap::is_empty")]
+    #[serde(
+        default,
+        rename = "envFromCommand",
+        skip_serializing_if = "HashMap::is_empty"
+    )]
     pub env_from_command: HashMap<String, EnvFromCommand>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub mcp_servers: Vec<McpServerEntry>,

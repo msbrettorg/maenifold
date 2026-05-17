@@ -1,29 +1,23 @@
 // @vitest-environment jsdom
-import { flushPromises, mount } from '@vue/test-utils';
+import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import SessionList from '../SessionList.vue';
-import type { SamplingHistoryEntry, SavedSession } from '../../lib/types';
+import type { SavedSession } from '../../lib/types';
 import { useSessionStore } from '../../stores/session';
 
-const readResource = vi.fn();
-const subscribeResource = vi.fn();
+const agentStore = {
+  activeSessionMap: new Map(),
+  start: vi.fn(),
+  stop: vi.fn(),
+};
 
-class MockEventSource {
-  onmessage: ((event: MessageEvent) => void) | null = null;
-  onerror: (() => void) | null = null;
-  close = vi.fn();
-}
-
-vi.mock('../../composables/useMcpResources', () => ({
-  useMcpResources: () => ({
-    readResource,
-    subscribeResource,
-  }),
+vi.mock('../../stores/agent', () => ({
+  useAgentStore: () => agentStore,
 }));
 
-function savedSession(): SavedSession {
+function savedSession(overrides: Partial<SavedSession> = {}): SavedSession {
   return {
     id: 'agent-row',
     agentName: 'architect',
@@ -32,103 +26,70 @@ function savedSession(): SavedSession {
     lastUpdated: Date.parse('2026-05-13T12:01:00.000Z'),
     cwd: '/repo',
     supportsLoadSession: true,
+    ...overrides,
   };
 }
 
-function samplingEntry(): SamplingHistoryEntry {
-  return {
-    samplingRequestId: '00000000-0000-4000-8000-000000000001',
-    appSessionId: '10000000-0000-4000-8000-000000000001',
-    acpSessionId: 'acp-1',
-    serverName: 'github',
-    model: 'gpt-5.4',
-    runtimeKind: 'copilot',
-    roleName: 'copilot',
-    status: 'streaming',
-    decision: 'allow_once',
-    createdAt: '2026-05-13T12:00:00.000Z',
-    tokenUsage: null,
-  };
-}
-
-async function mountMixedList() {
+async function mountList(sessions: SavedSession[]) {
   const pinia = createPinia();
   setActivePinia(pinia);
-  const agent = savedSession();
-  const sampling = samplingEntry();
-
-  readResource.mockImplementation(async (uri: string) => {
-    if (uri === 'sampling://sessions') {
-      return { uri, text: JSON.stringify({ sessions: [sampling] }) };
-    }
-    return { uri, text: JSON.stringify({ sessions: [] }) };
-  });
-  subscribeResource.mockResolvedValue(vi.fn());
-
   const sessionStore = useSessionStore();
-  sessionStore.savedSessions = [agent];
+  sessionStore.savedSessions = sessions;
   sessionStore.sessions = new Map();
 
-  const wrapper = mount(SessionList, {
+  return mount(SessionList, {
     attachTo: document.body,
     global: { plugins: [pinia] },
   });
-  await flushPromises();
-  return wrapper;
 }
 
 function rows(wrapper: ReturnType<typeof mount>) {
   return wrapper.findAll('li[role="listitem"]');
 }
 
-describe('SessionList sampling rows', () => {
+describe('SessionList', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     window.localStorage.clear();
-    readResource.mockReset();
-    subscribeResource.mockReset();
-    vi.stubGlobal('EventSource', MockEventSource);
+    agentStore.activeSessionMap = new Map();
+    agentStore.start.mockReset();
+    agentStore.stop.mockReset();
   });
 
-  it('interleaves agent and sampling rows', async () => {
-    const wrapper = await mountMixedList();
+  it('renders saved agent sessions', async () => {
+    const wrapper = await mountList([savedSession()]);
 
     expect(wrapper.text()).toContain('Agent planning session');
-    expect(wrapper.text()).toContain('github');
-    expect(wrapper.text()).toContain('agent');
-    expect(wrapper.text()).toContain('sampling');
+    expect(wrapper.text()).toContain('architect');
+    expect(rows(wrapper)).toHaveLength(1);
     wrapper.unmount();
   });
 
-  it('filter chip All shows everything', async () => {
-    const wrapper = await mountMixedList();
+  it('does not render sampling filters or sampling rows in the Agents sidebar', async () => {
+    const wrapper = await mountList([savedSession()]);
 
-    await wrapper.get('button[aria-pressed="true"]').trigger('click');
-
-    expect(rows(wrapper)).toHaveLength(2);
-    expect(wrapper.text()).toContain('Agent planning session');
-    expect(wrapper.text()).toContain('github');
+    expect(wrapper.find('[aria-label="Session source filter"]').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain('sampling');
+    expect(wrapper.text()).not.toContain('Request');
+    expect(wrapper.text()).not.toContain('Response');
     wrapper.unmount();
   });
 
-  it('filter chip Agent hides sampling rows', async () => {
-    const wrapper = await mountMixedList();
+  it('filters agent sessions by title and agent name', async () => {
+    const wrapper = await mountList([
+      savedSession(),
+      savedSession({
+        id: 'agent-row-2',
+        agentName: 'researcher',
+        sessionId: 'agent-session-2',
+        title: 'Evidence review',
+      }),
+    ]);
 
-    await wrapper.findAll('button').find((button) => button.text() === 'agent')!.trigger('click');
+    await wrapper.get('input[aria-label="Filter sessions"]').setValue('review');
 
     expect(rows(wrapper)).toHaveLength(1);
-    expect(wrapper.text()).toContain('Agent planning session');
-    expect(wrapper.text()).not.toContain('github');
-    wrapper.unmount();
-  });
-
-  it('filter chip Sampling hides agent rows', async () => {
-    const wrapper = await mountMixedList();
-
-    await wrapper.findAll('button').find((button) => button.text() === 'sampling')!.trigger('click');
-
-    expect(rows(wrapper)).toHaveLength(1);
-    expect(wrapper.text()).toContain('github');
+    expect(wrapper.text()).toContain('Evidence review');
     expect(wrapper.text()).not.toContain('Agent planning session');
     wrapper.unmount();
   });

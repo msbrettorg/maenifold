@@ -33,7 +33,7 @@ pub fn dispatch_facade_call(
     if let Some(intent) = intent.filter(|value| !value.trim().is_empty()) {
         let _ = parameters;
         return Err(MaenifoldError::Message(format!(
-            "Gateway intent matching is handled by GatewayIntent; intent '{intent}' requires resolver-backed routing or an exact command."
+            "Gateway intent matching is handled by GatewayIntent; intent '{intent}' requires direct inferencing or an exact command."
         )));
     }
 

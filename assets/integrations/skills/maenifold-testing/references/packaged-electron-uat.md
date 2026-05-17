@@ -14,9 +14,38 @@ agent-browser tab
 agent-browser snapshot -i
 ```
 
-`scripts/uat-launch.sh` is the canonical wrapper. It computes a stable task-specific port when one is not supplied, refuses an already-owned CDP port, launches the packaged binary directly with `--remote-debugging-port`, `--remote-allow-origins=*`, and a fresh `--user-data-dir`, detaches the process, verifies `/json`, and prints the exact connect command.
+`scripts/uat-launch.sh` is the canonical wrapper. It computes a stable task-specific port when one is not supplied, refuses an already-owned CDP port, launches the packaged binary directly with `--remote-debugging-port`, `--remote-allow-origins=*`, a fresh `--user-data-dir`, AND sets `MAENIFOLD_UAT=1` + `MAENIFOLD_UAT_FOLDER_PICKER_PATH=<tmpdir>/uat-fixture-folder`. The env vars are MANDATORY: they bypass the OS-level folder picker so agent-driven runs never hang on a native dialog that CDP cannot dismiss. The wrapper detaches the process, verifies `/json`, and prints the exact connect command.
+
+Always grep the launch log for `[uat] MAENIFOLD_UAT mode active` before invoking any agent-browser command, to confirm the guard is active.
 
 If the wrapper reports a port owner, list the exact owner and kill only the exact numeric PID after confirming it is the right process. Do not use name-based process cleanup. Do not hand-roll an alternate Electron launch unless the wrapper itself is being fixed.
+
+## Backend freshness before CDP UAT (critical — iter-14 lesson)
+
+The packaged Electron app embeds its OWN copy of the daemon binary at `apps/desktop/out/maenifold-darwin-arm64/maenifold.app/Contents/MacOS/maenifold`. Forge copies it from `target/release/maenifold` at `npm run package` time — it is NOT a symlink.
+
+After any backend Rust change, the sequence is:
+
+```bash
+cargo build --release -p maenifold-cli -p maenifold-pipeline-driver
+# Optional: refresh the launchd daemon at /usr/local/bin/maenifold for non-UAT clients
+launchctl kickstart -k "gui/$UID/com.ma-collective.maenifold"
+sleep 5
+# MANDATORY: re-package the Electron app so UAT runs see the new backend
+cd apps/desktop && npm run package
+# THEN launch UAT
+scripts/uat-launch.sh <task-id> <port>
+```
+
+Verification step before trusting any CDP UAT result against backend code:
+
+```bash
+# Confirm the packaged-app binary was refreshed
+ls -la apps/desktop/out/maenifold-darwin-arm64/maenifold.app/Contents/MacOS/maenifold
+# Mtime must be AFTER the cargo build mtime; size/inode different from the old copy.
+```
+
+Skipping the repackage leads to false-positive "backend bug" reports — the running UAT binary is stale code. Iter-14 burned 30+ minutes on T-303.4.21 v2/v3 chasing this exact illusion.
 
 ## Agent-browser discipline
 
@@ -46,6 +75,19 @@ If agent-browser attaches to an empty or wrong target, inspect the wrapper's pri
 | Elements missing from snapshot | Wrong target or dynamic UI | `agent-browser tab`, switch to renderer, wait for expected text, re-snapshot |
 | UI needs more than 8 seconds after interaction | Product or harness failure | Capture state and investigate; do not extend the wait |
 | UI compiles but button/dialog behavior fails | Real product regression | Continue interactive UAT; typecheck is not sufficient |
+| Backend fix shipped + daemon redeployed but UAT still hits old behavior | Stale packaged Electron binary | `cd apps/desktop && npm run package` (Forge embeds a COPY of the backend, not a symlink); then re-launch UAT |
+| Folder picker hangs the run | Native dialog not bypassed | Confirm `MAENIFOLD_UAT=1` in launch env; the wrapper sets it but grep the log for `[uat] MAENIFOLD_UAT mode active` |
+
+## Modal-handling discoveries (iter-14)
+
+Tool-approval modals appear the FIRST time an agent uses a given MCP tool — the chat surface pauses on an `Allow once` / `Allow always` dialog. CDP recipes that send a prompt and immediately wait for the response must:
+
+1. Snapshot after a 2-3s wait
+2. Check for an `Allow once` button ref
+3. If present, click it and wait another 5s before snapshotting for the actual response
+4. Repeat on subsequent prompts for any newly-invoked tool
+
+Recipes that skip this step time out with the agent stuck in a "Connecting/approval-pending" state.
 
 ## Source lessons
 

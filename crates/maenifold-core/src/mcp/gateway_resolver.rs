@@ -1,96 +1,27 @@
 #![allow(dead_code)]
 
-use crate::acp_config::{AgentEntry, AgentsConfig, IntentResolverSettings};
+use crate::acp_config::IntentResolverSettings;
 use crate::mcp::domain_mapping::SafetyClass;
 use crate::mcp::gateway_catalog::{CommandEntry, DomainEntry, GatewayCatalog};
 use crate::mcp::gateway_resolver_types::{ResolverError, ResolverOutput, ResolverResult};
 use serde_json::{Value, json};
-use std::path::Path;
-use std::time::Duration;
 
 const FALLBACK: &str = "Use GatewayIndex to inspect available domains and commands, then call GatewayExecute explicitly.";
 
 pub(crate) async fn resolve_intent(
-    catalog: &GatewayCatalog,
+    _catalog: &GatewayCatalog,
     settings: &IntentResolverSettings,
-    user_intent: &str,
-    root: &Path,
+    _user_intent: &str,
+    _root: &std::path::Path,
 ) -> ResolverResult<ResolverOutput> {
     if !settings.enabled {
         return Err(ResolverError::Disabled {
             fallback: fallback(),
         });
     }
-    let agent = settings
-        .agent
-        .as_deref()
-        .filter(|agent| !agent.trim().is_empty())
-        .ok_or_else(|| ResolverError::NoAgent {
-            fallback: fallback(),
-        })?;
-    let config = AgentsConfig::load(root).map_err(|err| ResolverError::NoAgent {
-        fallback: format!("{FALLBACK} Resolver config load failed: {err}"),
-    })?;
-    let entry = config
-        .agents
-        .get(agent)
-        .ok_or_else(|| ResolverError::NoAgent {
-            fallback: fallback(),
-        })?;
-    let runtime_kind = infer_runtime_kind(entry)?;
-    let prompt = resolver_prompt(catalog, settings, user_intent);
-    let context = vec![
-        ("component".into(), "gateway-intent-resolver".into()),
-        ("schema".into(), "ResolverOutput/v1".into()),
-    ];
-    let (event_tx, _event_rx) = tokio::sync::broadcast::channel::<jockey::JockeyEvent>(32);
-    let mut role_config_options = vec![("model".to_string(), settings.model.clone())];
-    if let Some(level) = settings.effective_thought_level() {
-        role_config_options.push(("thoughtLevel".to_string(), level.to_string()));
-    }
-    let cwd = root.to_string_lossy().to_string();
-    let mcp_servers = settings
-        .mcp_servers
-        .iter()
-        .map(|entry| entry.to_acp())
-        .collect();
-    let app_session_id = format!("gateway-resolver-{}", uuid::Uuid::new_v4());
-    if settings.timeout_seconds == Some(0) {
-        return Err(ResolverError::Timeout {
-            seconds: 0,
-            fallback: fallback(),
-        });
-    }
-    let timeout_seconds = settings.timeout_seconds.unwrap_or(30);
-    let future = jockey::acp::execute_runtime(
-        &runtime_kind,
-        agent,
-        &prompt,
-        &context,
-        &cwd,
-        &event_tx,
-        false,
-        mcp_servers,
-        None,
-        role_config_options,
-        None,
-        &app_session_id,
-        None,
-        None,
-    );
-    let result = tokio::time::timeout(Duration::from_secs(timeout_seconds), future)
-        .await
-        .map_err(|_| ResolverError::Timeout {
-            seconds: timeout_seconds,
-            fallback: fallback(),
-        })?;
-    if !result.ok {
-        return Err(ResolverError::AcpError {
-            message: result.output,
-            fallback: fallback(),
-        });
-    }
-    parse_and_validate_output(catalog, &result.output, settings.max_candidates)
+    Err(ResolverError::DirectInferenceSetup {
+        fallback: fallback(),
+    })
 }
 
 pub(crate) fn parse_and_validate_output(
@@ -144,7 +75,7 @@ pub(crate) fn render_compact_catalog(catalog: &GatewayCatalog, max_chars: u32) -
         })
 }
 
-fn resolver_prompt(
+pub(crate) fn resolver_prompt(
     catalog: &GatewayCatalog,
     settings: &IntentResolverSettings,
     user_intent: &str,
@@ -237,30 +168,6 @@ fn limit(value: &str, max: Option<usize>) -> String {
         .unwrap_or_else(|| value.to_string())
 }
 
-fn infer_runtime_kind(entry: &AgentEntry) -> ResolverResult<String> {
-    let (binary, args) = entry.command_parts();
-    let binary_name = Path::new(binary)
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or(binary)
-        .to_ascii_lowercase();
-    for candidate in std::iter::once(binary_name.as_str()).chain(args.into_iter()) {
-        let normalized = candidate.to_ascii_lowercase();
-        if normalized.contains("claude") {
-            return Ok("claude-code".to_string());
-        }
-        if normalized.contains("codex") {
-            return Ok("codex-cli".to_string());
-        }
-        if normalized.contains("gemini") {
-            return Ok("gemini-cli".to_string());
-        }
-    }
-    Err(ResolverError::NoAgent {
-        fallback: fallback(),
-    })
-}
-
 fn malformed<T>(message: &str) -> ResolverResult<T> {
     Err(ResolverError::Malformed {
         message: message.to_string(),
@@ -268,6 +175,6 @@ fn malformed<T>(message: &str) -> ResolverResult<T> {
     })
 }
 
-fn fallback() -> String {
+pub(crate) fn fallback() -> String {
     FALLBACK.to_string()
 }

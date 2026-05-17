@@ -9,12 +9,12 @@ use std::collections::{BTreeMap, HashMap};
 use super::handler_validation::{validate_workflow_node_definitions, workflow_node_file};
 #[cfg(test)]
 use super::lease;
+use super::resource_notifications::emit_pipeline_resource_updated;
 #[cfg(test)]
 use super::session_io::{frontmatter_value, read_pipeline_session};
 use super::session_io::{
     generate_pipeline_node_session_id, write_pipeline_session, write_workflow_node_session,
 };
-use super::resource_notifications::emit_pipeline_resource_updated;
 use super::view::{view_pipeline_session, view_pipeline_summary_session};
 use super::{NodeState, NodeStatus, PipelineDefinition, compute_ready_set, validate_pipeline};
 pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<String> {

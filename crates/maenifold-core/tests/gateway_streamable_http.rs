@@ -70,11 +70,13 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
     assert_tool_names(
         &names,
         &[
+            "DiscoverMcpPrompts",
             "DiscoverMcpTools",
             "GatewayBatch",
             "GatewayExecute",
             "GatewayIndex",
             "GetHelp",
+            "GetMcpPrompt",
             "ReadMcpResource",
         ],
     );
@@ -262,12 +264,14 @@ async fn streamable_http_gateway_intent_enabled_lists_current_tools() {
     assert_tool_names(
         &names,
         &[
+            "DiscoverMcpPrompts",
             "DiscoverMcpTools",
             "GatewayBatch",
             "GatewayExecute",
             "GatewayIndex",
             "GatewayIntent",
             "GetHelp",
+            "GetMcpPrompt",
             "ReadMcpResource",
         ],
     );

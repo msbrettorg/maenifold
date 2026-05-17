@@ -31,12 +31,25 @@ async fn serverName_propagated_through_create_message() {
 async fn denied_sampling_request_appears_in_registry() {
     let handler = sampling_client_flow_source();
     let registry = registry_source();
-    let deny = handler.find("SamplingAction::Deny").expect("deny branch exists");
-    let insert = handler.find(".insert(SamplingDispatch").expect("registry insert exists");
+    let deny = handler
+        .find("SamplingAction::Deny")
+        .expect("deny branch exists");
+    let insert = handler
+        .find(".insert(SamplingDispatch")
+        .expect("registry insert exists");
 
-    assert!(insert < deny, "denied decisions must be inserted before returning Err");
-    assert!(registry.contains("Denied"), "SamplingSessionStatus must expose Denied");
-    assert!(registry.contains("decision"), "SamplingDispatch must record decision");
+    assert!(
+        insert < deny,
+        "denied decisions must be inserted before returning Err"
+    );
+    assert!(
+        registry.contains("Denied"),
+        "SamplingSessionStatus must expose Denied"
+    );
+    assert!(
+        registry.contains("decision"),
+        "SamplingDispatch must record decision"
+    );
     assert!(handler.contains("SamplingDecisionRecord::Deny"));
 }
 

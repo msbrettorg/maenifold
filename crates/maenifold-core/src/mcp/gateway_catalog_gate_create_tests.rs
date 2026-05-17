@@ -13,7 +13,10 @@ async fn gate_create_command_is_listed_in_maenifold_gate_domain_catalog() {
     assert!(
         commands.iter().any(|command| command.name == "gate_Create"),
         "gate_Create missing from maenifold.gate catalog: {:?}",
-        commands.iter().map(|command| &command.name).collect::<Vec<_>>()
+        commands
+            .iter()
+            .map(|command| &command.name)
+            .collect::<Vec<_>>()
     );
 }
 
@@ -59,7 +62,10 @@ async fn gate_create_happy_path_writes_frontmatter_and_auto_syncs_status() {
     .await
     .expect("status result");
     assert!(!status.is_error.unwrap_or(false), "{}", text(&status));
-    let rows = parsed_json(&status).as_array().cloned().expect("status rows");
+    let rows = parsed_json(&status)
+        .as_array()
+        .cloned()
+        .expect("status rows");
     assert!(
         rows.iter().any(|row| row["taskId"] == "T-99.1"),
         "gate_Status should surface newly-created task: {rows:?}"
@@ -73,7 +79,10 @@ async fn gate_create_rejects_duplicate_task_ids_in_todo_and_done() {
         write_existing_task(root.path(), location, "T-99.1", "existing duplicate", "tdd");
         let result = invoke_create(root.path(), "T-99.1", "duplicate", "tdd", json!({})).await;
 
-        assert!(result.is_error.unwrap_or(false), "{location} duplicate should fail");
+        assert!(
+            result.is_error.unwrap_or(false),
+            "{location} duplicate should fail"
+        );
         let message = text(&result);
         assert!(message.contains("T-99.1"), "{message}");
         assert!(
@@ -92,8 +101,14 @@ async fn gate_create_rejects_invalid_task_id_inputs() {
 
         assert!(result.is_error.unwrap_or(false), "{invalid:?} should fail");
         let message = text(&result);
-        assert!(message.contains("taskId") || message.contains("task id"), "{message}");
-        assert!(message.contains("T-") || message.contains("regex"), "{message}");
+        assert!(
+            message.contains("taskId") || message.contains("task id"),
+            "{message}"
+        );
+        assert!(
+            message.contains("T-") || message.contains("regex"),
+            "{message}"
+        );
     }
 }
 
@@ -110,7 +125,10 @@ async fn gate_create_rejects_unknown_pipeline_and_invalid_priority_values() {
     .await;
     assert!(unknown.is_error.unwrap_or(false));
     let pipeline_message = text(&unknown);
-    assert!(pipeline_message.contains("frobnicate"), "{pipeline_message}");
+    assert!(
+        pipeline_message.contains("frobnicate"),
+        "{pipeline_message}"
+    );
     for expected in ["sdd", "tdd", "gsd", "lightweight"] {
         assert!(pipeline_message.contains(expected), "{pipeline_message}");
     }
@@ -171,7 +189,11 @@ async fn gate_create_slugifies_unsafe_titles_without_path_escape() {
         assert_eq!(actual, expected);
         assert_eq!(actual.parent(), Some(root.path().join("todo").as_path()));
         assert!(actual.starts_with(root.path().join("todo")));
-        assert!(actual.exists(), "created path should exist: {}", actual.display());
+        assert!(
+            actual.exists(),
+            "created path should exist: {}",
+            actual.display()
+        );
     }
 }
 
@@ -208,7 +230,10 @@ async fn gate_create_accepts_registered_custom_pipeline_and_respects_optional_fi
         assert_eq!(yaml["priority"], priority);
         assert_eq!(yaml["sprint"], 501);
         assert_eq!(yaml["parent"], "T-99.0");
-        assert!(markdown.contains(body), "provided body should be preserved: {markdown}");
+        assert!(
+            markdown.contains(body),
+            "provided body should be preserved: {markdown}"
+        );
         assert!(!markdown.contains("## Plan"), "{markdown}");
     }
 }
@@ -258,7 +283,10 @@ async fn gate_create_rejects_missing_root_and_missing_todo_folder() {
         invoke_create(root.path(), "T-99.1", "missing todo", "tdd", json!({})).await;
     assert!(missing_todo_result.is_error.unwrap_or(false));
     let missing_todo_message = text(&missing_todo_result);
-    assert!(missing_todo_message.contains("todo"), "{missing_todo_message}");
+    assert!(
+        missing_todo_message.contains("todo"),
+        "{missing_todo_message}"
+    );
     assert!(
         missing_todo_message.contains("missing") || missing_todo_message.contains("required"),
         "{missing_todo_message}"

@@ -109,8 +109,10 @@ fn sampling_allow_dispatch_passes_selected_model_to_runtime_sampling() {
         .expect("execute_runtime_sampling call must be awaited");
     let call = &dispatch[..dispatch_end];
 
+    // Format-tolerant: strip whitespace and check the model expression is passed through.
+    let call_no_ws: String = call.chars().filter(|c| !c.is_whitespace()).collect();
     assert!(
-        call.contains("decision.selected_model.clone()"),
+        call_no_ws.contains("decision.selected_model.clone()"),
         "T-303.4.19: approved sampling must pass decision.selected_model.clone() to execute_runtime_sampling"
     );
 }

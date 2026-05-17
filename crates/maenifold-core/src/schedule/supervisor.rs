@@ -15,9 +15,9 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
-use supervisor_mcp::{ExecutionOutcome, build_invocation};
 #[cfg(test)]
 use supervisor_mcp::parse_mcp_action;
+use supervisor_mcp::{ExecutionOutcome, build_invocation};
 use tracing::info;
 
 #[cfg(test)]
@@ -56,23 +56,52 @@ impl Supervisor {
             Err(error) if is_already_running(&error) => {
                 let message = error.to_string();
                 info!(task_id, error = %message, "skipping overlapping scheduled task");
-                let record = self.record(&mut task, RunStatus::Skipped, Some(message), None, None, None, None, started_at, started)?;
+                let record = self.record(
+                    &mut task,
+                    RunStatus::Skipped,
+                    Some(message),
+                    None,
+                    None,
+                    None,
+                    None,
+                    started_at,
+                    started,
+                )?;
                 return Ok(record);
             }
             Err(error) => return Err(error),
         };
 
         let mcp_action = task.mcp_action.clone();
-        let mcp_parameters = mcp_action.as_ref().map(|_| task.mcp_parameters.clone().unwrap_or_else(|| json!({})));
+        let mcp_parameters = mcp_action
+            .as_ref()
+            .map(|_| task.mcp_parameters.clone().unwrap_or_else(|| json!({})));
         let outcome = self.execute_with_timeout(&task);
         let (status, error, mcp_result, sidecar_path) = match outcome {
             Ok(result) => {
-                let mcp_result = mcp_action.as_ref().and_then(|_| serde_json::from_str::<serde_json::Value>(&result.stdout).ok());
-                (result.status, result.error, mcp_result, Some(result.sidecar_path))
+                let mcp_result = mcp_action
+                    .as_ref()
+                    .and_then(|_| serde_json::from_str::<serde_json::Value>(&result.stdout).ok());
+                (
+                    result.status,
+                    result.error,
+                    mcp_result,
+                    Some(result.sidecar_path),
+                )
             }
             Err(error) => (RunStatus::Failed, Some(error.to_string()), None, None),
         };
-        self.record(&mut task, status, error, mcp_action, mcp_parameters, mcp_result, sidecar_path, started_at, started)
+        self.record(
+            &mut task,
+            status,
+            error,
+            mcp_action,
+            mcp_parameters,
+            mcp_result,
+            sidecar_path,
+            started_at,
+            started,
+        )
     }
 
     fn record(
@@ -99,7 +128,10 @@ impl Supervisor {
         task.last_run = Some(record.clone());
         self.store.update(task)?;
         let sidecar_path = sidecar_path.unwrap_or_else(|| {
-            self.store.task_dir(&task.id).join("logs").join(format!("{}.json", timestamp.format("%Y%m%dT%H%M%SZ")))
+            self.store
+                .task_dir(&task.id)
+                .join("logs")
+                .join(format!("{}.json", timestamp.format("%Y%m%dT%H%M%SZ")))
         });
         supervisor_mcp::write_runrecord_sidecar(&record, &sidecar_path);
         Ok(record)
@@ -151,7 +183,10 @@ impl Supervisor {
                 .with_context(|| format!("failed to clone log file '{}'", log_path.display()))?,
         );
         let mut command = Command::new(&self.maenifold_bin);
-        command.args(&invocation.args).stdout(Stdio::piped()).stderr(stderr);
+        command
+            .args(&invocation.args)
+            .stdout(Stdio::piped())
+            .stderr(stderr);
         if let Some(dir) = workdir.as_deref() {
             command.current_dir(dir);
         }
@@ -198,7 +233,12 @@ impl Supervisor {
             }
         };
         let stdout = supervisor_mcp::join_stdout(stdout_reader)?;
-        Ok(supervisor_mcp::ExecutionOutcome { status, error, stdout, sidecar_path: log_path.with_extension("json") })
+        Ok(supervisor_mcp::ExecutionOutcome {
+            status,
+            error,
+            stdout,
+            sidecar_path: log_path.with_extension("json"),
+        })
     }
 
     fn log_path(&self, task_id: &str) -> PathBuf {

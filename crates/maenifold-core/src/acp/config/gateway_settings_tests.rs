@@ -70,7 +70,6 @@ fn explicit_gateway_settings_deserialize() {
 fn valid_enabled_resolver_passes_validation() {
     let s = IntentResolverSettings {
         enabled: true,
-        agent: Some("resolver".to_string()),
         thought_level: Some("medium".to_string()),
         ..IntentResolverSettings::default()
     };
@@ -79,22 +78,21 @@ fn valid_enabled_resolver_passes_validation() {
 }
 
 #[test]
-fn enabled_resolver_requires_known_non_empty_agent() {
-    for agent in [None, Some("".to_string()), Some("   ".to_string())] {
+fn enabled_resolver_does_not_require_an_agent() {
+    for agent in [
+        None,
+        Some("".to_string()),
+        Some("   ".to_string()),
+        Some("missing".to_string()),
+    ] {
         let settings = IntentResolverSettings {
             enabled: true,
             agent,
             ..IntentResolverSettings::default()
         };
-        assert!(validation_error(settings).contains("requires a non-empty agent"));
+        validate_intent_resolver_config(&settings, &config_with_agent("resolver"))
+            .expect("enabled resolver should not require an agent");
     }
-
-    let settings = IntentResolverSettings {
-        enabled: true,
-        agent: Some("missing".to_string()),
-        ..IntentResolverSettings::default()
-    };
-    assert!(validation_error(settings).contains("not configured or is not executable"));
 }
 
 #[test]

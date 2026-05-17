@@ -8,11 +8,13 @@ fn pause_all_snapshots_prior_enabled() {
     }
     let p = action(&c, "pause_all");
     assert_eq!(p["ok"], true);
-    assert!(schedule_store(&c)
-        .list()
-        .expect("list")
-        .iter()
-        .all(|t| !t.enabled));
+    assert!(
+        schedule_store(&c)
+            .list()
+            .expect("list")
+            .iter()
+            .all(|t| !t.enabled)
+    );
     assert_eq!(
         pause_snapshot(&c),
         BTreeMap::from([

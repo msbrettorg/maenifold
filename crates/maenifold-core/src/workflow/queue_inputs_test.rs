@@ -1,11 +1,7 @@
 use super::start_workflow_session;
 use crate::{
-    config::Config,
-    markdown::read_markdown,
-    sessions::workflow_session_uri,
-    test_util::ConfigResetGuard,
-    tools::ToolContext,
-    util::json::OutputFormat,
+    config::Config, markdown::read_markdown, sessions::workflow_session_uri,
+    test_util::ConfigResetGuard, tools::ToolContext, util::json::OutputFormat,
 };
 use serde_json::Value;
 use serde_yml::Value as YamlValue;
@@ -22,8 +18,7 @@ fn workflow_start_persists_inputs_to_session_frontmatter() {
     let _guard = ConfigResetGuard;
     let config = Config::current();
     config.ensure_directories().expect("ensure directories");
-    std::fs::create_dir_all(config.assets_path.join("workflows"))
-        .expect("create workflows dir");
+    std::fs::create_dir_all(config.assets_path.join("workflows")).expect("create workflows dir");
     std::fs::write(
         config.assets_path.join("workflows/inputs-test.json"),
         r#"{

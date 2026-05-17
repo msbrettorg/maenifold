@@ -70,6 +70,8 @@ function parseEntry(value: unknown): SamplingHistoryEntry | null {
   if (typeof value.appSessionId === 'string') {
     entry.appSessionId = value.appSessionId;
   }
+  if (typeof value.requestPayload === 'string') entry.requestPayload = value.requestPayload;
+  if (typeof value.responsePayload === 'string') entry.responsePayload = value.responsePayload;
   if (typeof value.toolCallCount === 'number') entry.toolCallCount = value.toolCallCount;
   if (typeof value.toolLoopBudget === 'number') entry.toolLoopBudget = value.toolLoopBudget;
   if (typeof value.turnCount === 'number') entry.turnCount = value.turnCount;
@@ -197,12 +199,12 @@ export const useSamplingHistoryStore = defineStore('sampling-history', () => {
   }
 
   async function cancelSamplingSession(samplingRequestId: string): Promise<void> {
-    entries.value = entries.value.map((entry) => (
-      entry.samplingRequestId === samplingRequestId ? { ...entry, status: 'cancelled' } : entry
-    ));
     await mcp.connect().catch(() => undefined);
-    await mcp.callTool('CancelSamplingSession', { samplingRequestId });
-    await refresh();
+    try {
+      await mcp.callTool('CancelSamplingSession', { samplingRequestId });
+    } finally {
+      await refresh();
+    }
   }
 
   return { entries, init, start, stop, refresh, cancelSamplingSession };

@@ -176,8 +176,15 @@ impl TaskRepository {
     }
 
     pub fn move_to_todo_with_slug(root: &Path, task: &TaskPathSet) -> Result<(), GateError> {
-        if task.location == "todo" { return Ok(()); }
-        Self::move_to(root, task, root.join("todo").join(Self::recover_slug_filename(root, task)?))
+        if task.location == "todo" {
+            return Ok(());
+        }
+        Self::move_to(
+            root,
+            task,
+            root.join("todo")
+                .join(Self::recover_slug_filename(root, task)?),
+        )
     }
 
     pub fn canonical_task_markdown_path(
@@ -225,8 +232,12 @@ impl TaskRepository {
 
     fn move_to(root: &Path, task: &TaskPathSet, destination: PathBuf) -> Result<(), GateError> {
         let source = Self::canonical_task_markdown_path(root, task)?;
-        let source_parent = source.parent().ok_or_else(|| GateError::MissingTaskPath(source.clone()))?;
-        let destination_parent = destination.parent().ok_or_else(|| GateError::MissingTaskPath(destination.clone()))?;
+        let source_parent = source
+            .parent()
+            .ok_or_else(|| GateError::MissingTaskPath(source.clone()))?;
+        let destination_parent = destination
+            .parent()
+            .ok_or_else(|| GateError::MissingTaskPath(destination.clone()))?;
         fs::create_dir_all(destination_parent)?;
         validate_destination_directory(root, destination_parent, task)?;
         if fs::symlink_metadata(&destination).is_ok() {

@@ -45,7 +45,9 @@ fn create_pipeline_t301_25_persists_name_and_description_frontmatter() {
         Some("my-pipeline")
     );
     assert_eq!(
-        frontmatter.get("description").and_then(serde_yml::Value::as_str),
+        frontmatter
+            .get("description")
+            .and_then(serde_yml::Value::as_str),
         Some("test desc")
     );
 }

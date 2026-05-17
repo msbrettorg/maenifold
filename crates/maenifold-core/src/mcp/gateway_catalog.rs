@@ -262,5 +262,4 @@ impl GatewayCatalog {
         );
         Ok(())
     }
-
 }

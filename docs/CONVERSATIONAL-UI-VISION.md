@@ -306,7 +306,7 @@ Or, more precisely:
 ## Grounding
 
 - `memory://architecture/ai-is-the-new-ui-mcp-as-common-interface`
-- `memory://directives/acpexec-as-unified-execution-path`
+- `memory://directives/acpexec-as-unified-execution-path` (superseded for PM/task execution; ACP UI runtime only)
 - `memory://research/agentic-user-interfaces-where-the-agent-draws-the-ui`
 - `memory://research/agentic-ui-convergence-bets-for-maenifold-april-2026`
 - `memory://sprints/204/sprint-204-handy-adoption-research`

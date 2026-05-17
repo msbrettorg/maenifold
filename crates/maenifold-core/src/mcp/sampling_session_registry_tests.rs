@@ -242,6 +242,8 @@ fn dispatch_fixture(server_name: &str) -> SamplingDispatch {
         decision: SamplingDecisionRecord::AllowOnce,
         created_at: "2026-05-13T00:00:00Z".to_string(),
         token_usage: None,
+        request_payload: None,
+        response_payload: None,
         tool_call_count: 0,
         tool_loop_budget: 10,
         turn_count: 0,

@@ -180,7 +180,13 @@ fn log_entry(path: &Path, file_name: &str, content: String) -> Value {
     if let Ok(Value::Object(sidecar)) = fs::read_to_string(path.with_extension("json"))
         .and_then(|text| serde_json::from_str::<Value>(&text).map_err(std::io::Error::other))
     {
-        for key in ["status", "duration_seconds", "mcp_action", "mcp_parameters", "mcp_result"] {
+        for key in [
+            "status",
+            "duration_seconds",
+            "mcp_action",
+            "mcp_parameters",
+            "mcp_result",
+        ] {
             if let Some(value) = sidecar.get(key) {
                 entry.insert(key.to_string(), value.clone());
             }

@@ -228,9 +228,9 @@ fn average(values: &[f64]) -> f64 {
 fn error_kind(err: &ResolverError) -> &'static str {
     match err {
         ResolverError::Disabled { .. } => "disabled",
-        ResolverError::NoAgent { .. } => "no_agent",
+        ResolverError::DirectInferenceSetup { .. } => "direct_inference_setup",
         ResolverError::Timeout { .. } => "timeout",
         ResolverError::Malformed { .. } => "malformed",
-        ResolverError::AcpError { .. } => "acp_error",
+        ResolverError::DirectInferenceFailed { .. } => "direct_inference_failed",
     }
 }

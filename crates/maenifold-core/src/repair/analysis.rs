@@ -8,7 +8,7 @@ use crate::markdown::{
     read_markdown,
 };
 use crate::tools::ToolContext;
-use crate::util::json::{success, OutputFormat};
+use crate::util::json::{OutputFormat, success};
 use regex::Regex;
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap, HashSet};

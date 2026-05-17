@@ -221,7 +221,7 @@ maenifold exposes MCP tools across eight categories:
 - **Graph** — `Sync`, `BuildContext`, `Visualize`
 - **Repair** — `RepairConcepts`, `AnalyzeConceptCorruption`
 - **Reasoning** — `SequentialThinking`, `Workflow`, `AssumptionLedger`
-- **Pipeline / ACP** — `Pipeline`, `ListAgents`, `ListSessions`, `AcpExec`
+- **Pipeline / ACP runtime** — `Pipeline`, `ListAgents`, `ListSessions`, `AcpExec` (`AcpExec` is for Maenifold UI / ACP sessions and ACP-specific smoke tests, not Gate/task worker dispatch)
 - **Assets** — `Adopt`, `ListAssets`, `UpdateAssets`, `ReadMcpResource`
 - **System** — `GetConfig`, `GetHelp`, `RecentActivity`, `MemoryStatus`, `EmbeddingModels`, `RunFullBenchmark`
 

@@ -161,11 +161,7 @@ fn write_updated_pipeline_session(
     Ok(())
 }
 
-fn upsert_text(
-    frontmatter: &mut crate::markdown::Frontmatter,
-    field: &str,
-    value: Option<&str>,
-) {
+fn upsert_text(frontmatter: &mut crate::markdown::Frontmatter, field: &str, value: Option<&str>) {
     if let Some(value) = value.map(str::trim).filter(|value| !value.is_empty()) {
         frontmatter.insert(field.to_string(), YamlValue::String(value.to_string()));
     } else {

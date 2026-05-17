@@ -168,7 +168,6 @@ async fn gateway_active_surface_has_exact_tool_count_by_intent_mode() {
 
     let mut settings = IntentResolverSettings::default();
     settings.enabled = true;
-    settings.agent = Some("resolver".to_string());
     let with_intent = exposed_gateway_surface(settings).await;
     assert_eq!(
         with_intent,
@@ -188,7 +187,6 @@ async fn gateway_active_surface_has_exact_tool_count_by_intent_mode() {
 async fn gateway_active_surface_has_canonical_unique_tool_names() {
     let mut settings = IntentResolverSettings::default();
     settings.enabled = true;
-    settings.agent = Some("resolver".to_string());
 
     let names = exposed_gateway_surface(settings).await;
     let unique: HashSet<_> = names.iter().cloned().collect();

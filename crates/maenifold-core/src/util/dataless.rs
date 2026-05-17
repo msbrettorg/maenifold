@@ -56,7 +56,10 @@ mod tests {
             .expect("create")
             .write_all(b"# Normal file\n")
             .expect("write");
-        assert!(!is_dataless(&file), "normal file must not be flagged dataless");
+        assert!(
+            !is_dataless(&file),
+            "normal file must not be flagged dataless"
+        );
     }
 
     #[cfg(target_os = "macos")]
@@ -73,6 +76,9 @@ mod tests {
             .status()
             .expect("xattr command");
         assert!(status.success(), "xattr -wx failed");
-        assert!(is_dataless(&file), "file with com.apple.decmpfs must be flagged dataless");
+        assert!(
+            is_dataless(&file),
+            "file with com.apple.decmpfs must be flagged dataless"
+        );
     }
 }

@@ -62,8 +62,10 @@ fn adapter_t301_31_dispatches_normally_when_env_resolves() {
 
     assert_eq!(adapter.binary, "/bin/echo");
     assert_eq!(adapter.args, vec!["adapter"]);
-    assert!(adapter
-        .env
-        .iter()
-        .any(|(k, v)| k == "TEST_VAR" && v == "resolved-token"));
+    assert!(
+        adapter
+            .env
+            .iter()
+            .any(|(k, v)| k == "TEST_VAR" && v == "resolved-token")
+    );
 }

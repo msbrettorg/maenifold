@@ -156,6 +156,9 @@ impl StdioPool {
             sampling_agent,
         })
     }
+    pub(crate) fn sampling_registry(&self) -> Arc<SamplingSessionRegistry> {
+        Arc::clone(&self.sampling_registry)
+    }
     pub async fn call_tool(
         &self,
         server_name: &str,
@@ -178,15 +181,26 @@ impl StdioPool {
         })
         .await
     }
-    pub async fn get_prompt(&self, server_name: &str, name: &str, arguments: Option<serde_json::Map<String, Value>>) -> Result<GetPromptResult> {
+    pub async fn get_prompt(
+        &self,
+        server_name: &str,
+        name: &str,
+        arguments: Option<serde_json::Map<String, Value>>,
+    ) -> Result<GetPromptResult> {
         crate::mcp::stdio_pool_prompts::get_prompt(self, server_name, name, arguments).await
     }
     pub fn all_tools(&self) -> Vec<Tool> {
         lock_tools(&self.tools).clone()
     }
-    pub fn all_gateway_tools(&self) -> Vec<(String, Vec<Tool>)> { crate::mcp::stdio_pool_tools::all_gateway_tools(self) }
-    pub fn all_gateway_prompts(&self) -> Vec<(String, Vec<Prompt>)> { crate::mcp::stdio_pool_prompts::all_gateway_prompts(self) }
-    pub fn all_gateway_descriptions(&self) -> BTreeMap<String, String> { crate::mcp::stdio_pool_tools::all_gateway_descriptions(self) }
+    pub fn all_gateway_tools(&self) -> Vec<(String, Vec<Tool>)> {
+        crate::mcp::stdio_pool_tools::all_gateway_tools(self)
+    }
+    pub fn all_gateway_prompts(&self) -> Vec<(String, Vec<Prompt>)> {
+        crate::mcp::stdio_pool_prompts::all_gateway_prompts(self)
+    }
+    pub fn all_gateway_descriptions(&self) -> BTreeMap<String, String> {
+        crate::mcp::stdio_pool_tools::all_gateway_descriptions(self)
+    }
     pub async fn shutdown(&self) {
         let sessions = {
             let mut servers = self.servers.write().await;
@@ -195,10 +209,22 @@ impl StdioPool {
                 .filter_map(|server| server.session)
                 .collect::<Vec<_>>()
         };
-        *self.tools.write().unwrap_or_else(|error| error.into_inner()) = Vec::new();
-        *self.gateway_tools.write().unwrap_or_else(|error| error.into_inner()) = Vec::new();
-        *self.gateway_prompts.write().unwrap_or_else(|error| error.into_inner()) = Vec::new();
-        *self.gateway_descriptions.write().unwrap_or_else(|error| error.into_inner()) = BTreeMap::new();
+        *self
+            .tools
+            .write()
+            .unwrap_or_else(|error| error.into_inner()) = Vec::new();
+        *self
+            .gateway_tools
+            .write()
+            .unwrap_or_else(|error| error.into_inner()) = Vec::new();
+        *self
+            .gateway_prompts
+            .write()
+            .unwrap_or_else(|error| error.into_inner()) = Vec::new();
+        *self
+            .gateway_descriptions
+            .write()
+            .unwrap_or_else(|error| error.into_inner()) = BTreeMap::new();
         let mut shutdowns = FuturesUnordered::new();
         for session in sessions {
             shutdowns.push(async move { session.shutdown().await });

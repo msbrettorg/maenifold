@@ -17,6 +17,8 @@ type SamplingHistoryEntry = {
   toolCallCount?: number;
   toolLoopBudget?: number;
   tokenUsage: { inputTokens: number; outputTokens: number } | null;
+  requestPayload?: string;
+  responsePayload?: string;
 };
 
 const refresh = vi.fn();
@@ -42,6 +44,8 @@ function makeEntry(overrides: Partial<SamplingHistoryEntry> = {}): SamplingHisto
     decision: 'allow_once',
     createdAt: '2026-05-13T12:00:00.0000000+00:00',
     tokenUsage: { inputTokens: 12, outputTokens: 34 },
+    requestPayload: '{"intent":"read config"}',
+    responsePayload: '{"status":"candidates"}',
     ...overrides,
   };
 }
@@ -65,7 +69,7 @@ describe('SamplingHistory', () => {
     wrapper.unmount();
   });
 
-  it('renders one row per entry with all 7 columns (Time, Server, Model, Decision, Status, Tool calls, Tokens)', async () => {
+  it('renders one row per entry with request and response evidence', async () => {
     const entries = [
       makeEntry({ serverName: 'github', model: 'gpt-5.4' }),
       makeEntry({
@@ -79,21 +83,19 @@ describe('SamplingHistory', () => {
 
     const wrapper = await mountSamplingHistory(entries);
 
-    for (const heading of ['Time', 'Server', 'Model', 'Decision', 'Status', 'Tool calls', 'Tokens']) {
+    for (const heading of ['Time', 'Event type', 'Source', 'Request', 'Response', 'Status', 'Tokens']) {
       expect(wrapper.text()).toContain(heading);
     }
     const rows = wrapper.findAll('tbody tr');
     expect(rows).toHaveLength(2);
     expect(rows[0]?.text()).toContain('github');
-    expect(rows[0]?.text()).toContain('gpt-5.4');
-    expect(rows[0]?.text()).toContain('allow_once');
-    expect(rows[0]?.text()).toContain('completed');
+    expect(rows[0]?.text()).toContain('read config');
+    expect(rows[0]?.text()).toContain('candidates');
+    expect(rows[0]?.text()).toContain('Completed');
     expect(rows[0]?.findAll('td')).toHaveLength(7);
-    expect(rows[0]?.findAll('td')[5]?.text()).toContain('Tool calls:');
     expect(rows[0]?.findAll('td')[6]?.text()).toContain('12');
     expect(rows[0]?.findAll('td')[6]?.text()).toContain('34');
     expect(rows[1]?.text()).toContain('filesystem');
-    expect(rows[1]?.text()).toContain('claude-sonnet-4.6');
     expect(rows[1]?.findAll('td')).toHaveLength(7);
     wrapper.unmount();
   });

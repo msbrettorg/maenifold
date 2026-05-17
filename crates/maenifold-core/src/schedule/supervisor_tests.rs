@@ -1,6 +1,6 @@
+use super::Supervisor;
 use super::apply_env_scrub;
 use super::{build_invocation, build_payload, parse_mcp_action};
-use super::Supervisor;
 use crate::schedule::{ScheduleStore, ScheduledTask};
 use chrono::Utc;
 use serde_json::{Value, json};
@@ -168,10 +168,17 @@ fn supervisor_run_with_mcp_action_populates_sidecar_mcp_fields() {
     assert_eq!(sidecar["mcp_result"], json!({"ok": true}));
 }
 
-fn supervisor_fixture(id: &str, stdout: &str) -> (tempfile::TempDir, ScheduleStore, ScheduledTask, PathBuf) {
+fn supervisor_fixture(
+    id: &str,
+    stdout: &str,
+) -> (tempfile::TempDir, ScheduleStore, ScheduledTask, PathBuf) {
     let temp = tempfile::tempdir().expect("tempdir");
     let bin = temp.path().join("maenifold-fixture");
-    fs::write(&bin, format!("#!/bin/sh\nprintf '{}'\n", stdout.replace('\'', "'\\''"))).expect("write fixture");
+    fs::write(
+        &bin,
+        format!("#!/bin/sh\nprintf '{}'\n", stdout.replace('\'', "'\\''")),
+    )
+    .expect("write fixture");
     #[cfg(unix)]
     fs::set_permissions(&bin, fs::Permissions::from_mode(0o755)).expect("chmod fixture");
     let store = ScheduleStore::new(temp.path().join("schedules"));

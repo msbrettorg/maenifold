@@ -3,25 +3,51 @@ use crate::mcp::gateway_errors::{invalid_params, map_gateway_error};
 use crate::mcp::gateway_handler::GatewayState;
 use crate::mcp::gateway_resolver::resolve_intent;
 use crate::mcp::gateway_resolver_types::{ResolverError, ResolverOutput};
+use crate::mcp::gateway_sampling_resolver::{
+    client_supports_sampling, resolve_intent_with_client_sampling,
+};
 use crate::mcp::schema::gateway_tools::GatewayIntentParams;
+use rmcp::RoleServer;
 use rmcp::model::{CallToolResult, Content};
+use rmcp::service::Peer;
 use serde_json::{Value, json};
 
 pub(crate) async fn handle_gateway_intent(
     state: &GatewayState,
     arguments: Value,
+    client_peer: Option<Peer<RoleServer>>,
 ) -> std::result::Result<CallToolResult, rmcp::ErrorData> {
     let params: GatewayIntentParams = serde_json::from_value(arguments)
         .map_err(|err| map_gateway_error("GatewayIntent", invalid_params(err)))?;
     let intent = intent_with_hints(params.intent, params.domain_hints);
-    match resolve_intent(
-        state.catalog(),
-        state.intent_settings(),
-        &intent,
-        state.workspace_root(),
-    )
-    .await
-    {
+    // GatewayIntent resolver: exactly two paths.
+    //   1. MCP client sampling when the calling client advertises
+    //      `sampling/createMessage` (VS Code, Copilot extension).
+    //   2. Direct inferencing when the client does not.
+    // ACP / Jockey / AcpExec are never part of this resolver. See AGENTS.md
+    // P0 trigger #7.
+    let resolved = if let Some(peer) = client_peer.filter(|p| client_supports_sampling(p)) {
+        resolve_intent_with_client_sampling(
+            state.catalog(),
+            state.intent_settings(),
+            &intent,
+            peer,
+            state.sampling_registry(),
+        )
+        .await
+    } else {
+        // No sampling: try direct inferencing. The resolver returns
+        // ResolverError::DirectInferenceSetup when direct inferencing is not
+        // configured — it must NOT fall back to ACP/Jockey.
+        resolve_intent(
+            state.catalog(),
+            state.intent_settings(),
+            &intent,
+            state.workspace_root(),
+        )
+        .await
+    };
+    match resolved {
         Ok(output) => handle_resolved_intent(state, output).await,
         Err(error) => Ok(render(fallback_response(error))),
     }
@@ -87,8 +113,12 @@ fn execute_plan(candidate: &crate::mcp::gateway_resolver_types::ResolverCandidat
 }
 
 fn fallback_response(error: ResolverError) -> Value {
+    let status = match error {
+        ResolverError::DirectInferenceSetup { .. } => "directInferenceSetup",
+        _ => "fallback",
+    };
     json!({
-        "status": "fallback",
+        "status": status,
         "error": error.to_string(),
         "instructions": error.fallback(),
         "plan": {

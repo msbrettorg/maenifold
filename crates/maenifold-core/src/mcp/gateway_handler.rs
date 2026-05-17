@@ -16,7 +16,9 @@ use crate::mcp::tool_utils::format_tool_error;
 use crate::registry::ToolRegistry;
 use crate::tools::{RequestCancelOnDrop, with_cancellation_scope};
 use crate::util::json::OutputFormat;
+use rmcp::RoleServer;
 use rmcp::model::{CallToolResult, Content, ReadResourceResult, Resource, Tool};
+use rmcp::service::Peer;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -70,6 +72,10 @@ impl GatewayState {
         Arc::clone(&self.pool)
     }
 
+    pub(crate) fn sampling_registry(&self) -> Arc<crate::mcp::SamplingSessionRegistry> {
+        self.pool.sampling_registry()
+    }
+
     #[allow(dead_code)]
     pub(crate) fn catalog(&self) -> &GatewayCatalog {
         &self.catalog
@@ -119,6 +125,7 @@ impl GatewayState {
         &self,
         tool_name: &str,
         arguments: Value,
+        client_peer: Option<Peer<RoleServer>>,
     ) -> std::result::Result<Option<CallToolResult>, rmcp::ErrorData> {
         if tool_name == "GatewayIndex" {
             return self.handle_gateway_index(arguments).map(Some);
@@ -136,7 +143,7 @@ impl GatewayState {
             .map(Some);
         }
         if tool_name == "GatewayIntent" {
-            return crate::mcp::gateway_intent::handle_gateway_intent(self, arguments)
+            return crate::mcp::gateway_intent::handle_gateway_intent(self, arguments, client_peer)
                 .await
                 .map(Some);
         }
@@ -232,10 +239,6 @@ impl GatewayState {
 
 fn intent_enabled(settings: &IntentResolverSettings) -> bool {
     settings.enabled
-        && settings
-            .agent
-            .as_deref()
-            .is_some_and(|agent| !agent.trim().is_empty())
 }
 
 fn render_json(value: Value) -> String {

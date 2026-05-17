@@ -29,7 +29,7 @@ pub(crate) async fn invoke_gateway_cli_tool(
             .map_err(map_cli_gateway_error)?
     } else {
         gateway
-            .handle_tool_call(tool_name, arguments)
+            .handle_tool_call(tool_name, arguments, None)
             .await
             .map_err(map_cli_gateway_error)?
             .ok_or_else(|| MaenifoldError::UnknownTool(tool_name.to_string()))?

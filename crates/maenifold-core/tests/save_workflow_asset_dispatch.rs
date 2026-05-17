@@ -31,12 +31,14 @@ fn save_workflow_asset_dispatched_by_name_writes_file_and_returns_id() {
         .join("assets")
         .join("workflows")
         .join("dispatch-test-flow.json");
-    assert!(expected.exists(), "workflow file must exist at expected path");
+    assert!(
+        expected.exists(),
+        "workflow file must exist at expected path"
+    );
 
-    let on_disk: Value = serde_json::from_str(
-        &std::fs::read_to_string(&expected).expect("read file"),
-    )
-    .expect("file is valid JSON");
+    let on_disk: Value =
+        serde_json::from_str(&std::fs::read_to_string(&expected).expect("read file"))
+            .expect("file is valid JSON");
     assert_eq!(on_disk["id"], "dispatch-test-flow", "persisted id matches");
 }
 

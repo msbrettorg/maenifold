@@ -1,7 +1,5 @@
-use super::engine_ready_eval::{
-    conditional_only_unreachable_reason, is_terminal_status,
-};
 pub(super) use super::engine_ready_eval::is_edge_satisfied;
+use super::engine_ready_eval::{conditional_only_unreachable_reason, is_terminal_status};
 use super::{EdgeType, JoinPolicy, NodeState, NodeStatus, PipelineDefinition};
 use petgraph::{Direction::Incoming, prelude::NodeIndex};
 use std::collections::HashMap;

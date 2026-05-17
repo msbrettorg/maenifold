@@ -215,7 +215,9 @@ fn dispatch_node(
             state.completed_at = None;
             state.input_tokens = None;
             state.output_tokens = None;
-            state.model = agent_config.as_ref().and_then(|config| config.model.clone());
+            state.model = agent_config
+                .as_ref()
+                .and_then(|config| config.model.clone());
             Ok(activated.then_some(response))
         }
         PipelineNode::Prompt {
@@ -230,9 +232,11 @@ fn dispatch_node(
             state.completed_at = None;
             state.input_tokens = None;
             state.output_tokens = None;
-            state.model = model
-                .clone()
-                .or_else(|| agent_config.as_ref().and_then(|config| config.model.clone()));
+            state.model = model.clone().or_else(|| {
+                agent_config
+                    .as_ref()
+                    .and_then(|config| config.model.clone())
+            });
             Ok(activated.then_some(response))
         }
         PipelineNode::SequentialThinking {
@@ -247,9 +251,11 @@ fn dispatch_node(
             state.completed_at = None;
             state.input_tokens = None;
             state.output_tokens = None;
-            state.model = model
-                .clone()
-                .or_else(|| agent_config.as_ref().and_then(|config| config.model.clone()));
+            state.model = model.clone().or_else(|| {
+                agent_config
+                    .as_ref()
+                    .and_then(|config| config.model.clone())
+            });
             Ok(activated.then_some(response))
         }
         PipelineNode::Tool {
@@ -264,9 +270,11 @@ fn dispatch_node(
             state.completed_at = None;
             state.input_tokens = None;
             state.output_tokens = None;
-            state.model = model
-                .clone()
-                .or_else(|| agent_config.as_ref().and_then(|config| config.model.clone()));
+            state.model = model.clone().or_else(|| {
+                agent_config
+                    .as_ref()
+                    .and_then(|config| config.model.clone())
+            });
             Ok(activated.then_some(response))
         }
     }

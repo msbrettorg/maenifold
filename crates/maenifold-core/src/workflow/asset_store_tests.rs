@@ -57,7 +57,11 @@ fn asset_path(context: &ToolContext, name: &str) -> std::path::PathBuf {
         .join(format!("{name}.json"))
 }
 
-fn create_pipeline_for(context: &ToolContext, workflow_id: &str, name: &str) -> crate::error::Result<String> {
+fn create_pipeline_for(
+    context: &ToolContext,
+    workflow_id: &str,
+    name: &str,
+) -> crate::error::Result<String> {
     crate::workflow::pipeline::pipeline(
         context,
         &json!({
@@ -180,7 +184,10 @@ fn concurrent_creates_and_one_delete_final_state_consistent() {
                     .map(|_| format!("create-{index}-ok"))
                     .map_err(|error| error.to_string())
             };
-            thread_outcomes.lock().expect("outcomes lock").push((index, outcome));
+            thread_outcomes
+                .lock()
+                .expect("outcomes lock")
+                .push((index, outcome));
         }));
     }
 
@@ -207,5 +214,8 @@ fn concurrent_creates_and_one_delete_final_state_consistent() {
     }
 
     let final_context = context_from_config(config);
-    assert_eq!(asset_path(&final_context, "foo").exists(), !delete_succeeded);
+    assert_eq!(
+        asset_path(&final_context, "foo").exists(),
+        !delete_succeeded
+    );
 }

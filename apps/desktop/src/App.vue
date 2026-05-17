@@ -17,6 +17,7 @@ import WorkflowWorkspace from './components/WorkflowWorkspace.vue';
 import PipelineView from './components/PipelineView.vue';
 import GateView from './components/GateView.vue';
 import SchedulesTab from './components/SchedulesTab.vue';
+import LogsView from './components/LogsView.vue';
 import PermissionDecisionDialog from './components/PermissionDecisionDialog.vue';
 import PermissionManagementDialog from './components/PermissionManagementDialog.vue';
 import PermissionGhostNotifications from './components/PermissionGhostNotifications.vue';
@@ -220,6 +221,10 @@ const agentsEmptyDescription = computed(() =>
 
         <div v-if="visitedTabs.has('schedules')" v-show="!showHome && activeTab === 'schedules'" class="flex flex-1 flex-col overflow-hidden">
           <SchedulesTab />
+        </div>
+
+        <div v-if="visitedTabs.has('logs')" v-show="!showHome && activeTab === 'logs'" class="flex flex-1 flex-col overflow-hidden">
+          <LogsView />
         </div>
 
         <div v-if="visitedTabs.has('settings')" v-show="!showHome && activeTab === 'settings'" class="flex flex-1 flex-col overflow-hidden">

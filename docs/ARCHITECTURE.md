@@ -50,6 +50,31 @@ flowchart LR
 5. **`maenifold-pipeline-driver`**  
    Detached pipeline executor process; runs pipeline sessions, dispatches nodes, handles cancellation/recovery, and persists pipeline state.
 
+## Three protocols, three roles (do not confuse)
+
+maenifold uses three distinct protocols. Mixing them is a P0 (see
+`AGENTS.md` P0 trigger #7).
+
+| Protocol | Direction | Role | Where it lives |
+|----------|-----------|------|----------------|
+| **MCP** | external client → maenifold daemon | The universal inbound interface for AI callers (VS Code, Copilot CLI, Copilot extension, etc.). Every tool the AI can call is exposed through MCP. | `crates/maenifold-core/src/mcp/` |
+| **ACP / Jockey** | maenifold UI → user-visible CLI agent | The product runtime that lets a human in the Maenifold desktop app load and chat with a CLI agent (Codex, Claude CLI, Copilot CLI as a chat partner). It is a UX feature, not gateway infrastructure. | `crates/maenifold-jockey/` |
+| **Inferencing** | maenifold daemon → LLM API | Direct LLM API access (Azure OpenAI, OpenAI, Anthropic, etc.) used when an MCP gateway tool needs to do its own model call and the calling MCP client does not advertise `sampling/createMessage`. | inference backends configured in `maenifold.json` |
+
+**`GatewayIntent` resolver paths.** `GatewayIntent` has exactly two resolver
+paths, chosen per-request based on the calling MCP client's capabilities:
+
+1. **MCP client sampling** — `peer.create_message(...)` when the client
+   advertises `sampling/createMessage`. Path emits `sampling` events to
+   `sampling://sessions`.
+2. **Direct inferencing** — direct LLM API call when the client does not
+   support sampling. Path emits `inferencing` events to
+   `sampling://sessions`.
+
+ACP / Jockey / `AcpExec` / `jockey::acp::execute_runtime` / `AgentsConfig` are
+**never** part of any `GatewayIntent` resolver path. If a resolver path needs
+an `agents` block entry to function, the architecture is wrong — file a P0.
+
 ## MCP boundary rule (single capability surface)
 
 **Rule:** operations are exposed as MCP tools, and the same underlying handlers are used by both human-invoked CLI and agent-invoked MCP calls.
@@ -99,6 +124,7 @@ Related persistence:
    - Prompt/workflow/thinking nodes call workflow runner functions (`run_prompt_node`, `run_workflow_with_pool_session_opts`, `run_think_with_pool`)
    - These open ACP-backed sessions and call `jockey::acp::execute_runtime(...)`
    - Tool nodes call either local tools (`ToolRegistry::try_invoke`) or external MCP servers via RMCP HTTP/stdio.
+   - This describes the product Pipeline runtime only. PM/Gate coding workers are not launched through ACP, Jockey, or `AcpExec`; they use the host agent/task dispatch process with explicit worktrees.
 6. Final status is persisted with `persist_final_pipeline_status`.
 
 ## E2E trace 3: Gate progression (`pending -> ... -> done`)

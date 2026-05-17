@@ -3,7 +3,9 @@ use crate::mcp::{discovery_tools, gateway_handler::GatewayState};
 use crate::registry::ToolRegistry;
 use crate::tools::{RequestCancelOnDrop, with_cancellation_scope};
 use crate::util::json::OutputFormat;
+use rmcp::RoleServer;
 use rmcp::model::{CallToolResult, Content};
+use rmcp::service::Peer;
 use serde_json::Value;
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
@@ -12,6 +14,7 @@ pub(crate) async fn handle_tool_call(
     tool_name: String,
     arguments: Value,
     gateway: Option<Arc<GatewayState>>,
+    client_peer: Option<Peer<RoleServer>>,
 ) -> std::result::Result<CallToolResult, rmcp::ErrorData> {
     if discovery_tools::is_discovery_tool(&tool_name) {
         return discovery_tools::handle_tool_call(gateway.clone(), &tool_name, arguments).await;
@@ -20,7 +23,10 @@ pub(crate) async fn handle_tool_call(
         && tool_name != "GetHelp"
         && tool_name != "ReadMcpResource"
     {
-        if let Some(gateway_result) = gateway.handle_tool_call(&tool_name, arguments).await? {
+        if let Some(gateway_result) = gateway
+            .handle_tool_call(&tool_name, arguments, client_peer)
+            .await?
+        {
             return Ok(gateway_result);
         }
         return Err(unknown_tool_error(&tool_name));

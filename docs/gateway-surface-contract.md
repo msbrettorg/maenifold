@@ -106,13 +106,16 @@ Intent disabled public total: **6 tools**.
 
 | Tool | Purpose | Advertise only when |
 |------|---------|---------------------|
-| `GatewayIntent` | ACP-backed intent resolver that proposes route candidates or, for safe read-only paths, may resolve a configured exact route according to policy. | Intent routing is enabled in configuration and a valid ACP/Jockey resolver agent is configured and healthy. |
+| `GatewayIntent` | Intent resolver that uses **MCP client sampling** when the calling client supports `sampling/createMessage`, otherwise **direct inferencing** against a configured inference backend, to propose route candidates or resolve a safe read-only exact route according to policy. Never uses ACP/Jockey. | Intent routing is enabled in configuration. |
 
 Intent enabled public total: **7 tools**.
 
 `GatewayIntent` must be omitted from `tools/list` when intent routing is
-disabled, not configured, or missing a valid ACP/Jockey resolver agent. It must
-not appear as a disabled placeholder.
+disabled. It must not appear as a disabled placeholder. If the calling MCP
+client lacks sampling support, runtime resolution uses the configured direct
+inference backend; if neither sampling nor direct inference is available, the
+tool returns route candidates and direct-inference setup guidance instead of
+falling back to ACP/Jockey (which is product UX, not gateway infrastructure).
 
 ## Domain routing map
 
@@ -170,8 +173,20 @@ hard-coding the count.
 5. **Batch is deterministic only.** `GatewayBatch` covers deterministic
    exact-command submit/status operations. It does not accept ambiguous natural
    language and does not run the ACP intent resolver.
-6. **Intent is optional and ACP-backed.** `GatewayIntent` is backed by a
-   configured ACP/Jockey resolver agent. It is omitted when disabled or invalid.
+6. **Intent is optional and visible. No ACP/Jockey.** `GatewayIntent` has
+   exactly two resolver paths: (a) **MCP client sampling** via
+   `peer.create_message(...)` when the calling client advertises
+   `sampling/createMessage` (VS Code, GitHub Copilot extension), and
+   (b) **direct inferencing** against a configured inference backend (Azure
+   OpenAI, OpenAI, etc.) when the client does not. ACP/Jockey, `AcpExec`,
+   `jockey::acp::execute_runtime`, and `maenifold.json` agent entries are
+   **never** part of `GatewayIntent` resolution — they are the Maenifold UI
+   product runtime for user-visible CLI agents, not gateway infrastructure.
+   Both resolver paths write request/response evidence to
+   `sampling://sessions` so every GatewayIntent inference is inspectable from
+   the desktop Logs tab. Logs distinguish the paths via event type:
+   `sampling` for path (a), `inferencing` for path (b).
+   The tool is omitted only when intent routing is disabled.
 7. **Mutations require exact execution.** Mutating commands require explicit
    exact execution through `GatewayExecute` with validated parameters. Intent
    resolution may return candidates and safety notes for mutating commands, but
@@ -196,7 +211,8 @@ choose the correct path before execution.
 |---------------|----------|---------------|
 | Read-only / inspect | `SearchMemories`, `ReadMemory`, `BuildContext`, `Visualize`, `MemoryStatus`, gate `status`, gate `history`, upstream read-only commands | `GatewayExecute` exact command; `GatewayIntent` may propose or resolve only if enabled and policy allows. |
 | Mutating first-party | `WriteMemory`, `EditMemory`, `DeleteMemory`, `MoveMemory`, `RepairConcepts`, `UpdateAssets`, `Sync`, gate `append`, gate `pass`, gate `fail`, gate `sync` | `GatewayExecute` exact command with validated parameters. Intent may only return candidates. |
-| Orchestration / agent dispatch | `Workflow`, `Pipeline`, `SequentialThinking`, `AssumptionLedger`, `AcpExec`, `TeamsMonitor`, `Schedule` | `GatewayExecute` exact command. Intent resolver must surface risks and may not auto-grant ACP permissions. |
+| Orchestration / reasoning | `Workflow`, `Pipeline`, `SequentialThinking`, `AssumptionLedger`, `TeamsMonitor`, `Schedule` | `GatewayExecute` exact command. Intent resolver must surface risks and must not auto-execute hidden inference. |
+| ACP runtime session | `AcpExec` | `GatewayExecute` exact command only for Maenifold UI / ACP agent-session execution and ACP-specific smoke tests. Never use as Gate/task-PM worker dispatch, outer/inner-loop coding dispatch, or `GatewayIntent` fallback. |
 | Upstream commands | Any command under `upstream.*` | Policy derived from upstream metadata when available; otherwise default to exact `GatewayExecute` and conservative no-auto-mutate behavior. |
 
 ## Canonical source of truth

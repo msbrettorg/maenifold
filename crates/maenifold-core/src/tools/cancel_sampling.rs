@@ -30,10 +30,7 @@ pub fn cancel_sampling_session(context: &ToolContext, payload: &Value) -> Result
                 )
             })?;
 
-        if matches!(
-            dispatch.status,
-            SamplingSessionStatus::Dispatching | SamplingSessionStatus::Streaming
-        ) {
+        if is_cancellable_status(&dispatch.status) {
             registry
                 .update_status(sampling_request_id, SamplingSessionStatus::Cancelled)
                 .await
@@ -59,6 +56,15 @@ pub fn cancel_sampling_session(context: &ToolContext, payload: &Value) -> Result
     .map(|value| render(context.output_format, value))
 }
 
+fn is_cancellable_status(status: &SamplingSessionStatus) -> bool {
+    matches!(
+        status,
+        SamplingSessionStatus::Dispatching
+            | SamplingSessionStatus::Streaming
+            | SamplingSessionStatus::BudgetExceeded { .. }
+    )
+}
+
 fn run_cancel<F>(future: F) -> Result<Value>
 where
     F: std::future::Future<Output = Result<Value>>,
@@ -80,4 +86,24 @@ where
     F: std::future::Future<Output = Result<Value>>,
 {
     tokio::task::block_in_place(|| handle.block_on(future))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn budget_exceeded_sessions_are_cancellable() {
+        assert!(is_cancellable_status(&SamplingSessionStatus::Dispatching));
+        assert!(is_cancellable_status(&SamplingSessionStatus::Streaming));
+        assert!(is_cancellable_status(
+            &SamplingSessionStatus::BudgetExceeded {
+                allowed_so_far: 10,
+                budget: 10,
+            }
+        ));
+        assert!(!is_cancellable_status(&SamplingSessionStatus::Completed));
+        assert!(!is_cancellable_status(&SamplingSessionStatus::Cancelled));
+        assert!(!is_cancellable_status(&SamplingSessionStatus::Failed));
+    }
 }

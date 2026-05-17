@@ -1,9 +1,9 @@
 mod config;
 mod cron;
 pub mod env_allowlist;
-pub(crate) mod mcp_action_allowlist;
 mod launchd;
 mod lock;
+pub(crate) mod mcp_action_allowlist;
 pub mod pause_state;
 #[cfg(test)]
 #[path = "pause_state_tests.rs"]
@@ -13,7 +13,7 @@ mod supervisor;
 mod systemd;
 
 pub use config::{RunRecord, RunStatus, ScheduledTask};
-pub use cron::{parse_schedule, ParsedSchedule};
+pub use cron::{ParsedSchedule, parse_schedule};
 pub use launchd::LaunchdManager;
 pub use lock::LockGuard;
 pub use store::ScheduleStore;

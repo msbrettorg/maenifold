@@ -102,7 +102,7 @@ async fn experiment_catalog_uses_native_gate_without_standalone_server() {
 }
 
 #[tokio::test]
-#[ignore = "requires configured ACP resolver agent; run with --ignored --nocapture"]
+#[ignore = "requires configured direct inference backend; run with --ignored --nocapture"]
 async fn live_reasoning_level_experiment_writes_report() {
     let root = std::env::var("MAENIFOLD_ROOT")
         .map(std::path::PathBuf::from)
@@ -110,9 +110,6 @@ async fn live_reasoning_level_experiment_writes_report() {
     let catalog = experiment_catalog().await;
     let settings = IntentResolverSettings {
         enabled: true,
-        agent: Some(
-            std::env::var("MAENIFOLD_RESOLVER_AGENT").unwrap_or_else(|_| "resolver".to_string()),
-        ),
         max_candidates: Some(5),
         timeout_seconds: Some(60),
         ..IntentResolverSettings::default()

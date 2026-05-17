@@ -262,9 +262,9 @@ fn view_pipeline_with_summary_returns_compact_shape() {
     assert!(node["acpSessionId"].is_null());
 }
 
-#[path = "handler_crud_tests_more.rs"]
-mod more;
 #[path = "handler_crud_tests_extra.rs"]
 mod extra;
+#[path = "handler_crud_tests_more.rs"]
+mod more;
 #[path = "handler_crud_tests_runs.rs"]
 mod runs;

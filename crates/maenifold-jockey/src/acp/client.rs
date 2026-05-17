@@ -27,9 +27,15 @@ pub(super) struct JockeyUiClient {
     pub(super) workspace_root: PathBuf,
 }
 
-fn maybe_synthesize_terminal(kind: &acp::ToolKind, tool_call_id: &str, content: Vec<acp::ToolCallContent>) -> Vec<acp::ToolCallContent> {
+fn maybe_synthesize_terminal(
+    kind: &acp::ToolKind,
+    tool_call_id: &str,
+    content: Vec<acp::ToolCallContent>,
+) -> Vec<acp::ToolCallContent> {
     if *kind != acp::ToolKind::Execute
-        || content.iter().any(|c| matches!(c, acp::ToolCallContent::Terminal(_)))
+        || content
+            .iter()
+            .any(|c| matches!(c, acp::ToolCallContent::Terminal(_)))
         || !content.iter().any(|c| {
             matches!(c, acp::ToolCallContent::Content(ct)
                 if matches!(ct.content, acp::ContentBlock::Text(_)))
@@ -38,7 +44,9 @@ fn maybe_synthesize_terminal(kind: &acp::ToolKind, tool_call_id: &str, content: 
         return content;
     }
     let mut augmented = content;
-    augmented.push(acp::ToolCallContent::Terminal(acp::Terminal::new(format!("synth-term-{tool_call_id}"))));
+    augmented.push(acp::ToolCallContent::Terminal(acp::Terminal::new(format!(
+        "synth-term-{tool_call_id}"
+    ))));
     augmented
 }
 
@@ -166,10 +174,13 @@ impl acp::Client for JockeyUiClient {
             }
             acp::SessionUpdate::ToolCallUpdate(tcu) => {
                 let tool_call_id = tcu.tool_call_id.to_string();
-                let content = tcu.fields.content.map(|blocks| match tcu.fields.kind.as_ref() {
-                    Some(kind) => maybe_synthesize_terminal(kind, &tool_call_id, blocks),
-                    None => blocks,
-                });
+                let content = tcu
+                    .fields
+                    .content
+                    .map(|blocks| match tcu.fields.kind.as_ref() {
+                        Some(kind) => maybe_synthesize_terminal(kind, &tool_call_id, blocks),
+                        None => blocks,
+                    });
                 AcpEvent::ToolCallUpdate {
                     tool_call_id,
                     tool_kind: tcu.fields.kind.map(|k| {

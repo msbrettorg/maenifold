@@ -47,9 +47,7 @@ pub(super) fn capture_stdout(
     })
 }
 
-pub(super) fn join_stdout(
-    handle: Option<JoinHandle<std::io::Result<String>>>,
-) -> Result<String> {
+pub(super) fn join_stdout(handle: Option<JoinHandle<std::io::Result<String>>>) -> Result<String> {
     match handle {
         Some(handle) => handle
             .join()

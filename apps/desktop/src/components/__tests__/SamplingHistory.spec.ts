@@ -15,6 +15,8 @@ type SamplingHistoryEntry = {
   decision: string;
   createdAt: string;
   tokenUsage: { inputTokens: number; outputTokens: number } | null;
+  requestPayload?: string;
+  responsePayload?: string;
   toolCallCount?: number;
   toolLoopBudget?: number;
 };
@@ -42,6 +44,8 @@ function makeEntry(overrides: Partial<SamplingHistoryEntry> = {}): SamplingHisto
     decision: 'allow_once',
     createdAt: '2026-05-13T12:00:00.0000000+00:00',
     tokenUsage: { inputTokens: 12, outputTokens: 34 },
+    requestPayload: '{"intent":"read config"}',
+    responsePayload: '{"status":"candidates"}',
     ...overrides,
   };
 }
@@ -52,7 +56,7 @@ async function mountSubject(entries: SamplingHistoryEntry[]) {
   return mount(SamplingHistory, {
     global: {
       stubs: {
-        Badge: { template: '<span data-testid="tool-budget-badge" v-bind="$attrs"><slot /></span>' },
+        Badge: { template: '<span v-bind="$attrs"><slot /></span>' },
         Button: { template: '<button type="button" v-bind="$attrs"><slot /></button>' },
         Table: { template: '<table><slot /></table>' },
         TableBody: { template: '<tbody><slot /></tbody>' },

@@ -149,7 +149,7 @@ impl ServerHandler for MaenifoldHandler {
     fn call_tool(
         &self,
         request: CallToolRequestParams,
-        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
+        context: rmcp::service::RequestContext<rmcp::RoleServer>,
     ) -> impl Future<Output = std::result::Result<CallToolResult, rmcp::ErrorData>> + Send + '_
     {
         let tool_name = request.name.to_string();
@@ -158,7 +158,15 @@ impl ServerHandler for MaenifoldHandler {
             None => json!({}),
         };
         let gateway = self.gateway.clone();
-        async move { self::mcp_tool_calls::handle_tool_call(tool_name, arguments, gateway).await }
+        async move {
+            self::mcp_tool_calls::handle_tool_call(
+                tool_name,
+                arguments,
+                gateway,
+                Some(context.peer),
+            )
+            .await
+        }
     }
     fn enqueue_task(
         &self,

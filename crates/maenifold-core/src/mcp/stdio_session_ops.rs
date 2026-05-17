@@ -1,8 +1,8 @@
 use crate::error::{GATEWAY_TIMEOUT_ERROR, JSONRPC_INTERNAL_ERROR, MaenifoldError, Result};
 use rmcp::{
     model::{
-        CallToolRequest, CallToolRequestParams, CallToolResult, ClientRequest, ReadResourceRequest,
-        GetPromptRequest, GetPromptRequestParams, GetPromptResult, ReadResourceRequestParams,
+        CallToolRequest, CallToolRequestParams, CallToolResult, ClientRequest, GetPromptRequest,
+        GetPromptRequestParams, GetPromptResult, ReadResourceRequest, ReadResourceRequestParams,
         ReadResourceResult, ServerResult,
     },
     service::{PeerRequestOptions, ServiceError},
@@ -60,7 +60,10 @@ impl StdioSession {
             params = params.with_arguments(arguments);
         }
         let request = ClientRequest::GetPromptRequest(GetPromptRequest::new(params));
-        match self.send_request(request, format!("prompt '{name}'")).await? {
+        match self
+            .send_request(request, format!("prompt '{name}'"))
+            .await?
+        {
             ServerResult::GetPromptResult(result) => Ok(result),
             _ => Err(MaenifoldError::Message(
                 "unexpected MCP prompts/get response".to_string(),

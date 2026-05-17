@@ -30,7 +30,6 @@ async fn state(settings: IntentResolverSettings) -> GatewayState {
 fn settings(auto: bool) -> IntentResolverSettings {
     IntentResolverSettings {
         enabled: true,
-        agent: Some("resolver".to_string()),
         auto_execute_read_safe: auto,
         auto_execute_confidence_threshold: 0.9,
         ..IntentResolverSettings::default()
@@ -127,13 +126,17 @@ async fn auto_execute_disabled_returns_candidates_for_read() {
 
 #[tokio::test]
 async fn resolver_error_returns_fallback_instructions() {
-    let state = state(IntentResolverSettings::default()).await;
-    let result = handle_gateway_intent(&state, json!({"intent":"read config"}))
+    // Enabled but no direct inference configured AND no client sampling:
+    // should hit ResolverError::DirectInferenceSetup, NOT fall back to ACP.
+    let mut intent_settings = IntentResolverSettings::default();
+    intent_settings.enabled = true;
+    let state = state(intent_settings).await;
+    let result = handle_gateway_intent(&state, json!({"intent":"read config"}), None)
         .await
         .expect("fallback result");
     let value = json_text(&result);
 
-    assert_eq!(value["status"], "fallback");
+    assert_eq!(value["status"], "directInferenceSetup");
     assert!(
         value["instructions"]
             .as_str()
@@ -161,21 +164,9 @@ async fn ambiguous_candidates_do_not_auto_execute() {
 }
 
 #[tokio::test]
-async fn gateway_intent_hidden_when_disabled_or_agent_missing() {
+async fn gateway_intent_visible_when_enabled_without_agent() {
     let disabled = state(IntentResolverSettings::default()).await;
-    let mut no_agent = settings(true);
-    no_agent.agent = None;
-    let no_agent = state(no_agent).await;
-
-    for tools in [disabled.list_tools(), no_agent.list_tools()] {
-        assert!(!tools.iter().any(|tool| tool.name == "GatewayIntent"));
-    }
-
     let enabled = state(settings(true)).await;
-    assert!(
-        enabled
-            .list_tools()
-            .iter()
-            .any(|tool| tool.name == "GatewayIntent")
-    );
+    assert!(!disabled.list_tools().iter().any(|tool| tool.name == "GatewayIntent"));
+    assert!(enabled.list_tools().iter().any(|tool| tool.name == "GatewayIntent"));
 }

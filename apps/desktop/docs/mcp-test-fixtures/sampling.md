@@ -21,6 +21,13 @@ input text, the tool sends `sampling/createMessage` back to the connected MCP
 client with a summarization prompt and `maxTokens: 500`. The tool then returns
 the assistant text content from the sampling response.
 
+This fixture exercises **upstream-server-initiated sampling**: an MCP server
+asks maenifold, acting as the MCP client, to sample. It does not prove the
+separate `GatewayIntent` path where maenifold, acting as the MCP server, asks
+the calling MCP client to sample for intent resolution. That GatewayIntent path
+uses the caller's `sampling/createMessage` capability when available and falls
+back to the configured ACP/Jockey resolver otherwise.
+
 Context7 grounding for the upstream TypeScript SDK confirmed the same local
 stdio pattern: construct an `McpServer`, attach a tool, create a
 `StdioServerTransport`, and call `server.connect(transport)`. It also documents
@@ -37,9 +44,16 @@ in this worktree it is represented by explicit protocol errors before any
 allowed dispatch. This is honest behavior for this fixture and tests that
 branch instead of silently dispatching an invisible LLM call.
 
-Post-T-303.4.3, the intended fully exercised path is: the sampling approval
-modal opens, the user picks allow or deny, and an allowed request dispatches an
-LLM call that appears in the Sessions UI with token streaming and stop control.
+Post-T-303.4.3, the intended fully exercised upstream-sampling path is: the
+sampling approval modal opens, the user picks allow or deny, and an allowed
+request dispatches an LLM call that appears in the Sessions UI with token
+streaming and stop control.
+
+For GatewayIntent sampling/fallback, the visibility contract is the
+`sampling://sessions` read model: every GatewayIntent inference request records
+its request payload, response payload, backend (`clientSampling` or
+`configuredLlm`), status, and model/role metadata so no inference is hidden.
+The desktop Logs tab is the first-class UI surface for this read model.
 
 ## Manual run command
 

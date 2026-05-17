@@ -119,9 +119,18 @@ fn update_payload(definition: PipelineDefinition) -> Value {
 fn set_completed_frontmatter(context: &crate::tools::ToolContext) {
     let (uri, mut frontmatter, content) =
         read_pipeline_session(context, "pipeline-1778851690641").expect("read seeded pipeline");
-    frontmatter.insert("status".to_string(), serde_yml::Value::String("completed".to_string()));
-    frontmatter.insert("cursor".to_string(), serde_yml::to_value(7u64).expect("yaml"));
-    frontmatter.insert("first".to_string(), serde_yml::to_value(3u64).expect("yaml"));
+    frontmatter.insert(
+        "status".to_string(),
+        serde_yml::Value::String("completed".to_string()),
+    );
+    frontmatter.insert(
+        "cursor".to_string(),
+        serde_yml::to_value(7u64).expect("yaml"),
+    );
+    frontmatter.insert(
+        "first".to_string(),
+        serde_yml::to_value(3u64).expect("yaml"),
+    );
     frontmatter.insert("last".to_string(), serde_yml::to_value(9u64).expect("yaml"));
     crate::markdown::write_markdown(&uri, Some(&frontmatter), &content, &context.config)
         .expect("rewrite completed frontmatter");
@@ -181,9 +190,18 @@ fn update_pipeline_t301_36_preserves_status_when_updating_completed_pipeline() {
         frontmatter.get("status").and_then(serde_yml::Value::as_str),
         Some("completed")
     );
-    assert_eq!(frontmatter.get("cursor").and_then(serde_yml::Value::as_u64), Some(7));
-    assert_eq!(frontmatter.get("first").and_then(serde_yml::Value::as_u64), Some(3));
-    assert_eq!(frontmatter.get("last").and_then(serde_yml::Value::as_u64), Some(9));
+    assert_eq!(
+        frontmatter.get("cursor").and_then(serde_yml::Value::as_u64),
+        Some(7)
+    );
+    assert_eq!(
+        frontmatter.get("first").and_then(serde_yml::Value::as_u64),
+        Some(3)
+    );
+    assert_eq!(
+        frontmatter.get("last").and_then(serde_yml::Value::as_u64),
+        Some(9)
+    );
 }
 
 #[test]

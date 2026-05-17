@@ -182,31 +182,36 @@ impl StdioSession {
             };
             Ok((client, tools, prompts, server_info))
         };
-        let (client, tools, prompts, server_info) = match tokio::time::timeout(startup_timeout, startup)
-            .await
-        {
-            Ok(Ok(started)) => started,
-            Ok(Err(error)) => {
-                super::stdio_process_group::terminate_process_group_id(process_group_id).await;
-                let stderr =
-                    collect_failure_stderr(stderr_task, Arc::clone(&stderr), STDERR_JOIN_TIMEOUT)
-                        .await;
-                return Err(StdioStartupError::new(error, stderr));
-            }
-            Err(_) => {
-                super::stdio_process_group::terminate_process_group_id(process_group_id).await;
-                let stderr =
-                    collect_failure_stderr(stderr_task, Arc::clone(&stderr), STDERR_JOIN_TIMEOUT)
-                        .await;
-                return Err(StdioStartupError::new(
-                    MaenifoldError::Message(format!(
-                        "MCP server startup timed out after {}s",
-                        startup_timeout.as_secs()
-                    )),
-                    stderr,
-                ));
-            }
-        };
+        let (client, tools, prompts, server_info) =
+            match tokio::time::timeout(startup_timeout, startup).await {
+                Ok(Ok(started)) => started,
+                Ok(Err(error)) => {
+                    super::stdio_process_group::terminate_process_group_id(process_group_id).await;
+                    let stderr = collect_failure_stderr(
+                        stderr_task,
+                        Arc::clone(&stderr),
+                        STDERR_JOIN_TIMEOUT,
+                    )
+                    .await;
+                    return Err(StdioStartupError::new(error, stderr));
+                }
+                Err(_) => {
+                    super::stdio_process_group::terminate_process_group_id(process_group_id).await;
+                    let stderr = collect_failure_stderr(
+                        stderr_task,
+                        Arc::clone(&stderr),
+                        STDERR_JOIN_TIMEOUT,
+                    )
+                    .await;
+                    return Err(StdioStartupError::new(
+                        MaenifoldError::Message(format!(
+                            "MCP server startup timed out after {}s",
+                            startup_timeout.as_secs()
+                        )),
+                        stderr,
+                    ));
+                }
+            };
         let peer = client.peer().clone();
         Ok(Self {
             client: StdMutex::new(Some(client)),

@@ -18,7 +18,7 @@ pub(crate) const FIXTURES: &[IntentFixture] = &[
     f(
         "search-memories",
         FixtureCategory::ClearRead,
-        "Search memories for ACP intent resolver routing notes",
+        "Search memories for direct inference routing notes",
         "maenifold.memory",
         "SearchMemories",
         SafetyClass::Read,
@@ -34,7 +34,7 @@ pub(crate) const FIXTURES: &[IntentFixture] = &[
     f(
         "build-context",
         FixtureCategory::ClearRead,
-        "Build graph context around gateway intent resolver",
+        "Build graph context around gateway intent direct inference",
         "maenifold.graph",
         "BuildContext",
         SafetyClass::Read,
@@ -130,7 +130,7 @@ pub(crate) const FIXTURES: &[IntentFixture] = &[
     f(
         "ambiguous-graph",
         FixtureCategory::Ambiguous,
-        "Explore relationships around ACP routing",
+        "Explore relationships around direct inference routing",
         "maenifold.graph",
         "BuildContext",
         SafetyClass::Read,

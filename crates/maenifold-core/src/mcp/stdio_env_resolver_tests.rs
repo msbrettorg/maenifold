@@ -20,7 +20,10 @@ fn mcp_server_env_from_file_resolves_literal_value() {
     let resolved = resolve_mcp_server_env(&env, &env_from_file, &env_from_command)
         .expect("resolve stdio MCP env from file");
 
-    assert_eq!(resolved.get("AZURE_KEY"), Some(&"file-key-value".to_string()));
+    assert_eq!(
+        resolved.get("AZURE_KEY"),
+        Some(&"file-key-value".to_string())
+    );
 }
 
 #[test]

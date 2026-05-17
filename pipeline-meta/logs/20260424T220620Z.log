@@ -1,6 +1,0 @@
-[2026-04-24T22:06:20Z] pipeline-meta.sh starting
-[2026-04-24T22:06:20Z] root=/Users/brett/src/ma-collective/maenifold-rs/worktrees/T-209.4
-[2026-04-24T22:06:20Z] max_parallel=1
-[2026-04-24T22:06:20Z] dry_run=true
-[2026-04-24T22:06:20Z] log_file=/Users/brett/src/ma-collective/maenifold-rs/worktrees/T-209.4/ralph/pipeline-meta/logs/20260424T220620Z.log
-gate status requires an existing cache DB at /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-209.4/.gate/gate.db; run `gate sync` first

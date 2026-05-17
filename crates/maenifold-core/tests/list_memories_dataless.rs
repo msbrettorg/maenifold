@@ -71,7 +71,11 @@ fn test_list_memories_dataless_no_block() {
     std::fs::create_dir_all(&memory_dir).expect("memory dir");
 
     // Normal file
-    let _ = write_md(&memory_dir, "normal.md", "---\ncreated: 2024-01-01 00:00:00\n---\nNormal content\n");
+    let _ = write_md(
+        &memory_dir,
+        "normal.md",
+        "---\ncreated: 2024-01-01 00:00:00\n---\nNormal content\n",
+    );
     // Dataless file — xattr set, but content is unreadable in production
     let dataless = write_md(&memory_dir, "AGENTS.md", "# Agents\n");
     mark_dataless(&dataless);
@@ -111,7 +115,11 @@ fn test_list_memories_normal_vault() {
     let dir = tempfile::tempdir().expect("tempdir");
     let memory_dir = dir.path().join("memory");
     std::fs::create_dir_all(&memory_dir).expect("memory dir");
-    let _ = write_md(&memory_dir, "note.md", "---\ncreated: 2024-06-01 00:00:00\n---\nContent\n");
+    let _ = write_md(
+        &memory_dir,
+        "note.md",
+        "---\ncreated: 2024-06-01 00:00:00\n---\nContent\n",
+    );
 
     let cfg = make_test_config(dir.path());
     let context = ToolContext::new(cfg, OutputFormat::Markdown);
@@ -122,5 +130,8 @@ fn test_list_memories_normal_vault() {
 
     assert!(elapsed < Duration::from_secs(1), "took {:?}", elapsed);
     let output = result.expect("must succeed");
-    assert!(output.contains("note.md"), "note.md must appear; got:\n{output}");
+    assert!(
+        output.contains("note.md"),
+        "note.md must appear; got:\n{output}"
+    );
 }

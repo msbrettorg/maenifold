@@ -33,7 +33,10 @@ impl acp::Agent for CapturingAgent {
     }
 
     async fn prompt(&self, request: acp::PromptRequest) -> acp::Result<acp::PromptResponse> {
-        self.prompts.lock().expect("prompt capture mutex").push(request);
+        self.prompts
+            .lock()
+            .expect("prompt capture mutex")
+            .push(request);
         Ok(acp::PromptResponse::new(acp::StopReason::EndTurn))
     }
 
@@ -182,10 +185,17 @@ async fn consecutive_prompts_succeed_on_warm_connection() {
 
             let after = connection_snapshot(&key).expect("connection should remain live");
             let captured = prompts.lock().expect("prompt capture mutex").clone();
-            assert_eq!(captured.len(), 2, "both prompts should reach the upstream agent");
+            assert_eq!(
+                captured.len(),
+                2,
+                "both prompts should reach the upstream agent"
+            );
             assert_eq!(captured[0].prompt, vec![text("first turn")]);
             assert_eq!(captured[1].prompt, vec![text("second turn")]);
-            assert_eq!(before, after, "warm prompt should reuse the existing connection");
+            assert_eq!(
+                before, after,
+                "warm prompt should reuse the existing connection"
+            );
             assert_eq!(
                 first.expect("first prompt success").session_id,
                 second.expect("second prompt success").session_id,
@@ -220,7 +230,11 @@ async fn consecutive_prompts_survive_config_reapply() {
             );
 
             let captured = prompts.lock().expect("prompt capture mutex").clone();
-            assert_eq!(captured.len(), 2, "empty config reapply should remain a no-op");
+            assert_eq!(
+                captured.len(),
+                2,
+                "empty config reapply should remain a no-op"
+            );
 
             cleanup_key(&key);
         })

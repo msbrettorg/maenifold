@@ -20,7 +20,7 @@ use std::sync::{LazyLock, Mutex, MutexGuard};
 static WORKFLOW_ASSET_STORE_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
 pub(crate) fn lock_asset_store<'a>() -> Result<MutexGuard<'a, ()>> {
-    WORKFLOW_ASSET_STORE_LOCK.lock().map_err(|_| {
-        MaenifoldError::Message("Workflow asset store lock is poisoned".to_string())
-    })
+    WORKFLOW_ASSET_STORE_LOCK
+        .lock()
+        .map_err(|_| MaenifoldError::Message("Workflow asset store lock is poisoned".to_string()))
 }

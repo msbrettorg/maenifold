@@ -26,7 +26,7 @@ fn agents_config_load_or_default_defaults_when_config_unparsable() {
 }
 
 #[test]
-fn agents_config_load_or_default_propagates_intent_resolver_validation_errors() {
+fn agents_config_load_or_default_allows_intent_resolver_without_agent() {
     let root = tempfile::tempdir().expect("create temp root");
     std::fs::write(
         root.path().join("maenifold.json"),
@@ -35,22 +35,16 @@ fn agents_config_load_or_default_propagates_intent_resolver_validation_errors() 
             "settings": {
                 "gateway": {
                     "intentResolver": {
-                        "enabled": true,
-                        "agent": "missing-resolver"
+                        "enabled": true
                     }
                 }
             }
         }"#,
     )
-    .expect("write invalid resolver config");
+    .expect("write config");
 
-    let error = AgentsConfig::load_or_default(root.path())
-        .expect_err("invalid resolver config should surface");
+    let config = AgentsConfig::load_or_default(root.path())
+        .expect("intent resolver config should load without an agent");
 
-    assert!(
-        error
-            .to_string()
-            .contains("gateway intent resolver agent 'missing-resolver'"),
-        "unexpected error: {error}"
-    );
+    assert!(config.settings.expect("settings").gateway.intent_resolver.enabled);
 }

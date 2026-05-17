@@ -1,4 +1,4 @@
-use super::{is_linked_session_id, TaskMetadataParser};
+use super::{TaskMetadataParser, is_linked_session_id};
 
 fn parse_yaml(yaml: &str) -> crate::task_metadata::TaskMetadata {
     let lines: Vec<_> = yaml.lines().collect();

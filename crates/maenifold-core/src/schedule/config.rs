@@ -140,8 +140,14 @@ mod tests {
         let round_trip =
             serde_json::from_value::<RunRecord>(rendered).expect("deserialize run record");
 
-        assert_eq!(round_trip.mcp_action.as_deref(), Some("maenifold.gate.gate_Status"));
-        assert_eq!(round_trip.mcp_parameters, Some(json!({"root": "/workspace"})));
+        assert_eq!(
+            round_trip.mcp_action.as_deref(),
+            Some("maenifold.gate.gate_Status")
+        );
+        assert_eq!(
+            round_trip.mcp_parameters,
+            Some(json!({"root": "/workspace"}))
+        );
         assert_eq!(round_trip.mcp_result, Some(json!({"ok": true})));
     }
 

@@ -19,6 +19,8 @@ type SamplingHistoryEntry = {
   decision: string;
   createdAt: string;
   tokenUsage: TokenUsage | null;
+  requestPayload?: string;
+  responsePayload?: string;
 };
 
 type SamplingHistoryStore = {
@@ -50,6 +52,8 @@ function makeEntry(index: number, overrides: Partial<SamplingHistoryEntry> = {})
     decision: 'allow_once',
     createdAt: `2026-05-13T12:${index.toString().padStart(2, '0')}:00.0000000+00:00`,
     tokenUsage: { inputTokens: index, outputTokens: index + 1 },
+    requestPayload: `request-${index}`,
+    responsePayload: `response-${index}`,
     ...overrides,
   };
 }

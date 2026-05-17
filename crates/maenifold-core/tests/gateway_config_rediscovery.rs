@@ -1,6 +1,8 @@
 mod common;
 
-use common::gateway_http::{TestServer, gateway_config, initialize, result_text, rpc, stdio_server};
+use common::gateway_http::{
+    TestServer, gateway_config, initialize, result_text, rpc, stdio_server,
+};
 use maenifold_core::Config;
 use serde_json::{Value, json};
 use serial_test::serial;
@@ -17,9 +19,11 @@ async fn discover_mcp_tools_includes_gateway_servers_added_after_startup() {
     initialize(&server).await;
 
     let initial = discover_mcp_tools(&server).await;
-    assert!(server_tools(&initial, "alpha")
-        .iter()
-        .any(|tool| tool["name"] == "alpha.alpha_ping"));
+    assert!(
+        server_tools(&initial, "alpha")
+            .iter()
+            .any(|tool| tool["name"] == "alpha.alpha_ping")
+    );
     assert!(find_server(&initial, "beta").is_none());
 
     let updated = gateway_config(vec![

@@ -51,7 +51,9 @@ mod tests {
             include_done: false,
         };
         assert!(filter.matches(&json!({ "ready": true, "state": "pending", "location": "todo" })));
-        assert!(!filter.matches(&json!({ "ready": false, "state": "pending", "location": "todo" })));
+        assert!(
+            !filter.matches(&json!({ "ready": false, "state": "pending", "location": "todo" }))
+        );
     }
 
     #[test]

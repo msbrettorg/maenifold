@@ -70,7 +70,8 @@ fn stdio_pool_carries_shared_sampling_registry_across_sessions() {
         "T-303.4.14: StdioPool must store Arc<SamplingSessionRegistry> for initial start and restart paths"
     );
     assert!(
-        !session.contains("Arc::new(super::sampling_session_registry::SamplingSessionRegistry::new())"),
+        !session
+            .contains("Arc::new(super::sampling_session_registry::SamplingSessionRegistry::new())"),
         "T-303.4.14: StdioSession must not allocate a fresh SamplingSessionRegistry per client; pass the shared Arc through"
     );
 }

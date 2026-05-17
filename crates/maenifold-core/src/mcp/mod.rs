@@ -32,6 +32,7 @@ pub(crate) mod gateway_handler;
 #[cfg(test)]
 mod gateway_integration_tests;
 mod gateway_intent;
+mod gateway_intent_observer;
 #[cfg(test)]
 mod gateway_intent_tests;
 mod gateway_metadata;
@@ -41,6 +42,7 @@ mod gateway_resolver;
 #[cfg(test)]
 mod gateway_resolver_tests;
 mod gateway_resolver_types;
+mod gateway_sampling_resolver;
 mod gateway_schema_validation;
 mod gateway_startup;
 mod gateway_tasks;
@@ -69,10 +71,10 @@ mod sampling_session_registry_tests;
 #[cfg(test)]
 mod save_workflow_asset_gateway_tests;
 pub mod schema;
-pub mod stdio_pool;
 pub(crate) mod stdio_env_resolver;
 #[cfg(test)]
 mod stdio_env_resolver_tests;
+pub mod stdio_pool;
 mod stdio_pool_health;
 mod stdio_pool_lifecycle;
 mod stdio_pool_prompts;

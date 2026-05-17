@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use crate::error::GateError;
 
-use super::{TaskPathSet, TASK_LOCATIONS};
+use super::{TASK_LOCATIONS, TaskPathSet};
 
 pub(super) fn validate_task_path(
     canonical_root: &Path,

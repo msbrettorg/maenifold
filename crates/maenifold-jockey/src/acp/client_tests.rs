@@ -1,5 +1,5 @@
-use super::JockeyUiClient;
 use super::super::worker::AcpEvent;
+use super::JockeyUiClient;
 use agent_client_protocol::{self as acp, Client};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
@@ -261,7 +261,10 @@ async fn non_execute_text_content_not_translated() {
         panic!("expected ToolCall event with content");
     };
     assert_eq!(content.len(), 1);
-    assert_eq!(content[0].get("type").and_then(Value::as_str), Some("content"));
+    assert_eq!(
+        content[0].get("type").and_then(Value::as_str),
+        Some("content")
+    );
     assert!(terminal_blocks(&content).is_empty());
     let _ = std::fs::remove_dir_all(root);
 }
@@ -274,7 +277,9 @@ async fn execute_with_existing_terminal_content_not_double_translated() {
         acp::ToolCall::new("tc-exec-existing-1", "run command")
             .kind(acp::ToolKind::Execute)
             .status(acp::ToolCallStatus::Completed)
-            .content(vec![acp::ToolCallContent::Terminal(acp::Terminal::new("existing-term"))]),
+            .content(vec![acp::ToolCallContent::Terminal(acp::Terminal::new(
+                "existing-term",
+            ))]),
     );
 
     client

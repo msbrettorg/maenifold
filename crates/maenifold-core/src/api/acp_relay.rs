@@ -11,11 +11,11 @@ use std::path::PathBuf;
 use std::time::Duration;
 use tokio::sync::oneshot;
 
-use super::acp_relay_lifecycle::{relay_reset_by_session_message, relay_socket};
 #[cfg(test)]
 use super::acp_relay_lifecycle::{
     prompt_result_payload, relay_idle_cleanup_ttl, relay_reset_message,
 };
+use super::acp_relay_lifecycle::{relay_reset_by_session_message, relay_socket};
 use super::acp_relay_mcp::load_configured_mcp_servers;
 
 // Keep-alive relay sessions are retained briefly so a renderer can reconnect

@@ -163,6 +163,8 @@ export interface SamplingHistoryEntry {
   decision: string;
   createdAt: string;
   tokenUsage: SamplingHistoryTokenUsage | null;
+  requestPayload?: string;
+  responsePayload?: string;
   acpSessionId?: string | null;
   appSessionId?: string;
   currentDelta?: string;

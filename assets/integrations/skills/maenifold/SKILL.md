@@ -54,6 +54,8 @@ These are the operations you usually want, but they are **not** separate top-lev
 - `Workflow`, `Pipeline`
 - `GetConfig`, `MemoryStatus`, `RecentActivity`, `Adopt`, `ListAssets`, `AcpExec`
 
+**Hard boundary:** `AcpExec` is an ACP runtime tool for Maenifold UI / ACP agent-session execution and ACP-specific smoke tests. It is **not** a worker-dispatch mechanism for Gate tasks, `task-pm`, outer/inner-loop coding work, or `GatewayIntent` resolution. PM/task execution must use the host agent/task dispatch surfaces and Gate transitions must use `GatewayExecute maenifold.gate`.
+
 You call them like this:
 
 ```text
@@ -105,7 +107,7 @@ Maenifold is a compounding wiki maintained by LLMs. Unlike retrieval-augmented g
 
 The substrate is three layers. First, plain markdown files containing `[[WikiLinks]]` — symbolic pointers the LLM embeds in prose as it writes. Second, a co-occurrence routing graph built mechanically from those WikiLinks: when two concepts appear in the same file, they share an edge. This graph is a routing index, not an ontology — it encodes which concepts appear together, not what they mean. Normalization is mechanical and deliberately non-semantic; interpretation is deferred to query time, where the LLM decides what each co-occurrence signifies. Third, hybrid search combining semantic vectors, full-text BM25, and graph traversal, so knowledge can be found by meaning, by keyword, or by structural proximity.
 
-Five operations compose on this substrate. The LLM **writes** — creating and editing memory files whose WikiLinks grow the graph. It **searches** — hybrid retrieval across the full corpus. It **traverses** — hopping graph edges to build context around a concept. It **reasons** — sequential thinking sessions that persist across invocations, support branching and revision, and themselves emit WikiLinks that feed the graph. It **orchestrates** — workflows compose these operations into structured methodologies; pipelines compose workflows into DAGs with concurrent agent dispatch via ACP.
+Five operations compose on this substrate. The LLM **writes** — creating and editing memory files whose WikiLinks grow the graph. It **searches** — hybrid retrieval across the full corpus. It **traverses** — hopping graph edges to build context around a concept. It **reasons** — sequential thinking sessions that persist across invocations, support branching and revision, and themselves emit WikiLinks that feed the graph. It **orchestrates** — workflows compose these operations into structured methodologies; product pipelines can compose workflow nodes into DAGs. Do not read this as permission to launch PM/Gate coding workers through ACP or `AcpExec`; coding-task dispatch belongs to the host agent/task system.
 
 What prevents the wiki from decaying into noise? Conditioning and convention, not enforcement. Roles, colors, and perspectives shape how the LLM frames a problem. Workflows provide procedural scaffolds. Constitutional principles — graph sovereignty, signal discipline, epistemic honesty — act as soft schema: they do not constrain what can be represented, but strongly shape what is worth writing. The system provides mechanism; the LLM provides judgment.
 
@@ -163,7 +165,7 @@ This works because of what maenifold deliberately omits. The graph carries no bu
 | `ListAssets` | List asset types or items: `workflow`, `role`, `color`, `perspective`. |
 | `Adopt` | Load a role / color / perspective to condition reasoning. |
 | `ListSessions` | List resumable ACP sessions across configured agents. |
-| `AcpExec` | Unified ACP agent invocation: `prompt`, `think`, or `workflow` mode. |
+| `AcpExec` | ACP runtime invocation for Maenifold UI / ACP sessions and ACP-specific smoke tests. Never use it to run Gate tasks, `task-pm` work, outer/inner-loop coding workers, or `GatewayIntent` fallback. |
 | `ReadTextFile` | Read a UTF-8 text file (absolute or cwd-relative). |
 | `ReadMcpResource` | Read MCP resource content by URI. (Also a top-level convenience tool.) |
 | `EmbeddingModels` | Manage embedding models: `status`, `list`, `download`, `activate`, `delete`, `regenerate`. |
@@ -189,7 +191,7 @@ Sessions are ephemeral; the graph is not. Two mechanisms turn ephemeral compute 
 
 **Session sharing with subagents.** You are the decision maker; subagents execute. When you spawn a subagent, pass it your thinking session ID so its thoughts feed the same graph. Embed `[[WikiLinks]]` in the dispatch prompt — the PreToolUse hook injects matching graph context automatically. The hook does retrieval; the graph grows through the thinking sessions themselves.
 
-For non-trivial tasks, use `Workflow` with the `workflow-dispatch` workflow. It analyzes the task and routes to an appropriate methodology. If the user says "think about X," reach for `workflow-dispatch`.
+For non-trivial **knowledge-graph reasoning** tasks, use `Workflow` with the `workflow-dispatch` workflow. It analyzes the task and routes to an appropriate methodology. If the user says "think about X," reach for `workflow-dispatch`. For Gate-tracked coding tasks, do **not** use `Workflow`, `Pipeline`, or `AcpExec` as a worker launcher; use the host PM/task dispatch process for visible worktree lanes.
 
 ## Knowledge Grounding
 

@@ -115,12 +115,27 @@ fn delete_t301_27_defaults_missing_retention_to_30_days_and_quarantines_files() 
     assert_eq!(payload["success"], json!(true));
     assert_eq!(payload["data"]["defaultedRetention"], json!(true));
     assert_eq!(payload["data"]["retentionDays"], json!(30));
-    assert!(payload["data"]["message"].as_str().unwrap_or_default().contains("30"));
+    assert!(
+        payload["data"]["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("30")
+    );
     assert_eq!(payload["data"]["deletedSessionId"], session_id);
-    assert_eq!(payload["data"]["deletedFiles"].as_array().expect("deleted files").len(), uris.len());
+    assert_eq!(
+        payload["data"]["deletedFiles"]
+            .as_array()
+            .expect("deleted files")
+            .len(),
+        uris.len()
+    );
     for (uri, source) in uris.iter().zip(source_paths.iter()) {
         assert!(!file_exists(uri, &context.config).expect("source removed"));
-        assert!(!source.exists(), "source path remains: {}", source.display());
+        assert!(
+            !source.exists(),
+            "source path remains: {}",
+            source.display()
+        );
         assert_quarantined(&quarantine_day_root(&context, session_id), source);
     }
 }
@@ -181,7 +196,11 @@ fn restore_pipeline_t301_34_finds_files_in_trash_only() {
             report.restored_files.contains(&restored),
             "missing restored file {restored}"
         );
-        assert!(source.is_file(), "source was not restored: {}", source.display());
+        assert!(
+            source.is_file(),
+            "source was not restored: {}",
+            source.display()
+        );
         assert!(
             !trash.exists(),
             "trash source should be consumed: {}",

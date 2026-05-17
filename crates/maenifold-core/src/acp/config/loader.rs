@@ -155,7 +155,7 @@ fn read_config_contents(config_path: &Path) -> Result<String> {
 
 pub(crate) fn validate_intent_resolver_config(
     intent_resolver: &IntentResolverSettings,
-    agents_config: &AgentsConfig,
+    _agents_config: &AgentsConfig,
 ) -> Result<()> {
     if !(0.0..=1.0).contains(&intent_resolver.auto_execute_confidence_threshold) {
         return Err(MaenifoldError::AgentSetup(
@@ -183,24 +183,7 @@ pub(crate) fn validate_intent_resolver_config(
     if !intent_resolver.enabled {
         return Ok(());
     }
-    let agent = match intent_resolver
-        .agent
-        .as_deref()
-        .filter(|agent| !agent.trim().is_empty())
-    {
-        Some(agent) => agent,
-        None => {
-            return Err(MaenifoldError::AgentSetup(
-                "gateway intent resolver enabled=true requires a non-empty agent".to_string(),
-            ));
-        }
-    };
-    if agents_config.agents.contains_key(agent) {
-        return Ok(());
-    }
-    Err(MaenifoldError::AgentSetup(format!(
-        "gateway intent resolver agent '{agent}' is not configured or is not executable"
-    )))
+    Ok(())
 }
 
 pub(crate) fn validate_agent_entry(name: &str, entry: &AgentEntry) -> bool {

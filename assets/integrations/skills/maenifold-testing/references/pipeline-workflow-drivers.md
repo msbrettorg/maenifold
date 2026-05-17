@@ -41,3 +41,23 @@ Before declaring a task stale based on runtime behavior:
 3. Compare running binary/path/hash if packaged output differs.
 
 Do not trust a packaged binary as ground truth when source and runtime may be out of sync.
+
+## Daemon-redeploy verification (iter-14 lesson — MANDATORY)
+
+`launchctl kickstart -k "gui/$UID/com.ma-collective.maenifold"` changes the daemon PID but does NOT always replace the running binary with the freshly-built one. Apparently launchd may keep the old executable mapped if the file-descriptor handoff is incomplete. After every mid-iter daemon redeploy:
+
+```bash
+cargo build --release -p maenifold-cli -p maenifold-pipeline-driver
+launchctl kickstart -k "gui/$UID/com.ma-collective.maenifold"
+sleep 5
+# Confirm the running process is actually executing the freshly-built binary:
+DAEMON_PID=$(launchctl list | grep com.ma-collective.maenifold | awk '{print $1}')
+lsof -p $DAEMON_PID | awk '$4=="txt"' | head -3
+# The first line shows the binary inode. Compare to:
+ls -i target/release/maenifold
+# Inodes MUST match. If not, the daemon process is still on the old binary.
+```
+
+If inodes do not match, escalate to `launchctl unload` + `launchctl load`, or `kill` the daemon PID directly and let launchd respawn it. Iter-14 burned multiple cycles believing redeploys had landed when they had not.
+
+Same rule applies to `maenifold-pipeline-driver` PIDs — driver processes persist for the lifetime of in-flight pipeline executions and keep running the old binary. Inspect exact PIDs and terminate only the specific stale process IDs. Never broad-kill by process name.

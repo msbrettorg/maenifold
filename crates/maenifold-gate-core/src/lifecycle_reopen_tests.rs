@@ -109,13 +109,9 @@ fn reopen_done_located_tdd_task_moves_to_todo() {
     .expect("history before reopen");
     let before_history_len = before_history.as_array().expect("history array").len();
 
-    let reopened = GateLifecycle::reopen(note(
-        root.path(),
-        "T-325.20",
-        "pm",
-        "reopening done task",
-    ))
-    .expect("reopen should move done task back to todo");
+    let reopened =
+        GateLifecycle::reopen(note(root.path(), "T-325.20", "pm", "reopening done task"))
+            .expect("reopen should move done task back to todo");
 
     assert_reopened(&reopened);
     assert!(task_path(root.path(), "T-325.20", "todo").exists());

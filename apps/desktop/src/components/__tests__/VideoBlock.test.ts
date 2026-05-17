@@ -6,7 +6,11 @@ import VideoBlock from '../VideoBlock.vue';
 
 const { Plyr, plyrDestroy } = vi.hoisted(() => {
   const destroy = vi.fn();
-  const constructor = vi.fn((_element: HTMLMediaElement) => ({ destroy }));
+  // Plyr is invoked with `new` in production, so the mock must be a regular
+  // function (arrow functions are not constructable).
+  const constructor = vi.fn(function (this: { destroy: typeof destroy }, _element: HTMLMediaElement) {
+    this.destroy = destroy;
+  });
   return { Plyr: constructor, plyrDestroy: destroy };
 });
 

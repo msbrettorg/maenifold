@@ -1,8 +1,20 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import ResourcePreview from '../ResourcePreview.vue';
 import MarkdownView from '../MarkdownView.vue';
+
+// Mock Plyr globally for this suite — ResourcePreview's audio path mounts
+// AudioBlock which instantiates Plyr in onMounted, and Plyr touches DOM
+// APIs (TextTrack, media events) that jsdom does not provide.
+vi.mock('plyr', () => {
+  const destroy = vi.fn();
+  return {
+    default: vi.fn(function (this: { destroy: typeof destroy }) {
+      this.destroy = destroy;
+    }),
+  };
+});
 
 describe('ResourcePreview', () => {
   it('renders markdown via MarkdownView', () => {

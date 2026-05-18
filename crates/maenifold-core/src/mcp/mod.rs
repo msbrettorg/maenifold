@@ -1,8 +1,6 @@
 mod client_handler;
 #[cfg(test)]
 mod client_handler_tests;
-#[cfg(test)]
-mod client_handler_wire_tests;
 mod cors;
 pub(crate) mod discovery_tools;
 pub(crate) mod domain_mapping;
@@ -32,7 +30,6 @@ pub(crate) mod gateway_handler;
 #[cfg(test)]
 mod gateway_integration_tests;
 mod gateway_intent;
-mod gateway_intent_observer;
 #[cfg(test)]
 mod gateway_intent_tests;
 mod gateway_metadata;
@@ -43,7 +40,6 @@ mod gateway_resolver;
 mod gateway_resolver_tests;
 mod gateway_resolver_types;
 mod gateway_direct_inference_resolver;
-mod gateway_sampling_resolver;
 mod gateway_schema_validation;
 mod gateway_startup;
 mod gateway_tasks;
@@ -54,22 +50,10 @@ mod handler_impl;
 #[cfg(test)]
 mod handler_impl_task_hooks_tests;
 pub mod http;
-pub(crate) mod loop_correlator;
 mod mcp_tool_calls;
 pub mod pending_requests;
-#[cfg(test)]
-mod pending_requests_tests;
 mod resource_routing;
 pub mod resources;
-pub(crate) mod sampling_client_flow;
-pub(crate) mod sampling_direct_inference;
-pub(crate) mod sampling_client_helpers;
-#[cfg(test)]
-mod sampling_dispatch_tests;
-pub(crate) mod sampling_events;
-pub(crate) mod sampling_session_registry;
-#[cfg(test)]
-mod sampling_session_registry_tests;
 #[cfg(test)]
 mod save_workflow_asset_gateway_tests;
 pub mod schema;
@@ -105,7 +89,6 @@ use rmcp::model::{
     ListResourcesResult, ListToolsResult, ReadResourceRequestParams, ReadResourceResult,
     ServerCapabilities, ServerInfo, SubscribeRequestParams, Tool, UnsubscribeRequestParams,
 };
-pub(crate) use sampling_session_registry::SamplingSessionRegistry;
 use serde_json::{Value, json};
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;

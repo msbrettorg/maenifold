@@ -1,5 +1,5 @@
 use crate::error::{JSONRPC_INVALID_PARAMS, MaenifoldError, Result};
-use crate::mcp::stdio_pool::{StdioPool, start_session_with_registry_and_sampling};
+use crate::mcp::stdio_pool::{StdioPool, start_session_with_registry};
 use crate::mcp::stdio_pool_health::lock_state;
 use crate::mcp::stdio_pool_prompts::collect_gateway_prompts;
 use crate::mcp::stdio_pool_tools::{collect_gateway_tools, ensure_replacement_tools};
@@ -36,11 +36,9 @@ impl StdioPool {
         if let Some(message) = lock_state(&restart_state).backoff_error(server_name) {
             return Err(MaenifoldError::Message(message));
         }
-        let mut replacement = match start_session_with_registry_and_sampling(
+        let mut replacement = match start_session_with_registry(
             &config,
             Arc::clone(&self.pending_request_registry),
-            Arc::clone(&self.sampling_registry),
-            self.sampling_agent.clone(),
         )
         .await
         {

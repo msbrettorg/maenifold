@@ -3,9 +3,6 @@ use crate::mcp::gateway_direct_inference_resolver::resolve_intent_with_direct_in
 use crate::mcp::gateway_errors::{invalid_params, map_gateway_error};
 use crate::mcp::gateway_handler::GatewayState;
 use crate::mcp::gateway_resolver_types::{ResolverError, ResolverOutput};
-use crate::mcp::gateway_sampling_resolver::{
-    client_supports_sampling, resolve_intent_with_client_sampling,
-};
 use crate::mcp::schema::gateway_tools::GatewayIntentParams;
 use rmcp::RoleServer;
 use rmcp::model::{CallToolResult, Content};
@@ -15,36 +12,15 @@ use serde_json::{Value, json};
 pub(crate) async fn handle_gateway_intent(
     state: &GatewayState,
     arguments: Value,
-    client_peer: Option<Peer<RoleServer>>,
+    _client_peer: Option<Peer<RoleServer>>,
 ) -> std::result::Result<CallToolResult, rmcp::ErrorData> {
     let params: GatewayIntentParams = serde_json::from_value(arguments)
         .map_err(|err| map_gateway_error("GatewayIntent", invalid_params(err)))?;
     let intent = intent_with_hints(params.intent, params.domain_hints);
-    // GatewayIntent resolver: exactly two paths. ACP / Jockey is never used.
-    // Policy (per user directive 2026-05-17):
-    //   1. Try direct inferencing if configured (config block OR env defaults).
-    //   2. Fall back to MCP client sampling when the caller advertises
-    //      `sampling/createMessage`.
-    //   3. Otherwise return DirectInferenceSetup with setup guidance.
+    // GatewayIntent resolver: direct inferencing only after T-331.1.
     let settings = state.intent_settings();
-    let direct_inference_configured = settings.resolved_direct_inference().is_ok();
-    let resolved = if direct_inference_configured {
-        resolve_intent_with_direct_inference(
-            state.catalog(),
-            settings,
-            &intent,
-            state.sampling_registry(),
-        )
-        .await
-    } else if let Some(peer) = client_peer.filter(|p| client_supports_sampling(p)) {
-        resolve_intent_with_client_sampling(
-            state.catalog(),
-            settings,
-            &intent,
-            peer,
-            state.sampling_registry(),
-        )
-        .await
+    let resolved = if settings.resolved_direct_inference().is_ok() {
+        resolve_intent_with_direct_inference(state.catalog(), settings, &intent).await
     } else {
         let setup_message = settings
             .resolved_direct_inference()

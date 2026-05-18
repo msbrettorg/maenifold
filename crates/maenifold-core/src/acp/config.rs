@@ -20,9 +20,6 @@ mod types;
 #[path = "config/gateway_settings_tests.rs"]
 mod gateway_settings_tests;
 #[cfg(test)]
-#[path = "config/loader_sampling_tests.rs"]
-mod loader_sampling_tests;
-#[cfg(test)]
 #[path = "config/loader_tests.rs"]
 mod loader_tests;
 #[cfg(test)]

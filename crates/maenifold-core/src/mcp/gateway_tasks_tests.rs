@@ -76,7 +76,7 @@ async fn create_task(name: &str, nodes: usize) -> String {
 }
 
 async fn state() -> GatewayState {
-    let pool = Arc::new(StdioPool::start(vec![]).await.expect("pool"));
+    let pool = Arc::new(StdioPool::start(vec![], std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new())).await.expect("pool"));
     let routing = ToolRoutingRegistry::build(&[], pool.as_ref()).expect("routing");
     let catalog = GatewayCatalog::build(&[], &[], &routing).expect("catalog");
     let resources = Arc::new(ResourceRoutingRegistry::build(pool.as_ref()).expect("resources"));

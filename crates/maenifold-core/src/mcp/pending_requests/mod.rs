@@ -1,14 +1,9 @@
 mod elicitation;
-mod sampling;
 #[cfg(test)]
 mod tests;
 
 use elicitation::validate_response_content;
 pub(crate) use elicitation::{ElicitationResponse, UserPromptAction};
-#[allow(unused_imports)]
-pub(crate) use sampling::SamplingAction;
-pub(crate) use sampling::SamplingDecision;
-pub(crate) use sampling::SamplingPromptReason;
 
 use rmcp::model::CreateElicitationRequestParams;
 use serde::{Deserialize, Serialize};
@@ -21,7 +16,6 @@ use uuid::Uuid;
 
 pub(crate) const ELICITATION_TIMEOUT: Duration = Duration::from_secs(120);
 pub(crate) const RENDERER_GRACE: Duration = Duration::from_secs(5);
-pub(crate) const SAMPLING_BACKSTOP_TIMEOUT: Duration = Duration::from_secs(300);
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -39,16 +33,13 @@ pub(crate) enum UserPromptResponse {
         id: Uuid,
         response: ElicitationResponse,
     },
-    Sampling {
-        id: Uuid,
-        response: SamplingDecision,
-    },
 }
 
 #[derive(Debug, PartialEq)]
 pub(crate) enum RespondError {
     Gone,
     Invalid(Vec<String>),
+    #[allow(dead_code)]
     KindMismatch,
 }
 
@@ -56,11 +47,6 @@ pub(crate) enum PendingPayload {
     Elicitation {
         params: CreateElicitationRequestParams,
         sender: oneshot::Sender<ElicitationResponse>,
-    },
-    #[allow(dead_code)]
-    Sampling {
-        params: rmcp::model::CreateMessageRequestParams,
-        sender: oneshot::Sender<SamplingDecision>,
     },
 }
 
@@ -112,43 +98,12 @@ impl PendingRequestRegistry {
         receiver
     }
 
-    #[allow(dead_code)]
-    pub(crate) async fn register_sampling(
-        self: &Arc<Self>,
-        params: rmcp::model::CreateMessageRequestParams,
-        server_name: &str,
-        reason: SamplingPromptReason,
-    ) -> oneshot::Receiver<SamplingDecision> {
-        let mut payload = serde_json::to_value(&params).unwrap_or(Value::Null);
-        if let Value::Object(fields) = &mut payload {
-            fields.insert(
-                "serverName".to_string(),
-                Value::String(server_name.to_string()),
-            );
-            fields.insert(
-                "reason".to_string(),
-                serde_json::to_value(&reason).unwrap_or(Value::Null),
-            );
-        }
-        let event = UserPromptEvent {
-            id: Uuid::new_v4(),
-            kind: "sampling",
-            payload,
-            timeout_ms: SAMPLING_BACKSTOP_TIMEOUT.as_millis() as u64,
-        };
-        let (sender, receiver) = oneshot::channel();
-        self.insert(event, PendingPayload::Sampling { params, sender })
-            .await;
-        receiver
-    }
-
     pub(crate) async fn respond_typed(
         &self,
         response: UserPromptResponse,
     ) -> Result<(), RespondError> {
         let id = match &response {
-            UserPromptResponse::Elicitation { id, .. }
-            | UserPromptResponse::Sampling { id, .. } => *id,
+            UserPromptResponse::Elicitation { id, .. } => *id,
         };
         let mut pending = self.pending.lock().await;
         let Some(request) = pending.get(&id) else {
@@ -156,8 +111,6 @@ impl PendingRequestRegistry {
         };
         match (&request.payload, &response) {
             (PendingPayload::Elicitation { .. }, UserPromptResponse::Elicitation { .. }) => {}
-            (PendingPayload::Sampling { .. }, UserPromptResponse::Sampling { .. }) => {}
-            _ => return Err(RespondError::KindMismatch),
         }
         match response {
             UserPromptResponse::Elicitation { id, response } => {
@@ -167,22 +120,12 @@ impl PendingRequestRegistry {
                             "accepted elicitation response requires content".to_string(),
                         ]));
                     };
-                    if let PendingPayload::Elicitation { params, .. } = &request.payload {
-                        validate_response_content(params, content)
-                            .map_err(RespondError::Invalid)?;
-                    }
+                    let PendingPayload::Elicitation { params, .. } = &request.payload;
+                    validate_response_content(params, content)
+                        .map_err(RespondError::Invalid)?;
                 }
                 let request = pending.remove(&id).ok_or(RespondError::Gone)?;
-                let PendingPayload::Elicitation { sender, .. } = request.payload else {
-                    return Err(RespondError::KindMismatch);
-                };
-                sender.send(response).map_err(|_| RespondError::Gone)
-            }
-            UserPromptResponse::Sampling { id, response } => {
-                let request = pending.remove(&id).ok_or(RespondError::Gone)?;
-                let PendingPayload::Sampling { sender, .. } = request.payload else {
-                    return Err(RespondError::KindMismatch);
-                };
+                let PendingPayload::Elicitation { sender, .. } = request.payload;
                 sender.send(response).map_err(|_| RespondError::Gone)
             }
         }
@@ -192,7 +135,6 @@ impl PendingRequestRegistry {
         let id = event.id;
         let timeout = match &payload {
             PendingPayload::Elicitation { .. } => ELICITATION_TIMEOUT,
-            PendingPayload::Sampling { .. } => SAMPLING_BACKSTOP_TIMEOUT,
         };
         let renderer_grace = matches!(payload, PendingPayload::Elicitation { .. });
         self.pending.lock().await.insert(

@@ -225,7 +225,7 @@ async fn gate_upstream_catalog_entries_are_annotated_when_available() {
     let gate_tools = vec![tool("status"), tool("append"), tool("cancel")];
     let (consolidated, passthrough) =
         build_consolidated_tools(vec![("gate".to_string(), gate_tools)]).expect("gate catalog");
-    let pool = StdioPool::start(Vec::new()).await.expect("empty pool");
+    let pool = StdioPool::start(Vec::new(), std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new())).await.expect("empty pool");
     let routing = ToolRoutingRegistry::build(&[], &pool).expect("routing");
     let catalog = GatewayCatalog::build(&consolidated, &passthrough, &routing).expect("catalog");
     let commands = catalog.commands("gate").expect("gate domain");
@@ -247,7 +247,7 @@ async fn gate_upstream_catalog_entries_are_annotated_when_available() {
 }
 
 pub(super) async fn native_catalog() -> GatewayCatalog {
-    let pool = StdioPool::start(Vec::new()).await.expect("empty pool");
+    let pool = StdioPool::start(Vec::new(), std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new())).await.expect("empty pool");
     let routing = ToolRoutingRegistry::build(&[], &pool).expect("routing");
     GatewayCatalog::build(&[], &[], &routing).expect("native catalog")
 }
@@ -255,7 +255,7 @@ pub(super) async fn native_catalog() -> GatewayCatalog {
 async fn empty_gateway_tools() -> Vec<Tool> { gateway_tools(IntentResolverSettings::default()).await }
 
 async fn gateway_tools(settings: IntentResolverSettings) -> Vec<Tool> {
-    let pool = Arc::new(StdioPool::start(Vec::new()).await.expect("empty pool"));
+    let pool = Arc::new(StdioPool::start(Vec::new(), std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new())).await.expect("empty pool"));
     let routing = ResourceRoutingRegistry::build(pool.as_ref()).expect("resource routing");
     let catalog = native_catalog().await;
     GatewayState::new(

@@ -9,7 +9,7 @@ use crate::mcp::resource_routing::ResourceRoutingRegistry;
 use crate::mcp::resources;
 use crate::mcp::stdio_pool::{StdioPool, StdioServerConfig};
 use crate::mcp::tool_routing::ToolRoutingRegistry;
-use crate::mcp::{PendingRequestRegistry, SamplingSessionRegistry, loop_correlator};
+use crate::mcp::PendingRequestRegistry;
 use rmcp::model::Tool;
 use std::sync::Arc;
 use tracing::{info, warn};
@@ -38,38 +38,13 @@ pub(super) async fn build_gateway_with_registry(
             return Ok(GatewayStartup::Disabled);
         }
     };
-    let default_budget = agents_config
-        .sampling_preferences
-        .as_ref()
-        .and_then(|prefs| prefs.default_tool_loop_budget)
-        .unwrap_or(10);
-    let per_server_budget = agents_config
-        .sampling_preferences
-        .as_ref()
-        .map(|prefs| {
-            prefs
-                .per_server
-                .iter()
-                .filter_map(|(server, pref)| {
-                    pref.tool_loop_budget.map(|budget| (server.clone(), budget))
-                })
-                .collect()
-        })
-        .unwrap_or_default();
-    let sampling_registry = Arc::new(SamplingSessionRegistry::with_tool_loop_budgets(
-        default_budget,
-        per_server_budget,
-    ));
-    loop_correlator::spawn_cleanup_task();
-    resources::sampling::set_registry(Arc::clone(&sampling_registry));
-    let sampling_agent = agents_config.sampling_agent.clone();
     let gateway_servers: Vec<_> = agents_config
         .mcp_servers
         .iter()
         .filter(|server| server.is_gateway())
         .collect();
     if gateway_servers.is_empty() {
-        return native_only_gateway(config, registry, sampling_registry, sampling_agent).await;
+        return native_only_gateway(config, registry).await;
     }
 
     let configs: Vec<StdioServerConfig> = gateway_servers
@@ -112,7 +87,7 @@ pub(super) async fn build_gateway_with_registry(
         })
         .collect();
 
-    match StdioPool::start_with_sampling(configs, registry, sampling_registry, sampling_agent).await
+    match StdioPool::start(configs, registry).await
     {
         Ok(pool) => {
             let pool = Arc::new(pool);
@@ -217,11 +192,9 @@ pub(super) async fn build_gateway_with_registry(
 async fn native_only_gateway(
     config: &Config,
     registry: Arc<PendingRequestRegistry>,
-    sampling_registry: Arc<SamplingSessionRegistry>,
-    sampling_agent: Option<String>,
 ) -> Result<GatewayStartup> {
     let pool = Arc::new(
-        StdioPool::start_with_sampling(Vec::new(), registry, sampling_registry, sampling_agent)
+        StdioPool::start(Vec::new(), registry)
             .await?,
     );
     let native_tools = tool_registry_tools()?;

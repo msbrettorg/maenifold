@@ -4,7 +4,7 @@ use crate::mcp::gateway_metadata;
 use crate::mcp::stdio_session_support::{
     collect_failure_stderr, lock_std, map_service_error, spawn, to_message_error,
 };
-use crate::mcp::{PendingRequestRegistry, SamplingSessionRegistry};
+use crate::mcp::PendingRequestRegistry;
 use agent_client_protocol_schema::McpServerStdio as McpServerStdioConfig;
 use rmcp::{
     Peer, RoleClient, ServiceExt,
@@ -73,30 +73,11 @@ impl StdioSession {
         call_timeout: Duration,
         registry: Arc<PendingRequestRegistry>,
     ) -> std::result::Result<Self, StdioStartupError> {
-        Self::start_with_registry_and_sampling(
-            entry,
-            call_timeout,
-            registry,
-            Arc::new(SamplingSessionRegistry::new()),
-            None,
-        )
-        .await
-    }
-
-    pub(crate) async fn start_with_registry_and_sampling(
-        entry: &McpServerStdioConfig,
-        call_timeout: Duration,
-        registry: Arc<PendingRequestRegistry>,
-        sampling_registry: Arc<SamplingSessionRegistry>,
-        sampling_agent: Option<String>,
-    ) -> std::result::Result<Self, StdioStartupError> {
-        Self::start_with_startup_timeout_registry_and_sampling(
+        Self::start_with_startup_timeout_and_registry(
             entry,
             STARTUP_TIMEOUT,
             call_timeout,
             registry,
-            sampling_registry,
-            sampling_agent,
         )
         .await
     }
@@ -121,32 +102,11 @@ impl StdioSession {
         call_timeout: Duration,
         registry: Arc<PendingRequestRegistry>,
     ) -> std::result::Result<Self, StdioStartupError> {
-        Self::start_with_startup_timeout_registry_and_sampling(
-            entry,
-            startup_timeout,
-            call_timeout,
-            registry,
-            Arc::new(SamplingSessionRegistry::new()),
-            None,
-        )
-        .await
-    }
-
-    pub(crate) async fn start_with_startup_timeout_registry_and_sampling(
-        entry: &McpServerStdioConfig,
-        startup_timeout: Duration,
-        call_timeout: Duration,
-        registry: Arc<PendingRequestRegistry>,
-        sampling_registry: Arc<SamplingSessionRegistry>,
-        sampling_agent: Option<String>,
-    ) -> std::result::Result<Self, StdioStartupError> {
         let (transport, stderr_task, stderr, process_group_id) =
             spawn(entry).map_err(|error| StdioStartupError::new(error, None))?;
         let startup = async move {
-            let mut client = MaenifoldClient::new_with_sampling_registry(
+            let mut client = MaenifoldClient::new_with_server_name(
                 registry,
-                sampling_agent,
-                sampling_registry,
                 entry.name.as_str(),
             )
             .serve(transport)

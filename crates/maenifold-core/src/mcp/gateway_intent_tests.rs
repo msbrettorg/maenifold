@@ -58,7 +58,7 @@ mod scoped_env {
 }
 
 async fn state(settings: IntentResolverSettings) -> GatewayState {
-    let pool = Arc::new(StdioPool::start(vec![]).await.expect("empty pool"));
+    let pool = Arc::new(StdioPool::start(vec![], std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new())).await.expect("empty pool"));
     let routing = ToolRoutingRegistry::build(&[], pool.as_ref()).expect("routing");
     let catalog = GatewayCatalog::build(&[], &[], &routing).expect("catalog");
     let resources = Arc::new(ResourceRoutingRegistry::build(pool.as_ref()).expect("resources"));
@@ -172,7 +172,7 @@ async fn auto_execute_disabled_returns_candidates_for_read() {
 #[tokio::test]
 #[serial]
 async fn resolver_error_returns_fallback_instructions() {
-    // Enabled but no direct inference configured AND no client sampling:
+    // Enabled but no direct inference configured:
     // should hit ResolverError::DirectInferenceSetup, NOT fall back to ACP.
     // Clear env vars on this thread so an Azure OpenAI endpoint that happens
     // to be set on the test host does not satisfy the resolver.

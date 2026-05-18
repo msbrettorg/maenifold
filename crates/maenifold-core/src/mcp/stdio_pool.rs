@@ -4,7 +4,7 @@ pub use crate::mcp::stdio_pool_health::{ServerStartupStatus, StdioPoolHealth, St
 use crate::mcp::stdio_pool_prompts::collect_gateway_prompts;
 use crate::mcp::stdio_pool_tools::{collect_gateway_tools, shutdown_servers};
 use crate::mcp::stdio_session::{StdioSession, StdioStartupError};
-use crate::mcp::{PendingRequestRegistry, SamplingSessionRegistry};
+use crate::mcp::PendingRequestRegistry;
 use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
 use futures_util::stream::{FuturesUnordered, StreamExt};
 use rmcp::model::{CallToolResult, GetPromptResult, Prompt, ReadResourceResult, Tool};
@@ -22,8 +22,6 @@ pub struct StdioPool {
     pub(super) gateway_prompts: StdRwLock<Vec<(String, Vec<Prompt>)>>,
     pub(super) gateway_descriptions: StdRwLock<BTreeMap<String, String>>,
     pub(super) pending_request_registry: Arc<PendingRequestRegistry>,
-    pub(super) sampling_registry: Arc<SamplingSessionRegistry>,
-    pub(super) sampling_agent: Option<String>,
 }
 #[derive(Debug, Clone)]
 pub struct StdioServerConfig {
@@ -63,36 +61,10 @@ impl ManagedServer {
     }
 }
 impl StdioPool {
-    pub async fn start(servers: Vec<StdioServerConfig>) -> Result<Self> {
-        Self::start_with_sampling(
-            servers,
-            Arc::new(PendingRequestRegistry::new()),
-            Arc::new(SamplingSessionRegistry::new()),
-            None,
-        )
-        .await
-    }
-
-    pub async fn start_with_registry(
+    pub async fn start(
         servers: Vec<StdioServerConfig>,
         registry: Arc<PendingRequestRegistry>,
-    ) -> Result<Self> {
-        Self::start_with_sampling(
-            servers,
-            registry,
-            Arc::new(SamplingSessionRegistry::new()),
-            None,
-        )
-        .await
-    }
-
-    pub(crate) async fn start_with_sampling(
-        servers: Vec<StdioServerConfig>,
-        registry: Arc<PendingRequestRegistry>,
-        sampling_registry: Arc<SamplingSessionRegistry>,
-        sampling_agent: Option<String>,
-    ) -> Result<Self> {
-        let mut seen = HashSet::new();
+    ) -> Result<Self> {        let mut seen = HashSet::new();
         for config in &servers {
             if !seen.insert(&config.name) {
                 return Err(MaenifoldError::Message(format!(
@@ -104,18 +76,14 @@ impl StdioPool {
         let mut tasks = JoinSet::new();
         for config in servers {
             let registry = Arc::clone(&registry);
-            let sampling_registry = Arc::clone(&sampling_registry);
-            let sampling_agent = sampling_agent.clone();
             tasks.spawn(async move {
                 let name = config.name.clone();
                 (
                     name,
                     config.clone(),
-                    start_session_with_registry_and_sampling(
+                    start_session_with_registry(
                         &config,
                         registry,
-                        sampling_registry,
-                        sampling_agent,
                     )
                     .await,
                 )
@@ -152,12 +120,7 @@ impl StdioPool {
             gateway_prompts: StdRwLock::new(gateway_prompts),
             gateway_descriptions: StdRwLock::new(gateway_descriptions),
             pending_request_registry: registry,
-            sampling_registry,
-            sampling_agent,
         })
-    }
-    pub(crate) fn sampling_registry(&self) -> Arc<SamplingSessionRegistry> {
-        Arc::clone(&self.sampling_registry)
     }
     pub async fn call_tool(
         &self,
@@ -271,11 +234,9 @@ impl StdioPool {
         f(session).await
     }
 }
-pub(super) async fn start_session_with_registry_and_sampling(
+pub(super) async fn start_session_with_registry(
     config: &StdioServerConfig,
     registry: Arc<PendingRequestRegistry>,
-    sampling_registry: Arc<SamplingSessionRegistry>,
-    sampling_agent: Option<String>,
 ) -> std::result::Result<StdioSession, StdioStartupError> {
     let entry = McpServerStdioConfig::new(config.name.clone(), config.command.clone())
         .args(config.args.clone())
@@ -286,12 +247,10 @@ pub(super) async fn start_session_with_registry_and_sampling(
                 .map(|(name, value)| EnvVariable::new(name.clone(), value.clone()))
                 .collect(),
         );
-    StdioSession::start_with_registry_and_sampling(
+    StdioSession::start_with_registry(
         &entry,
         config.timeout.unwrap_or(Duration::from_secs(60)),
         registry,
-        sampling_registry,
-        sampling_agent,
     )
     .await
 }

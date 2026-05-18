@@ -4,7 +4,6 @@ use super::params::{
     UpdateAssetsParams,
 };
 use super::support::derived_tool_definition;
-use super::system_params::CancelSamplingSessionParams;
 use crate::mcp::McpToolDefinition;
 
 pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
@@ -49,10 +48,6 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
         "AcpExec" => derived_tool_definition::<AcpExecParams>(
             registry_name,
             "Unified ACP agent invocation. Supports prompt (single message), think (sequential thinking), and workflow (structured workflow) modes. All modes share a global agent pool for process reuse.",
-        ),
-        "CancelSamplingSession" => derived_tool_definition::<CancelSamplingSessionParams>(
-            registry_name,
-            "Cancels a visible runtime MCP sampling session by sampling request id.",
         ),
         _ => return None,
     };

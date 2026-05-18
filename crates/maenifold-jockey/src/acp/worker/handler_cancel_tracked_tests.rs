@@ -96,7 +96,6 @@ fn insert_tracked_connection(key: &str, session_id: acp::SessionId) {
                 available_modes: Vec::new(),
                 current_mode: None,
                 child_pid,
-                _child: child,
                 _io_task: tokio::task::spawn_local(async move {
                     let _ = client_io_task.await;
                 }),

@@ -35,7 +35,6 @@ pub(crate) struct LiveConnection {
     #[allow(dead_code)]
     pub(crate) current_mode: Option<String>,
     pub(crate) child_pid: Option<u32>,
-    pub(crate) _child: tokio::process::Child,
     pub(crate) _io_task: tokio::task::JoinHandle<()>,
     pub(crate) health_rx: tokio::sync::watch::Receiver<bool>,
 }

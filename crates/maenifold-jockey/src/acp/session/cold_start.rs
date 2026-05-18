@@ -96,6 +96,27 @@ pub(crate) async fn cold_start(
     );
 
     let (health_tx, health_rx) = tokio::sync::watch::channel(true);
+    let wait_health_tx = health_tx.clone();
+    let wait_pid = child.id();
+    // T-328.14: explicit process-exit watcher. The io_future-driven health
+    // signal isn't sufficient — a child can be SIGKILLed and linger as a zombie
+    // (or its stdout EOF can be delayed) for many minutes before the io task
+    // notices. Owning the Child here and awaiting wait() surfaces death within
+    // a tokio tick of reap.
+    tokio::task::spawn_local(async move {
+        let status = child.wait().await;
+        acp_log(
+            "child.exited",
+            json!({
+                "pid": wait_pid,
+                "status": match &status {
+                    Ok(s) => format!("{s}"),
+                    Err(e) => e.to_string(),
+                }
+            }),
+        );
+        let _ = wait_health_tx.send(false);
+    });
     let io_handle = tokio::task::spawn_local(async move {
         if let Err(e) = io_future.await {
             acp_log("io_task.error", json!({ "error": e.to_string() }));
@@ -276,8 +297,7 @@ pub(crate) async fn cold_start(
         delta_slot,
         available_modes,
         current_mode,
-        child_pid: child.id(),
-        _child: child,
+        child_pid: wait_pid,
         _io_task: io_handle,
         health_rx,
     })

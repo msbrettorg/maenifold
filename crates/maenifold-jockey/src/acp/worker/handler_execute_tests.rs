@@ -72,9 +72,6 @@ fn insert_mock_connection(key: &str, agent: CapturingAgent) -> tokio::sync::watc
     tokio::task::spawn_local(agent_io_task);
 
     let (health_tx, health_rx) = tokio::sync::watch::channel(true);
-    let child = tokio::process::Command::new("true")
-        .spawn()
-        .expect("spawn inert child process for LiveConnection test fixture");
 
     CONN_MAP.with(|map| {
         map.borrow_mut().insert(
@@ -89,7 +86,6 @@ fn insert_mock_connection(key: &str, agent: CapturingAgent) -> tokio::sync::watc
                 available_modes: Vec::new(),
                 current_mode: None,
                 child_pid: None,
-                _child: child,
                 _io_task: tokio::task::spawn_local(async move {
                     let _ = client_io_task.await;
                 }),

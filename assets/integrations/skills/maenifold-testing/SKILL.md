@@ -1,6 +1,6 @@
 ---
 name: maenifold-testing
-description: Maenifold testing, UAT, and debugging workflow. Use this skill whenever the user asks to test, UAT, validate, reproduce, debug, or verify maenifold behavior; mentions the packaged Electron app, agent-browser, CDP, reconnect, ACP sessions, pipeline/driver behavior, red browser errors, desktop regressions, build/package verification, or asks why a maenifold test/validation step failed. Enforces the canonical scripts/uat-launch.sh path, source-backed debugging, real packaged-app verification, and an end-of-cycle retrospective that keeps this skill itself up to date.
+description: Maenifold testing, UAT, debugging, and operational reference. Use this skill whenever the user asks to test, UAT, validate, reproduce, debug, or verify maenifold behavior; mentions the packaged Electron app, agent-browser, CDP, reconnect, ACP sessions, pipeline/driver behavior, red browser errors, desktop regressions, build/package verification, or asks why a maenifold test/validation step failed. Also use when looking up LSP server status, LSP config, LSP workarounds, command timeout budgets, no-polling-loop rules, or historical incident context (72-hour retrospective). Enforces the canonical scripts/uat-launch.sh path, source-backed debugging, real packaged-app verification, and an end-of-cycle retrospective that keeps this skill itself up to date.
 ---
 
 # Maenifold Testing

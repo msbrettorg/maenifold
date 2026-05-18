@@ -25,7 +25,13 @@ const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'new-pipeline'): void;
   (e: 'retry'): void;
+  (e: 'pipeline-selected', pipelineId: string): void;
 }>();
+
+function handlePipelineSelected(pipelineId: string) {
+  emit('pipeline-selected', pipelineId);
+  emit('close');
+}
 
 const store = usePipelineStore();
 const { pipelines } = storeToRefs(store);
@@ -173,7 +179,7 @@ watch(
             v-else
             hide-header
             :filter-query="searchQuery"
-            @pipeline-selected="emit('close')"
+            @pipeline-selected="handlePipelineSelected"
           />
         </div>
       </div>

@@ -133,6 +133,7 @@ async function resumeFromNode() {
 </script>
 
 <template>
+  <div class="relative">
   <Card
     size="sm"
     :class="[
@@ -283,7 +284,7 @@ async function resumeFromNode() {
         {{ resumeBusy ? 'Resuming...' : 'Resume from this node' }}
       </Button>
     </CardContent>
-
-    <PipelineNodeCardPorts />
   </Card>
+    <PipelineNodeCardPorts />
+  </div>
 </template>

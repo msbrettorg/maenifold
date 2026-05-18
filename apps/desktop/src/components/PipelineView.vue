@@ -116,6 +116,13 @@ function closePipelineFlyout(options?: { restoreFocus?: boolean }) {
 }
 function handleTogglePipelineFlyout() { toggleFlyout('pipelines'); }
 async function handlePipelineSelected() { if (await guard.confirmIfDirty()) { clearInspectorSelection(); closePipelineFlyout(); } }
+function handlePipelineRowSelected() {
+  // Sidebar already ran the dirty-confirm via the store, awaited loadPipeline,
+  // and emitted only on success. Just clear inspector state and close the flyout.
+  guard.markClean();
+  clearInspectorSelection();
+  closePipelineFlyout();
+}
 async function handleSaveDraft() {
   if (hasDraftNodes.value && savingState.value !== 'saving' && await store.createPipeline() !== undefined) guard.markClean();
 }
@@ -228,6 +235,7 @@ onBeforeUnmount(() => { detachBeforeUnload?.(); window.removeEventListener('keyd
               :show-error-state="showErrorState"
               :show-loading-state="showLoadingState"
               @close="handlePipelineSelected"
+              @pipeline-selected="handlePipelineRowSelected"
               @new-pipeline="handleNewPipeline"
               @retry="handleRetryLoad"
             />

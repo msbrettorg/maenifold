@@ -6,6 +6,7 @@ import { Pause, Play, RotateCcw, Trash2, XCircle } from 'lucide-vue-next';
 import type { PipelineStatus } from '../lib/pipeline-types-edge';
 import { usePipelineStore } from '../stores/pipeline';
 import { useConfirmDialogStore } from '../stores/confirm-dialog';
+import { toastSuccess } from '@/composables/useToast';
 import PipelineCreateForm from './PipelineCreateForm.vue';
 
 type ActionKey = 'create' | 'run' | 'pause' | 'resume' | 'cancel' | 'rewind' | 'delete';
@@ -28,11 +29,12 @@ type PipelineActionStatus = PipelineStatus | 'abandoned';
 
 const store = usePipelineStore();
 const confirmDialogStore = useConfirmDialogStore();
-const { currentView, designMode, isRunning, localDefinition } = storeToRefs(store);
+const { currentPipelineId, currentView, designMode, isRunning, localDefinition } = storeToRefs(store);
 const busyAction = ref<ActionKey | null>(null);
 
 const hasDraftNodes = computed(() => (localDefinition.value?.nodes?.length ?? 0) > 0);
-const showCreateForm = computed(() => designMode.value && hasDraftNodes.value);
+const hasSavedPipeline = computed(() => currentPipelineId.value !== null);
+const showCreateForm = computed(() => designMode.value && hasDraftNodes.value && !hasSavedPipeline.value);
 const currentStatus = computed<PipelineActionStatus | null>(
   () => (currentView.value?.status as PipelineActionStatus | undefined) ?? null,
 );
@@ -44,7 +46,39 @@ const rewindableNodeIds = computed(() =>
 
 const actions = computed((): ActionConfig[] => {
   if (designMode.value) {
-    return [];
+    if (!hasSavedPipeline.value) {
+      return [];
+    }
+    if (isRunning.value) {
+      return [
+        {
+          key: 'cancel',
+          label: 'Cancel',
+          icon: XCircle,
+          variant: 'destructive',
+          run: () => store.cancelPipeline(),
+        },
+      ];
+    }
+    return [
+      {
+        key: 'run',
+        label: 'Run pipeline',
+        icon: Play,
+        variant: 'default',
+        run: async () => {
+          await store.runPipeline();
+          toastSuccess('Pipeline started.');
+        },
+      },
+      {
+        key: 'delete',
+        label: 'Delete',
+        icon: Trash2,
+        variant: 'destructive',
+        run: handleDelete,
+      },
+    ];
   }
 
   switch (currentStatus.value) {

@@ -154,7 +154,11 @@ async function handleRefresh() {
 }
 
 async function handleSelect(pipelineId: string) {
-  if (currentPipelineId.value === pipelineId) return;
+  if (currentPipelineId.value === pipelineId) {
+    // Already loaded — still notify parent so the flyout can close.
+    emit('pipeline-selected', pipelineId);
+    return;
+  }
   if (hasDirtyDraft.value) {
     const confirmed = await confirmDialogStore.confirm(
       'Discard unsaved pipeline draft?',

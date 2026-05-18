@@ -10,7 +10,6 @@ fn config_with_global_and_agents(
     agents: impl IntoIterator<Item = (&'static str, Vec<McpServerEntry>)>,
 ) -> AgentsConfig {
     AgentsConfig {
-        sampling_agent: None,
         mcp_servers: global_servers,
         agents: agents
             .into_iter()
@@ -28,7 +27,6 @@ fn config_with_global_and_agents(
             })
             .collect(),
         settings: None,
-        sampling_preferences: None,
     }
 }
 

@@ -15,11 +15,9 @@ fn config_with_agent(name: &str) -> AgentsConfig {
         },
     );
     AgentsConfig {
-        sampling_agent: None,
         mcp_servers: Vec::new(),
         agents,
         settings: None,
-        sampling_preferences: None,
     }
 }
 
@@ -79,7 +77,7 @@ fn valid_enabled_resolver_passes_validation() {
 #[test]
 fn enabled_resolver_does_not_require_an_agent() {
     // Sanity: enabled resolver with NO ACP agent config still validates.
-    // GatewayIntent resolver paths are sampling + direct inferencing only.
+    // GatewayIntent resolver paths are direct inferencing only.
     let settings = IntentResolverSettings {
         enabled: true,
         ..IntentResolverSettings::default()

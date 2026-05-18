@@ -113,7 +113,7 @@ async fn stdio_pool_duplicate_server_name_rejected() {
     let error = match StdioPool::start(vec![
         server_config("dup", "tool-a"),
         server_config("dup", "tool-b"),
-    ])
+    ], std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()))
     .await
     {
         Ok(_) => panic!("duplicate server names should fail"),
@@ -154,7 +154,7 @@ async fn stdio_pool_partial_startup_keeps_survivors_usable() {
         "-c".to_string(),
         "import sys; print('startup stderr line', file=sys.stderr); sys.exit(1)".to_string(),
     ];
-    let pool = StdioPool::start(vec![server_config("good", "survivor"), bad])
+    let pool = StdioPool::start(vec![server_config("good", "survivor"), bad], std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()))
         .await
         .expect("pool should start with surviving servers");
 
@@ -228,7 +228,7 @@ async fn stdio_pool_dead_server_restart_is_single_flight() {
         .env
         .insert("SECRET_TOKEN".to_string(), "redacted-value".to_string());
     let pool = Arc::new(
-        StdioPool::start(vec![config])
+        StdioPool::start(vec![config], std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()))
             .await
             .expect("pool should start"),
     );

@@ -122,13 +122,6 @@ pub struct ListSessionsParams {
     pub learn: bool,
 }
 
-#[derive(Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct CancelSamplingSessionParams {
-    /// Sampling request identifier returned by sampling://sessions.
-    pub sampling_request_id: String,
-}
-
 /// Additional content blocks included alongside an ACP prompt request.
 #[derive(Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "lowercase")]

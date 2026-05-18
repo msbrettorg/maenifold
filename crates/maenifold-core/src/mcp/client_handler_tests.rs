@@ -5,11 +5,9 @@ use rmcp::{
     ServerHandler, ServiceExt,
     model::{
         ClientResult, CreateElicitationRequest, CreateElicitationRequestParams,
-        CreateElicitationResult, CreateMessageRequest, CreateMessageRequestParams,
-        ElicitationAction, ElicitationSchema, PrimitiveSchema, SamplingMessage, ServerCapabilities,
-        ServerInfo, ServerRequest, StringSchema,
+        CreateElicitationResult, ElicitationAction, ElicitationSchema, PrimitiveSchema,
+        ServerCapabilities, ServerInfo, ServerRequest, StringSchema,
     },
-    service::ServiceError,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -56,7 +54,6 @@ async fn advertises_elicitation_capability() -> anyhow::Result<()> {
     client.close().await?;
 
     assert!(info.capabilities.elicitation.is_some());
-    assert!(info.capabilities.sampling.is_some());
     assert!(
         info.capabilities
             .tasks
@@ -196,84 +193,6 @@ async fn concurrent_elicitations_each_receive_matching_response() -> anyhow::Res
     assert!(first.content.is_some());
     assert!(second.content.is_some());
     Ok(())
-}
-
-#[tokio::test]
-#[serial_test::serial]
-async fn create_message_without_inference_configured_returns_negative_32603() -> anyhow::Result<()> {
-    // T-327.2: sampling/createMessage must fail with -32603 when no direct
-    // inferencing backend is configured. ACP/Jockey is no longer a fallback.
-    let _guard = ScopedClearInferenceEnv::new();
-    let (server_transport, client_transport) = tokio::io::duplex(4096);
-
-    let server_task = tokio::spawn(async move {
-        let mut server = TestServer.serve(server_transport).await?;
-        let result = server
-            .peer()
-            .send_request(ServerRequest::CreateMessageRequest(
-                CreateMessageRequest::new(CreateMessageRequestParams::new(
-                    vec![SamplingMessage::user_text("Summarize this context")],
-                    64,
-                )),
-            ))
-            .await;
-        server.close().await?;
-        match result {
-            Err(ServiceError::McpError(error)) => anyhow::Ok(error),
-            Err(other) => anyhow::bail!("unexpected service error: {other:?}"),
-            Ok(other) => anyhow::bail!("expected JSON-RPC error, got response: {other:?}"),
-        }
-    });
-
-    let registry = Arc::new(PendingRequestRegistry::new());
-    let mut client = MaenifoldClient::new(registry)
-        .serve(client_transport)
-        .await?;
-    let error = server_task.await??;
-    client.close().await?;
-
-    assert_eq!(error.code.0, -32603);
-    Ok(())
-}
-
-struct ScopedClearInferenceEnv {
-    prior: Vec<(&'static str, Option<String>)>,
-}
-
-impl ScopedClearInferenceEnv {
-    fn new() -> Self {
-        const KEYS: &[&str] = &[
-            "AZURE_OPENAI_ENDPOINT",
-            "AZURE_OPENAI_API_KEY",
-            "AZURE_OPENAI_CHAT_DEPLOYMENT_NAME",
-            "AZURE_OPENAI_DEPLOYMENT_NAME",
-            "OPENAI_BASE_URL",
-            "OPENAI_API_KEY",
-        ];
-        let prior: Vec<_> = KEYS
-            .iter()
-            .map(|key| {
-                let prev = std::env::var(key).ok();
-                // SAFETY: tagged #[serial], no concurrent env mutation.
-                unsafe { std::env::remove_var(key) };
-                (*key, prev)
-            })
-            .collect();
-        Self { prior }
-    }
-}
-
-impl Drop for ScopedClearInferenceEnv {
-    fn drop(&mut self) {
-        for (key, value) in &self.prior {
-            unsafe {
-                match value {
-                    Some(v) => std::env::set_var(key, v),
-                    None => std::env::remove_var(key),
-                }
-            }
-        }
-    }
 }
 
 fn form_params() -> CreateElicitationRequestParams {

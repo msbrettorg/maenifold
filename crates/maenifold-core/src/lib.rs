@@ -1,13 +1,5 @@
 #[path = "acp/config.rs"]
 pub(crate) mod acp_config;
-#[cfg(test)]
-pub(crate) mod acp {
-    pub(crate) mod config {
-        pub(crate) use crate::acp_config::*;
-        #[path = "loader_sampling_tests.rs"]
-        mod loader_sampling_tests;
-    }
-}
 pub(crate) mod api;
 pub mod assets;
 pub mod benchmark;

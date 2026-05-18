@@ -119,7 +119,7 @@ pub fn generate_concept_embeddings(
         Ok(embeddings) => embeddings,
         Err(error) => {
             // T-20.1: RTM FR-7 — preserve existing [[CONCEPT_EMBEDDING_FAILED]] counters while
-            // sampling a small amount of actionable runtime detail for sync diagnostics.
+            // recording a small amount of actionable runtime detail for sync diagnostics.
             record_concept_failures_with_detail(
                 diagnostics,
                 VectorFailureReasonCodes::CONCEPT_EMBEDDING_FAILED,

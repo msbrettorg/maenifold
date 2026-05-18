@@ -225,7 +225,7 @@ async fn default_stdio_pool() -> Option<Arc<StdioPool>> {
         return None;
     }
 
-    match StdioPool::start(servers).await {
+    match StdioPool::start(servers, Arc::new(crate::mcp::PendingRequestRegistry::new())).await {
         Ok(pool) => Some(Arc::new(pool)),
         Err(error) => {
             warn!(error = %error, root = %root.display(), "failed to start pipeline stdio MCP pool");

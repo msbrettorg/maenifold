@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 async fn state() -> GatewayState {
-    let pool = Arc::new(StdioPool::start(vec![]).await.expect("empty pool"));
+    let pool = Arc::new(StdioPool::start(vec![], std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new())).await.expect("empty pool"));
     let routing = ToolRoutingRegistry::build(&[], pool.as_ref()).expect("routing");
     let catalog = GatewayCatalog::build(&[], &[], &routing).expect("catalog");
     let resources = Arc::new(ResourceRoutingRegistry::build(pool.as_ref()).expect("resources"));

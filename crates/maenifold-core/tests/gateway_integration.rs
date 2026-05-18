@@ -100,7 +100,7 @@ async fn gateway_routes_calls_to_the_correct_upstream() {
     let pool = StdioPool::start(vec![
         server_config("alpha", vec![ok_tool("alpha_echo", "handled by alpha")]),
         server_config("beta", vec![ok_tool("beta_echo", "handled by beta")]),
-    ])
+    ], std::sync::Arc::new(maenifold_core::mcp::PendingRequestRegistry::new()))
     .await
     .expect("pool should start");
     let native_tools: Vec<Tool> = Vec::new();
@@ -129,7 +129,7 @@ async fn gateway_rejects_duplicate_tool_names_across_upstreams() {
     let error = match StdioPool::start(vec![
         server_config("alpha", vec![ok_tool("shared_tool", "left")]),
         server_config("beta", vec![ok_tool("shared_tool", "right")]),
-    ])
+    ], std::sync::Arc::new(maenifold_core::mcp::PendingRequestRegistry::new()))
     .await
     {
         Ok(_) => panic!("duplicate tools should fail"),
@@ -152,7 +152,7 @@ async fn gateway_propagates_upstream_json_rpc_errors() {
             "upstream failure",
             json!({"detail":"boom"}),
         )],
-    )])
+    )], std::sync::Arc::new(maenifold_core::mcp::PendingRequestRegistry::new()))
     .await
     .expect("pool should start");
 
@@ -181,7 +181,7 @@ async fn gateway_returns_tool_not_found_for_unknown_upstream_tool() {
     let pool = StdioPool::start(vec![server_config(
         "delta",
         vec![ok_tool("known_tool", "available")],
-    )])
+    )], std::sync::Arc::new(maenifold_core::mcp::PendingRequestRegistry::new()))
     .await
     .expect("pool should start");
 

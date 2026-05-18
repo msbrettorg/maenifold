@@ -73,10 +73,6 @@ impl GatewayState {
         Arc::clone(&self.pool)
     }
 
-    pub(crate) fn sampling_registry(&self) -> Arc<crate::mcp::SamplingSessionRegistry> {
-        self.pool.sampling_registry()
-    }
-
     #[allow(dead_code)]
     pub(crate) fn catalog(&self) -> &GatewayCatalog {
         &self.catalog

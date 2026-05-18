@@ -4,7 +4,7 @@ use crate::tools::ToolContext;
 
 use super::super::runner::{self, AgentSessionConfig};
 use super::executor_nodes_dispatch::missing_agent_configuration;
-use super::executor_run::NodeTaskResult;
+use super::executor_run::{await_with_budget, NodeTaskResult, WORKFLOW_BUDGET_SECS};
 
 #[allow(clippy::too_many_arguments)]
 pub(super) async fn execute_workflow_node_request(
@@ -22,8 +22,9 @@ pub(super) async fn execute_workflow_node_request(
     event_tx: EventSender,
 ) -> NodeTaskResult {
     match agent {
-        Some(agent) => NodeTaskResult::Workflow(
-            runner::run_workflow_with_pool_session_opts(
+        Some(agent) => {
+            let budget = std::time::Duration::from_secs(WORKFLOW_BUDGET_SECS);
+            let fut = runner::run_workflow_with_pool_session_opts(
                 context,
                 &workflow_id,
                 existing_session_id,
@@ -40,9 +41,9 @@ pub(super) async fn execute_workflow_node_request(
                     node_id: node_id.to_string(),
                     thinking_session_id: None,
                 }),
-            )
-            .await,
-        ),
+            );
+            NodeTaskResult::Workflow(await_with_budget(agent, budget, fut).await)
+        }
         None => NodeTaskResult::Workflow(Err(missing_agent_configuration(node_id, "workflow"))),
     }
 }

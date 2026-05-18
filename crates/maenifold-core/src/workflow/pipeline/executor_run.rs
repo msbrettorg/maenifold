@@ -29,7 +29,10 @@ mod executor_run_persist;
 use executor_run_classify::{
     classify_prompt_result, classify_think_result, classify_tool_result, classify_workflow_result,
 };
-pub(super) use executor_run_exec::{run_prompt_node, run_tool_node};
+pub(super) use executor_run_exec::{
+    await_with_budget, run_prompt_node, run_tool_node, THINKING_PER_THOUGHT_BUDGET_SECS,
+    WORKFLOW_BUDGET_SECS,
+};
 pub(crate) use executor_run_persist::persist_active_node_session;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

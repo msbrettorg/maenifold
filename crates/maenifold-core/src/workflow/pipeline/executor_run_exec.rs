@@ -5,6 +5,34 @@ use std::sync::Arc;
 use super::super::super::agent_session::AcpSessionCapturedCallback;
 use super::executor_run_persist::persist_active_node_session;
 
+/// T-328.15 — Wall-clock budget for a single prompt node await.
+/// Catches alive-but-hung ACP agents (T-328.14 only catches process death).
+pub(crate) const PROMPT_BUDGET_SECS: u64 = 600;
+/// Per-thought budget for sequentialThinking nodes (multiplied by total_thoughts).
+pub(crate) const THINKING_PER_THOUGHT_BUDGET_SECS: u64 = 600;
+/// Budget for workflow nodes (many steps, so longer than single prompt).
+pub(crate) const WORKFLOW_BUDGET_SECS: u64 = 1800;
+
+/// T-328.15 — Run `fut` with a wall-clock budget. On expiry, return a
+/// `MaenifoldError::Message` with the canonical "[<agent>] timed out after <N>s"
+/// shape so the pipeline node abandons with a clear diagnostic message.
+pub(crate) async fn await_with_budget<F, T>(
+    agent: &str,
+    budget: std::time::Duration,
+    fut: F,
+) -> Result<T>
+where
+    F: std::future::Future<Output = Result<T>>,
+{
+    match tokio::time::timeout(budget, fut).await {
+        Ok(res) => res,
+        Err(_) => Err(MaenifoldError::Message(format!(
+            "[{agent}] timed out after {}s",
+            budget.as_secs()
+        ))),
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn run_prompt_node(
     context: &ToolContext,
@@ -62,7 +90,12 @@ pub(crate) async fn run_prompt_node(
     });
     session.set_acp_session_captured_callback(callback);
     apply_adopt_instructions(&session, adopt_instructions).await?;
-    let response_result = session.prompt(prompt).await;
+    let response_result = await_with_budget(
+        agent,
+        std::time::Duration::from_secs(PROMPT_BUDGET_SECS),
+        session.prompt(prompt),
+    )
+    .await;
     let prompt_result = match response_result {
         Ok(response) => {
             if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
@@ -212,4 +245,32 @@ fn invoke_local_tool(tool_name: &str, arguments: &JsonValue) -> Result<String> {
                 MaenifoldError::Message(format!("Error invoking {tool_name}: {error}"))
             }
         })
+}
+
+#[cfg(test)]
+mod budget_tests {
+    use super::*;
+
+    // T-328.15 — Sleeper-agent stand-in: a future that never resolves.
+    // Asserts the wall-clock budget fires and yields the canonical
+    // "[<agent>] timed out after <N>s" message that drives node abandonment.
+    #[tokio::test(start_paused = true)]
+    async fn await_with_budget_times_out_hung_agent() {
+        let budget = std::time::Duration::from_secs(600);
+        let sleeper = async {
+            tokio::time::sleep(std::time::Duration::from_secs(86_400)).await;
+            Ok::<(), MaenifoldError>(())
+        };
+        let result = await_with_budget("copilot", budget, sleeper).await;
+        let err = result.expect_err("hung agent must surface as Err");
+        assert_eq!(err.to_string(), "[copilot] timed out after 600s");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn await_with_budget_passes_through_fast_success() {
+        let budget = std::time::Duration::from_secs(600);
+        let quick = async { Ok::<u32, MaenifoldError>(42) };
+        let result = await_with_budget("copilot", budget, quick).await;
+        assert_eq!(result.unwrap(), 42);
+    }
 }

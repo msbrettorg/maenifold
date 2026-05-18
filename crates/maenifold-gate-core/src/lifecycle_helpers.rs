@@ -45,11 +45,22 @@ pub(super) fn apply_outcome(args: StageNoteArgs, outcome: &str) -> Result<Value,
     let _project_lock = GateProjectLock::acquire_exclusive(&root)?;
     let _task_lock = TaskFileLock::acquire(&root, &args.task_id)?;
     let task = TaskRepository::find_task(root.clone(), &args.task_id)?;
-    let (_document, definition, state) = active_task_state(
+    let (document, definition, state) = active_task_state(
         &root,
         &task,
         args.context.requested_pipeline_name.as_deref(),
     )?;
+    if document.metadata.blocked {
+        let reason = document
+            .metadata
+            .blocked_reason
+            .as_deref()
+            .unwrap_or("(no reason recorded)");
+        return Err(GateError::Cli(format!(
+            "task '{}' is blocked: '{}' — unblock via frontmatter edit or gate_Reopen before gate_Pass/gate_Fail",
+            args.task_id, reason
+        )));
+    }
     if let Some(expected) = &args.expected_stage
         && state.state != expected.as_str()
     {

@@ -62,7 +62,7 @@ pub(crate) fn gateway_execute_tool() -> McpToolDefinition {
 pub(crate) fn gateway_batch_tool() -> McpToolDefinition {
     derived_tool_definition::<GatewayBatchParams>(
         "GatewayBatch",
-        "Submits multiple exact gateway domain+command calls in sequence, or reads bounded in-memory status for an existing batch. Use it only when every item is already known from GatewayIndex or GetHelp. It is not a discovery or intent-resolution surface.",
+        "Submits a batch of exact gateway calls, or polls status for one. Required: operation='submit'|'status'. For submit: items=[{domain, command, parameters}] and continueOnError: bool. For status: batchId. Example: {operation:'submit', continueOnError:false, items:[{domain:'maenifold.gate', command:'gate_Status', parameters:{root:'/repo'}}]}. Use only after GatewayIndex/GetHelp identifies each call.",
     )
 }
 

@@ -23,7 +23,7 @@ async function settle(): Promise<void> {
   }
 }
 
-function createMessage(content: string): ChatMessage {
+function makeChatMessage(content: string): ChatMessage {
   return {
     id: 'message-1',
     role: 'assistant',
@@ -39,7 +39,7 @@ async function mountMessageItem(isStreaming: boolean) {
   const wrapper = mount(ChatMessageItem, {
     attachTo: document.body,
     props: {
-      message: createMessage('Inline math: $\\frac{a}{b}$'),
+      message: makeChatMessage('Inline math: $\\frac{a}{b}$'),
       expandedThoughtIds: [],
       expandedToolCallIds: [],
       isStreaming,

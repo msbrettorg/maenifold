@@ -9,26 +9,15 @@ type UserPromptPayload = {
   timeoutMs: number;
 };
 
-type SamplingPromptPayload = {
-  id: string;
-  kind: 'sampling';
-  payload: {
-    serverName: string;
-    messages: Array<{ role: string; content: { text: string } }>;
-    maxTokens: number;
-  };
-  timeoutMs: number;
-};
-
 async function setup() {
   vi.resetModules();
   setActivePinia(createPinia());
   const resolveUserPrompt = vi.fn().mockResolvedValue({ ok: true });
-  const listeners: Array<(payload: UserPromptPayload | SamplingPromptPayload) => void> = [];
+  const listeners: Array<(payload: UserPromptPayload) => void> = [];
   Object.defineProperty(window, 'api', {
     value: {
       quit: vi.fn(),
-      onUserPromptRequest: vi.fn((handler: (payload: UserPromptPayload | SamplingPromptPayload) => void) => {
+      onUserPromptRequest: vi.fn((handler: (payload: UserPromptPayload) => void) => {
         listeners.push(handler);
         return vi.fn();
       }),
@@ -130,24 +119,5 @@ describe('useUserPromptStore', () => {
       schema: { type: 'object', properties: {} },
       timeoutMs: 120_000,
     });
-  });
-
-  it('toSamplingRequest_uses_serverName_from_event_payload_not_hardcoded', async () => {
-    const { listener } = await setup();
-    const { useSamplingStore } = await import('../sampling');
-
-    listener({
-      id: 's-1',
-      kind: 'sampling',
-      payload: {
-        serverName: 'real-server-name',
-        messages: [{ role: 'user', content: { text: 'Need sampling' } }],
-        maxTokens: 64,
-      },
-      timeoutMs: 300_000,
-    });
-
-    const samplingStore = useSamplingStore();
-    expect(samplingStore.queue[0].serverName).toBe('real-server-name');
   });
 });

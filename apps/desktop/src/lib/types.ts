@@ -61,16 +61,7 @@ export interface AgentConfig {
 export interface AgentsConfig {
   mcpServers?: McpServerEntry[];
   agents: Record<string, AgentConfig>;
-  samplingAgent?: string;
   settings?: MaenifoldSettings;
-  samplingPreferences?: {
-    perServer?: Record<string, {
-      alwaysAllow: boolean;
-      modelOverride?: string;
-      toolLoopBudget?: number;
-    }>;
-    defaultToolLoopBudget?: number;
-  };
 }
 
 export interface DecaySettings {
@@ -146,31 +137,6 @@ export interface SavedSession {
   cwd: string;
   supportsLoadSession?: boolean; // Whether the agent supports session/load
   messages?: ChatMessage[];
-}
-
-export interface SamplingHistoryTokenUsage {
-  inputTokens: number;
-  outputTokens: number;
-}
-
-export interface SamplingHistoryEntry {
-  samplingRequestId: string;
-  serverName: string;
-  model: string;
-  runtimeKind: string;
-  roleName: string;
-  status: 'pendingApproval' | 'dispatching' | 'streaming' | 'budgetExceeded' | 'completed' | 'cancelled' | 'denied' | 'failed' | string;
-  decision: string;
-  createdAt: string;
-  tokenUsage: SamplingHistoryTokenUsage | null;
-  requestPayload?: string;
-  responsePayload?: string;
-  acpSessionId?: string | null;
-  appSessionId?: string;
-  currentDelta?: string;
-  toolCallCount?: number;
-  toolLoopBudget?: number;
-  turnCount?: number;
 }
 
 export interface ChatMessage {
@@ -310,9 +276,9 @@ export interface PlanEntry extends AcpMetadataCarrier {
 }
 
 /**
- * Session origin discriminator. `agents` sessions belong to the Agents tab.
+ * Session origin discriminator. Currently only `agents` sessions exist.
  */
-export type SessionSource = 'agents' | 'sampling';
+export type SessionSource = 'agents';
 
 export interface SessionState {
   sessionId: string;

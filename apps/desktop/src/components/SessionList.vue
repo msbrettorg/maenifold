@@ -189,7 +189,6 @@ function handleSearchKeydown(event: KeyboardEvent) {
           <SessionRowActions
             v-if="!isAgentOnlySession(session)"
             :session="session"
-            source="agent"
             :delete-title="getDeleteTitle(session)"
             @delete="handleDelete"
           />

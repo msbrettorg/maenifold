@@ -88,7 +88,6 @@ export function createPipelineLifecycleActions({
 
     if (!shouldCancelRemote) {
       stopCurrentPolling();
-      newPipeline();
       setSuccessMessage(`Cancelled pipeline ${sessionId}.`);
       return;
     }
@@ -97,8 +96,9 @@ export function createPipelineLifecycleActions({
       stopCurrentPolling();
       await mcp.cancelPipeline(sessionId);
       await refreshList();
-      newPipeline();
+      await refreshView();
       setSuccessMessage(`Cancelled pipeline ${sessionId}.`);
+      toastSuccess(`Cancelled pipeline ${sessionId}.`);
     });
   }
 

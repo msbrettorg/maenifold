@@ -65,11 +65,10 @@ describe('SessionList', () => {
     wrapper.unmount();
   });
 
-  it('does not render sampling filters or sampling rows in the Agents sidebar', async () => {
+  it('does not render source filters or non-agent rows in the Agents sidebar', async () => {
     const wrapper = await mountList([savedSession()]);
 
     expect(wrapper.find('[aria-label="Session source filter"]').exists()).toBe(false);
-    expect(wrapper.text()).not.toContain('sampling');
     expect(wrapper.text()).not.toContain('Request');
     expect(wrapper.text()).not.toContain('Response');
     wrapper.unmount();

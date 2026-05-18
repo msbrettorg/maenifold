@@ -1,7 +1,6 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 import type { JsonSchema } from '@jsonforms/core';
-import { useSamplingStore, type SamplingPromptReason, type SamplingRequest } from './sampling';
 
 export type UserPromptEntry = {
   id: string;
@@ -21,22 +20,7 @@ type ElicitationRequestPayload = {
   timeoutMs: number;
 };
 
-type SamplingRequestPayload = {
-  id: string;
-  kind: 'sampling';
-  payload: {
-    serverName?: unknown;
-    messages?: unknown;
-    modelPreferences?: unknown;
-    systemPrompt?: unknown;
-    maxTokens?: unknown;
-    metadata?: unknown;
-    reason?: unknown;
-  };
-  timeoutMs?: number;
-};
-
-type UserPromptRequestPayload = ElicitationRequestPayload | SamplingRequestPayload;
+type UserPromptRequestPayload = ElicitationRequestPayload;
 
 let listenerRegistered = false;
 
@@ -59,90 +43,12 @@ function toEntry(payload: ElicitationRequestPayload): UserPromptEntry | null {
   };
 }
 
-function textFromSamplingContent(content: unknown): string {
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) {
-    return content.map(textFromSamplingContent).filter(Boolean).join('\n');
-  }
-  if (typeof content !== 'object' || content === null) return '';
-  const record = content as Record<string, unknown>;
-  if (typeof record.text === 'string') return record.text;
-  if (typeof record.type === 'string') return `[${record.type}]`;
-  return '';
-}
-
-function modelHintFrom(payload: SamplingRequestPayload['payload']): string | undefined {
-  const preferences = payload.modelPreferences;
-  if (typeof preferences !== 'object' || preferences === null) return undefined;
-  const hints = (preferences as { hints?: unknown }).hints;
-  if (!Array.isArray(hints)) return undefined;
-  const firstNamedHint = hints.find((hint) => {
-    return typeof hint === 'object'
-      && hint !== null
-      && typeof (hint as { name?: unknown }).name === 'string';
-  }) as { name?: string } | undefined;
-  return firstNamedHint?.name;
-}
-
-function parseReason(raw: unknown): SamplingPromptReason | undefined {
-  if (typeof raw !== 'object' || raw === null) return undefined;
-  const reason = raw as Record<string, unknown>;
-  if (reason.kind === 'newRequest') return { kind: 'newRequest' };
-  if (
-    reason.kind === 'budgetExceeded'
-    && typeof reason.used === 'number'
-    && typeof reason.budget === 'number'
-  ) {
-    return {
-      kind: 'budgetExceeded',
-      used: reason.used,
-      budget: reason.budget,
-    };
-  }
-  return undefined;
-}
-
-function toSamplingRequest(payload: SamplingRequestPayload): SamplingRequest {
-  const inner = (typeof payload.payload === 'object' && payload.payload !== null)
-    ? payload.payload
-    : ({} as SamplingRequestPayload['payload']);
-  const messages = Array.isArray(inner.messages)
-    ? inner.messages.flatMap((message) => {
-        if (typeof message !== 'object' || message === null) return [];
-        const record = message as Record<string, unknown>;
-        return [{
-          role: typeof record.role === 'string' ? record.role : 'user',
-          text: textFromSamplingContent(record.content),
-        }];
-      })
-    : [];
-  return {
-    id: payload.id,
-    serverName: typeof inner.serverName === 'string' && inner.serverName.length > 0
-      ? inner.serverName
-      : 'unidentified-server',
-    modelHint: modelHintFrom(inner),
-    messages,
-    systemPrompt: typeof inner.systemPrompt === 'string'
-      ? inner.systemPrompt
-      : undefined,
-    maxTokens: typeof inner.maxTokens === 'number' ? inner.maxTokens : 0,
-    queuedAt: Date.now(),
-    reason: parseReason(inner.reason),
-  };
-}
-
 export const useUserPromptStore = defineStore('userPrompt', () => {
   const queue = ref<UserPromptEntry[]>([]);
   const front = computed(() => queue.value[0] ?? null);
   const open = computed(() => front.value !== null);
 
   function enqueue(payload: UserPromptRequestPayload): void {
-    if (payload.kind === 'sampling') {
-      const samplingStore = useSamplingStore();
-      samplingStore.enqueue(toSamplingRequest(payload));
-      return;
-    }
     if (payload.kind !== 'elicitation') return;
     const entry = toEntry(payload);
     if (!entry || queue.value.some((queued) => queued.id === entry.id)) return;

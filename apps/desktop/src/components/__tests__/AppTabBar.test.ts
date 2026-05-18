@@ -62,7 +62,7 @@ describe('AppTabBar', () => {
     const wrapper = mountAppTabBar();
     const triggers = wrapper.findAll('[role="tab"]');
 
-    expect(triggers).toHaveLength(9);
+    expect(triggers).toHaveLength(8);
     expect(triggers[0]!.text()).toContain('Home');
     expect(triggers[1]!.text()).toContain('Agents');
     expect(triggers[2]!.text()).toContain('Pipelines');
@@ -70,8 +70,7 @@ describe('AppTabBar', () => {
     expect(triggers[4]!.text()).toContain('Knowledge');
     expect(triggers[5]!.text()).toContain('Workflows');
     expect(triggers[6]!.text()).toContain('Schedules');
-    expect(triggers[7]!.text()).toContain('Logs');
-    expect(triggers[8]!.text()).toContain('Settings');
+    expect(triggers[7]!.text()).toContain('Settings');
   });
 
   it('emits update:modelValue when tab is selected', async () => {

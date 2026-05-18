@@ -94,44 +94,22 @@ type ElectronApi = {
 type AppApi = {
   quit: () => Promise<void>;
   onUserPromptRequest: (handler: (payload:
-    | {
-        id: string;
-        kind: 'elicitation';
-        payload: { message?: unknown; requestedSchema?: unknown };
-        timeoutMs: number;
-      }
-    | {
-        id: string;
-        kind: 'sampling';
-        payload: {
-          serverName?: unknown;
-          messages?: unknown;
-          modelPreferences?: unknown;
-          systemPrompt?: unknown;
-          maxTokens?: unknown;
-          metadata?: unknown;
-        };
-        timeoutMs?: number;
-      }
+    {
+      id: string;
+      kind: 'elicitation';
+      payload: { message?: unknown; requestedSchema?: unknown };
+      timeoutMs: number;
+    }
   ) => void) => () => void;
   resolveUserPrompt: (payload:
-    | {
-        kind: 'elicitation';
-        id: string;
-        response: {
-          action: 'accept' | 'cancel' | 'dismiss';
-          content?: Record<string, unknown>;
-        };
-      }
-    | {
-        kind: 'sampling';
-        id: string;
-        response: {
-          action: 'allow_once' | 'allow_always' | 'deny';
-          selectedModel?: string;
-          selectedAgent?: string;
-        };
-      }
+    {
+      kind: 'elicitation';
+      id: string;
+      response: {
+        action: 'accept' | 'cancel' | 'dismiss';
+        content?: Record<string, unknown>;
+      };
+    }
   ) => Promise<{ ok: true }>;
 };
 

@@ -42,33 +42,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function parseSamplingPreferences(value: unknown): AgentsConfig['samplingPreferences'] | undefined {
-  if (!isRecord(value)) return undefined;
-
-  const perServer: NonNullable<AgentsConfig['samplingPreferences']>['perServer'] = {};
-  if (isRecord(value.perServer)) {
-    for (const [serverName, preference] of Object.entries(value.perServer)) {
-      if (!isRecord(preference) || typeof preference.alwaysAllow !== 'boolean') continue;
-      const entry: { alwaysAllow: boolean; modelOverride?: string; toolLoopBudget?: number } = {
-        alwaysAllow: preference.alwaysAllow,
-      };
-      if (typeof preference.modelOverride === 'string') {
-        entry.modelOverride = preference.modelOverride;
-      }
-      if (typeof preference.toolLoopBudget === 'number') {
-        entry.toolLoopBudget = preference.toolLoopBudget;
-      }
-      perServer[serverName] = entry;
-    }
-  }
-
-  const preferences: NonNullable<AgentsConfig['samplingPreferences']> = { perServer };
-  if (typeof value.defaultToolLoopBudget === 'number') {
-    preferences.defaultToolLoopBudget = value.defaultToolLoopBudget;
-  }
-  return preferences;
-}
-
 export function parseAgentsConfig(content: string): AgentsConfig {
   if (content.trim().length === 0) return { mcpServers: [], agents: {} };
   const parsed: unknown = JSON.parse(content);
@@ -83,13 +56,6 @@ export function parseAgentsConfig(content: string): AgentsConfig {
   };
   if (parsed.settings !== undefined) {
     config.settings = parsed.settings as AgentsConfig['settings'];
-  }
-  if (typeof parsed.samplingAgent === 'string') {
-    config.samplingAgent = parsed.samplingAgent;
-  }
-  const samplingPreferences = parseSamplingPreferences(parsed.samplingPreferences);
-  if (samplingPreferences !== undefined) {
-    config.samplingPreferences = samplingPreferences;
   }
   return config;
 }
@@ -146,8 +112,6 @@ function serializeConfig(config: AgentsConfig): string {
     Object.entries(config.agents).map(([name, agent]) => [name, agentToEntry(name, agent)]),
   );
   if (config.settings !== undefined) out.settings = config.settings;
-  if (config.samplingPreferences !== undefined) out.samplingPreferences = config.samplingPreferences;
-  if (config.samplingAgent !== undefined) out.samplingAgent = config.samplingAgent;
   return `${JSON.stringify(out, null, 2)}\n`;
 }
 
@@ -211,39 +175,6 @@ export const useConfigStore = defineStore('config', () => {
     }
   }
 
-  async function setSamplingPreference(
-    serverName: string,
-    pref: { alwaysAllow: boolean; modelOverride?: string; toolLoopBudget?: number },
-  ): Promise<void> {
-    const current = config.value.samplingPreferences?.perServer ?? {};
-    await writeConfig({
-      samplingPreferences: {
-        ...config.value.samplingPreferences,
-        perServer: { ...current, [serverName]: pref },
-      },
-    });
-  }
-
-  async function setDefaultToolLoopBudget(defaultToolLoopBudget: number): Promise<void> {
-    await writeConfig({
-      samplingPreferences: {
-        ...(config.value.samplingPreferences ?? {}),
-        defaultToolLoopBudget,
-      },
-    });
-  }
-
-  async function clearSamplingPreference(serverName: string): Promise<void> {
-    const current = config.value.samplingPreferences?.perServer ?? {};
-    const { [serverName]: _removed, ...rest } = current;
-    await writeConfig({
-      samplingPreferences: {
-        ...config.value.samplingPreferences,
-        perServer: rest,
-      },
-    });
-  }
-
   // Replace the entire config and persist; the file watcher will echo back to ensure consistency.
   async function writeRaw(rawText: string): Promise<void> {
     const api = getConfigApi();
@@ -304,9 +235,6 @@ export const useConfigStore = defineStore('config', () => {
     reload,
     save,
     writeConfig,
-    setSamplingPreference,
-    setDefaultToolLoopBudget,
-    clearSamplingPreference,
     writeRaw,
     getAgent,
     setupHotReload,

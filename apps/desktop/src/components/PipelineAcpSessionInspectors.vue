@@ -29,7 +29,7 @@ const attachAttempts = reactive<Record<string, number>>({});
 const failedAttachSessionIds = reactive<Record<string, string>>({});
 const attachingSessionIds = reactive<Record<string, string>>({});
 const retryTimers = new Map<string, ReturnType<typeof globalThis.setTimeout>>();
-const missingSessionGraceMs = 1500;
+const missingSessionGraceMs = 30000; // T-328.12: ACP cold-start (esp Copilot) routinely exceeds 1.5s
 
 const inspectablePromptNodes = computed(() =>
   (currentView.value?.nodes ?? [])

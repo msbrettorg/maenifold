@@ -52,9 +52,9 @@ One product, one monorepo. `crates/` = Rust backend. `apps/desktop/` = Electron 
 - **Simple, Lovable, Complete.** No stubs, mocks, scaffolds, placeholders, or fake surfaces.
 - **No Backwards Compatibility.** User base of one. Compat shims are P0 failures.
 - **Help Before Workflow.** Show intent and outputs before exposing orchestration.
-- **No Patches on Patches.** When the fix lives outside our codebase, close as WONTFIX on evidence. Don't shim.
+- **No Patches on Patches.** When the fix lives outside our codebase, escalate to the user with cited evidence (which dependency, which upstream issue, what the user must decide). Don't shim. Don't silently close.
 - **Spec-completism is not a justification.** "The spec says SHOULD" is NOT a reason to ship. Name the production caller or don't build it.
-- **NO PUNTING.** Discovery → file + dispatch → ship, THIS ITER. Filing without dispatching is punting. Surfacing in thoughts.md is punting. Recommending is punting. The only skip-the-fix path is **WONTFIX on cited evidence** — when a task's premise is verifiably dead. Close it this iter with grep/LSP proof. The cited evidence IS the authorization. WONTFIX is NOT a lazy-out: "looks hard" and "unit test passes" are not acceptable evidence. Every WONTFIX cites what is dead and the exact command that proves it. If a user reverses a WONTFIX, the prior bar was too low — re-investigate at runtime before re-closing.
+- **NO PUNTING.** Discovery → file + dispatch → ship, THIS ITER. Filing without dispatching is punting. Surfacing in thoughts.md is punting. Recommending is punting. Every task has exactly three terminal dispositions: **FIX-NOW** (do the work this iter), **ESCALATE-TO-USER** (named decision required — cite the evidence and the exact question), or **DELETE-AS-NOT-A-TASK** (the file describes noise, not work — grep/LSP proof that the referenced code, behavior, or premise does not exist; remove the file). There is no "close on cited evidence," no "WONTFIX," no "accept residual," no "defer." If the work needs doing and you can't do it, name the human who must decide and ask them this iter.
 
 ---
 
@@ -135,7 +135,7 @@ SWE agents are unreliable narrators. Mandatory behaviors:
 
 - **Worktree ownership:** Top PM creates worktree BEFORE dispatching.
 - **Spec + CDP port:** Passed in the dispatch prompt.
-- **Escalation triage:** Re-author / decompose / WONTFIX / senior-dispatch / accept-residual. Never re-dispatch same spec.
+- **Escalation triage:** Re-author / decompose / delete-as-not-a-task / senior-dispatch / escalate-to-user. Never re-dispatch same spec.
 - **Terminal pass + merge:** Verify artifact, merge to `dev`, remove worktree, `gate_Pass`.
 
 ### Test Policy
@@ -241,8 +241,8 @@ The daemon hosts MCP/HTTP; the driver hosts pipeline node execution. ANY change 
 | Silent default or hidden recovery | Make explicit and required. |
 | Compat shim or dual-mode code | **P0.** Delete. Change everywhere. |
 | UI compiles but not visually verified | **Not done.** |
-| Dead-premise task | **WONTFIX this iter** on cited evidence. |
-| Fix lives in code we don't own | **WONTFIX.** Don't shim. |
+| Dead-premise task | **Delete the task file this iter** with grep/LSP proof the premise does not exist. |
+| Fix lives in code we don't own | **Escalate to user this iter** — name the dependency, the upstream issue, and what they must decide. Don't shim. |
 | Blocked >1 iter | Close or dispatch this iter. |
 | Instinct: "file for next PM" | **Stop. That's punting.** Fix this iter. |
 

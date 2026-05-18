@@ -37,7 +37,7 @@ pub(super) fn graft_pipeline(
 
     if super::super::has_remaining_work(&node_states) {
         return Err(MaenifoldError::Message(
-            "Pipeline graft rejected: running pipelines must be completed or cancelled before graft."
+            "Pipeline graft rejected: pipeline has nodes with remaining work (pending or active). Complete the run or cancel before grafting."
                 .to_string(),
         ));
     }

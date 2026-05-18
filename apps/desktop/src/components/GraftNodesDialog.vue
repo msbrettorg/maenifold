@@ -91,7 +91,7 @@ const connectToValue = computed({
       <DialogHeader class="flex flex-row items-start justify-between gap-4 pt-6 px-6">
         <div class="grid gap-[0.35rem] text-left">
           <DialogTitle>Graft nodes</DialogTitle>
-          <DialogDescription>Add one node to the running pipeline and connect it to existing nodes.</DialogDescription>
+          <DialogDescription>Add nodes to a completed pipeline. The pipeline must be finished or cancelled before grafting.</DialogDescription>
         </div>
         <DialogClose as-child>
           <Button type="button" variant="ghost">Close</Button>

@@ -8,7 +8,7 @@ export const TOAST_DURATIONS: Record<ToastSeverity, number> = {
   success: 3000,
   info: 3000,
   warning: 5000,
-  error: 8000,
+  error: Infinity,
   critical: Infinity,
 };
 
@@ -25,9 +25,9 @@ export function toastWarning(message: string, opts?: ToastOptions): void {
 }
 
 export function toastError(message: string, opts?: ToastOptions): void {
-  sonnerToast.error(message, { duration: TOAST_DURATIONS.error, ...opts });
+  sonnerToast.error(message, { duration: TOAST_DURATIONS.error, closeButton: true, ...opts });
 }
 
 export function toastCritical(message: string, opts?: ToastOptions): void {
-  sonnerToast.error(message, { ...opts, duration: TOAST_DURATIONS.critical });
+  sonnerToast.error(message, { closeButton: true, ...opts, duration: TOAST_DURATIONS.critical });
 }

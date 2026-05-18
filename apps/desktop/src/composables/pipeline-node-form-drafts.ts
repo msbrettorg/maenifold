@@ -54,7 +54,7 @@ export function canSubmitPipelineNodeForm(
         && parsePipelineToolArgs(values.toolArgs) !== null,
       );
     default:
-      return Boolean(trim(values.workflowId));
+      return Boolean(trim(values.workflowId) && trim(values.workflowAgent));
   }
 }
 

@@ -108,3 +108,81 @@ Recipes that skip this step time out with the agent stuck in a "Connecting/appro
 - `ralph/state/learnings.md` records that CDP verification catches reactive/async UI bugs blue-team misses.
 - Edge commonly owns 9222; use the wrapper's stable task port or a known free port.
 - Electron 111+ requires `--remote-allow-origins=*` for non-DevTools CDP clients.
+
+## Vue Flow drag-to-wire (T-328.6 discovery)
+
+The pipeline designer uses Vue Flow. Handles render as `.vue-flow__handle` with `data-id` and `data-handlepos` attributes. Each node has TWO handles: `in-left-target` and `out-right-source` (or top/bottom in TB layout).
+
+### Discover handles
+```bash
+agent-browser eval 'Array.from(document.querySelectorAll(".vue-flow__handle")).map(h => { const r = h.getBoundingClientRect(); return {id: h.getAttribute("data-id"), pos: h.getAttribute("data-handlepos"), x: r.x+r.width/2, y: r.y+r.height/2}; })'
+```
+
+Handle IDs follow the pattern `vue-flow-0-<nodeId>-{in-left-target|out-right-source}` (or `in-top-target` / `out-bottom-source` for TB layout).
+
+### Wire an edge
+`agent-browser drag` with CSS selectors works directly — Vue Flow accepts the synthesized pointer-event sequence:
+
+```bash
+SRC='.vue-flow__handle[data-id="vue-flow-0-<srcNodeId>-out-right-source"]'
+DST='.vue-flow__handle[data-id="vue-flow-0-<dstNodeId>-in-left-target"]'
+agent-browser drag "$SRC" "$DST"
+agent-browser wait 1
+# Verify:
+agent-browser eval 'document.querySelectorAll(".vue-flow__edge").length'
+# Or via snapshot — look for "Edge from <srcId> to <dstId>"
+agent-browser snapshot -i | grep "Edge from"
+```
+
+The high-level `drag` command works; no need for manual `mouse move/down/up` stepping or raw CDP `Input.dispatchMouseEvent`.
+
+### Layout-direction gotcha
+The handle suffix depends on the active layout:
+- LR layout (Layout LR button): `in-left-target` / `out-right-source`
+- TB layout (Layout TB button): `in-top-target` / `out-bottom-source`
+
+Query `data-handlepos` first to determine the actual direction before constructing selectors.
+
+### What does NOT work
+- Native HTML5 dragstart/drop events. Vue Flow listens for pointer events directly.
+- Clicking a handle (no-op; handles only respond to drag sequences).
+
+## Auto-dismissing toast capture (T-328.10 discovery)
+
+Error toasts (Sonner) auto-dismiss after ~2-3 seconds. Snapshotting after the action misses them. Install a MutationObserver BEFORE the trigger:
+
+```bash
+# 1. Install observer that records every text node added to the DOM
+agent-browser eval '
+window.__caughtToasts = [];
+const obs = new MutationObserver(muts => {
+  for (const m of muts) for (const n of m.addedNodes) {
+    if (n.nodeType === 1) {
+      const t = n.innerText || "";
+      if (t.length > 0 && t.length < 500) {
+        window.__caughtToasts.push({ts: Date.now(), text: t.slice(0,400)});
+      }
+    }
+  }
+});
+obs.observe(document.body, {childList: true, subtree: true});
+"observer installed";
+'
+
+# 2. Trigger the failing action
+agent-browser click @e31   # Create / Save / Run / whatever
+
+# 3. Read back filtered for error-like messages
+agent-browser eval 'JSON.stringify(window.__caughtToasts.filter(t => /error|fail|invalid|missing|require/i.test(t.text)).slice(-10))'
+```
+
+This captures the toast text even if it's already vanished from the visible DOM. The console/`agent-browser console` only catches `console.*` calls, not toast text — Sonner renders to a portal and toasts may not log to console.
+
+### Console capture (complementary)
+```bash
+agent-browser console --clear  # reset buffer
+agent-browser click @somebutton
+agent-browser console | tail -30
+```
+
+Use both: console for thrown errors / explicit logs, MutationObserver for visible UI strings.

@@ -58,7 +58,7 @@ const showTemplateGallery = computed(() => showFullScreenEmpty.value || showBrow
 const {
   configModalNodeId, configModalEdge, isConfigModalOpen, existingNodeIds, currentPipelineLineageId, provenanceLinks, selectedNode,
   handleNodeSelected, handleEdgeSelected, clearInspectorSelection, handleNodeDoubleClick, handleEdgeDoubleClick, closeConfigModal,
-} = usePipelineViewState({ currentView, currentPipelineId });
+} = usePipelineViewState({ currentView, currentPipelineId, localDefinition });
 const lastStatusByPipeline = ref<Record<string, string | null>>({});
 watch(designMode, (value) => { storeDesignMode.value = value; }, { immediate: true });
 watch(storeDesignMode, (value) => { if (value !== designMode.value) designMode.value = value; });
@@ -138,7 +138,15 @@ function handleWindowKeyDown(event: KeyboardEvent) {
   if (isPipelineFlyoutOpen.value) {
     event.preventDefault();
     closePipelineFlyout({ restoreFocus: true });
+    return;
   }
+  if (selectedNode.value && !isConfigModalOpen.value) {
+    event.preventDefault();
+    clearInspectorSelection();
+  }
+}
+function handleInspectorEdit() {
+  if (selectedNode.value) handleNodeDoubleClick(selectedNode.value.nodeId);
 }
 let detachBeforeUnload: (() => void) | null = null;
 onMounted(() => { detachBeforeUnload = guard.attachBeforeUnload(); window.addEventListener('keydown', handleWindowKeyDown); store.resumePollingForActiveView(); });
@@ -285,7 +293,7 @@ onBeforeUnmount(() => { detachBeforeUnload?.(); window.removeEventListener('keyd
           <PipelineRunner :collapsed="!runnerExpanded" />
         </section>
       </div>
-      <PipelineNodeInspector v-if="selectedNode" :node="selectedNode" @close="clearInspectorSelection" />
+      <PipelineNodeInspector v-if="selectedNode && !isConfigModalOpen" :node="selectedNode" @close="clearInspectorSelection" @edit="handleInspectorEdit" />
     </div>
     <GraftNodesDialog v-if="graftDialogOpen && currentView" :busy="graftSubmitting" :existing-node-ids="existingNodeIds" :source-node-id="null" :workflows="workflows" @cancel="graftDialogOpen = false" @submit="handleGraftSubmit" />
     <JoinPipelineDialog v-if="joinDialogOpen && currentView" :busy="joinSubmitting" @cancel="joinDialogOpen = false" @submit="handleJoinSubmit" />

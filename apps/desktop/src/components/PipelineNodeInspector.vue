@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import type { ViewNode } from '../lib/pipeline-types-view';
 
 const props = defineProps<{ node: ViewNode }>();
-const emit = defineEmits<{ (e: 'close'): void }>();
+const emit = defineEmits<{ (e: 'close'): void; (e: 'edit'): void }>();
 
 type Detail = { label: string; value: string };
 
@@ -108,9 +108,12 @@ const outputPreview = computed(() => {
           <CardTitle class="truncate text-title font-semibold">{{ titleLabel }}</CardTitle>
           <Badge variant="outline" class="font-normal">{{ nodeType }}</Badge>
         </div>
-        <Button type="button" variant="ghost" size="icon-sm" aria-label="Close node inspector" @click="emit('close')">
-          <X class="size-4" aria-hidden="true" />
-        </Button>
+        <div class="flex shrink-0 items-center gap-1">
+          <Button type="button" variant="outline" size="sm" class="h-7 px-2 text-xs" @click="emit('edit')">Edit…</Button>
+          <Button type="button" variant="ghost" size="icon-sm" aria-label="Close node inspector" @click="emit('close')">
+            <X class="size-4" aria-hidden="true" />
+          </Button>
+        </div>
       </CardHeader>
 
       <CardContent class="min-h-0 flex-1 p-0">

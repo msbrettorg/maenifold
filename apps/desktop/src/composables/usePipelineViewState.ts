@@ -1,14 +1,24 @@
 import { computed, ref, type ComputedRef } from 'vue';
 import type { ViewNode } from '../lib/pipeline-types-view';
+import type { PipelineDefinition } from '../lib/pipeline-types-edge';
+import type { PipelineNode } from '../lib/pipeline-types-node';
 import type { ProvenanceLink } from '../lib/provenance';
 import { useProvenanceStore } from '../stores/provenance';
 
 export type SelectedEdge = { source: string; target: string } | null;
 
+type LocalDefRef = ComputedRef<PipelineDefinition | null | undefined> | { value: PipelineDefinition | null | undefined };
+
 export type UsePipelineViewStateOptions = {
   currentView: ComputedRef<{ pipelineId?: string; nodes: ViewNode[] } | null | undefined> | { value: { pipelineId?: string; nodes: ViewNode[] } | null | undefined };
   currentPipelineId: ComputedRef<string | null> | { value: string | null };
+  localDefinition?: LocalDefRef;
 };
+
+function adaptDraftNode(node: PipelineNode): ViewNode {
+  const { id, ...rest } = node;
+  return { ...(rest as object), nodeId: id, sessionId: '', status: 'pending', attempts: 0 } as ViewNode;
+}
 
 function firstNonEmptyId(...values: Array<string | null | undefined>): string | null {
   for (const value of values) {
@@ -31,8 +41,14 @@ export function usePipelineViewState(options: UsePipelineViewStateOptions) {
   const isConfigModalOpen = computed(() => configModalNodeId.value !== null || configModalEdge.value !== null);
   const existingNodeIds = computed(() => currentView.value?.nodes.map((node) => node.nodeId) ?? []);
 
-  const selectedNode = computed(() =>
-    currentView.value?.nodes.find((node) => node.nodeId === selectedNodeId.value) ?? null);
+  const selectedNode = computed<ViewNode | null>(() => {
+    const id = selectedNodeId.value;
+    if (!id) return null;
+    const fromView = currentView.value?.nodes.find((node) => node.nodeId === id);
+    if (fromView) return fromView;
+    const draft = options.localDefinition?.value?.nodes.find((node) => node.id === id);
+    return draft ? adaptDraftNode(draft) : null;
+  });
   const selectedNodeProvenanceDetail = computed(() => selectedNode.value?.provenance?.detail ?? null);
 
   const currentPipelineLineageId = computed(() =>

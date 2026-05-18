@@ -118,7 +118,7 @@ export function usePipelineMcp(baseUrl?: string) {
   }
 
   function resumePipeline(sessionId: string) {
-    return callPipeline({ sessionId, run: true });
+    return callPipeline({ sessionId, resume: true });
   }
 
   function cancelPipeline(sessionId: string) {

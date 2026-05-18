@@ -6,6 +6,7 @@ pub(crate) mod acp_relay_lifecycle;
 pub(crate) mod acp_relay_mcp;
 pub(crate) mod acp_relay_prompt;
 pub(crate) mod acp_relay_session;
+pub(crate) mod acp_relay_session_load;
 pub(crate) mod config_manager;
 pub(crate) mod config_watch;
 pub(crate) mod endophasia_communities;

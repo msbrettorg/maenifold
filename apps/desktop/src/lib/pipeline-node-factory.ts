@@ -77,7 +77,7 @@ export function createNode(
       return {
         id: f.id,
         type: 'workflow',
-        ...buildDisplayLabel(f.displayLabel),
+        ...buildDisplayLabel(f.displayLabel, f.workflowId),
         workflowId: f.workflowId,
         ...((f.acpClient ?? '').length > 0 ? { acpClient: f.acpClient } : {}),
         ...(adopt ? { adopt } : {}),
@@ -113,7 +113,7 @@ export function createNode(
       return {
         id: f.id,
         type: 'prompt',
-        ...buildDisplayLabel(f.displayLabel),
+        ...buildDisplayLabel(f.displayLabel, f.prompt.slice(0, 40) || 'Prompt'),
         prompt: f.prompt,
         agent: f.agent,
         sessionRef: f.sessionRef
@@ -140,7 +140,7 @@ export function createNode(
       return {
         id: f.id,
         type: 'sequentialThinking',
-        ...buildDisplayLabel(f.displayLabel),
+        ...buildDisplayLabel(f.displayLabel, f.topic || 'Sequential thinking'),
         topic: f.topic,
         agent: f.agent,
         ...(adopt ? { adopt } : {}),
@@ -169,7 +169,7 @@ export function createNode(
       return {
         id: f.id,
         type: 'tool',
-        ...buildDisplayLabel(f.displayLabel),
+        ...buildDisplayLabel(f.displayLabel, f.toolName || 'Tool'),
         toolName: f.toolName,
         ...(typeof f.agent === 'string' && f.agent.length > 0 ? { agent: f.agent } : {}),
         ...(f.toolArgs ? { toolArgs: f.toolArgs } : {}),

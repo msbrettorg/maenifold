@@ -158,8 +158,15 @@ export function buildWorkflowExecutionFields(
   };
 }
 
-export function buildDisplayLabel(value: string | undefined): AnyDisplayLabelPick {
-  return typeof value === 'string' && value.length > 0
-    ? { displayLabel: value }
-    : {};
+export function buildDisplayLabel(
+  value: string | undefined,
+  fallback?: string,
+): AnyDisplayLabelPick {
+  if (typeof value === 'string' && value.length > 0) {
+    return { displayLabel: value };
+  }
+  if (typeof fallback === 'string' && fallback.length > 0) {
+    return { displayLabel: fallback };
+  }
+  return {};
 }

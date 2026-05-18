@@ -147,6 +147,61 @@ fn read_commands_do_not_mutate_task_files() {
     assert_eq!(after, before);
 }
 
+#[test]
+fn pass_on_blocked_task_returns_error_and_preserves_state() {
+    let root = new_root();
+    write_blocked_task(
+        root.path(),
+        "T-330.91",
+        "sdd",
+        "waiting on user authorization",
+    );
+    let path = task_path(root.path(), "T-330.91", "todo");
+    let before = fs::read_to_string(&path).expect("read before");
+
+    let error = GateLifecycle::pass(note(root.path(), "T-330.91", "pm", "ready"))
+        .expect_err("pass should reject blocked task");
+
+    let message = error.to_string();
+    assert!(
+        message.contains("blocked"),
+        "error should mention blocked: {message}"
+    );
+    assert!(
+        message.contains("waiting on user authorization"),
+        "error should include blocked reason: {message}"
+    );
+    let after = fs::read_to_string(&path).expect("read after");
+    assert_eq!(after, before, "blocked task file must not be mutated");
+    assert_eq!(single_status(root.path())["state"], "blocked");
+}
+
+#[test]
+fn fail_on_blocked_task_returns_error_and_preserves_state() {
+    let root = new_root();
+    write_blocked_task(root.path(), "T-330.92", "sdd", "needs design review");
+    let path = task_path(root.path(), "T-330.92", "todo");
+    let before = fs::read_to_string(&path).expect("read before");
+
+    let error = GateLifecycle::fail(note_with_expected_stage(
+        root.path(),
+        "T-330.92",
+        "pm",
+        "pending",
+        "force fail",
+    ))
+    .expect_err("fail should reject blocked task");
+
+    let message = error.to_string();
+    assert!(
+        message.contains("blocked"),
+        "error should mention blocked: {message}"
+    );
+    let after = fs::read_to_string(&path).expect("read after");
+    assert_eq!(after, before, "blocked task file must not be mutated");
+    assert_eq!(single_status(root.path())["state"], "blocked");
+}
+
 #[path = "lifecycle_sync_status_tests.rs"]
 mod sync_status;
 
@@ -170,6 +225,16 @@ fn write_task(root: &Path, id: &str, pipeline: &str) {
         ),
     )
     .expect("write task");
+}
+
+fn write_blocked_task(root: &Path, id: &str, pipeline: &str, reason: &str) {
+    fs::write(
+        task_path(root, id, "todo"),
+        format!(
+            "---\nid: {id}\ntitle: {id} task\npipeline: {pipeline}\nblocked: true\nblocked_reason: {reason}\n---\n# {id} task\n\n## Acceptance Criteria\n\n1. test task\n"
+        ),
+    )
+    .expect("write blocked task");
 }
 
 fn task_path(root: &Path, id: &str, location: &str) -> PathBuf {

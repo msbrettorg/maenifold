@@ -65,6 +65,19 @@ CDP waits are UI assertions, not sleep buffers. Use single-digit waits only: 1-5
 
 If agent-browser attaches to an empty or wrong target, inspect the wrapper's printed targets file or `curl http://127.0.0.1:<port>/json`, then switch to the real page target with `agent-browser tab`.
 
+## Known harness gap — about:blank target
+
+`agent-browser connect` may attach to `about:blank` instead of the maenifold renderer (T-310.2 / T-248.30). The actual renderer (`title: "maenifold"`, `url: file://...app.asar/dist/index.html`) IS exposed via CDP but agent-browser tab discovery sometimes misses it.
+
+**Mandatory pre-flight check:** after `agent-browser connect <port>`, run `agent-browser snapshot -i`. If you see only `about:blank` chrome, fall back to:
+
+```bash
+# Find the renderer's websocket URL directly from CDP
+curl -s http://127.0.0.1:<port>/json | jq '.[] | select(.title == "maenifold" or (.url // "" | contains("app.asar/dist/index.html"))) | .webSocketDebuggerUrl'
+```
+
+Do not silently skip UI verification when the renderer isn't in `agent-browser tab` output — it IS reachable. Fix tracked in T-310.2.
+
 ## Known failure signatures
 
 | Symptom | Likely class | Next action |
@@ -91,7 +104,7 @@ Recipes that skip this step time out with the agent stuck in a "Connecting/appro
 
 ## Source lessons
 
-- `AGENTS.md` CDP Testing section is the repo authority.
+- This skill is the authority for CDP testing procedures. `AGENTS.md` contains the policy rules (UI verification is non-negotiable, no programmatic UAT); this skill contains the operational how-to.
 - `ralph/state/learnings.md` records that CDP verification catches reactive/async UI bugs blue-team misses.
 - Edge commonly owns 9222; use the wrapper's stable task port or a known free port.
 - Electron 111+ requires `--remote-allow-origins=*` for non-DevTools CDP clients.

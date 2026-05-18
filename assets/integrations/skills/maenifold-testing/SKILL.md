@@ -28,6 +28,9 @@ Do not use stale memory as a substitute for source. If behavior depends on a lib
 | Pipeline/workflow behavior, driver processes, stale runtime binaries | `references/pipeline-workflow-drivers.md` |
 | MCP/Gateway testing, curl helpers, gate calls | `references/mcp-gateway.md` |
 | Rust crate build/test verification | `references/rust-crates.md` |
+| LSP server status, config, per-server workarounds | `references/lsp-reference.md` |
+| Command timeouts, per-tool budgets, no-polling clause | `references/command-timeouts.md` |
+| 72-hour incident retrospective (historical) | `references/retrospective-72h.md` |
 | RALPH autonomous testing cycles | `references/ralph-cycle.md` |
 | End-of-cycle skill maintenance | `references/retrospective.md` |
 

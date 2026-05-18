@@ -299,7 +299,9 @@ fn pause_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
                 "Pipeline {session_id} is already paused"
             )));
         }
-        "running" => { /* OK — proceed */ }
+        // Codebase uses both "active" (computed status) and "running" (legacy stored
+        // status) interchangeably for a dispatchable pipeline. Accept both.
+        "running" | "active" => { /* OK — proceed */ }
         other => {
             return Err(MaenifoldError::Message(format!(
                 "Pipeline {session_id} is not running (status: {other}); cannot pause"

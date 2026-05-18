@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { computed, ref, type Component } from 'vue';
 import { storeToRefs } from 'pinia';
-import { Play, RotateCcw, Trash2, XCircle } from 'lucide-vue-next';
+import { Pause, Play, RotateCcw, Trash2, XCircle } from 'lucide-vue-next';
 import type { PipelineStatus } from '../lib/pipeline-types-edge';
 import { usePipelineStore } from '../stores/pipeline';
 import { useConfirmDialogStore } from '../stores/confirm-dialog';
@@ -85,6 +85,13 @@ const actions = computed((): ActionConfig[] => {
     case 'paused':
       return [
         {
+          key: 'resume',
+          label: 'Resume',
+          icon: Play,
+          variant: 'default',
+          run: async () => { await store.resumePipeline(); },
+        },
+        {
           key: 'cancel',
           label: 'Cancel',
           icon: XCircle,
@@ -153,6 +160,13 @@ const actions = computed((): ActionConfig[] => {
     case 'active':
       return isRunning.value
         ? [
+            {
+              key: 'pause',
+              label: 'Pause',
+              icon: Pause,
+              variant: 'secondary',
+              run: async () => { await store.pausePipeline(); },
+            },
             {
               key: 'cancel',
               label: 'Cancel',

@@ -53,6 +53,7 @@ export type NodeStatus =
 
 export type PipelineStatus =
   | "active"
+  | "running"
   | "paused"
   | "cancelled"
   | "completed"

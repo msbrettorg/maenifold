@@ -158,6 +158,7 @@ const actions = computed((): ActionConfig[] => {
         },
       ];
     case 'active':
+    case 'running':
       return isRunning.value
         ? [
             {

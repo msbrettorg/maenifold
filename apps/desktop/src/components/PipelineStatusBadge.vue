@@ -8,6 +8,7 @@ const props = defineProps<{ status: PipelineStatus | null | undefined }>();
 
 const DOT_CLASS: Record<PipelineStatus, string> = {
   active: 'bg-status-active',
+  running: 'bg-status-active',
   completed: 'bg-status-completed',
   stuck: 'bg-status-stuck',
   abandoned: 'bg-status-abandoned',

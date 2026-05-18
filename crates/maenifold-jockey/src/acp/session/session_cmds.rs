@@ -1,6 +1,6 @@
 use tokio::sync::oneshot;
 
-use super::super::worker::{TrackedSessionReap, WorkerMsg, worker_tx};
+use super::super::worker::{TrackedSessionReap, WorkerMsg, kill_pool_child_direct, worker_tx};
 
 fn recv_blocking<T: Send + 'static>(rx: oneshot::Receiver<T>) -> Result<T, String> {
     if tokio::runtime::Handle::try_current().is_ok() {
@@ -60,6 +60,29 @@ pub async fn force_kill_session(
         role_name: role_name.to_string(),
         app_session_id: resolved_session_id,
     });
+}
+
+/// T-328.16 v2 — Synchronous kill switch that bypasses the worker actor
+/// mpsc. The async variant above queues a message that the worker actor
+/// only processes between `rx.recv().await` polls — but with a hung
+/// `session.prompt()` blocking the LocalSet's executor, the queued kill can
+/// sit unread indefinitely. This variant looks up the child pid in the
+/// cross-thread POOL_PIDS index and invokes `libc::kill` inline. Returns
+/// true if a kill was attempted.
+pub fn force_kill_session_sync(
+    runtime_kind: &str,
+    role_name: &str,
+    app_session_id: Option<&str>,
+) -> bool {
+    let runtime_key = normalize_runtime_key(runtime_kind);
+    if runtime_key.is_empty() {
+        return false;
+    }
+    let Some(resolved_session_id) = resolve_session_id(app_session_id) else {
+        return false;
+    };
+    let key = format!("{resolved_session_id}:{runtime_key}:{role_name}");
+    kill_pool_child_direct(&key)
 }
 
 pub fn cancel_tracked_session_blocking(session_id: &str) -> Result<TrackedSessionReap, String> {

@@ -2,6 +2,7 @@ use crate::error::{MaenifoldError, Result};
 use crate::markdown::write_markdown;
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
+use chrono::Utc;
 use serde_json::{Map as JsonMap, Value, json};
 use serde_yml::Value as YamlValue;
 use std::process::Command;
@@ -41,6 +42,20 @@ pub(super) fn handle_lifecycle_operation(
         .unwrap_or(false)
     {
         return cancel_pipeline(context, session_id).map(Some);
+    }
+    if payload
+        .get("pause")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        return pause_pipeline(context, session_id).map(Some);
+    }
+    if payload
+        .get("resume")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        return resume_pipeline(context, session_id).map(Some);
     }
     if payload
         .get("forceComplete")
@@ -260,6 +275,138 @@ fn cancel_active_or_retrying_nodes(
         }
     }
     Ok(cancelled_nodes)
+}
+
+/// Pause a running pipeline: set `status = "paused"`, `paused: true`,
+/// `pausedAt: <RFC 3339>` in frontmatter.  The driver's tick loop will
+/// observe the flag and stop scheduling new nodes; in-flight nodes
+/// complete naturally.
+fn pause_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
+    let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
+    let status = frontmatter
+        .get("status")
+        .and_then(YamlValue::as_str)
+        .unwrap_or("unknown");
+
+    match status {
+        "cancelled" => {
+            return Err(MaenifoldError::Message(format!(
+                "Pipeline {session_id} is already cancelled; cannot pause"
+            )));
+        }
+        "paused" => {
+            return Err(MaenifoldError::Message(format!(
+                "Pipeline {session_id} is already paused"
+            )));
+        }
+        "running" => { /* OK — proceed */ }
+        other => {
+            return Err(MaenifoldError::Message(format!(
+                "Pipeline {session_id} is not running (status: {other}); cannot pause"
+            )));
+        }
+    }
+
+    frontmatter.insert(
+        "status".to_string(),
+        YamlValue::String("paused".to_string()),
+    );
+    frontmatter.insert("paused".to_string(), YamlValue::Bool(true));
+    frontmatter.insert(
+        "pausedAt".to_string(),
+        YamlValue::String(Utc::now().to_rfc3339()),
+    );
+
+    write_markdown(&uri, Some(&frontmatter), &pipeline_content, &context.config)?;
+    emit_pipeline_resource_updated(session_id);
+
+    let result = json!({
+        "paused": true,
+        "message": format!("Pipeline {session_id} paused — in-flight nodes will complete, no new nodes scheduled"),
+    });
+    Ok(match context.output_format {
+        OutputFormat::Json => success(result),
+        OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
+    })
+}
+
+/// Resume a paused pipeline: clear `paused` / `pausedAt`, restore
+/// `status = "running"`.  The driver rebuilds the ready set from
+/// persisted `nodeStates` and dispatches from the first pending node
+/// whose parents are all completed/abandoned.  If the driver process
+/// exited while paused, a fresh driver is spawned.
+fn resume_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
+    let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
+    let status = frontmatter
+        .get("status")
+        .and_then(YamlValue::as_str)
+        .unwrap_or("unknown");
+
+    if status != "paused" {
+        return Err(MaenifoldError::Message(format!(
+            "Pipeline {session_id} is not paused (status: {status}); cannot resume"
+        )));
+    }
+
+    frontmatter.insert(
+        "status".to_string(),
+        YamlValue::String("running".to_string()),
+    );
+    frontmatter.remove("paused");
+    frontmatter.remove("pausedAt");
+
+    write_markdown(&uri, Some(&frontmatter), &pipeline_content, &context.config)?;
+    emit_pipeline_resource_updated(session_id);
+
+    // If the driver process is no longer alive, spawn a fresh one so
+    // execution continues from the persisted checkpoint.
+    let driver_alive = lease::session_lock_is_held(session_id, &context.config);
+    if !driver_alive {
+        let prompt = frontmatter
+            .get("prompt")
+            .and_then(YamlValue::as_str)
+            .unwrap_or("")
+            .to_string();
+        let driver = find_driver_binary()?;
+        let mut cmd = Command::new(&driver);
+        cmd.arg(session_id);
+        if !prompt.is_empty() {
+            cmd.arg(&prompt);
+        }
+        cmd.stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null());
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::CommandExt;
+            unsafe {
+                cmd.pre_exec(|| {
+                    if libc::setsid() == -1 {
+                        return Err(std::io::Error::last_os_error());
+                    }
+                    Ok(())
+                });
+            }
+        }
+
+        cmd.spawn().map_err(|error| {
+            MaenifoldError::Message(format!(
+                "Failed to spawn pipeline driver at {}: {error}",
+                driver.display()
+            ))
+        })?;
+    }
+
+    let result = json!({
+        "resumed": true,
+        "driverSpawned": !driver_alive,
+        "message": format!("Pipeline {session_id} resumed — dispatching from checkpoint"),
+    });
+    Ok(match context.output_format {
+        OutputFormat::Json => success(result),
+        OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
+    })
 }
 
 /// Admin override: force a pipeline to `completed` status regardless of

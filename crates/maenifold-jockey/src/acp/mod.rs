@@ -21,6 +21,7 @@ pub use session::{
     prewarm_role_with_session_id, reconnect_session, refresh_role_config_defs, reset_session,
     set_config_option, set_mode,
 };
+pub use session::force_kill_session_sync;
 pub use worker::{
     AcpEvent, AcpExecuteError, AcpExecuteResult, AcpExecuteSuccess, AcpPromptResult,
     ConnectionDeathEvent, PrewarmEvent, WorkerMsg, respond_to_permission, set_death_event_sender,

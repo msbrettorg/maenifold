@@ -129,6 +129,8 @@ pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
           List pipelines: list=true\n  \
           Run pipeline: sessionId + run=true\n  \
           Cancel pipeline: sessionId + cancel=true\n  \
+          Pause pipeline: sessionId + pause=true\n  \
+          Resume pipeline: sessionId + resume=true\n  \
           Rewind pipeline: sessionId + rewind\n  \
            Delete pipeline: sessionId + delete=true\n  \
            Restore pipeline: sessionId + restore=true + fromTrashDate\n  \

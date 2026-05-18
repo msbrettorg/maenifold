@@ -295,6 +295,9 @@ pub(crate) async fn ensure_connection(
         "pool.cold_start",
         json!({ "runtime": runtime_key, "role": role_name, "sessionId": conn.session_id.to_string() }),
     );
+    if let Some(pid) = conn.child_pid {
+        super::pool::register_pool_pid(key, pid);
+    }
     CONN_MAP.with(|m| m.borrow_mut().insert(key.to_string(), conn));
     Ok(true)
 }

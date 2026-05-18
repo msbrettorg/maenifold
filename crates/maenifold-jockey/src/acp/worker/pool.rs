@@ -57,6 +57,14 @@ impl Drop for LiveConnection {
                 let _ = libc::kill(pid as i32, libc::SIGKILL);
             }
             unregister_child_pid(pid);
+            // T-328.16 v2 — purge cross-thread pool→pid index for any entry
+            // whose pid matches (handles PID reuse safely; O(N) over the
+            // small live-connection set).
+            if let Some(map) = POOL_PIDS.get() {
+                if let Ok(mut guard) = map.lock() {
+                    guard.retain(|_, p| *p != pid);
+                }
+            }
         }
     }
 }
@@ -124,6 +132,46 @@ pub(crate) fn register_child_pid(pid: u32) {
 
 pub(crate) fn unregister_child_pid(pid: u32) {
     child_pids().remove(&pid);
+}
+
+// ── T-328.16 v2: cross-thread pool_key → child pid index ──────────────────────
+//
+// The thread_local CONN_MAP lives on the worker LocalSet thread and cannot be
+// inspected from the executor runtime. To kill a hung child from the budget
+// timeout arm WITHOUT routing through the worker actor mpsc (which is blocked
+// behind in-flight `session.prompt()` futures), we mirror just the child pid
+// in a global Mutex<HashMap> here.
+
+static POOL_PIDS: OnceLock<Mutex<HashMap<String, u32>>> = OnceLock::new();
+fn pool_pids() -> &'static Mutex<HashMap<String, u32>> {
+    POOL_PIDS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+pub(crate) fn register_pool_pid(pool_key: &str, pid: u32) {
+    if let Ok(mut guard) = pool_pids().lock() {
+        guard.insert(pool_key.to_string(), pid);
+    }
+}
+
+/// Synchronously SIGKILL the ACP child process for the given pool slot.
+/// Safe to call from any thread — performs only a Mutex lock and libc::kill,
+/// no channel hop and no await. Returns true if a pid was found and a kill
+/// syscall was issued (signal delivery is asynchronous from the kernel side).
+pub fn kill_pool_child_direct(pool_key: &str) -> bool {
+    let pid_opt = pool_pids()
+        .lock()
+        .ok()
+        .and_then(|g| g.get(pool_key).copied());
+    if let Some(pid) = pid_opt {
+        unsafe {
+            let pgid = -(pid as i32);
+            let _ = libc::kill(pgid, libc::SIGKILL);
+            let _ = libc::kill(pid as i32, libc::SIGKILL);
+        }
+        true
+    } else {
+        false
+    }
 }
 
 pub(crate) fn session_index_key(runtime_key: &str, role_name: &str, session_id: &str) -> String {

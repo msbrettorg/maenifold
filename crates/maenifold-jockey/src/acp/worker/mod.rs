@@ -20,6 +20,7 @@ pub use types::{
 
 pub(crate) use permission::permission_requests;
 pub use pool::TrackedSessionReap;
+pub use pool::kill_pool_child_direct;
 pub(crate) use pool::{DELTA_CHANNEL_CAPACITY, DeltaSlot, LiveConnection, register_child_pid};
 use std::sync::OnceLock;
 use tokio::sync::{mpsc, oneshot};

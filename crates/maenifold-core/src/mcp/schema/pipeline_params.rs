@@ -41,6 +41,12 @@ pub struct PipelineParams {
     /// Cancel a running pipeline and stop future execution
     #[serde(default)]
     pub cancel: bool,
+    /// Pause a running pipeline; in-flight nodes complete, no new nodes scheduled
+    #[serde(default)]
+    pub pause: bool,
+    /// Resume a paused pipeline from its checkpoint
+    #[serde(default)]
+    pub resume: bool,
     /// Return current pipeline state
     #[serde(default)]
     pub view: bool,

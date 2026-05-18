@@ -94,13 +94,17 @@ impl AgentSession {
     /// T-328.16 — Fire-and-forget SIGKILL of the underlying ACP child process.
     /// Used by the wall-clock-budget kill switch when `tokio::time::timeout`
     /// drop-cancel fails to propagate into a hung `session.prompt()` future.
+    ///
+    /// v2: routes through the SYNCHRONOUS `force_kill_session_sync` path
+    /// because the previous async/channel variant queued a WorkerMsg::ForceKill
+    /// that the worker actor could not process while its LocalSet was blocked
+    /// inside the very `session.prompt()` future we're trying to abort.
     pub(crate) async fn force_kill_child(&self) {
-        jockey::acp::force_kill_session(
+        let _ = jockey::acp::force_kill_session_sync(
             &self.runtime_kind,
             &self.agent_name,
             Some(self.session_id.as_str()),
-        )
-        .await;
+        );
     }
 
     pub(crate) async fn prompt(&self, prompt: &str) -> Result<AgentResponse> {

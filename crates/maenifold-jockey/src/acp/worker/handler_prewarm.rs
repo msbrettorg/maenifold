@@ -171,6 +171,9 @@ pub(crate) async fn handle_prewarm(
             let instance_id = conn.instance_id;
             let health_rx_clone = conn.health_rx.clone();
 
+            if let Some(pid) = conn.child_pid {
+                super::pool::register_pool_pid(&key, pid);
+            }
             CONN_MAP.with(|m| m.borrow_mut().insert(key.clone(), conn));
             register_session_index(runtime_key, &role_name, &session_id_str, &key);
 

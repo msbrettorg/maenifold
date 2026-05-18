@@ -140,7 +140,7 @@ export function createNode(
       return {
         id: f.id,
         type: 'sequentialThinking',
-        ...buildDisplayLabel(f.displayLabel, f.topic || 'Sequential thinking'),
+        ...buildDisplayLabel(f.displayLabel, f.topic?.slice(0, 40) || 'Sequential thinking'),
         topic: f.topic,
         agent: f.agent,
         ...(adopt ? { adopt } : {}),

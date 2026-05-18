@@ -24,12 +24,39 @@ pub(crate) async fn await_with_budget<F, T>(
 where
     F: std::future::Future<Output = Result<T>>,
 {
-    match tokio::time::timeout(budget, fut).await {
-        Ok(res) => res,
-        Err(_) => Err(MaenifoldError::Message(format!(
-            "[{agent}] timed out after {}s",
-            budget.as_secs()
-        ))),
+    await_with_budget_and_kill(agent, budget, fut, || async {}).await
+}
+
+/// T-328.16 — Variant of `await_with_budget` that runs an arbitrary
+/// `on_timeout` future when the wall-clock budget expires. Uses
+/// `tokio::select!` with an explicit `sleep` (instead of `tokio::time::timeout`)
+/// because `timeout` relies on drop-cancel semantics that do not always
+/// preempt a hung ACP `session.prompt()` future (T-328.16 production repro:
+/// 11+ minute hang past a 600s budget). The `on_timeout` arm is the kill
+/// switch — typically `session.force_kill_child()`. After invoking it we
+/// briefly sleep so the T-328.14 `child.wait()` watcher can fire and the
+/// abandonment signal can propagate before we return the Err.
+pub(crate) async fn await_with_budget_and_kill<F, T, K, KF>(
+    agent: &str,
+    budget: std::time::Duration,
+    fut: F,
+    on_timeout: K,
+) -> Result<T>
+where
+    F: std::future::Future<Output = Result<T>>,
+    K: FnOnce() -> KF,
+    KF: std::future::Future<Output = ()>,
+{
+    tokio::select! {
+        res = fut => res,
+        _ = tokio::time::sleep(budget) => {
+            on_timeout().await;
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            Err(MaenifoldError::Message(format!(
+                "[{agent}] timed out after {}s",
+                budget.as_secs()
+            )))
+        }
     }
 }
 
@@ -90,10 +117,14 @@ pub(crate) async fn run_prompt_node(
     });
     session.set_acp_session_captured_callback(callback);
     apply_adopt_instructions(&session, adopt_instructions).await?;
-    let response_result = await_with_budget(
+    let response_result = await_with_budget_and_kill(
         agent,
         std::time::Duration::from_secs(PROMPT_BUDGET_SECS),
         session.prompt(prompt),
+        || async {
+            // T-328.16 kill switch — see await_with_budget_and_kill docs.
+            session.force_kill_child().await;
+        },
     )
     .await;
     let prompt_result = match response_result {
@@ -272,5 +303,49 @@ mod budget_tests {
         let quick = async { Ok::<u32, MaenifoldError>(42) };
         let result = await_with_budget("copilot", budget, quick).await;
         assert_eq!(result.unwrap(), 42);
+    }
+
+    // T-328.16 — Spawns a real `sleep 99999` child, wraps a never-resolving
+    // future with `await_with_budget_and_kill`, and asserts (a) the helper
+    // returns Err shortly after the budget fires, and (b) the kill closure
+    // actually killed the child (`kill -0` returns ESRCH).
+    #[tokio::test]
+    async fn await_with_budget_and_kill_runs_kill_switch_on_timeout() {
+        let mut child = tokio::process::Command::new("sleep")
+            .arg("99999")
+            .spawn()
+            .expect("spawn sleep");
+        let pid = child.id().expect("child pid") as i32;
+        let sleeper = async {
+            tokio::time::sleep(std::time::Duration::from_secs(86_400)).await;
+            Ok::<(), MaenifoldError>(())
+        };
+        let start = std::time::Instant::now();
+        let result = await_with_budget_and_kill(
+            "copilot",
+            std::time::Duration::from_secs(1),
+            sleeper,
+            || async move {
+                unsafe {
+                    libc::kill(pid, libc::SIGKILL);
+                }
+            },
+        )
+        .await;
+        let elapsed = start.elapsed();
+        let err = result.expect_err("must surface Err on budget expiry");
+        assert_eq!(err.to_string(), "[copilot] timed out after 1s");
+        assert!(
+            elapsed < std::time::Duration::from_millis(2_500),
+            "budget+kill should finish promptly, was {elapsed:?}"
+        );
+        // Reap so the assertion isn't racing the kernel.
+        let _ = child.wait().await;
+        // kill(pid, 0) returning -1 with ESRCH proves the pid is gone.
+        let alive = unsafe { libc::kill(pid, 0) };
+        assert_eq!(
+            alive, -1,
+            "child pid {pid} should be dead after kill switch"
+        );
     }
 }

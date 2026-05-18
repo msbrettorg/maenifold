@@ -39,6 +39,29 @@ pub async fn cancel_session(runtime_kind: &str, role_name: &str, app_session_id:
     });
 }
 
+/// T-328.16 — Fire-and-forget request to SIGKILL the child ACP process for
+/// the given pool slot. Used as the wall-clock-budget kill switch when a
+/// hung `session.prompt()` future doesn't honour `tokio::time::timeout`'s
+/// drop-cancel. The T-328.14 wait watcher propagates abandonment after reap.
+pub async fn force_kill_session(
+    runtime_kind: &str,
+    role_name: &str,
+    app_session_id: Option<&str>,
+) {
+    let runtime_key = normalize_runtime_key(runtime_kind);
+    if runtime_key.is_empty() {
+        return;
+    };
+    let Some(resolved_session_id) = resolve_session_id(app_session_id) else {
+        return;
+    };
+    let _ = worker_tx().send(WorkerMsg::ForceKill {
+        runtime_key,
+        role_name: role_name.to_string(),
+        app_session_id: resolved_session_id,
+    });
+}
+
 pub fn cancel_tracked_session_blocking(session_id: &str) -> Result<TrackedSessionReap, String> {
     let session_id = session_id.trim();
     if session_id.is_empty() {

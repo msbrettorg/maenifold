@@ -174,6 +174,17 @@ pub enum WorkerMsg {
         role_name: String,
         app_session_id: String,
     },
+    /// T-328.16 — SIGKILL the child process for a pool slot. Fire-and-forget.
+    /// Used as the wall-clock-budget safety net when `tokio::time::timeout`
+    /// fails to preempt a hung `session.prompt()` future (drop-cancel doesn't
+    /// always propagate through the ACP `LocalSet`). Killing the child triggers
+    /// the T-328.14 `child.wait()` watcher which flips `health_tx` and lets
+    /// the pipeline propagate node abandonment.
+    ForceKill {
+        runtime_key: String,
+        role_name: String,
+        app_session_id: String,
+    },
     Reset {
         runtime_key: String,
         role_name: String,

@@ -148,6 +148,37 @@ pub(crate) fn handle_cancel(runtime_key: String, role_name: String, app_session_
     }
 }
 
+/// T-328.16 — SIGKILL the child process for a pool slot. The T-328.14
+/// `child.wait()` watcher will fire `health_tx` once the kernel reaps the
+/// child, which propagates abandonment through the rest of the stack.
+pub(crate) fn handle_force_kill(
+    runtime_key: String,
+    role_name: String,
+    app_session_id: String,
+) {
+    let key = pool_key(&app_session_id, &runtime_key, &role_name);
+    let pid_opt =
+        CONN_MAP.with(|m| m.borrow().get(&key).and_then(|live| live.child_pid));
+    if let Some(pid) = pid_opt {
+        acp_log(
+            "force_kill.sending",
+            json!({ "runtime": &runtime_key, "role": role_name, "pid": pid }),
+        );
+        unsafe {
+            // Kill the whole process group first (covers child-of-child),
+            // then the leader directly as a fallback.
+            let pgid = -(pid as i32);
+            let _ = libc::kill(pgid, libc::SIGKILL);
+            let _ = libc::kill(pid as i32, libc::SIGKILL);
+        }
+    } else {
+        acp_log(
+            "force_kill.no_active_session",
+            json!({ "runtime": &runtime_key, "role": role_name }),
+        );
+    }
+}
+
 pub(crate) fn live_session_ids() -> Vec<String> {
     CONN_MAP.with(|m| {
         m.borrow()

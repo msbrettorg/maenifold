@@ -17,7 +17,7 @@ pub use runtime_state::{
 pub use session::{
     SamplingResult, SamplingStopReason, ToolUseBlock, cancel_session,
     cancel_tracked_session_blocking, execute_runtime, execute_runtime_sampling,
-    list_live_sessions_blocking, prewarm_role, prewarm_role_for_config,
+    force_kill_session, list_live_sessions_blocking, prewarm_role, prewarm_role_for_config,
     prewarm_role_with_session_id, reconnect_session, refresh_role_config_defs, reset_session,
     set_config_option, set_mode,
 };

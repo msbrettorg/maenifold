@@ -105,6 +105,13 @@ pub(super) async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
             } => {
                 handlers::handle_cancel(runtime_key, role_name, app_session_id);
             }
+            WorkerMsg::ForceKill {
+                runtime_key,
+                role_name,
+                app_session_id,
+            } => {
+                handlers::handle_force_kill(runtime_key, role_name, app_session_id);
+            }
             WorkerMsg::Reset {
                 runtime_key,
                 role_name,

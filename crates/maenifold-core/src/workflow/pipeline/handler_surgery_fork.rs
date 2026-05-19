@@ -213,6 +213,8 @@ pub(super) fn fork_pipeline(
                     agent_config: agent_config.clone(),
                     retry_policy: retry_policy.clone(),
                     join_policy: join_policy.clone(),
+                    input_schema: None,
+                    output_schema: None,
                 },
             })
             .collect(),

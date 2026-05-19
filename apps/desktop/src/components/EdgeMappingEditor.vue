@@ -104,7 +104,14 @@ const hasInputSchema = computed(() =>
 const showBindingForm = computed(() => edgeMode.value === 'binding' && hasInputSchema.value);
 const showMissingSchema = computed(() => edgeMode.value === 'binding' && isAcpTarget.value && !hasInputSchema.value);
 const hasSourceOutput = computed(() => sourceOutputKeys.value.length > 0 || !!sourceOutput.value);
-const hasBindings = computed(() => (currentEdge.value.bindings ?? []).length > 0);
+const currentMapping = computed(() => currentEdge.value.mapping ?? {});
+const mappingEntries = computed(() =>
+  Object.entries(currentMapping.value).map(([targetPath, sourcePath]) => ({
+    param: targetPath.startsWith('inputs.') ? targetPath.slice('inputs.'.length) : targetPath,
+    sourcePath,
+  })),
+);
+const hasBindings = computed(() => mappingEntries.value.some(({ sourcePath }) => !!sourcePath));
 
 function schemaToParams(schema: unknown): ToolParam[] {
   if (!schema || typeof schema !== 'object' || Array.isArray(schema)) return [];
@@ -175,27 +182,34 @@ function updateMode(value: unknown): void {
 }
 
 function bindingValue(param: string): string {
-  return currentEdge.value.bindings?.find((binding) => binding.to === param)?.from ?? '';
+  return currentMapping.value[`inputs.${param}`] ?? '';
 }
 
 function updateBindingField(param: string, value: string): void {
   const path = value.trim();
   updateEdge((edge) => {
-    const nextBindings = [
-      ...(edge.bindings ?? []).filter((binding) => binding.to !== param),
-      ...(path ? [{ to: param, from: path }] : []),
-    ];
-    const { mapping: _mapping, bindings: _bindings, ...rest } = edge;
+    const nextMapping = { ...(edge.mapping ?? {}) };
+    const mappingKey = `inputs.${param}`;
+    if (path) {
+      nextMapping[mappingKey] = path;
+    } else {
+      delete nextMapping[mappingKey];
+    }
+    const { bindings: _bindings, mapping: _mapping, ...rest } = edge;
 
-    return nextBindings.length > 0 ? { ...rest, bindings: nextBindings } : rest;
+    return Object.keys(nextMapping).length > 0 ? { ...rest, mapping: nextMapping } : rest;
   });
 }
 
 function cleanupBindingField(param: string): void {
   updateEdge((edge) => {
-    const nextBindings = (edge.bindings ?? []).filter((binding) => binding.to !== param || binding.from.trim());
-    const { bindings: _bindings, ...rest } = edge;
-    return nextBindings.length > 0 ? { ...rest, bindings: nextBindings } : rest;
+    const nextMapping = Object.fromEntries(
+      Object.entries(edge.mapping ?? {}).filter(
+        ([targetPath, sourcePath]) => targetPath !== `inputs.${param}` || sourcePath.trim(),
+      ),
+    );
+    const { bindings: _bindings, mapping: _mapping, ...rest } = edge;
+    return Object.keys(nextMapping).length > 0 ? { ...rest, mapping: nextMapping } : rest;
   });
 }
 </script>
@@ -245,9 +259,9 @@ function cleanupBindingField(param: string): void {
             :name="param.name"
             :list="sourceOutputKeys.length > 0 ? sourcePathListId : undefined"
             :placeholder="sourceOutputKeys.length > 0 ? 'Source dot-path' : 'e.g. results[0].title'"
-            :value="bindingValue(param.name)"
+            :model-value="bindingValue(param.name)"
             type="text"
-            @input="updateBindingField(param.name, ($event.target as HTMLInputElement).value)"
+            @update:model-value="updateBindingField(param.name, String($event))"
             @blur="cleanupBindingField(param.name)"
           />
           <small v-if="param.description">{{ param.description }}</small>

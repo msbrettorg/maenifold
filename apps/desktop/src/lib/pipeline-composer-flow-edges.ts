@@ -38,6 +38,8 @@ export function pipelineEdgesToFlow(pipelineEdges: PipelineEdge[]): Edge[] {
     label: edgeLabel(edge),
     data: {
       edgeType: edge.type ?? 'success',
+      ...(edge.mode ? { mode: edge.mode } : {}),
+      ...(edge.bindings ? { bindings: edge.bindings.map((binding) => ({ ...binding })) } : {}),
       ...(() => {
         const condition = normalizedCondition(edge);
         return condition ? { condition: { ...condition } } : {};
@@ -62,24 +64,31 @@ export function definitionFromFlow(
         path.length > 0 &&
         (typeof equals === 'string' || typeof equals === 'number' || typeof equals === 'boolean');
 
+      const mapping = edge.data?.mapping && typeof edge.data.mapping === 'object' && !Array.isArray(edge.data.mapping)
+        ? Object.fromEntries(
+            Object.entries(edge.data.mapping as Record<string, unknown>).filter(
+              (entry): entry is [string, string] => typeof entry[1] === 'string',
+            ),
+          )
+        : {};
+      const bindings = Array.isArray(edge.data?.bindings)
+        ? (edge.data.bindings as unknown[]).filter(
+            (binding): binding is { from: string; to: string } =>
+              typeof binding === 'object' &&
+              binding !== null &&
+              typeof (binding as { from?: unknown }).from === 'string' &&
+              typeof (binding as { to?: unknown }).to === 'string',
+          )
+        : [];
+
       return {
         source: edge.source,
         target: edge.target,
         type: edgeType,
         ...(edgeType === 'conditional' && hasValidCondition ? { path, equals } : {}),
-        ...(() => {
-          if (!edge.data?.mapping || typeof edge.data.mapping !== 'object' || Array.isArray(edge.data.mapping)) {
-            return {};
-          }
-
-          const mapping = Object.fromEntries(
-            Object.entries(edge.data.mapping as Record<string, unknown>).filter(
-              (entry): entry is [string, string] => typeof entry[1] === 'string',
-            ),
-          );
-
-          return Object.keys(mapping).length > 0 ? { mapping } : {};
-        })(),
+        ...(typeof edge.data?.mode === 'string' ? { mode: edge.data.mode as PipelineEdge['mode'] } : {}),
+        ...(Object.keys(mapping).length > 0 ? { mapping } : {}),
+        ...(bindings.length > 0 ? { bindings } : {}),
       };
     }),
   };

@@ -30,10 +30,11 @@ fi
 safe_task_id="$(printf '%s' "$task_id" | tr -c '[:alnum:]._' '-')"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 binary="$repo_root/apps/desktop/out/maenifold-darwin-arm64/maenifold.app/Contents/MacOS/maenifold"
-pkg_tmp="/tmp/mae-pkg-$safe_task_id"
+pkg_tmp="$repo_root/apps/desktop/uat-logs/$safe_task_id/runtime"
 user_data_dir="$pkg_tmp/user-data"
 log_path="$pkg_tmp/mae-cdp-$port.log"
 pid_path="$pkg_tmp/mae-cdp-$port.pid"
+targets_path="$pkg_tmp/mae-cdp-targets-$port.json"
 
 if [ ! -x "$binary" ]; then
   echo "error: packaged binary not found or not executable: $binary" >&2
@@ -88,7 +89,7 @@ if ! grep -q "MAENIFOLD_UAT mode active" "$log_path"; then
   exit 1
 fi
 
-if ! curl -fsS "http://127.0.0.1:$port/json" >/tmp/mae-cdp-targets-"$port".json; then
+if ! curl -fsS "http://127.0.0.1:$port/json" >"$targets_path"; then
   echo "error: CDP endpoint did not respond on port $port" >&2
   echo "pid: $pid" >&2
   echo "log: $log_path" >&2
@@ -104,5 +105,5 @@ echo "MAENIFOLD_UAT_FOLDER_PICKER_PATH: $MAENIFOLD_UAT_FOLDER_PICKER_PATH"
 echo "user-data-dir: $user_data_dir"
 echo "log: $log_path"
 echo "pid-file: $pid_path"
-echo "targets: /tmp/mae-cdp-targets-$port.json"
+echo "targets: $targets_path"
 echo "connect: agent-browser connect $port"

@@ -249,6 +249,8 @@ fn pipeline_edges_json(definition: &PipelineDefinition) -> Vec<Value> {
                 "source": edge.source,
                 "target": edge.target,
                 "type": edge_type_name(&edge.edge_type),
+                "mode": edge.mode,
+                "mapping": edge.mapping,
             })
         })
         .collect()

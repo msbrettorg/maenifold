@@ -8,6 +8,7 @@ import type {
 import { getNodeType } from './pipeline-types-node';
 import {
   OPTIONAL_NONE_VALUE,
+  parseOptionalJsonObject,
   parseToolArgs,
   readOptionalInteger,
   readOptionalSessionRef,
@@ -23,6 +24,8 @@ export function getPipelineNodeSchemaFormValue(node: PipelineNode): Record<strin
         workflowId: workflowNode.workflowId,
         acpClient: workflowNode.acpClient ?? OPTIONAL_NONE_VALUE,
         prompt: workflowNode.prompt ?? '',
+        inputSchema: formatOptionalJsonObject(workflowNode.inputSchema),
+        outputSchema: formatOptionalJsonObject(workflowNode.outputSchema),
       };
     }
     case 'prompt': {
@@ -30,6 +33,8 @@ export function getPipelineNodeSchemaFormValue(node: PipelineNode): Record<strin
       return {
         agent: promptNode.agent,
         prompt: promptNode.prompt,
+        inputSchema: formatOptionalJsonObject(promptNode.inputSchema),
+        outputSchema: formatOptionalJsonObject(promptNode.outputSchema),
         ...(promptNode.sessionRef
           ? {
               sessionRef: {
@@ -47,6 +52,8 @@ export function getPipelineNodeSchemaFormValue(node: PipelineNode): Record<strin
         agent: thinkingNode.agent,
         totalThoughts: thinkingNode.totalThoughts,
         analysisType: thinkingNode.analysisType ?? '',
+        inputSchema: formatOptionalJsonObject(thinkingNode.inputSchema),
+        outputSchema: formatOptionalJsonObject(thinkingNode.outputSchema),
       };
     }
     case 'tool': {
@@ -55,6 +62,8 @@ export function getPipelineNodeSchemaFormValue(node: PipelineNode): Record<strin
         toolName: toolNode.toolName,
         agent: toolNode.agent ?? OPTIONAL_NONE_VALUE,
         toolArgs: toolNode.toolArgs ? JSON.stringify(toolNode.toolArgs, null, 2) : '',
+        inputSchema: formatOptionalJsonObject(toolNode.inputSchema),
+        outputSchema: formatOptionalJsonObject(toolNode.outputSchema),
       };
     }
   }
@@ -70,12 +79,16 @@ export function applyPipelineNodeSchemaFormValue(
       const workflowId = readRequiredString(nextValue.workflowId, 'Workflow ID');
       const acpClient = readOptionalString(nextValue.acpClient);
       const prompt = readOptionalString(nextValue.prompt);
+      const inputSchema = parseOptionalJsonObject(nextValue.inputSchema, 'Input schema');
+      const outputSchema = parseOptionalJsonObject(nextValue.outputSchema, 'Output schema');
       const agentChanged = (workflowNode.acpClient ?? undefined) !== acpClient;
       const {
         acpClient: _acpClient,
         agentConfig: _agentConfig,
         model: _model,
         prompt: _prompt,
+        inputSchema: _inputSchema,
+        outputSchema: _outputSchema,
         thoughtLevel: _thoughtLevel,
         workflowId: _workflowId,
         ...rest
@@ -87,6 +100,8 @@ export function applyPipelineNodeSchemaFormValue(
         workflowId,
         ...(acpClient ? { acpClient } : {}),
         ...(prompt ? { prompt } : {}),
+        ...(inputSchema ? { inputSchema } : {}),
+        ...(outputSchema ? { outputSchema } : {}),
         ...(!agentChanged && workflowNode.agentConfig ? { agentConfig: workflowNode.agentConfig } : {}),
         ...(!agentChanged && workflowNode.model ? { model: workflowNode.model } : {}),
         ...(!agentChanged && workflowNode.thoughtLevel ? { thoughtLevel: workflowNode.thoughtLevel } : {}),
@@ -97,6 +112,8 @@ export function applyPipelineNodeSchemaFormValue(
       const agent = readRequiredString(nextValue.agent, 'Agent');
       const prompt = readRequiredString(nextValue.prompt, 'Prompt template');
       const sessionRef = readOptionalSessionRef(nextValue.sessionRef);
+      const inputSchema = parseOptionalJsonObject(nextValue.inputSchema, 'Input schema');
+      const outputSchema = parseOptionalJsonObject(nextValue.outputSchema, 'Output schema');
       const agentChanged = promptNode.agent !== agent;
       if (sessionRef && sessionRef.agent !== agent) {
         throw new Error(
@@ -108,6 +125,8 @@ export function applyPipelineNodeSchemaFormValue(
         agentConfig: _agentConfig,
         model: _model,
         prompt: _prompt,
+        inputSchema: _inputSchema,
+        outputSchema: _outputSchema,
         sessionRef: _sessionRef,
         thoughtLevel: _thoughtLevel,
         ...rest
@@ -118,6 +137,8 @@ export function applyPipelineNodeSchemaFormValue(
         type: 'prompt',
         agent,
         prompt,
+        ...(inputSchema ? { inputSchema } : {}),
+        ...(outputSchema ? { outputSchema } : {}),
         ...(sessionRef ? { sessionRef } : {}),
         ...(!agentChanged && promptNode.agentConfig ? { agentConfig: promptNode.agentConfig } : {}),
         ...(!agentChanged && promptNode.model ? { model: promptNode.model } : {}),
@@ -130,6 +151,8 @@ export function applyPipelineNodeSchemaFormValue(
       const agent = readRequiredString(nextValue.agent, 'Agent');
       const totalThoughts = readOptionalInteger(nextValue.totalThoughts, 'Total thoughts');
       const analysisType = readOptionalString(nextValue.analysisType);
+      const inputSchema = parseOptionalJsonObject(nextValue.inputSchema, 'Input schema');
+      const outputSchema = parseOptionalJsonObject(nextValue.outputSchema, 'Output schema');
       const agentChanged = thinkingNode.agent !== agent;
       const {
         agent: _agent,
@@ -139,6 +162,8 @@ export function applyPipelineNodeSchemaFormValue(
         thoughtLevel: _thoughtLevel,
         topic: _topic,
         totalThoughts: _totalThoughts,
+        inputSchema: _inputSchema,
+        outputSchema: _outputSchema,
         ...rest
       } = thinkingNode;
 
@@ -149,6 +174,8 @@ export function applyPipelineNodeSchemaFormValue(
         agent,
         ...(typeof totalThoughts === 'number' ? { totalThoughts } : {}),
         ...(analysisType ? { analysisType } : {}),
+        ...(inputSchema ? { inputSchema } : {}),
+        ...(outputSchema ? { outputSchema } : {}),
         ...(!agentChanged && thinkingNode.agentConfig ? { agentConfig: thinkingNode.agentConfig } : {}),
         ...(!agentChanged && thinkingNode.model ? { model: thinkingNode.model } : {}),
         ...(!agentChanged && thinkingNode.thoughtLevel ? { thoughtLevel: thinkingNode.thoughtLevel } : {}),
@@ -159,6 +186,8 @@ export function applyPipelineNodeSchemaFormValue(
       const toolName = readRequiredString(nextValue.toolName, 'Tool name');
       const agent = readOptionalString(nextValue.agent);
       const toolArgs = parseToolArgs(nextValue.toolArgs);
+      const inputSchema = parseOptionalJsonObject(nextValue.inputSchema, 'Input schema');
+      const outputSchema = parseOptionalJsonObject(nextValue.outputSchema, 'Output schema');
       const agentChanged = (toolNode.agent ?? undefined) !== agent;
       const {
         agent: _agent,
@@ -167,6 +196,8 @@ export function applyPipelineNodeSchemaFormValue(
         thoughtLevel: _thoughtLevel,
         toolArgs: _toolArgs,
         toolName: _toolName,
+        inputSchema: _inputSchema,
+        outputSchema: _outputSchema,
         ...rest
       } = toolNode;
 
@@ -176,10 +207,16 @@ export function applyPipelineNodeSchemaFormValue(
         toolName,
         ...(agent ? { agent } : {}),
         ...(toolArgs ? { toolArgs } : {}),
+        ...(inputSchema ? { inputSchema } : {}),
+        ...(outputSchema ? { outputSchema } : {}),
         ...(!agentChanged && toolNode.agentConfig ? { agentConfig: toolNode.agentConfig } : {}),
         ...(!agentChanged && toolNode.model ? { model: toolNode.model } : {}),
         ...(!agentChanged && toolNode.thoughtLevel ? { thoughtLevel: toolNode.thoughtLevel } : {}),
       };
     }
   }
+}
+
+function formatOptionalJsonObject(value: Record<string, unknown> | undefined): string {
+  return value ? JSON.stringify(value, null, 2) : '';
 }

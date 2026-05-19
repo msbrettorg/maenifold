@@ -1,6 +1,7 @@
 // Wire-format ↔ local PipelineNode/PipelineDefinition conversion.
 
 import type {
+  PipelineEdge,
   PipelineDefinition,
 } from '../lib/pipeline-types-edge';
 import type {
@@ -34,6 +35,8 @@ function toLocalNode(node: ViewNode): PipelineNode {
         ...(node.cwd ? { cwd: node.cwd } : {}),
         ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
         ...(agentConfig ? { agentConfig } : {}),
+        ...(node.inputSchema ? { inputSchema: { ...node.inputSchema } } : {}),
+        ...(node.outputSchema ? { outputSchema: { ...node.outputSchema } } : {}),
       };
     }
     case 'sequentialThinking': {
@@ -53,6 +56,8 @@ function toLocalNode(node: ViewNode): PipelineNode {
         ...(node.cwd ? { cwd: node.cwd } : {}),
         ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
         ...(agentConfig ? { agentConfig } : {}),
+        ...(node.inputSchema ? { inputSchema: { ...node.inputSchema } } : {}),
+        ...(node.outputSchema ? { outputSchema: { ...node.outputSchema } } : {}),
       };
     }
     case 'workflow':
@@ -71,6 +76,8 @@ function toLocalNode(node: ViewNode): PipelineNode {
         ...(node.cwd ? { cwd: node.cwd } : {}),
         ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
         ...(agentConfig ? { agentConfig } : {}),
+        ...(node.inputSchema ? { inputSchema: { ...node.inputSchema } } : {}),
+        ...(node.outputSchema ? { outputSchema: { ...node.outputSchema } } : {}),
       };
     }
     case 'tool': {
@@ -87,9 +94,19 @@ function toLocalNode(node: ViewNode): PipelineNode {
         ...(node.cwd ? { cwd: node.cwd } : {}),
         ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
         ...(agentConfig ? { agentConfig } : {}),
+        ...(node.inputSchema ? { inputSchema: { ...node.inputSchema } } : {}),
+        ...(node.outputSchema ? { outputSchema: { ...node.outputSchema } } : {}),
       };
     }
   }
+}
+
+function toLocalEdge(edge: PipelineEdge): PipelineEdge {
+  const bindings = edge.bindings ?? Object.entries(edge.mapping ?? {}).map(([to, from]) => ({
+    to: to.startsWith('inputs.') ? to.slice('inputs.'.length) : to,
+    from,
+  }));
+  return bindings.length > 0 ? { ...edge, bindings } : { ...edge };
 }
 
 export function toLocalDefinition(view: PipelineView): PipelineDefinition {
@@ -98,7 +115,7 @@ export function toLocalDefinition(view: PipelineView): PipelineDefinition {
     ...(view.inputs ? { inputs: cloneInputs(view.inputs) } : {}),
     ...(view.inputSchema ? { inputSchema: { ...view.inputSchema } } : {}),
     nodes: view.nodes.map(toLocalNode),
-    edges: view.edges.map((edge) => ({ ...edge })),
+    edges: view.edges.map(toLocalEdge),
   };
 }
 
@@ -121,6 +138,8 @@ function serializeNode(node: PipelineNode): PipelineNode {
         ...(node.cwd ? { cwd: node.cwd } : {}),
         ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
         ...(agentConfig ? { agentConfig } : {}),
+        ...(node.inputSchema ? { inputSchema: { ...node.inputSchema } } : {}),
+        ...(node.outputSchema ? { outputSchema: { ...node.outputSchema } } : {}),
       };
     }
     case 'sequentialThinking': {
@@ -140,6 +159,8 @@ function serializeNode(node: PipelineNode): PipelineNode {
         ...(node.cwd ? { cwd: node.cwd } : {}),
         ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
         ...(agentConfig ? { agentConfig } : {}),
+        ...(node.inputSchema ? { inputSchema: { ...node.inputSchema } } : {}),
+        ...(node.outputSchema ? { outputSchema: { ...node.outputSchema } } : {}),
       };
     }
     case 'workflow':
@@ -156,6 +177,8 @@ function serializeNode(node: PipelineNode): PipelineNode {
         ...(node.prompt ? { prompt: node.prompt } : {}),
         ...(node.cwd ? { cwd: node.cwd } : {}),
         ...(agentConfig ? { agentConfig } : {}),
+        ...(node.inputSchema ? { inputSchema: { ...node.inputSchema } } : {}),
+        ...(node.outputSchema ? { outputSchema: { ...node.outputSchema } } : {}),
       };
     }
     case 'tool': {
@@ -172,6 +195,8 @@ function serializeNode(node: PipelineNode): PipelineNode {
         ...(node.cwd ? { cwd: node.cwd } : {}),
         ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
         ...(agentConfig ? { agentConfig } : {}),
+        ...(node.inputSchema ? { inputSchema: { ...node.inputSchema } } : {}),
+        ...(node.outputSchema ? { outputSchema: { ...node.outputSchema } } : {}),
       };
     }
   }

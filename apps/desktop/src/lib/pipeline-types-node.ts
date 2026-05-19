@@ -42,6 +42,7 @@ export interface WorkflowNode extends PipelineNodeBase {
   agentConfig?: PipelineNodeAgentConfig;
   timeout?: number;
   inputSchema?: Record<string, unknown>;
+  outputSchema?: Record<string, unknown>;
 }
 
 export interface PromptNode extends PipelineNodeBase {
@@ -60,6 +61,7 @@ export interface PromptNode extends PipelineNodeBase {
   agentConfig?: PipelineNodeAgentConfig;
   sessionRef?: SessionRef;
   inputSchema?: Record<string, unknown>;
+  outputSchema?: Record<string, unknown>;
 }
 
 export interface SequentialThinkingNode extends PipelineNodeBase {
@@ -78,6 +80,7 @@ export interface SequentialThinkingNode extends PipelineNodeBase {
   timeout?: number;
   agentConfig?: PipelineNodeAgentConfig;
   inputSchema?: Record<string, unknown>;
+  outputSchema?: Record<string, unknown>;
 }
 
 export interface ToolNode extends PipelineNodeBase {
@@ -92,6 +95,8 @@ export interface ToolNode extends PipelineNodeBase {
   cwd?: string;
   timeout?: number;
   agentConfig?: PipelineNodeAgentConfig;
+  inputSchema?: Record<string, unknown>;
+  outputSchema?: Record<string, unknown>;
 }
 
 export type PipelineNode =

@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"{\"success\":true,\"data\":{\"dispatched\":[{\"nodeId\":\"inspect-memory\",\"sessionId\":\"workflow-1779203750539-inspect-memory\",\"type\":\"prompt\",\"agent\":\"Copilot\"}],\"active\":[\"inspect-memory\"],\"completed\":[\"memory-status\"],\"remaining\":3},\"error\":null}"}],"isError":false}}

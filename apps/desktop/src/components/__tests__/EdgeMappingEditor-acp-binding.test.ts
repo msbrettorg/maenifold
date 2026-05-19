@@ -244,26 +244,31 @@ describe('EdgeMappingEditor ACP binding v2', () => {
     expect(wrapper.text()).not.toContain(errorText);
   });
 
-  it('persists edited ACP binding fields to edge.bindings and removes empty values on blur', async () => {
-    const { wrapper, pipelineStore } = mountEditor();
+  it('renders canonical ACP mapping values from edge.mapping without bindings', () => {
+    const { wrapper } = mountEditor({
+      edge: edge({ mapping: { 'inputs.foo': 'bar' } }),
+      targetNode: acpTarget({ properties: { foo: {} } }),
+    });
 
-    await wrapper.get('input[name="topic"]').setValue('summary');
-    await wrapper.get('input[name="depth"]').setValue('title');
+    expect((wrapper.get('input[name="foo"]').element as HTMLInputElement).value).toBe('bar');
+  });
+
+  it('persists edited ACP binding fields to canonical edge.mapping and removes empty values on blur', async () => {
+    const { wrapper, pipelineStore } = mountEditor({
+      targetNode: acpTarget({ properties: { foo: {} } }),
+    });
+
+    await wrapper.get('input[name="foo"]').setValue('baz');
     await flushPromises();
     expect(pipelineStore.localDefinition.edges[0]).toMatchObject({
-      bindings: [
-        { to: 'topic', from: 'summary' },
-        { to: 'depth', from: 'title' },
-      ],
+      mapping: { 'inputs.foo': 'baz' },
     });
+    expect(pipelineStore.localDefinition.edges[0]).not.toHaveProperty('bindings');
+
+    await wrapper.get('input[name="foo"]').setValue('');
+    await wrapper.get('input[name="foo"]').trigger('blur');
+    await flushPromises();
     expect(pipelineStore.localDefinition.edges[0]).not.toHaveProperty('mapping');
-
-    await wrapper.get('input[name="depth"]').setValue('');
-    await wrapper.get('input[name="depth"]').trigger('blur');
-    await flushPromises();
-    expect(pipelineStore.localDefinition.edges[0]).toMatchObject({
-      bindings: [{ to: 'topic', from: 'summary' }],
-    });
   });
 
   it('marks prompt ACP schema fields as Required and Optional by name', () => {

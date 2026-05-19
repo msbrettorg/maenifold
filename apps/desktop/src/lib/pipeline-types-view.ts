@@ -22,6 +22,8 @@ interface ViewNodeBase {
   status: NodeStatus;
   attempts: number;
   output?: string;
+  inputArtifact?: Record<string, unknown> | null;
+  outputArtifact?: Record<string, unknown> | null;
   failureReason?: string | null;
   reconnected?: boolean;
   stale?: boolean;
@@ -81,6 +83,8 @@ export interface WorkflowViewNode extends ViewNodeBase {
   thoughtLevel?: string;
   agentConfig?: PipelineNodeAgentConfig;
   timeout?: number;
+  inputSchema?: Record<string, unknown>;
+  outputSchema?: Record<string, unknown>;
   assembled_prompt?: string | null;
   workflow_steps?: WorkflowStepEntry[] | null;
 }
@@ -100,6 +104,8 @@ export interface PromptViewNode extends ViewNodeBase {
   timeout?: number;
   agentConfig?: PipelineNodeAgentConfig;
   sessionRef?: SessionRef;
+  inputSchema?: Record<string, unknown>;
+  outputSchema?: Record<string, unknown>;
   assembled_prompt?: string | null;
 }
 
@@ -118,6 +124,8 @@ export interface SequentialThinkingViewNode extends ViewNodeBase {
   cwd?: string;
   timeout?: number;
   agentConfig?: PipelineNodeAgentConfig;
+  inputSchema?: Record<string, unknown>;
+  outputSchema?: Record<string, unknown>;
   assembled_prompt?: string | null;
   thinking_trace?: Array<{
     thought_number: number;
@@ -143,6 +151,8 @@ export interface ToolViewNode extends ViewNodeBase {
   cwd?: string;
   timeout?: number;
   agentConfig?: PipelineNodeAgentConfig;
+  inputSchema?: Record<string, unknown>;
+  outputSchema?: Record<string, unknown>;
 }
 
 export type ViewNode =

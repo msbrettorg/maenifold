@@ -13,13 +13,22 @@ export type ObjectSchema<PropertyKeys extends string> = JsonSchema & {
   type: 'object';
 };
 
-export type WorkflowSchemaKeys = keyof Pick<WorkflowNode, 'workflowId' | 'acpClient' | 'prompt'>;
-export type PromptSchemaKeys = keyof Pick<PromptNode, 'agent' | 'prompt' | 'sessionRef'>;
+export type WorkflowSchemaKeys = keyof Pick<
+  WorkflowNode,
+  'workflowId' | 'acpClient' | 'prompt' | 'inputSchema' | 'outputSchema'
+>;
+export type PromptSchemaKeys = keyof Pick<
+  PromptNode,
+  'agent' | 'prompt' | 'sessionRef' | 'inputSchema' | 'outputSchema'
+>;
 export type SequentialThinkingSchemaKeys = keyof Pick<
   SequentialThinkingNode,
-  'agent' | 'analysisType' | 'topic' | 'totalThoughts'
+  'agent' | 'analysisType' | 'topic' | 'totalThoughts' | 'inputSchema' | 'outputSchema'
 >;
-export type ToolSchemaKeys = keyof Pick<ToolNode, 'agent' | 'toolArgs' | 'toolName'>;
+export type ToolSchemaKeys = keyof Pick<
+  ToolNode,
+  'agent' | 'toolArgs' | 'toolName' | 'inputSchema' | 'outputSchema'
+>;
 
 export const OPTIONAL_NONE_VALUE = '__none__';
 
@@ -41,6 +50,8 @@ export const pipelineNodeSchemas: {
       workflowId: { title: 'Workflow ID', type: 'string' },
       acpClient: { title: 'ACP client', type: 'string' },
       prompt: { title: 'Prompt', type: 'string', format: 'textarea' },
+      inputSchema: schemaJsonField('Input schema'),
+      outputSchema: schemaJsonField('Output schema'),
     },
   },
   prompt: {
@@ -49,6 +60,8 @@ export const pipelineNodeSchemas: {
     properties: {
       agent: { title: 'Agent', type: 'string' },
       prompt: { title: 'Prompt template', type: 'string', format: 'textarea' },
+      inputSchema: schemaJsonField('Input schema'),
+      outputSchema: schemaJsonField('Output schema'),
       sessionRef: {
         title: 'Session reference',
         type: 'object',
@@ -68,6 +81,8 @@ export const pipelineNodeSchemas: {
       agent: { title: 'Agent', type: 'string' },
       totalThoughts: { title: 'Total thoughts', type: 'integer', minimum: 1 },
       analysisType: { title: 'Analysis type', type: 'string' },
+      inputSchema: schemaJsonField('Input schema'),
+      outputSchema: schemaJsonField('Output schema'),
     },
   },
   tool: {
@@ -82,9 +97,21 @@ export const pipelineNodeSchemas: {
         type: 'string',
         format: 'textarea',
       },
+      inputSchema: schemaJsonField('Input schema'),
+      outputSchema: schemaJsonField('Output schema'),
     },
   },
 };
+
+function schemaJsonField(title: string) {
+  return {
+    title,
+    description: 'JSON object schema. Leave blank for none.',
+    type: 'string',
+    format: 'textarea',
+    default: '{}',
+  } as const;
+}
 
 export function applyEnumValues(
   schema: JsonSchema,
@@ -175,6 +202,33 @@ export function parseToolArgs(value: unknown): Record<string, unknown> | undefin
   }
 
   return parsed as Record<string, unknown>;
+}
+
+export function parseOptionalJsonObject(
+  value: unknown,
+  fieldName: string,
+): Record<string, unknown> | undefined {
+  if (typeof value !== 'string') {
+    return isRecord(value) ? { ...value } : undefined;
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return undefined;
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    throw new Error(`${fieldName} must be valid JSON.`);
+  }
+
+  if (!isRecord(parsed)) {
+    throw new Error(`${fieldName} must be a JSON object.`);
+  }
+
+  return { ...parsed };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

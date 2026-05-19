@@ -239,6 +239,8 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 agent_config: wire.agent_config,
                 retry_policy,
                 join_policy,
+                input_schema: wire.input_schema,
+                output_schema: wire.output_schema,
             },
             other => {
                 return Err(format!(

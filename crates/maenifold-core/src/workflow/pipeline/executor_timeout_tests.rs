@@ -83,6 +83,8 @@ async fn tool_node_explicit_timeout_seconds_elapses_and_abandons_with_timeout_af
             agent_config: None,
             retry_policy: None,
             join_policy: None,
+            input_schema: None,
+            output_schema: None,
         }],
         edges: vec![],
         inputs: None,

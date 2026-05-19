@@ -31,6 +31,12 @@ function normalizeViewNode(node: ViewNode): ViewNode {
   if ('toolArgs' in normalized && normalized.toolArgs) {
     normalized.toolArgs = { ...normalized.toolArgs };
   }
+  if ('inputSchema' in normalized && normalized.inputSchema) {
+    normalized.inputSchema = { ...normalized.inputSchema };
+  }
+  if ('outputSchema' in normalized && normalized.outputSchema) {
+    normalized.outputSchema = { ...normalized.outputSchema };
+  }
   if ('allowedTools' in normalized && Array.isArray(normalized.allowedTools)) {
     normalized.allowedTools = [...normalized.allowedTools];
   }

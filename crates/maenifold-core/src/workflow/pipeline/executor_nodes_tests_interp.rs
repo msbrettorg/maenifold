@@ -36,6 +36,8 @@ fn build_node_execution_request_errors_when_tool_mapping_fails() {
             agent_config: None,
             retry_policy: None,
             join_policy: None,
+            input_schema: None,
+            output_schema: None,
         }],
         edges: vec![super::super::types::PipelineEdge {
             source: "source".to_string(),
@@ -169,6 +171,8 @@ fn build_node_execution_request_preserves_acp_prompt_and_interpolates_tool_args(
         agent_config: None,
         retry_policy: None,
         join_policy: None,
+        input_schema: None,
+        output_schema: None,
     };
     let tool_dispatch = DispatchedNode {
         node_id: tool_node.id().to_string(),
@@ -263,6 +267,8 @@ fn build_node_execution_request_does_not_interpolate_workflow_id_or_tool_name() 
         agent_config: None,
         retry_policy: None,
         join_policy: None,
+        input_schema: None,
+        output_schema: None,
     };
     let tool_dispatch = DispatchedNode {
         node_id: tool_node.id().to_string(),

@@ -223,6 +223,7 @@ pub(super) fn fork_pipeline(
             })
             .collect(),
         inputs: definition.inputs.clone(),
+        input_schema: definition.input_schema.clone(),
         template_id: None,
     };
     validate_pipeline(&forked_definition)?;

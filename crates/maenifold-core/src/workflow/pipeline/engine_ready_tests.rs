@@ -148,6 +148,7 @@ fn conditional_only_target_with_unmet_predicate_is_not_ready() {
         }],
         template_id: None,
         inputs: None,
+        input_schema: None,
     };
     let ready = compute_ready_set(&definition, &states);
     assert!(
@@ -176,6 +177,7 @@ fn conditional_target_becomes_ready_when_predicate_matches() {
         }],
         template_id: None,
         inputs: None,
+        input_schema: None,
     };
     let ready = compute_ready_set(&definition, &states);
     assert_eq!(ready, vec!["down".to_string()]);
@@ -214,6 +216,7 @@ fn always_edge_can_satisfy_target_when_conditional_is_false() {
         ],
         template_id: None,
         inputs: None,
+        input_schema: None,
     };
 
     let ready = compute_ready_set(&definition, &states);
@@ -239,6 +242,7 @@ fn conditional_only_target_with_unmet_predicate_is_unreachable() {
         }],
         template_id: None,
         inputs: None,
+        input_schema: None,
     };
 
     let unreachable = compute_unreachable_conditional_set(&definition, &states);
@@ -278,6 +282,7 @@ fn conditional_target_with_always_fallback_is_not_unreachable() {
         ],
         template_id: None,
         inputs: None,
+        input_schema: None,
     };
 
     let unreachable = compute_unreachable_conditional_set(&definition, &states);

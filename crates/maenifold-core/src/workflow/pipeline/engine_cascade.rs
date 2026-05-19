@@ -245,6 +245,7 @@ mod tests {
             ],
             template_id: None,
             inputs: None,
+            input_schema: None,
         };
         let node_states = HashMap::from([
             ("cond".to_string(), node_state(NodeStatus::Abandoned)),
@@ -283,6 +284,7 @@ mod tests {
             ],
             template_id: None,
             inputs: None,
+            input_schema: None,
         };
         let node_states = HashMap::from([
             ("branch".to_string(), node_state(NodeStatus::Abandoned)),

@@ -78,6 +78,7 @@ fn verdict_definition() -> PipelineDefinition {
             },
         ],
         inputs: None,
+        input_schema: None,
         template_id: None,
     }
 }

@@ -95,6 +95,7 @@ fn run_pipeline_persists_merged_inputs_before_driver_spawn() {
             "persisted".to_string(),
             json!(1),
         )])),
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([(
@@ -155,6 +156,7 @@ fn force_complete_persists_completed_status() {
             mapping: None,
         }],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states: HashMap<String, NodeState> = [
@@ -246,6 +248,7 @@ fn view_reflects_force_completed_status() {
             mapping: None,
         }],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states: HashMap<String, NodeState> = [

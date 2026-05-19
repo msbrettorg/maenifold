@@ -7,7 +7,7 @@ use serde_yml::Value as YamlValue;
 use std::collections::BTreeMap;
 use std::fs;
 
-use super::PipelineDefinition;
+use super::{PipelineDefinition, validate_pipeline_inputs};
 use super::resource_notifications::emit_pipeline_resource_updated;
 
 #[cfg(test)]
@@ -115,6 +115,9 @@ pub(super) fn persist_pipeline_runtime_context(
     .unwrap_or_default();
     if let Some(overrides) = input_overrides {
         inputs.extend(overrides.clone());
+    }
+    if let Some(schema) = &definition.input_schema {
+        validate_pipeline_inputs(schema, &inputs)?;
     }
     if inputs.is_empty() {
         frontmatter.remove("inputs");

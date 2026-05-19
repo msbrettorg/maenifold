@@ -31,6 +31,7 @@ fn seed_pipeline(context: &crate::tools::ToolContext, session_id: &str) -> Vec<S
         nodes: node_ids.iter().map(|id| workflow_node(id)).collect(),
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let states: HashMap<String, NodeState> = node_ids

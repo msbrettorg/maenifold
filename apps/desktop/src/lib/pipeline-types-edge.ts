@@ -34,6 +34,7 @@ export interface PipelineDefinition {
   nodes: PipelineNode[];
   edges: PipelineEdge[];
   inputs?: PipelineInputs;
+  inputSchema?: Record<string, unknown>;
   /**
    * Optional template identifier used to re-derive default human-readable
    * labels for pipelines instantiated from a template after backend

@@ -25,6 +25,7 @@ fn build_node_execution_request_interpolates_sequential_thinking_topic() {
         nodes: vec![],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::new();

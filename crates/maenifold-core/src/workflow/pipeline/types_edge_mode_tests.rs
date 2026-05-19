@@ -113,6 +113,7 @@ fn legacy_mapping_on_tool_target_preserved() {
             mapping: Some(mapping()),
         }],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
 
@@ -134,6 +135,7 @@ fn legacy_mapping_on_acp_target_dropped_with_warning() {
             mapping: Some(mapping()),
         }],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
 
@@ -149,6 +151,7 @@ fn validation_binding_mode_without_schemas_errors() {
         nodes: vec![tool_node("source"), tool_node("target")],
         edges: vec![success_edge("source", "target", EdgeDataMode::Binding)],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
 
@@ -167,6 +170,7 @@ fn validation_none_mode_with_non_empty_mapping_errors() {
         nodes: vec![tool_node("source"), tool_node("target")],
         edges: vec![edge],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
 

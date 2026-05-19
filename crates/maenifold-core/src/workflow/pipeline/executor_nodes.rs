@@ -13,7 +13,7 @@ use super::executor_nodes_build_helpers::{
 use super::executor_nodes_cwd::resolve_node_cwd;
 use super::mapping_apply::mapped_tool_args;
 use super::mapping_resolve::{interpolate_string, pipeline_inputs_scope};
-use super::{NodeState, PipelineDefinition, PipelineNode};
+use super::{NodeState, PipelineDefinition, PipelineNode, validate_pipeline_inputs};
 
 #[cfg(test)]
 pub(super) use super::executor_run::FailurePhase;
@@ -70,6 +70,9 @@ pub(super) fn build_node_execution_request(
     inputs: &serde_json::Map<String, JsonValue>,
 ) -> Result<NodeExecutionRequest> {
     let scope = pipeline_inputs_scope(inputs);
+    if let Some(schema) = &definition.input_schema {
+        validate_pipeline_inputs(schema, inputs)?;
+    }
     Ok(match node {
         PipelineNode::Workflow {
             workflow_id,

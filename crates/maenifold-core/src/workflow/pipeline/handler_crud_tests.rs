@@ -86,6 +86,7 @@ fn delete_pipeline_refuses_running_pipeline_before_reading_pipeline_state() {
         nodes: vec![workflow_node("node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = states(&[("node", NodeStatus::Completed, 1)]);
@@ -173,6 +174,7 @@ fn view_pipeline_summary_returns_compact_node_array_for_a_50_node_fixture() {
         nodes: ids.iter().map(|id| tool_node(id)).collect(),
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let specs = ids
@@ -221,6 +223,7 @@ fn view_pipeline_without_summary_matches_existing_full_view_bytes() {
         nodes: vec![workflow_node("node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = states(&[("node", NodeStatus::Pending, 0)]);
@@ -241,6 +244,7 @@ fn view_pipeline_with_summary_returns_compact_shape() {
         nodes: vec![tool_node("tool")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = states(&[("tool", NodeStatus::Active, 2)]);

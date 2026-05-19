@@ -96,6 +96,7 @@ export function toLocalDefinition(view: PipelineView): PipelineDefinition {
   return {
     ...(view.templateId ? { templateId: view.templateId } : {}),
     ...(view.inputs ? { inputs: cloneInputs(view.inputs) } : {}),
+    ...(view.inputSchema ? { inputSchema: { ...view.inputSchema } } : {}),
     nodes: view.nodes.map(toLocalNode),
     edges: view.edges.map((edge) => ({ ...edge })),
   };
@@ -180,6 +181,7 @@ export function serializePipelineDefinition(definition: PipelineDefinition): Pip
   return {
     ...(definition.templateId ? { templateId: definition.templateId } : {}),
     ...(definition.inputs ? { inputs: cloneInputs(definition.inputs) } : {}),
+    ...(definition.inputSchema ? { inputSchema: { ...definition.inputSchema } } : {}),
     nodes: definition.nodes.map(serializeNode),
     edges: definition.edges.map((edge) => ({ ...edge })),
   };

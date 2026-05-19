@@ -22,6 +22,7 @@ fn delete_pipeline_falls_back_to_raw_node_states_when_derived_state_is_corrupt()
         nodes: vec![workflow_node("node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = states(&[("node", NodeStatus::Completed, 1)]);
@@ -66,6 +67,7 @@ fn delete_pipeline_completed_status_rejected_without_force() {
         nodes: vec![workflow_node("node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = states(&[("node", NodeStatus::Completed, 1)]);
@@ -94,6 +96,7 @@ fn delete_pipeline_completed_status_succeeds_with_force_true() {
         nodes: vec![workflow_node("node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = states(&[("node", NodeStatus::Completed, 1)]);
@@ -121,6 +124,7 @@ fn delete_pipeline_running_or_failed_status_does_not_require_force() {
         nodes: vec![workflow_node("node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = states(&[("node", NodeStatus::Completed, 1)]);
@@ -147,6 +151,7 @@ fn delete_pipeline_cleans_up_historical_orphaned_child_workflow_sessions() {
         nodes: vec![workflow_node("node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = states(&[("node", NodeStatus::Completed, 1)]);
@@ -198,12 +203,14 @@ fn delete_pipeline_does_not_delete_sibling_pipeline_child_workflow_sessions() {
         nodes: vec![workflow_node("target-node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let sibling_definition = PipelineDefinition {
         nodes: vec![workflow_node("sibling-node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let target_node_states = states(&[("target-node", NodeStatus::Completed, 1)]);

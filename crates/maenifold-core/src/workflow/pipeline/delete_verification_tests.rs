@@ -68,6 +68,7 @@ fn delete_pipeline_returns_actual_file_paths() {
         nodes: vec![workflow_node("node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = states(&[("node", NodeStatus::Completed, 1)]);
@@ -125,6 +126,7 @@ fn delete_pipeline_aborts_when_post_verification_fails() {
         nodes: vec![workflow_node("node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = states(&[("node", NodeStatus::Completed, 1)]);

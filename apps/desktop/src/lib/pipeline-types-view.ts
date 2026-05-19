@@ -158,6 +158,7 @@ export interface PipelineView {
   status: PipelineStatus;
   templateId?: string;
   inputs?: PipelineInputs;
+  inputSchema?: Record<string, unknown>;
   nodes: ViewNode[];
   edges: PipelineEdge[];
   ready: string[];

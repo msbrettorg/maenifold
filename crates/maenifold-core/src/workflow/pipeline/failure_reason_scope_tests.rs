@@ -67,6 +67,7 @@ fn update_pipeline_node_status_persists_abandoned_failure_reason() {
         nodes: vec![workflow_node("node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([(
@@ -127,6 +128,7 @@ fn update_pipeline_node_status_clears_failure_reason_when_completed() {
         nodes: vec![workflow_node("node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([(
@@ -180,6 +182,7 @@ fn restart_pipeline_node_clears_failure_reason() {
         nodes: vec![workflow_node("node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([(
@@ -226,6 +229,7 @@ fn rewind_clears_failure_reason_for_selected_node_and_descendants() {
             mapping: None,
         }],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([

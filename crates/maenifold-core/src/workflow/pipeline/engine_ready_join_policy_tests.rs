@@ -65,6 +65,7 @@ fn fan_in_definition(join_policy: Option<JoinPolicy>) -> PipelineDefinition {
             .collect(),
         template_id: None,
         inputs: None,
+        input_schema: None,
     }
 }
 

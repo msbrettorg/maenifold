@@ -24,6 +24,7 @@ fn build_node_execution_request_leaves_resume_session_id_unset_without_prompt_se
         nodes: vec![],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::new();
@@ -82,6 +83,7 @@ fn build_node_execution_request_does_not_set_resume_session_id_for_non_prompt_no
         nodes: vec![],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::new();
@@ -139,6 +141,7 @@ fn timeout_seconds_is_extracted_from_tool_node() {
         nodes: vec![],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::new();

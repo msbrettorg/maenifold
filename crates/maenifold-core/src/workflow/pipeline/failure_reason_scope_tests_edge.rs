@@ -77,6 +77,7 @@ fn update_pipeline_node_status_supports_stuck_cascade_over_success_edges() {
             mapping: None,
         }],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([
@@ -147,6 +148,7 @@ fn conditional_false_branch_is_abandoned_and_pipeline_leaves_active_state() {
             },
         ],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([

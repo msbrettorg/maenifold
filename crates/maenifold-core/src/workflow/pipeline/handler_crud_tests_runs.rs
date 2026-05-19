@@ -60,6 +60,7 @@ fn list_pipelines_runs_three_completed_nodes() {
         nodes: vec![tool_node("a"), tool_node("b"), tool_node("c")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let start = 1_735_689_600_000_i64;
@@ -113,6 +114,7 @@ fn list_pipelines_runs_mixed_status_nodes() {
         ],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let start = 1_735_689_600_000_i64;
@@ -166,6 +168,7 @@ fn list_pipelines_runs_pending_node_appears_in_runs() {
         nodes: vec![tool_node("x")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = states(&[("x", NodeStatus::Pending, 0)]);

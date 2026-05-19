@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 
 interface PipelineCreateFormSubmit {
   name?: string;
   description?: string;
+  inputSchema?: Record<string, unknown>;
 }
 
 const props = withDefaults(defineProps<{
@@ -23,8 +25,10 @@ const emit = defineEmits<{
 
 const pipelineName = ref('');
 const pipelineDescription = ref('');
+const inputSchemaText = ref('');
 const showFallbackWarning = ref(false);
 const sanitizedName = computed(() => sanitizePipelineName(pipelineName.value));
+const parsedInputSchema = computed(() => parseInputSchema(inputSchemaText.value));
 
 function sanitizePipelineName(value: string): string {
   const slug = value
@@ -37,13 +41,29 @@ function sanitizePipelineName(value: string): string {
   return /^[a-z]/.test(slug) ? slug : `pipeline-${slug}`;
 }
 
+function parseInputSchema(value: string): { ok: true; value?: Record<string, unknown> } | { ok: false; message: string } {
+  const trimmed = value.trim();
+  if (!trimmed) return { ok: true };
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { ok: false, message: 'Schema must be a JSON object.' };
+    }
+    return { ok: true, value: parsed as Record<string, unknown> };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : 'Invalid JSON.' };
+  }
+}
+
 function submitCreateForm(): void {
+  if (!parsedInputSchema.value.ok) return;
   const name = sanitizedName.value;
   const description = pipelineDescription.value.trim();
   showFallbackWarning.value = name.length === 0;
   emit('submit', {
     name: name || undefined,
     description: description || undefined,
+    inputSchema: parsedInputSchema.value.value,
   });
 }
 </script>
@@ -88,6 +108,28 @@ function submitCreateForm(): void {
         :disabled="disabled"
       />
       <p class="m-0 text-xs text-text-tertiary">Optional.</p>
+    </div>
+
+    <div class="flex min-w-[18rem] flex-[1.4] flex-col gap-1.5">
+      <div class="flex items-center justify-between gap-2">
+        <Label for="pipeline-create-input-schema" class="text-xs font-medium text-text-secondary">
+          Input schema
+        </Label>
+        <Badge :variant="parsedInputSchema.ok ? 'secondary' : 'destructive'">
+          {{ parsedInputSchema.ok ? 'Valid JSON' : 'Invalid JSON' }}
+        </Badge>
+      </div>
+      <Textarea
+        id="pipeline-create-input-schema"
+        v-model="inputSchemaText"
+        class="min-h-20 py-2 font-mono text-xs"
+        placeholder='{"type":"object","required":["project_name"],"properties":{"project_name":{"type":"string"}}}'
+        :disabled="disabled"
+        :aria-invalid="parsedInputSchema.ok ? undefined : 'true'"
+      />
+      <p class="m-0 text-xs" :class="parsedInputSchema.ok ? 'text-text-tertiary' : 'text-danger'">
+        {{ parsedInputSchema.ok ? 'Optional JSON Schema object.' : parsedInputSchema.message }}
+      </p>
     </div>
 
     <Button type="submit" class="mt-[1.55rem] inline-flex items-center gap-[0.4rem]" :disabled="disabled">

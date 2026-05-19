@@ -29,6 +29,7 @@ fn base_definition() -> PipelineDefinition {
         nodes: vec![make_node("source"), make_node("target")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     }
 }
@@ -136,6 +137,7 @@ fn validate_pipeline_accepts_unique_prompt_session_refs() {
         ],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
 
@@ -164,6 +166,7 @@ fn validate_pipeline_rejects_duplicate_prompt_session_refs() {
         ],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
 

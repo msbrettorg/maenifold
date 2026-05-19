@@ -166,6 +166,7 @@ mod tests {
                 mapping: None,
             }],
             inputs: None,
+            input_schema: None,
             template_id: None,
         };
 

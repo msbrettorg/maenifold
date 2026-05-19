@@ -170,6 +170,7 @@ mod terminal_node_tests {
             nodes: vec![make_tool_node("ms-docs"), make_tool_node("crta")],
             edges: vec![make_edge("ms-docs", "crta", EdgeType::Always)],
             inputs: None,
+            input_schema: None,
             template_id: None,
         };
         let node_states: HashMap<String, NodeState> = [
@@ -192,6 +193,7 @@ mod terminal_node_tests {
             nodes: vec![make_tool_node("a"), make_tool_node("b")],
             edges: vec![make_edge("a", "b", EdgeType::Always)],
             inputs: None,
+            input_schema: None,
             template_id: None,
         };
         let node_states: HashMap<String, NodeState> = [
@@ -213,6 +215,7 @@ mod terminal_node_tests {
             nodes: vec![make_tool_node("a"), make_tool_node("b")],
             edges: vec![make_edge("a", "b", EdgeType::Success)],
             inputs: None,
+            input_schema: None,
             template_id: None,
         };
         let node_states: HashMap<String, NodeState> = [
@@ -240,6 +243,7 @@ mod terminal_node_tests {
                 make_edge("root", "not-selected", EdgeType::Success),
             ],
             inputs: None,
+            input_schema: None,
             template_id: None,
         };
         let node_states: HashMap<String, NodeState> = [
@@ -270,6 +274,7 @@ mod terminal_node_tests {
                 make_edge("root", "deck-gen", EdgeType::Success),
             ],
             inputs: None,
+            input_schema: None,
             template_id: None,
         };
 

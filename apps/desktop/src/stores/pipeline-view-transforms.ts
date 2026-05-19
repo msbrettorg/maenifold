@@ -56,6 +56,7 @@ export function normalizeView(view: PipelineView): PipelineView {
   return {
     ...view,
     ...(view.inputs ? { inputs: cloneInputs(view.inputs) } : {}),
+    ...(view.inputSchema ? { inputSchema: { ...view.inputSchema } } : {}),
     nodes: view.nodes.map(normalizeViewNode),
     edges: view.edges.map((edge) => ({ ...edge })),
   };

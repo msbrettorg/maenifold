@@ -78,6 +78,7 @@ pub(super) fn join_pipeline(
             .chain(join.edges.iter().cloned())
             .collect(),
         inputs: target_definition.inputs.clone(),
+        input_schema: target_definition.input_schema.clone(),
         template_id: None,
     };
     let merged_states = target_states.into_iter().chain(source_states).collect();

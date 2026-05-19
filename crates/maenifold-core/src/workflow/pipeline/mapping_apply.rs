@@ -91,6 +91,7 @@ mod tests {
                 )])),
             }],
             inputs: None,
+            input_schema: None,
             template_id: None,
         };
         let node_states = HashMap::from([(
@@ -139,6 +140,7 @@ mod tests {
                 )])),
             }],
             inputs: None,
+            input_schema: None,
             template_id: None,
         };
         let node_states = HashMap::from([(
@@ -199,6 +201,7 @@ mod tests {
                 )])),
             }],
             inputs: None,
+            input_schema: None,
             template_id: None,
         };
         let node_states = HashMap::from([(

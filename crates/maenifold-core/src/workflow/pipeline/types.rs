@@ -14,6 +14,8 @@ pub struct PipelineDefinition {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub inputs: Option<Map<String, Value>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input_schema: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub template_id: Option<String>,
 }
 

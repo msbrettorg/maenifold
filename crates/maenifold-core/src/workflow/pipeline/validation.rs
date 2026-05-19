@@ -2,7 +2,7 @@ use crate::error::{MaenifoldError, Result};
 use petgraph::algo::is_cyclic_directed;
 use std::collections::{HashMap, HashSet};
 
-use super::{EdgeDataMode, PipelineDefinition, PipelineNode};
+use super::{EdgeDataMode, PipelineDefinition, PipelineNode, validate_pipeline_inputs};
 
 fn validate_non_empty_node_field(node_id: &str, field: &str, value: &str) -> Result<()> {
     if value.trim().is_empty() {
@@ -103,6 +103,11 @@ pub fn validate_pipeline(definition: &PipelineDefinition) -> Result<()> {
         return Err(MaenifoldError::InvalidArgument(
             "Pipeline definition contains a cycle".to_string(),
         ));
+    }
+
+    if let Some(schema) = &definition.input_schema {
+        let inputs = definition.inputs.clone().unwrap_or_default();
+        validate_pipeline_inputs(schema, &inputs)?;
     }
 
     Ok(())

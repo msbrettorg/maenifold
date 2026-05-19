@@ -80,6 +80,7 @@ fn definition() -> PipelineDefinition {
         nodes: vec![prompt_node("prompt-node"), thinking_node("thinking-node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     }
 }

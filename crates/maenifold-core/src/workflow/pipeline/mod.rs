@@ -65,6 +65,9 @@ mod failure_reason_scope_tests;
 mod failure_reason_scope_tests_cascade;
 #[cfg(test)]
 mod failure_reason_scope_tests_edge;
+#[cfg(test)]
+mod input_schema_tests;
+mod input_schema;
 mod handler;
 mod handler_crud;
 #[cfg(test)]
@@ -148,6 +151,7 @@ pub use engine_status::{
     compute_pipeline_status, compute_pipeline_status_with_definition, compute_terminal_node_ids,
 };
 pub use executor::ExecutionResult;
+pub use input_schema::validate_pipeline_inputs;
 pub use executor_cleanup::{
     cancel_active_nodes, finalize_failed_pipeline_execution, recover_crashed_nodes,
 };

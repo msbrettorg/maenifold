@@ -26,6 +26,7 @@ fn timeout_seconds_is_extracted_from_prompt_node() {
         nodes: vec![],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::new();
@@ -84,6 +85,7 @@ fn timeout_seconds_is_none_when_not_configured() {
         nodes: vec![],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::new();
@@ -142,6 +144,7 @@ fn build_node_execution_request_propagates_node_session_id_into_session_config()
         nodes: vec![],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::new();
@@ -201,6 +204,7 @@ fn build_node_execution_request_sets_resume_session_id_from_prompt_session_ref()
         nodes: vec![],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::new();

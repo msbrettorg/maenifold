@@ -14,6 +14,7 @@ type ActionKey = 'create' | 'run' | 'pause' | 'resume' | 'cancel' | 'rewind' | '
 interface PipelineCreateFormSubmit {
   name?: string;
   description?: string;
+  inputSchema?: Record<string, unknown>;
 }
 
 interface ActionConfig {

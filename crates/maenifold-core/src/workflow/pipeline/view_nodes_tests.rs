@@ -106,6 +106,7 @@ fn single_node_json(node: PipelineNode, state: NodeState) -> Value {
         nodes: vec![node],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([(definition.nodes[0].id().to_string(), state)]);
@@ -144,6 +145,7 @@ fn pipeline_nodes_json_keeps_local_session_id_and_omits_can_reconnect() {
             },
         ],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([

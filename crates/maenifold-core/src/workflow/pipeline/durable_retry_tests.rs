@@ -110,6 +110,7 @@ fn retry_policy_persists_count_and_retry_after_before_retry() {
         nodes: vec![retrying_workflow_node("node", 2)],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([(
@@ -148,6 +149,7 @@ fn retry_after_survives_restart_and_is_honored() {
         nodes: vec![retrying_workflow_node("node", 2)],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let future_retry_after = (chrono::Utc::now() + chrono::Duration::seconds(60)).to_rfc3339();
@@ -188,6 +190,7 @@ fn dispatch_recovers_missing_retry_workflow_session() {
         nodes: vec![retrying_workflow_node("node", 2)],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let past_retry_after = (chrono::Utc::now() - chrono::Duration::seconds(1)).to_rfc3339();
@@ -228,6 +231,7 @@ fn durable_retry_budget_cannot_exceed_retry_max_attempts() {
         nodes: vec![retrying_workflow_node("node", 2)],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([(

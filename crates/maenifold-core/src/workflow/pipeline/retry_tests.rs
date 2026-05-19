@@ -73,6 +73,7 @@ fn retrying_node_not_in_ready_set() {
             mapping: None,
         }],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([

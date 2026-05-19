@@ -55,6 +55,7 @@ fn pre_exec_failure_transitions_to_retrying() {
         nodes: vec![workflow_node("node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([(
@@ -114,6 +115,7 @@ fn post_exec_failure_stays_abandoned() {
         nodes: vec![workflow_node("node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([(
@@ -173,6 +175,7 @@ fn max_attempts_exceeded_becomes_stuck() {
         nodes: vec![workflow_node("node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([(
@@ -234,6 +237,7 @@ fn retrying_node_state_has_retry_metadata() {
         nodes: vec![workflow_node("node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([(

@@ -54,6 +54,7 @@ fn seed_single_node_pipeline(context: &crate::tools::ToolContext, session_id: &s
         nodes: vec![workflow_node("node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let state = node_state("node");

@@ -42,6 +42,7 @@ import {
 export interface CreatePipelineOptions {
   name?: string;
   description?: string;
+  inputSchema?: Record<string, unknown>;
 }
 export type PipelineSavingState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -187,6 +188,9 @@ export function createPipelineDesignActions(deps: DesignActionsDeps) {
         serializePipelineDefinition(definitionOverride ?? localDefinition.value),
         options.description,
       );
+      if (options.inputSchema) {
+        definition.inputSchema = { ...options.inputSchema };
+      }
       definition.nodes.forEach((node) => {
         if (node.type === 'workflow' && !('workflowId' in node && node.workflowId)) {
           throw new Error(`Workflow node '${node.id}' is missing workflowId`);

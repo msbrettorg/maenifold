@@ -59,6 +59,7 @@ fn definition(node_ids: &[&str]) -> PipelineDefinition {
         nodes: node_ids.iter().map(|node_id| tool_node(node_id)).collect(),
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     }
 }

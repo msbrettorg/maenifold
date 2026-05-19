@@ -68,6 +68,7 @@ fn seed_active(context: &ToolContext, session_id: &str) {
         nodes: vec![make_tool_node("tool")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([(

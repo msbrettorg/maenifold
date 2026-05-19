@@ -90,6 +90,7 @@ fn acp_session_targets_only_returns_prompt_and_thinking_nodes_with_acp_lineage()
         ],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
 

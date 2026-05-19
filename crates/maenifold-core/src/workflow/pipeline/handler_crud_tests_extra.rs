@@ -107,6 +107,7 @@ fn list_pipelines_normal_path_unchanged() {
         nodes: vec![workflow_node("node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     seed_pipeline_session_with_workflows(

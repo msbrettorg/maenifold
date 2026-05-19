@@ -86,6 +86,7 @@ async fn tool_node_explicit_timeout_seconds_elapses_and_abandons_with_timeout_af
         }],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([(

@@ -122,6 +122,7 @@ fn update_pipeline_node_status_cascades_abandon_only_over_success_edges_to_fixpo
             },
         ],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([

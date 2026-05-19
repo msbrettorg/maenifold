@@ -102,6 +102,7 @@ async fn conditional_retry_policy_transient_failure_then_success_pipeline_comple
             },
         ],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([

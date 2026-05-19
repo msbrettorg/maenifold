@@ -10,12 +10,14 @@ import { getPipelineNodeDisplayLabel } from '../lib/pipeline-types-node';
 import { getViewNodeDisplayLabel } from '../lib/pipeline-types-view';
 import { buildNodeOutputPreview, buildAbandonedNodePreview } from '../composables/pipeline-view-diff';
 import PipelineAcpSessionInspectors from './PipelineAcpSessionInspectors.vue';
+import PipelineInputSchemaForm from './PipelineInputSchemaForm.vue';
 import PipelineRunHistoryPanel from './PipelineRunHistoryPanel.vue';
 
 const props = defineProps<{ collapsed?: boolean }>();
 
 const store = usePipelineStore();
 const { currentView, currentPipelineId, designMode, eventLog, localDefinition, pipelines } = storeToRefs(store);
+const schemaInputDraft = ref<Record<string, unknown>>({});
 
 const currentRuns = computed(() => {
   if (!currentPipelineId.value) return [];
@@ -57,6 +59,13 @@ const collapsedSummaryLine = computed(() => {
 });
 
 const formattedLog = computed(() => eventLog.value.map((entry) => formatLogEntry(entry)));
+const activeInputSchema = computed(() => currentView.value?.inputSchema ?? localDefinition.value.inputSchema);
+const showInputSchemaForm = computed(() =>
+  !props.collapsed
+  && !isRunningStatus(currentView.value?.status)
+  && activeInputSchema.value
+  && typeof activeInputSchema.value === 'object',
+);
 
 watch(() => eventLog.value.length, async (length, previousLength) => {
   if (length === previousLength) return;
@@ -88,6 +97,14 @@ function statusLabel(status: string): string {
     case 'paused': return 'paused';
     default: return status;
   }
+}
+
+function isRunningStatus(status: string | undefined): boolean {
+  return status === 'active' || status === 'running';
+}
+
+function runWithSchemaInputs(inputs: Record<string, unknown>): void {
+  void store.runPipeline(undefined, inputs);
 }
 
 function formatLogEntry(entry: LogEntry) {
@@ -140,6 +157,16 @@ function formatLogEntry(entry: LogEntry) {
     </div>
 
     <PipelineAcpSessionInspectors v-show="!props.collapsed" />
+    <div
+      v-if="showInputSchemaForm && activeInputSchema"
+      class="border-t border-border-subtle/80 bg-surface-container px-4 py-3"
+    >
+      <PipelineInputSchemaForm
+        :schema="activeInputSchema"
+        v-model="schemaInputDraft"
+        @submit="runWithSchemaInputs"
+      />
+    </div>
     <PipelineRunHistoryPanel
       v-show="!props.collapsed"
       :runs="currentRuns"

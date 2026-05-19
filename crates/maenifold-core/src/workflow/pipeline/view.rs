@@ -178,6 +178,9 @@ pub(super) fn build_pipeline_view_result(
     if let Some(template_id) = definition.template_id.as_deref() {
         result["templateId"] = json!(template_id);
     }
+    if let Some(input_schema) = &definition.input_schema {
+        result["inputSchema"] = input_schema.clone();
+    }
     let orphaned_workers = orphaned_acp_worker_count(node_states, &live_sessions);
     if !running && orphaned_workers > 0 {
         result["degraded"] = json!({

@@ -68,6 +68,7 @@ fn seed_completed_pipeline(
         nodes: vec![workflow_node("node")],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let state = node_state("node");

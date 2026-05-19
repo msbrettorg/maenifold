@@ -49,6 +49,7 @@ async fn timeout_is_terminal_even_with_retry_policy_node_abandons_without_retryi
         }],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([(
@@ -114,6 +115,7 @@ async fn cancel_during_active_execution_abandons_active_nodes_without_hanging() 
         }],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([(

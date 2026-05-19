@@ -48,6 +48,7 @@ fn build_node_execution_request_errors_when_tool_mapping_fails() {
             )])),
         }],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([(
@@ -102,6 +103,7 @@ fn build_node_execution_request_interpolates_inputs_in_prompt_and_tool_args() {
         nodes: vec![],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::new();
@@ -195,6 +197,7 @@ fn build_node_execution_request_does_not_interpolate_workflow_id_or_tool_name() 
         nodes: vec![],
         edges: vec![],
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::new();

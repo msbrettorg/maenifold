@@ -143,6 +143,7 @@ fn merge_graft_definition(
             .chain(graft.edges.iter().cloned())
             .collect(),
         inputs: existing_definition.inputs.clone(),
+        input_schema: existing_definition.input_schema.clone(),
         template_id: None,
     };
     let graph = merged_definition.build_graph();

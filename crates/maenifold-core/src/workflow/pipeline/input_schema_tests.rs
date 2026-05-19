@@ -57,6 +57,7 @@ fn pending_node_state(session_id: &str) -> NodeState {
         output_tokens: None,
         model: None,
         output: None,
+        output_artifact: None,
         failure_reason: None,
         retry_after: None,
         retry_count: None,

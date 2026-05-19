@@ -68,6 +68,7 @@ fn definition(nodes: Vec<PipelineNode>, edges: Vec<PipelineEdge>) -> PipelineDef
         nodes,
         edges,
         inputs: None,
+        input_schema: None,
         template_id: None,
     }
 }

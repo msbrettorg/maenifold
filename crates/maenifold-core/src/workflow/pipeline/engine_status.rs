@@ -55,7 +55,7 @@ pub fn compute_pipeline_status(node_states: &HashMap<String, NodeState>) -> &'st
 
     if node_states
         .values()
-        .any(|state| matches!(state.status, NodeStatus::Stuck))
+        .any(|state| matches!(state.status, NodeStatus::Stuck | NodeStatus::Failed))
     {
         "stuck"
     } else if node_states
@@ -144,6 +144,7 @@ mod terminal_node_tests {
                 output_tokens: None,
                 model: None,
                 output: None,
+                output_artifact: None,
                 failure_reason: None,
                 retry_after: None,
                 retry_count: None,

@@ -43,11 +43,7 @@ pub async fn cancel_session(runtime_kind: &str, role_name: &str, app_session_id:
 /// the given pool slot. Used as the wall-clock-budget kill switch when a
 /// hung `session.prompt()` future doesn't honour `tokio::time::timeout`'s
 /// drop-cancel. The T-328.14 wait watcher propagates abandonment after reap.
-pub async fn force_kill_session(
-    runtime_kind: &str,
-    role_name: &str,
-    app_session_id: Option<&str>,
-) {
+pub async fn force_kill_session(runtime_kind: &str, role_name: &str, app_session_id: Option<&str>) {
     let runtime_key = normalize_runtime_key(runtime_kind);
     if runtime_key.is_empty() {
         return;

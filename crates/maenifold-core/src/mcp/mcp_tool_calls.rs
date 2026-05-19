@@ -4,7 +4,7 @@ use crate::registry::ToolRegistry;
 use crate::tools::{RequestCancelOnDrop, with_cancellation_scope};
 use crate::util::json::OutputFormat;
 use rmcp::RoleServer;
-use rmcp::model::{CallToolResult, Content};
+use rmcp::model::{CallToolResult, Content, Tool};
 use rmcp::service::Peer;
 use serde_json::Value;
 use std::sync::Arc;
@@ -16,6 +16,11 @@ pub(crate) async fn handle_tool_call(
     gateway: Option<Arc<GatewayState>>,
     client_peer: Option<Peer<RoleServer>>,
 ) -> std::result::Result<CallToolResult, rmcp::ErrorData> {
+    if tool_name == "complete_node" {
+        return Ok(CallToolResult::success(vec![Content::text(format!(
+            "complete_node accepted structured output: {arguments}"
+        ))]));
+    }
     if discovery_tools::is_discovery_tool(&tool_name) {
         return discovery_tools::handle_tool_call(gateway.clone(), &tool_name, arguments).await;
     }
@@ -63,5 +68,21 @@ fn unknown_tool_error(tool_name: &str) -> rmcp::ErrorData {
         rmcp::model::ErrorCode(JSONRPC_METHOD_NOT_FOUND as i32),
         format!("Unknown tool: '{tool_name}'"),
         Some(Value::Null),
+    )
+}
+
+pub(crate) fn complete_node_tool() -> Tool {
+    let schema = serde_json::json!({
+        "type": "object",
+        "additionalProperties": true
+    });
+    let schema = match schema {
+        Value::Object(map) => map,
+        _ => serde_json::Map::new(),
+    };
+    Tool::new(
+        "complete_node",
+        "Submit the final structured output for this pipeline node. For nodes with output_schema, the prompt request advertises the node-specific input_schema; the pipeline will not advance until this tool is called with valid arguments.",
+        Arc::new(schema),
     )
 }

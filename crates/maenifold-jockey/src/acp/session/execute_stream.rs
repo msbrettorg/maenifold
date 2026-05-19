@@ -36,10 +36,12 @@ pub(super) async fn run_delta_loop(
     app_session_id: &str,
     prompt: &str,
     requested_resume: bool,
-) -> (AcpExecuteResult, String, usize) {
+    allowed_tools: Option<&[String]>,
+) -> (AcpExecuteResult, String, usize, Option<serde_json::Value>) {
     let mut full_output = String::new();
     let mut delta_count = 0usize;
     let mut delta_batch: String = String::new();
+    let mut complete_node_args = None;
 
     acp_log(
         "execute.stream.listening",
@@ -134,6 +136,7 @@ pub(super) async fn run_delta_loop(
                         });
                     }
                     Some(ref other) => {
+                        capture_complete_node_args(other, allowed_tools, &mut complete_node_args);
                         delta_count += 1;
                         acp_log("delta.event", json!({
                             "runtime": runtime_key,
@@ -171,6 +174,7 @@ pub(super) async fn run_delta_loop(
                             delta_batch.push_str(text);
                         }
                         ref other => {
+                            capture_complete_node_args(other, allowed_tools, &mut complete_node_args);
                             delta_count += 1;
                             let _ = event_tx.emit("acp/stream", AcpStreamPayload {
                                 role: role_name,
@@ -212,7 +216,35 @@ pub(super) async fn run_delta_loop(
         }
     };
 
-    (result, full_output, delta_count)
+    (result, full_output, delta_count, complete_node_args)
+}
+
+fn capture_complete_node_args(
+    event: &AcpEvent,
+    allowed_tools: Option<&[String]>,
+    slot: &mut Option<serde_json::Value>,
+) {
+    let complete_node_allowed = allowed_tools
+        .map(|tools| tools.iter().any(|tool| tool == "complete_node"))
+        .unwrap_or(false);
+    if !complete_node_allowed {
+        return;
+    }
+    match event {
+        AcpEvent::ToolCall {
+            title, raw_input, ..
+        }
+        | AcpEvent::ToolCallUpdate {
+            title: Some(title),
+            raw_input,
+            ..
+        } if title == "complete_node" => {
+            if let Some(args) = raw_input.clone() {
+                *slot = Some(args);
+            }
+        }
+        _ => {}
+    }
 }
 
 pub(super) fn error_code_from_raw(raw: &str) -> String {
@@ -257,7 +289,7 @@ mod tests {
         drop(result_tx);
         let (event_tx, _event_rx) = tokio::sync::broadcast::channel(1);
 
-        let (result, output, delta_count) = run_delta_loop(
+        let (result, output, delta_count, complete_node_args) = run_delta_loop(
             delta_rx,
             result_rx,
             &event_tx,
@@ -266,6 +298,7 @@ mod tests {
             "app-session",
             "prompt",
             true,
+            None,
         )
         .await;
 
@@ -276,5 +309,6 @@ mod tests {
         assert_eq!(err.resume_failure_kind, Some("startup".to_string()));
         assert!(output.is_empty());
         assert_eq!(delta_count, 0);
+        assert!(complete_node_args.is_none());
     }
 }

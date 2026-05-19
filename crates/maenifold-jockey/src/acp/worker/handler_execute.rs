@@ -1,5 +1,5 @@
 use agent_client_protocol::{self as acp, Agent as _};
-use serde_json::json;
+use serde_json::{Map, Value, json};
 use std::sync::{
     Arc, Mutex,
     atomic::{AtomicBool, Ordering},
@@ -20,6 +20,41 @@ use super::types::{AcpEvent, AcpExecuteError, AcpExecuteSuccess, ConnectionDeath
 
 const PROMPT_LIVENESS_INTERVAL: std::time::Duration = std::time::Duration::from_secs(2);
 
+fn build_prompt_request(
+    session_id: &acp::SessionId,
+    blocks: Vec<acp::ContentBlock>,
+    allowed_tools: &Option<Vec<String>>,
+    output_schema: &Option<Value>,
+) -> acp::PromptRequest {
+    let Some(schema) = output_schema else {
+        return acp::PromptRequest::new(session_id.clone(), blocks);
+    };
+    let complete_node_allowed = allowed_tools
+        .as_ref()
+        .is_some_and(|tools| tools.iter().any(|tool| tool == "complete_node"));
+    if !complete_node_allowed {
+        return acp::PromptRequest::new(session_id.clone(), blocks);
+    }
+
+    let description = "Submit the final structured output for this pipeline node. The pipeline will not advance until this tool is called with valid arguments matching the declared output_schema.";
+    let mut complete_node = Map::new();
+    complete_node.insert("name".to_string(), json!("complete_node"));
+    complete_node.insert("description".to_string(), json!(description));
+    complete_node.insert("input_schema".to_string(), schema.clone());
+    complete_node.insert("inputSchema".to_string(), schema.clone());
+
+    let mut meta = Map::new();
+    meta.insert(
+        "tools".to_string(),
+        Value::Array(vec![Value::Object(complete_node)]),
+    );
+    meta.insert(
+        "allowedTools".to_string(),
+        json!(allowed_tools.as_ref().cloned().unwrap_or_default()),
+    );
+    acp::PromptRequest::new(session_id.clone(), blocks).meta(meta)
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn handle_execute(
     key: String,
@@ -38,6 +73,8 @@ pub(crate) async fn handle_execute(
     result_tx: oneshot::Sender<Result<AcpExecuteSuccess, AcpExecuteError>>,
     auto_approve: bool,
     mcp_servers: Vec<acp::McpServer>,
+    allowed_tools: Option<Vec<String>>,
+    output_schema: Option<serde_json::Value>,
     role_mode: Option<String>,
     role_config_options: Vec<(String, String)>,
     resume_session_id: Option<String>,
@@ -162,6 +199,7 @@ pub(crate) async fn handle_execute(
     }
 
     let blocks = prompt_blocks.unwrap_or_else(|| build_prompt_blocks(prompt, &context));
+    let prompt_request = build_prompt_request(&session_id, blocks, &allowed_tools, &output_schema);
 
     // Install cancel handle so the Cancel message handler can send ACP cancel
     // without touching CONN_MAP.
@@ -178,7 +216,7 @@ pub(crate) async fn handle_execute(
     });
 
     let prompt_started = Instant::now();
-    let prompt_fut = conn_rc.prompt(acp::PromptRequest::new(session_id.clone(), blocks));
+    let prompt_fut = conn_rc.prompt(prompt_request);
     tokio::pin!(prompt_fut);
 
     let prompt_result: Result<Result<acp::PromptResponse, acp::Error>, String> = loop {

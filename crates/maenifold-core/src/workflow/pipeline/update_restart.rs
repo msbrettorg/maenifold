@@ -49,7 +49,10 @@ pub(super) fn restart_pipeline_node(
             ))
         })?;
 
-        if !matches!(state.status, NodeStatus::Abandoned | NodeStatus::Stuck) {
+        if !matches!(
+            state.status,
+            NodeStatus::Abandoned | NodeStatus::Stuck | NodeStatus::Failed
+        ) {
             return Err(MaenifoldError::Message(format!(
                 "Node {node_id} is {} — only abandoned or stuck nodes can be restarted",
                 node_status_name(&state.status)

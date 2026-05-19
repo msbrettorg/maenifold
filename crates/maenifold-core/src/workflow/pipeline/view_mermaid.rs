@@ -99,6 +99,7 @@ fn status_emoji(status: &NodeStatus) -> &'static str {
         NodeStatus::Skipped => "⏭️",
         NodeStatus::Abandoned => "❌",
         NodeStatus::Stuck => "🚫",
+        NodeStatus::Failed => "🚫",
         NodeStatus::Retrying => "⏱️",
     }
 }
@@ -139,6 +140,7 @@ mod tests {
                     requires_role: None,
                     retry_policy: None,
                     join_policy: None,
+                    output_schema: None,
                 },
                 PipelineNode::Workflow {
                     id: "target".to_string(),
@@ -153,6 +155,7 @@ mod tests {
                     requires_role: None,
                     retry_policy: None,
                     join_policy: None,
+                    output_schema: None,
                 },
             ],
             edges: vec![PipelineEdge {
@@ -195,6 +198,7 @@ mod tests {
             output_tokens: None,
             model: None,
             output: None,
+            output_artifact: None,
             failure_reason: None,
             retry_after: None,
             retry_count: None,

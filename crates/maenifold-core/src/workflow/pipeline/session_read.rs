@@ -70,7 +70,7 @@ pub(super) fn derive_pipeline_node_states(
             let preserves_authoritative_terminal = matches!(
                 (&state.status, &status),
                 (
-                    NodeStatus::Abandoned | NodeStatus::Stuck,
+                    NodeStatus::Abandoned | NodeStatus::Stuck | NodeStatus::Failed,
                     NodeStatus::Pending
                         | NodeStatus::Ready
                         | NodeStatus::Active
@@ -102,6 +102,7 @@ pub(super) fn workflow_status_to_node_status(status: &str) -> Option<NodeStatus>
         "skipped" => Some(NodeStatus::Skipped),
         "abandoned" | "cancelled" => Some(NodeStatus::Abandoned),
         "stuck" => Some(NodeStatus::Stuck),
+        "failed" => Some(NodeStatus::Failed),
         "retrying" => Some(NodeStatus::Retrying),
         _ => None,
     }

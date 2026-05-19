@@ -24,6 +24,7 @@ fn workflow_node(id: &str) -> PipelineNode {
         requires_role: None,
         retry_policy: None,
         join_policy: None,
+        output_schema: None,
     }
 }
 
@@ -73,6 +74,7 @@ fn pre_exec_failure_transitions_to_retrying() {
             output_tokens: None,
             model: None,
             output: None,
+            output_artifact: None,
             failure_reason: None,
             retry_after: None,
             retry_count: None,
@@ -133,6 +135,7 @@ fn post_exec_failure_stays_abandoned() {
             output_tokens: None,
             model: None,
             output: Some("stale output".to_string()),
+            output_artifact: None,
             failure_reason: None,
             retry_after: None,
             retry_count: None,
@@ -193,6 +196,7 @@ fn max_attempts_exceeded_becomes_stuck() {
             output_tokens: None,
             model: None,
             output: None,
+            output_artifact: None,
             failure_reason: None,
             retry_after: None,
             retry_count: None,
@@ -255,6 +259,7 @@ fn retrying_node_state_has_retry_metadata() {
             output_tokens: None,
             model: None,
             output: Some("stale output".to_string()),
+            output_artifact: None,
             failure_reason: Some("stale failure".to_string()),
             retry_after: None,
             retry_count: None,

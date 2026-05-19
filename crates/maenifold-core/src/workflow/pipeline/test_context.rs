@@ -9,6 +9,7 @@ use tempfile::TempDir;
 pub(super) fn pipeline_test_context(
     output_format: OutputFormat,
 ) -> (TempDir, ToolContext, ConfigResetGuard) {
+    ConfigResetGuard::acquire_test_lock();
     let tmp = TempDir::new().expect("temp dir");
     Config::override_root(tmp.path());
     Config::set_database_path(tmp.path().join("memory.db"));

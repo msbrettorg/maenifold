@@ -90,7 +90,10 @@ pub(super) fn is_edge_satisfied(
         (EdgeType::Always, Some(state)) => {
             matches!(
                 state.status,
-                NodeStatus::Completed | NodeStatus::Abandoned | NodeStatus::Stuck
+                NodeStatus::Completed
+                    | NodeStatus::Abandoned
+                    | NodeStatus::Stuck
+                    | NodeStatus::Failed
             )
         }
         (EdgeType::Conditional { path, equals }, Some(state)) => {
@@ -105,6 +108,10 @@ pub(super) fn is_edge_satisfied(
 pub(super) fn is_terminal_status(status: &NodeStatus) -> bool {
     matches!(
         status,
-        NodeStatus::Completed | NodeStatus::Skipped | NodeStatus::Abandoned | NodeStatus::Stuck
+        NodeStatus::Completed
+            | NodeStatus::Skipped
+            | NodeStatus::Abandoned
+            | NodeStatus::Stuck
+            | NodeStatus::Failed
     )
 }

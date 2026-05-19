@@ -178,7 +178,10 @@ fn validate_conditional_edge(edge: &super::PipelineEdge) -> Result<()> {
 
 fn validate_edge_data_mode(edge: &super::PipelineEdge) -> Result<()> {
     if edge.mode == EdgeDataMode::None
-        && edge.mapping.as_ref().is_some_and(|mapping| !mapping.is_empty())
+        && edge
+            .mapping
+            .as_ref()
+            .is_some_and(|mapping| !mapping.is_empty())
     {
         return Err(MaenifoldError::Message(format!(
             "None mode forbids mapping on edge '{} -> {}'",

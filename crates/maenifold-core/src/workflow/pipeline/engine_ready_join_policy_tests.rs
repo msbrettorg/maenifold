@@ -22,6 +22,7 @@ fn node(id: &str, join_policy: Option<JoinPolicy>) -> PipelineNode {
         model: None,
         retry_policy: None,
         join_policy,
+        output_schema: None,
     }
 }
 
@@ -39,6 +40,7 @@ fn state(status: NodeStatus) -> NodeState {
         output_tokens: None,
         model: None,
         output: None,
+        output_artifact: None,
         failure_reason: None,
         retry_after: None,
         retry_count: None,

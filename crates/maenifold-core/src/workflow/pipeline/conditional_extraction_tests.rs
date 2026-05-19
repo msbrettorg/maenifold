@@ -25,6 +25,7 @@ fn workflow_node(id: &str) -> PipelineNode {
         requires_role: None,
         retry_policy: None,
         join_policy: None,
+        output_schema: None,
     }
 }
 
@@ -42,6 +43,7 @@ fn state(node_id: &str, status: NodeStatus, output: Option<&str>) -> NodeState {
         output_tokens: None,
         model: None,
         output: output.map(str::to_string),
+        output_artifact: None,
         failure_reason: None,
         retry_after: None,
         retry_count: None,

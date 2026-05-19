@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use super::super::super::agent_session::AcpSessionCapturedCallback;
 use super::executor_run_persist::persist_active_node_session;
+use super::executor_run_structured::repair_structured_output_if_needed;
 
 /// T-328.15 — Wall-clock budget for a single prompt node await.
 /// Catches alive-but-hung ACP agents (T-328.14 only catches process death).
@@ -127,6 +128,8 @@ pub(crate) async fn run_prompt_node(
         },
     )
     .await;
+    let response_result =
+        repair_structured_output_if_needed(&session, &session_config, agent, response_result).await;
     let prompt_result = match response_result {
         Ok(response) => {
             if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {

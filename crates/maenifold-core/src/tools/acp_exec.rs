@@ -98,6 +98,8 @@ fn exec_with_jockey(
                 &event_tx,
                 auto_approve,
                 resolved_agent.mcp_servers,
+                None,
+                None,
                 role_mode,
                 role_config_options,
                 None,

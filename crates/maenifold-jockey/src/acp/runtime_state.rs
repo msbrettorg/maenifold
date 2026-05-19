@@ -6,6 +6,7 @@ static RUNTIME_MODELS: OnceLock<DashMap<String, Vec<String>>> = OnceLock::new();
 static RUNTIME_MODES: OnceLock<DashMap<String, Vec<String>>> = OnceLock::new();
 static RUNTIME_CONFIG_OPTIONS: OnceLock<DashMap<String, Vec<Value>>> = OnceLock::new();
 static RUNTIME_AVAILABLE_COMMANDS: OnceLock<DashMap<String, Vec<Value>>> = OnceLock::new();
+static RUNTIME_AGENT_CAPABILITIES: OnceLock<DashMap<String, Value>> = OnceLock::new();
 
 fn runtime_models() -> &'static DashMap<String, Vec<String>> {
     RUNTIME_MODELS.get_or_init(DashMap::new)
@@ -23,11 +24,16 @@ fn runtime_available_commands() -> &'static DashMap<String, Vec<Value>> {
     RUNTIME_AVAILABLE_COMMANDS.get_or_init(DashMap::new)
 }
 
+fn runtime_agent_capabilities() -> &'static DashMap<String, Value> {
+    RUNTIME_AGENT_CAPABILITIES.get_or_init(DashMap::new)
+}
+
 pub(super) fn clear_all() {
     runtime_models().clear();
     runtime_modes().clear();
     runtime_config_options().clear();
     runtime_available_commands().clear();
+    runtime_agent_capabilities().clear();
 }
 
 pub(super) fn clear_session(app_session_id: &str, runtime_key: &str, role_name: &str) {
@@ -82,6 +88,16 @@ pub fn list_discovered_config_options(runtime_key: &str) -> Vec<Value> {
         .get(runtime_key)
         .map(|v| v.clone())
         .unwrap_or_default()
+}
+
+pub(super) fn remember_agent_capabilities(runtime_key: &str, capabilities: Value) {
+    runtime_agent_capabilities().insert(runtime_key.to_string(), capabilities);
+}
+
+pub fn agent_capabilities(runtime_key: &str) -> Option<Value> {
+    runtime_agent_capabilities()
+        .get(runtime_key)
+        .map(|value| value.clone())
 }
 
 pub(super) fn remember_runtime_available_commands(

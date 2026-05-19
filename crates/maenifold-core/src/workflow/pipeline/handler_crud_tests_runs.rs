@@ -27,6 +27,7 @@ fn state_with_ts(
             output_tokens: None,
             model: None,
             output: None,
+            output_artifact: None,
             failure_reason: None,
             retry_after: None,
             retry_count: None,

@@ -18,6 +18,8 @@ pub async fn execute_runtime(
     event_tx: &crate::EventSender,
     auto_approve: bool,
     mcp_servers: Vec<acp::McpServer>,
+    allowed_tools: Option<Vec<String>>,
+    output_schema: Option<serde_json::Value>,
     role_mode: Option<String>,
     role_config_options: Vec<(String, String)>,
     _state: Option<(&crate::types::AppState, &str)>,
@@ -145,6 +147,8 @@ pub async fn execute_runtime(
             result_tx,
             auto_approve,
             mcp_servers,
+            allowed_tools: allowed_tools.clone(),
+            output_schema: output_schema.clone(),
             role_mode,
             role_config_options,
             resume_session_id,
@@ -170,7 +174,7 @@ pub async fn execute_runtime(
         };
     }
 
-    let (result, full_output, delta_count) = run_delta_loop(
+    let (result, full_output, delta_count, complete_node_args) = run_delta_loop(
         delta_rx,
         result_rx,
         event_tx,
@@ -179,6 +183,7 @@ pub async fn execute_runtime(
         &app_session_id_owned,
         prompt,
         requested_resume,
+        allowed_tools.as_deref(),
     )
     .await;
 
@@ -229,7 +234,9 @@ pub async fn execute_runtime(
                     "sessionId": session_id,
                     "stopReason": format!("{:?}", stop_reason),
                     "resumed": resumed,
-                    "requestedResume": requested_resume
+                    "requestedResume": requested_resume,
+                    "completeNodeArgs": complete_node_args,
+                    "outputSchema": output_schema
                 }),
             }
         }

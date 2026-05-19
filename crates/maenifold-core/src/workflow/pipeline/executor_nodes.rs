@@ -9,6 +9,7 @@ use super::super::runner::AgentSessionConfig;
 use super::executor_helpers::DispatchedNode;
 use super::executor_nodes_build_helpers::{
     build_adopt_instructions, merged_session_config, node_session_id, resolve_execution_prompt,
+    with_output_schema_contract,
 };
 use super::executor_nodes_cwd::resolve_node_cwd;
 use super::mapping_apply::mapped_tool_args;
@@ -82,6 +83,7 @@ pub(super) fn build_node_execution_request(
             agent_config,
             adopt,
             requires_role,
+            output_schema,
             ..
         } => {
             let session_id = node_session_id(node_states, node.id(), dispatch);
@@ -112,19 +114,22 @@ pub(super) fn build_node_execution_request(
                 )?,
                 adopt_role,
                 requires_role: requires_role.clone(),
-                session_config: merged_session_config(
-                    context,
-                    node.id(),
-                    &session_id,
-                    agent_config.as_ref(),
-                    cwd.as_deref(),
-                    &None,
-                    &None,
-                    &None,
-                    None,
-                    *timeout,
-                    None,
-                )?,
+                session_config: with_output_schema_contract(
+                    merged_session_config(
+                        context,
+                        node.id(),
+                        &session_id,
+                        agent_config.as_ref(),
+                        cwd.as_deref(),
+                        &None,
+                        &None,
+                        &None,
+                        None,
+                        *timeout,
+                        None,
+                    )?,
+                    output_schema.as_ref(),
+                ),
             }
         }
         PipelineNode::Prompt {
@@ -140,6 +145,7 @@ pub(super) fn build_node_execution_request(
             adopt,
             requires_role,
             session_ref,
+            output_schema,
             ..
         } => {
             let session_id = node_session_id(node_states, node.id(), dispatch);
@@ -170,19 +176,22 @@ pub(super) fn build_node_execution_request(
                 )?,
                 adopt_role,
                 requires_role: requires_role.clone(),
-                session_config: merged_session_config(
-                    context,
-                    node.id(),
-                    &session_id,
-                    agent_config.as_ref(),
-                    cwd.as_deref(),
-                    model,
-                    thought_level,
-                    allowed_tools,
-                    *max_turns,
-                    *timeout,
-                    session_ref.as_ref().map(|sr| sr.session_id.clone()),
-                )?,
+                session_config: with_output_schema_contract(
+                    merged_session_config(
+                        context,
+                        node.id(),
+                        &session_id,
+                        agent_config.as_ref(),
+                        cwd.as_deref(),
+                        model,
+                        thought_level,
+                        allowed_tools,
+                        *max_turns,
+                        *timeout,
+                        session_ref.as_ref().map(|sr| sr.session_id.clone()),
+                    )?,
+                    output_schema.as_ref(),
+                ),
             }
         }
         PipelineNode::SequentialThinking {
@@ -197,6 +206,7 @@ pub(super) fn build_node_execution_request(
             timeout,
             adopt,
             requires_role,
+            output_schema,
             ..
         } => {
             let session_id = node_session_id(node_states, node.id(), dispatch);
@@ -228,19 +238,22 @@ pub(super) fn build_node_execution_request(
                 )?,
                 adopt_role,
                 requires_role: requires_role.clone(),
-                session_config: merged_session_config(
-                    context,
-                    node.id(),
-                    &session_id,
-                    agent_config.as_ref(),
-                    cwd.as_deref(),
-                    model,
-                    thought_level,
-                    allowed_tools,
-                    *max_turns,
-                    *timeout,
-                    None,
-                )?,
+                session_config: with_output_schema_contract(
+                    merged_session_config(
+                        context,
+                        node.id(),
+                        &session_id,
+                        agent_config.as_ref(),
+                        cwd.as_deref(),
+                        model,
+                        thought_level,
+                        allowed_tools,
+                        *max_turns,
+                        *timeout,
+                        None,
+                    )?,
+                    output_schema.as_ref(),
+                ),
             }
         }
         PipelineNode::Tool {

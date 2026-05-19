@@ -9,6 +9,8 @@ use crate::{
     tools::ToolContext,
 };
 
+#[cfg(test)]
+mod acp_output_schema_tests;
 mod acp_reaper;
 #[cfg(test)]
 mod active_session_persistence_tests;

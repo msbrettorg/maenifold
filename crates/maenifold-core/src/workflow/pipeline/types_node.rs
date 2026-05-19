@@ -28,6 +28,7 @@ pub enum PipelineNode {
         requires_role: Option<String>,
         retry_policy: Option<RetryPolicy>,
         join_policy: Option<JoinPolicy>,
+        output_schema: Option<Value>,
     },
     Prompt {
         id: String,
@@ -47,6 +48,7 @@ pub enum PipelineNode {
         retry_policy: Option<RetryPolicy>,
         session_ref: Option<SessionRef>,
         join_policy: Option<JoinPolicy>,
+        output_schema: Option<Value>,
     },
     SequentialThinking {
         id: String,
@@ -65,6 +67,7 @@ pub enum PipelineNode {
         requires_role: Option<String>,
         retry_policy: Option<RetryPolicy>,
         join_policy: Option<JoinPolicy>,
+        output_schema: Option<Value>,
     },
     Tool {
         id: String,
@@ -136,6 +139,15 @@ impl PipelineNode {
             Self::Workflow { prompt, .. } => prompt.as_deref(),
             Self::Prompt { prompt, .. } => Some(prompt),
             Self::SequentialThinking { .. } | Self::Tool { .. } => None,
+        }
+    }
+
+    pub fn output_schema(&self) -> Option<&Value> {
+        match self {
+            Self::Workflow { output_schema, .. }
+            | Self::Prompt { output_schema, .. }
+            | Self::SequentialThinking { output_schema, .. } => output_schema.as_ref(),
+            Self::Tool { .. } => None,
         }
     }
 

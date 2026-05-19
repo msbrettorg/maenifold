@@ -11,7 +11,8 @@ use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 use super::super::adapter::{acp_log, clip};
 use super::super::client::JockeyUiClient;
 use super::super::runtime_state::{
-    remember_runtime_config_options, remember_runtime_models, remember_runtime_modes,
+    remember_agent_capabilities, remember_runtime_config_options, remember_runtime_models,
+    remember_runtime_modes,
 };
 use super::super::worker::{AcpEvent, DeltaSlot, LiveConnection, register_child_pid};
 use super::cold_start_helpers::{
@@ -142,6 +143,9 @@ pub(crate) async fn cold_start(
     );
 
     let t = Instant::now();
+    if let Ok(capabilities) = serde_json::to_value(&init_resp.agent_capabilities) {
+        remember_agent_capabilities(runtime_key, capabilities);
+    }
     let supports_load = init_resp.agent_capabilities.load_session;
 
     struct SessionStartResult {

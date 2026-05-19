@@ -147,6 +147,8 @@ pub enum WorkerMsg {
         result_tx: oneshot::Sender<AcpExecuteResult>,
         auto_approve: bool,
         mcp_servers: Vec<acp::McpServer>,
+        allowed_tools: Option<Vec<String>>,
+        output_schema: Option<Value>,
         role_mode: Option<String>,
         role_config_options: Vec<(String, String)>,
         resume_session_id: Option<String>,

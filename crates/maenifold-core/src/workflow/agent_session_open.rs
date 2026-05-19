@@ -18,7 +18,6 @@ pub(crate) async fn open_agent_session(
     let cwd_str = session_config.cwd.to_string_lossy().to_string();
     let trusted_root = Config::current().maenifold_root;
     let runtime_kind = resolve_runtime_kind(agent_name, &trusted_root)?;
-    let auto_approve = session_config.auto_approve;
     let session_id = session_config
         .session_id
         .as_deref()
@@ -28,6 +27,9 @@ pub(crate) async fn open_agent_session(
         .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
     let actual_acp_session_id =
         prewarm_acp_session(agent_name, &runtime_kind, &cwd_str, &session_id).await?;
+    let fenced_json_fallback =
+        session_config.output_schema.is_some() && !agent_supports_tool_calling(&runtime_kind);
+    let auto_approve = session_config.auto_approve;
     let config_options = build_role_config_options(
         session_config.config_options.as_ref(),
         session_config.model.as_deref(),
@@ -63,12 +65,26 @@ pub(crate) async fn open_agent_session(
         thought_level: session_config.thought_level.clone(),
         role_mode: session_config.mode.clone(),
         config_options,
+        output_schema: session_config.output_schema.clone(),
+        allowed_tools: session_config.allowed_tools.clone(),
+        fenced_json_fallback,
         auto_approve,
         resume_state: ResumeState::new(session_config.resume_session_id.clone()),
         prompt_gate: PromptGate::new(),
         event_tx: event_tx.clone(),
         cleanup_on_drop: AtomicBool::new(true),
     })
+}
+
+fn agent_supports_tool_calling(runtime_kind: &str) -> bool {
+    let Some(capabilities) = jockey::acp::agent_capabilities(runtime_kind) else {
+        return true;
+    };
+    capabilities
+        .get("_meta")
+        .and_then(|meta| meta.get("toolCalling"))
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(true)
 }
 
 async fn prewarm_acp_session(

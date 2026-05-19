@@ -66,6 +66,7 @@ fn build_node_execution_request_errors_when_tool_mapping_fails() {
             output_tokens: None,
             model: None,
             output: Some("not-json".to_string()),
+            output_artifact: None,
             failure_reason: None,
             retry_after: None,
             retry_count: None,
@@ -126,6 +127,7 @@ fn build_node_execution_request_interpolates_inputs_in_prompt_and_tool_args() {
         requires_role: None,
         retry_policy: None,
         join_policy: None,
+        output_schema: None,
         session_ref: None,
     };
     let dispatch = DispatchedNode {
@@ -220,6 +222,7 @@ fn build_node_execution_request_does_not_interpolate_workflow_id_or_tool_name() 
         requires_role: None,
         retry_policy: None,
         join_policy: None,
+        output_schema: None,
     };
     let workflow_dispatch = DispatchedNode {
         node_id: workflow_node.id().to_string(),

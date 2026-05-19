@@ -15,11 +15,12 @@ pub(super) fn compute_pipeline_runs(node_states: &HashMap<String, NodeState>) ->
                 NodeStatus::Skipped => "skipped",
                 NodeStatus::Abandoned => "abandoned",
                 NodeStatus::Stuck => "stuck",
+                NodeStatus::Failed => "failed",
                 NodeStatus::Retrying => "retrying",
             };
             let outcome: Option<&str> = match &state.status {
                 NodeStatus::Completed => Some("succeeded"),
-                NodeStatus::Abandoned | NodeStatus::Stuck => Some("failed"),
+                NodeStatus::Abandoned | NodeStatus::Stuck | NodeStatus::Failed => Some("failed"),
                 NodeStatus::Skipped => Some("skipped"),
                 _ => None,
             };

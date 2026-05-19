@@ -55,7 +55,7 @@ impl ServerHandler for MaenifoldHandler {
                 None,
             )));
         }
-        let tools = if let Some(gateway) = &self.gateway {
+        let mut tools = if let Some(gateway) = &self.gateway {
             let mut tools: Vec<Tool> = self
                 .tools
                 .iter()
@@ -71,6 +71,7 @@ impl ServerHandler for MaenifoldHandler {
         } else {
             self.tools.clone()
         };
+        tools.push(self::mcp_tool_calls::complete_node_tool());
         std::future::ready(Ok(ListToolsResult {
             tools,
             next_cursor: None,

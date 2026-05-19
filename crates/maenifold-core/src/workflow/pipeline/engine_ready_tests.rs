@@ -19,6 +19,7 @@ fn completed_state(output: &str) -> NodeState {
         output_tokens: None,
         model: None,
         output: Some(output.into()),
+        output_artifact: None,
         failure_reason: None,
         retry_after: None,
         retry_count: None,
@@ -39,6 +40,7 @@ fn pending_state() -> NodeState {
         output_tokens: None,
         model: None,
         output: None,
+        output_artifact: None,
         failure_reason: None,
         retry_after: None,
         retry_count: None,
@@ -63,6 +65,7 @@ fn make_thinking_node(id: &str) -> PipelineNode {
         model: None,
         retry_policy: None,
         join_policy: None,
+        output_schema: None,
     }
 }
 

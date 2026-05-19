@@ -44,6 +44,7 @@ fn prompt_node(id: &str) -> PipelineNode {
         retry_policy: None,
         session_ref: None,
         join_policy: None,
+        output_schema: None,
     }
 }
 
@@ -75,7 +76,11 @@ fn edge_mode_defaults_to_context_when_field_missing() {
 
 #[test]
 fn edge_mode_round_trip() {
-    for mode in [EdgeDataMode::Context, EdgeDataMode::Binding, EdgeDataMode::None] {
+    for mode in [
+        EdgeDataMode::Context,
+        EdgeDataMode::Binding,
+        EdgeDataMode::None,
+    ] {
         let edge = success_edge("source", "target", mode.clone());
         let serialized = serde_json::to_string(&edge).expect("edge should serialize");
         let deserialized: PipelineEdge =
@@ -97,7 +102,10 @@ fn edge_mode_binding_serializes_lowercase_camel() {
         let edge = success_edge("source", "target", mode);
         let value = serde_json::to_value(edge).expect("edge should serialize");
 
-        assert_eq!(value.get("mode").and_then(|mode| mode.as_str()), Some(expected));
+        assert_eq!(
+            value.get("mode").and_then(|mode| mode.as_str()),
+            Some(expected)
+        );
     }
 }
 
@@ -157,9 +165,11 @@ fn validation_binding_mode_without_schemas_errors() {
 
     let error = validate_pipeline(&definition).expect_err("binding without schemas must fail");
 
-    assert!(error
-        .to_string()
-        .contains("Binding edge requires declared schemas on both endpoints"));
+    assert!(
+        error
+            .to_string()
+            .contains("Binding edge requires declared schemas on both endpoints")
+    );
 }
 
 #[test]
@@ -225,7 +235,13 @@ fn live_session_files_load_cleanly() {
         validate_pipeline(&def).unwrap_or_else(|e| panic!("{path} failed: {e}"));
         // Every edge should land at mode == Context after migration.
         for e in &def.edges {
-            assert_eq!(e.mode, EdgeDataMode::Context, "edge {:?}→{:?}", e.source, e.target);
+            assert_eq!(
+                e.mode,
+                EdgeDataMode::Context,
+                "edge {:?}→{:?}",
+                e.source,
+                e.target
+            );
         }
     }
 }

@@ -8,7 +8,7 @@ use crate::sessions::workflow_session_uri;
 use crate::tools::ToolContext;
 
 use super::mapping_resolve::conditional_predicate_satisfied;
-use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineNode};
+use super::{EdgeDataMode, EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineNode};
 
 pub(super) fn assemble_node_prompt(
     context: &ToolContext,
@@ -72,6 +72,9 @@ pub(super) fn predecessor_context_content(
                 .unwrap_or(false),
         }
     }) {
+        if edge.mode == EdgeDataMode::Binding {
+            continue;
+        }
         let Some(upstream_state) = node_states.get(&edge.source) else {
             continue;
         };

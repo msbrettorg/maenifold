@@ -44,6 +44,7 @@ fn prompt_node(id: &str) -> PipelineNode {
         retry_policy: None,
         session_ref: None,
         join_policy: None,
+        input_schema: None,
         output_schema: None,
     }
 }

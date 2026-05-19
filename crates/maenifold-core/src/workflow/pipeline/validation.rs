@@ -2,6 +2,7 @@ use crate::error::{MaenifoldError, Result};
 use petgraph::algo::is_cyclic_directed;
 use std::collections::{HashMap, HashSet};
 
+use super::input_bindings::input_schema_has_path;
 use super::{EdgeDataMode, PipelineDefinition, PipelineNode, validate_pipeline_inputs};
 
 fn validate_non_empty_node_field(node_id: &str, field: &str, value: &str) -> Result<()> {
@@ -72,6 +73,7 @@ pub fn validate_pipeline(definition: &PipelineDefinition) -> Result<()> {
     }
 
     let mut node_ids = HashSet::with_capacity(definition.nodes.len());
+    let mut nodes_by_id = HashMap::with_capacity(definition.nodes.len());
     let mut session_refs = HashMap::new();
     for node in &definition.nodes {
         if !node_ids.insert(node.id()) {
@@ -83,13 +85,14 @@ pub fn validate_pipeline(definition: &PipelineDefinition) -> Result<()> {
 
         validate_unique_session_ref(node, &mut session_refs)?;
         validate_node_semantics(node)?;
+        nodes_by_id.insert(node.id(), node);
     }
 
     let mut edge_pairs = HashSet::with_capacity(definition.edges.len());
     for edge in &definition.edges {
         validate_edge_nodes_exist(edge, &node_ids)?;
         validate_conditional_edge(edge)?;
-        validate_edge_data_mode(edge)?;
+        validate_edge_data_mode(edge, &nodes_by_id)?;
 
         if !edge_pairs.insert((edge.source.as_str(), edge.target.as_str())) {
             return Err(MaenifoldError::InvalidArgument(format!(
@@ -176,7 +179,10 @@ fn validate_conditional_edge(edge: &super::PipelineEdge) -> Result<()> {
     Ok(())
 }
 
-fn validate_edge_data_mode(edge: &super::PipelineEdge) -> Result<()> {
+fn validate_edge_data_mode(
+    edge: &super::PipelineEdge,
+    nodes_by_id: &HashMap<&str, &PipelineNode>,
+) -> Result<()> {
     if edge.mode == EdgeDataMode::None
         && edge
             .mapping
@@ -190,10 +196,44 @@ fn validate_edge_data_mode(edge: &super::PipelineEdge) -> Result<()> {
     }
 
     if edge.mode == EdgeDataMode::Binding {
-        return Err(MaenifoldError::Message(format!(
-            "Binding edge requires declared schemas on both endpoints for edge '{} -> {}'",
-            edge.source, edge.target
-        )));
+        let source = nodes_by_id.get(edge.source.as_str()).ok_or_else(|| {
+            MaenifoldError::InvalidArgument(format!(
+                "Binding edge '{} -> {}' references unknown source node '{}'",
+                edge.source, edge.target, edge.source
+            ))
+        })?;
+        if source.output_schema().is_none() {
+            return Err(MaenifoldError::InvalidArgument(format!(
+                "Binding edge requires declared schemas on both endpoints for edge '{} -> {}': source node '{}' missing outputSchema",
+                edge.source, edge.target, edge.source
+            )));
+        }
+        let target = nodes_by_id.get(edge.target.as_str()).ok_or_else(|| {
+            MaenifoldError::InvalidArgument(format!(
+                "Binding edge '{} -> {}' references unknown target node '{}'",
+                edge.source, edge.target, edge.target
+            ))
+        })?;
+        let Some(input_schema) = target.input_schema() else {
+            return Err(MaenifoldError::InvalidArgument(format!(
+                "Binding edge requires declared schemas on both endpoints for edge '{} -> {}': target node '{}' missing inputSchema",
+                edge.source, edge.target, edge.target
+            )));
+        };
+        for target_path in edge
+            .mapping
+            .as_ref()
+            .into_iter()
+            .flatten()
+            .map(|(path, _)| path)
+        {
+            if !input_schema_has_path(input_schema, target_path) {
+                return Err(MaenifoldError::InvalidArgument(format!(
+                    "Binding edge '{} -> {}' target path '{}' is missing from target node '{}' inputSchema",
+                    edge.source, edge.target, target_path, edge.target
+                )));
+            }
+        }
     }
 
     Ok(())

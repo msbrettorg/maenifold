@@ -104,6 +104,7 @@ async fn tool_node_explicit_timeout_seconds_elapses_and_abandons_with_timeout_af
             output_tokens: None,
             model: None,
             output: None,
+            input_artifact: None,
             output_artifact: None,
             failure_reason: None,
             retry_after: None,

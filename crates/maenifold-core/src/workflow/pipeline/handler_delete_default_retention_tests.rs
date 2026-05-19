@@ -17,12 +17,12 @@ const TRASH_DATE: &str = "2025-01-01";
 
 #[rustfmt::skip]
 fn workflow_node(id: &str) -> PipelineNode {
-    PipelineNode::Workflow { id: id.to_string(), display_label: None, workflow_id: "test-workflow-a".to_string(), acp_client: Some(format!("agent-{id}")), prompt: None, cwd: None, timeout: None, agent_config: None, adopt: None, requires_role: None, retry_policy: None, join_policy: None, output_schema: None }
+    PipelineNode::Workflow { id: id.to_string(), display_label: None, workflow_id: "test-workflow-a".to_string(), acp_client: Some(format!("agent-{id}")), prompt: None, cwd: None, timeout: None, agent_config: None, adopt: None, requires_role: None, retry_policy: None, join_policy: None, input_schema: None, output_schema: None }
 }
 
 #[rustfmt::skip]
 fn node_state(node_id: &str) -> NodeState {
-    NodeState { session_id: format!("workflow-{TS}-{node_id}"), status: NodeStatus::Completed, attempts: 1, started_at: None, completed_at: None, acp_session_id: None, thinking_session_id: None, tool_provenance: None, input_tokens: None, output_tokens: None, model: None, output: None, output_artifact: None, failure_reason: None, retry_after: None, retry_count: None }
+    NodeState { session_id: format!("workflow-{TS}-{node_id}"), status: NodeStatus::Completed, attempts: 1, started_at: None, completed_at: None, acp_session_id: None, thinking_session_id: None, tool_provenance: None, input_tokens: None, output_tokens: None, model: None, output: None, input_artifact: None, output_artifact: None, failure_reason: None, retry_after: None, retry_count: None }
 }
 
 fn seed_pipeline(context: &crate::tools::ToolContext, session_id: &str) -> Vec<String> {

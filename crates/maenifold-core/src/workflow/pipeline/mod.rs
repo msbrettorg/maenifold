@@ -10,6 +10,8 @@ use crate::{
 };
 
 #[cfg(test)]
+mod acp_input_schema_tests;
+#[cfg(test)]
 mod acp_output_schema_tests;
 mod acp_reaper;
 #[cfg(test)]
@@ -67,9 +69,6 @@ mod failure_reason_scope_tests;
 mod failure_reason_scope_tests_cascade;
 #[cfg(test)]
 mod failure_reason_scope_tests_edge;
-#[cfg(test)]
-mod input_schema_tests;
-mod input_schema;
 mod handler;
 mod handler_crud;
 #[cfg(test)]
@@ -94,6 +93,10 @@ mod handler_validation;
 mod handler_wait;
 #[cfg(test)]
 mod handler_wait_tests;
+mod input_bindings;
+mod input_schema;
+#[cfg(test)]
+mod input_schema_tests;
 #[cfg(test)]
 mod integration_tests;
 #[cfg(test)]
@@ -153,13 +156,13 @@ pub use engine_status::{
     compute_pipeline_status, compute_pipeline_status_with_definition, compute_terminal_node_ids,
 };
 pub use executor::ExecutionResult;
-pub use input_schema::validate_pipeline_inputs;
 pub use executor_cleanup::{
     cancel_active_nodes, finalize_failed_pipeline_execution, recover_crashed_nodes,
 };
 pub(crate) use executor_run::persist_active_node_session;
 pub use handler::pipeline;
 pub(crate) use handler_wait::wait_for_pipeline_terminal;
+pub use input_schema::validate_pipeline_inputs;
 pub use lease::pipeline_lock_path;
 pub use quarantine::{
     QuarantineCleanupReport, RestoreReport, restore_pipeline_from_quarantine,

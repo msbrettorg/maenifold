@@ -60,6 +60,7 @@ pub(super) fn graft_pipeline(
             output_tokens: None,
             model: None,
             output: None,
+            input_artifact: None,
             output_artifact: None,
             failure_reason: None,
             retry_after: None,

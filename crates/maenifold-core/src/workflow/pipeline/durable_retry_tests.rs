@@ -33,6 +33,7 @@ fn retrying_workflow_node(id: &str, max_attempts: u32) -> PipelineNode {
             jitter: false,
         }),
         join_policy: None,
+        input_schema: None,
         output_schema: None,
     }
 }
@@ -51,6 +52,7 @@ fn active_node_state(session_id: &str) -> NodeState {
         output_tokens: None,
         model: None,
         output: None,
+        input_artifact: None,
         output_artifact: None,
         failure_reason: None,
         retry_after: None,

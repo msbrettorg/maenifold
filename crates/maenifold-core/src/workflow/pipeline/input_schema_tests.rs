@@ -10,9 +10,7 @@ use super::executor_helpers::DispatchedNode;
 use super::executor_nodes::build_node_execution_request;
 use super::handler_lifecycle::handle_lifecycle_operation;
 use super::test_support::{pipeline_test_context, seed_pipeline_session_with_node_sessions};
-use super::{
-    NodeState, NodeStatus, PipelineDefinition, PipelineNode, validate_pipeline,
-};
+use super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode, validate_pipeline};
 
 fn required_project_schema() -> serde_json::Value {
     json!({
@@ -57,6 +55,7 @@ fn pending_node_state(session_id: &str) -> NodeState {
         output_tokens: None,
         model: None,
         output: None,
+        input_artifact: None,
         output_artifact: None,
         failure_reason: None,
         retry_after: None,
@@ -93,7 +92,10 @@ fn assert_invalid_argument_names(error: MaenifoldError, expected: &[&str]) {
 
 #[test]
 fn input_schema_validates_at_definition_save() {
-    let def = definition_with_schema(Some(required_project_schema()), Some(serde_json::Map::new()));
+    let def = definition_with_schema(
+        Some(required_project_schema()),
+        Some(serde_json::Map::new()),
+    );
 
     let error = validate_pipeline(&def).expect_err("missing project_name must reject definition");
 
@@ -211,5 +213,6 @@ fn no_input_schema_means_no_validation() {
         )])),
     );
 
-    validate_pipeline(&def).expect("pipelines without input_schema keep accepting arbitrary inputs");
+    validate_pipeline(&def)
+        .expect("pipelines without input_schema keep accepting arbitrary inputs");
 }

@@ -31,6 +31,7 @@ fn prompt_node(id: &str) -> PipelineNode {
         retry_policy: None,
         session_ref: None,
         join_policy: None,
+        input_schema: None,
         output_schema: None,
     }
 }
@@ -53,6 +54,7 @@ fn thinking_node(id: &str) -> PipelineNode {
         requires_role: None,
         retry_policy: None,
         join_policy: None,
+        input_schema: None,
         output_schema: None,
     }
 }
@@ -71,6 +73,7 @@ fn state(node_id: &str, acp_session_id: &str) -> NodeState {
         output_tokens: None,
         model: None,
         output: None,
+        input_artifact: None,
         output_artifact: None,
         failure_reason: None,
         retry_after: None,

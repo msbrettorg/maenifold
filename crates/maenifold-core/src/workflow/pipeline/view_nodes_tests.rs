@@ -23,6 +23,7 @@ fn workflow_node(id: &str) -> PipelineNode {
         requires_role: None,
         retry_policy: None,
         join_policy: None,
+        input_schema: None,
         output_schema: None,
     }
 }
@@ -45,6 +46,7 @@ fn thinking_node(id: &str) -> PipelineNode {
         requires_role: None,
         retry_policy: None,
         join_policy: None,
+        input_schema: None,
         output_schema: None,
     }
 }
@@ -82,6 +84,7 @@ fn node_state(session_id: &str, status: NodeStatus) -> NodeState {
         output_tokens: None,
         model: None,
         output: None,
+        input_artifact: None,
         output_artifact: None,
         failure_reason: None,
         retry_after: None,

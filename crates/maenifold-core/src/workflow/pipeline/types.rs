@@ -192,6 +192,8 @@ pub struct NodeState {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input_artifact: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output_artifact: Option<Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub failure_reason: Option<String>,

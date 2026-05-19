@@ -47,6 +47,7 @@ fn build_node_execution_request_interpolates_sequential_thinking_topic() {
         requires_role: None,
         retry_policy: None,
         join_policy: None,
+        input_schema: None,
         output_schema: None,
     };
     let dispatch = DispatchedNode {

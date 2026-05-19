@@ -67,6 +67,7 @@ fn state(status: NodeStatus) -> NodeState {
         output_tokens: None,
         model: None,
         output: Some("kept".to_string()),
+        input_artifact: None,
         output_artifact: None,
         failure_reason: None,
         retry_after: None,

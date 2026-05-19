@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::types::{AgentConfig, JoinPolicy, NodeAdopt, PipelineNode, RetryPolicy, SessionRef};
+use super::types::{AgentConfig, JoinPolicy, NodeAdopt, PipelineNode, SessionRef};
+use types_wire_retry::parse_retry_policy;
 
 const EXPECTED_TYPES: &str = "workflow, prompt, sequentialThinking, tool";
 
@@ -87,6 +88,12 @@ pub(super) struct PipelineNodeWire {
     max_turns: Option<u32>,
     #[serde(
         default,
+        rename = "inputSchema",
+        skip_serializing_if = "Option::is_none"
+    )]
+    input_schema: Option<Value>,
+    #[serde(
+        default,
         rename = "outputSchema",
         skip_serializing_if = "Option::is_none"
     )]
@@ -160,6 +167,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 requires_role: wire.requires_role,
                 retry_policy,
                 join_policy,
+                input_schema: wire.input_schema,
                 output_schema: wire.output_schema,
             },
             "prompt" => {
@@ -192,6 +200,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                     retry_policy,
                     session_ref: wire.session_ref,
                     join_policy,
+                    input_schema: wire.input_schema,
                     output_schema: wire.output_schema,
                 }
             }
@@ -212,6 +221,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 requires_role: wire.requires_role,
                 retry_policy,
                 join_policy,
+                input_schema: wire.input_schema,
                 output_schema: wire.output_schema,
             },
             "tool" => Self::Tool {
@@ -238,46 +248,6 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
         })
     }
 }
-fn parse_retry_policy(
-    wire: &PipelineNodeWire,
-    node_id: &str,
-) -> Result<Option<RetryPolicy>, String> {
-    let has_retry_field = wire.retry_max_attempts.is_some()
-        || wire.retry_backoff_min_ms.is_some()
-        || wire.retry_backoff_max_ms.is_some()
-        || wire.retry_jitter.is_some();
-
-    if !has_retry_field {
-        return Ok(None);
-    }
-
-    let max_attempts = wire.retry_max_attempts.ok_or_else(|| {
-        format!("Node '{node_id}': retryMaxAttempts is required when retry fields are present")
-    })?;
-    let backoff_min_ms = wire.retry_backoff_min_ms.ok_or_else(|| {
-        format!("Node '{node_id}': retryBackoffMinMs is required when retry fields are present")
-    })?;
-    let backoff_max_ms = wire.retry_backoff_max_ms.ok_or_else(|| {
-        format!("Node '{node_id}': retryBackoffMaxMs is required when retry fields are present")
-    })?;
-    let jitter = wire.retry_jitter.ok_or_else(|| {
-        format!("Node '{node_id}': retryJitter is required when retry fields are present")
-    })?;
-
-    if backoff_min_ms > backoff_max_ms {
-        return Err(format!(
-            "Node '{node_id}': retryBackoffMinMs ({backoff_min_ms}) must be <= retryBackoffMaxMs ({backoff_max_ms})"
-        ));
-    }
-
-    Ok(Some(RetryPolicy {
-        max_attempts,
-        backoff_min_ms,
-        backoff_max_ms,
-        jitter,
-    }))
-}
-
 pub(super) fn default_prompt_tool_mode() -> String {
     "disabled".to_string()
 }
@@ -306,3 +276,6 @@ mod tests;
 #[cfg(test)]
 #[path = "types_wire_edge_tests.rs"]
 mod edge_tests;
+
+#[path = "types_wire_retry.rs"]
+mod types_wire_retry;

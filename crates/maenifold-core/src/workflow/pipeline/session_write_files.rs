@@ -7,8 +7,8 @@ use serde_yml::Value as YamlValue;
 use std::collections::BTreeMap;
 use std::fs;
 
-use super::{PipelineDefinition, validate_pipeline_inputs};
 use super::resource_notifications::emit_pipeline_resource_updated;
+use super::{PipelineDefinition, validate_pipeline_inputs};
 
 #[cfg(test)]
 pub(super) use super::session_delete_files::delete_file_verified_with;

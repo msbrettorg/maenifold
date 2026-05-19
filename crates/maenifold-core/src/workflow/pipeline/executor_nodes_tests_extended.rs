@@ -45,6 +45,7 @@ fn build_node_execution_request_leaves_resume_session_id_unset_without_prompt_se
         requires_role: None,
         retry_policy: None,
         join_policy: None,
+        input_schema: None,
         output_schema: None,
         session_ref: None,
     };
@@ -105,6 +106,7 @@ fn build_node_execution_request_does_not_set_resume_session_id_for_non_prompt_no
         requires_role: None,
         retry_policy: None,
         join_policy: None,
+        input_schema: None,
         output_schema: None,
     };
     let dispatch = DispatchedNode {

@@ -12,6 +12,9 @@ use super::executor_helpers::{
     DispatchedNode, assemble_prompt_from_parts, predecessor_context_content,
 };
 use super::executor_nodes_cwd::resolve_node_cwd;
+use super::input_bindings::{
+    render_runtime_inputs_envelope, resolve_input_bindings, validate_input_bindings,
+};
 use super::mapping_resolve::interpolate_string;
 use super::types::{AgentConfig, NodeAdopt};
 use super::{NodeState, PipelineDefinition};
@@ -34,12 +37,28 @@ pub(super) fn resolve_execution_prompt(
         .filter(|value| !value.is_empty())
         .map(|value| interpolate_string(value, scope))
         .transpose()?;
-    Ok(assemble_prompt_from_parts(
+    let mut prompt = assemble_prompt_from_parts(
         predecessor_context.as_deref(),
         &ambient_prompt,
         node_instruction.as_deref(),
         workflow_fallback,
-    ))
+    );
+    let Some(node) = definition.nodes.iter().find(|node| node.id() == node_id) else {
+        return Ok(prompt);
+    };
+    if let Some(schema) = node.input_schema() {
+        let inputs = resolve_input_bindings(definition, node_states, node_id)?;
+        validate_input_bindings(node_id, schema, &inputs)?;
+        if !inputs.is_empty() {
+            let envelope = render_runtime_inputs_envelope(&inputs)?;
+            prompt = [prompt, envelope]
+                .into_iter()
+                .filter(|part| !part.trim().is_empty())
+                .collect::<Vec<_>>()
+                .join("\n\n");
+        }
+    }
+    Ok(prompt)
 }
 
 pub(super) fn node_session_id(

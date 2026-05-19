@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","id":4,"result":{"content":[{"type":"text","text":"Error invoking Pipeline: ERROR: Node 'summarize-outcome' must be active to transition to completed; current status is Pending"}],"isError":true}}

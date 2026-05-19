@@ -16,6 +16,7 @@ use super::session_io::{
 use super::types::ToolProvenance;
 use super::update_context::inject_predecessor_context;
 use super::view::build_pipeline_view_result;
+use super::PipelineNode;
 
 const ACP_OUTPUT_SCHEMA_FAILURE: &str =
     "ACP node did not produce valid structured output matching output_schema after 1 repair turn";
@@ -35,6 +36,37 @@ fn validate_structured_output(conclusion: &str, schema: &JsonValue) -> Result<Js
         )));
     }
     Ok(value)
+}
+
+fn validate_tool_structured_output(conclusion: &str, schema: &JsonValue) -> Result<JsonValue> {
+    if schema_declares_data_string(schema) {
+        let value = serde_json::json!({ "data": conclusion });
+        validate_json_value_against_schema(value, schema)
+    } else {
+        validate_structured_output(conclusion, schema)
+    }
+}
+
+fn validate_json_value_against_schema(value: JsonValue, schema: &JsonValue) -> Result<JsonValue> {
+    let validator = jsonschema::validator_for(schema).map_err(|error| {
+        MaenifoldError::InvalidArgument(format!("complete_node validation schema error: {error}"))
+    })?;
+    if let Err(error) = validator.validate(&value) {
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "complete_node validation failed: {error}"
+        )));
+    }
+    Ok(value)
+}
+
+fn schema_declares_data_string(schema: &JsonValue) -> bool {
+    schema
+        .get("properties")
+        .and_then(JsonValue::as_object)
+        .and_then(|properties| properties.get("data"))
+        .and_then(|data| data.get("type"))
+        .and_then(JsonValue::as_str)
+        == Some("string")
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -129,7 +161,12 @@ pub(super) fn update_pipeline_node_status(
                     )
                 })?;
             let output_artifact = if let Some(schema) = output_schema.as_ref() {
-                match validate_structured_output(conclusion, schema) {
+                let validation = if matches!(current_node, PipelineNode::Tool { .. }) {
+                    validate_tool_structured_output(conclusion, schema)
+                } else {
+                    validate_structured_output(conclusion, schema)
+                };
+                match validation {
                     Ok(value) => Some(value),
                     Err(reason) => {
                         return reject_invalid_structured_output(

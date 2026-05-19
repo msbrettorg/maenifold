@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use petgraph::stable_graph::StableGraph;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 
@@ -74,7 +74,9 @@ impl PipelineDefinition {
             self.nodes.iter().map(|node| (node.id(), node)).collect();
 
         for edge in &mut self.edges {
-            if edge.mapping.as_ref().is_none_or(HashMap::is_empty) {
+            if edge.mode != EdgeDataMode::Context
+                || edge.mapping.as_ref().is_none_or(HashMap::is_empty)
+            {
                 continue;
             }
 
@@ -124,7 +126,7 @@ pub enum EdgeDataMode {
     None,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PipelineEdge {
     pub source: String,
@@ -135,6 +137,50 @@ pub struct PipelineEdge {
     pub mode: EdgeDataMode,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mapping: Option<HashMap<String, String>>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PipelineEdgeWire {
+    source: String,
+    target: String,
+    #[serde(default, flatten)]
+    edge_type: EdgeType,
+    #[serde(default)]
+    mode: EdgeDataMode,
+    #[serde(default)]
+    mapping: Option<HashMap<String, String>>,
+    #[serde(default)]
+    bindings: Option<Vec<PipelineEdgeBindingWire>>,
+}
+
+#[derive(Deserialize)]
+struct PipelineEdgeBindingWire {
+    from: String,
+    to: String,
+}
+
+impl<'de> Deserialize<'de> for PipelineEdge {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let wire = PipelineEdgeWire::deserialize(deserializer)?;
+        let mut mapping = wire.mapping.unwrap_or_default();
+        if let Some(bindings) = wire.bindings {
+            for binding in bindings {
+                mapping.entry(binding.to).or_insert(binding.from);
+            }
+        }
+
+        Ok(Self {
+            source: wire.source,
+            target: wire.target,
+            edge_type: wire.edge_type,
+            mode: wire.mode,
+            mapping: (!mapping.is_empty()).then_some(mapping),
+        })
+    }
 }
 
 /// Edge predicate determining whether a downstream node may run.

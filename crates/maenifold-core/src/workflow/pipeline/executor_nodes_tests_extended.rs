@@ -164,6 +164,8 @@ fn timeout_seconds_is_extracted_from_tool_node() {
         agent_config: None,
         retry_policy: None,
         join_policy: None,
+        input_schema: None,
+        output_schema: None,
     };
     let dispatch = DispatchedNode {
         node_id: node.id().to_string(),

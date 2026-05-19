@@ -35,11 +35,46 @@ fn tool_node_serialization_emits_timeout() {
         agent_config: None,
         retry_policy: None,
         join_policy: None,
+        input_schema: None,
+        output_schema: None,
     };
 
     let value = serde_json::to_value(node).expect("serialize tool node");
 
     assert_eq!(value["timeout"], json!(21));
+}
+
+#[test]
+fn tool_node_round_trips_input_and_output_schema() {
+    let node: PipelineNode = serde_json::from_value(json!({
+        "id": "tool",
+        "type": "tool",
+        "toolName": "GatewayExecute",
+        "inputSchema": { "type": "object", "properties": { "command": { "type": "string" } } },
+        "outputSchema": { "type": "object", "properties": { "data": { "type": "string" } } }
+    }))
+    .expect("deserialize tool node with schemas");
+
+    match &node {
+        PipelineNode::Tool {
+            input_schema,
+            output_schema,
+            ..
+        } => {
+            assert_eq!(input_schema.as_ref().and_then(|v| v.get("type")), Some(&json!("object")));
+            assert_eq!(
+                output_schema
+                    .as_ref()
+                    .and_then(|v| v.pointer("/properties/data/type")),
+                Some(&json!("string"))
+            );
+        }
+        other => panic!("expected tool node, got {other:?}"),
+    }
+
+    let value = serde_json::to_value(node).expect("serialize tool node");
+    assert_eq!(value["inputSchema"]["type"], json!("object"));
+    assert_eq!(value["outputSchema"]["properties"]["data"]["type"], json!("string"));
 }
 
 #[test]

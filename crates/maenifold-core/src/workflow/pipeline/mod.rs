@@ -141,6 +141,8 @@ mod test_support;
 mod types;
 #[cfg(test)]
 mod types_edge_mode_tests;
+#[cfg(test)]
+mod typed_handoff_tool_tests;
 mod types_node;
 mod types_wire;
 mod update;

@@ -22,6 +22,8 @@ fn tool_node(id: &str) -> PipelineNode {
         agent_config: None,
         retry_policy: None,
         join_policy: None,
+        input_schema: None,
+        output_schema: None,
     }
 }
 
@@ -214,6 +216,47 @@ fn validation_context_mode_default_for_existing_pipelines_passes() {
             serde_json::from_value(fixture).expect("fixture should deserialize");
         validate_pipeline(&definition).expect("must pass");
     }
+}
+
+#[test]
+fn binding_array_deserializes_to_mapping_and_serializes_canonical() {
+    let edge: PipelineEdge = serde_json::from_value(json!({
+        "source": "source",
+        "target": "target",
+        "type": "success",
+        "mode": "binding",
+        "bindings": [{ "from": "x", "to": "inputs.y" }]
+    }))
+    .expect("edge should deserialize");
+
+    assert_eq!(
+        edge.mapping,
+        Some(HashMap::from([("inputs.y".to_string(), "x".to_string())]))
+    );
+    let serialized = serde_json::to_value(edge).expect("edge should serialize");
+    assert!(serialized.get("bindings").is_none());
+    assert_eq!(serialized["mapping"]["inputs.y"], json!("x"));
+}
+
+#[test]
+fn binding_array_merges_without_overwriting_mapping() {
+    let edge: PipelineEdge = serde_json::from_value(json!({
+        "source": "source",
+        "target": "target",
+        "type": "success",
+        "mode": "binding",
+        "mapping": { "inputs.y": "explicit", "inputs.z": "z" },
+        "bindings": [
+            { "from": "array", "to": "inputs.y" },
+            { "from": "new", "to": "inputs.new" }
+        ]
+    }))
+    .expect("edge should deserialize");
+
+    let mapping = edge.mapping.expect("mapping");
+    assert_eq!(mapping.get("inputs.y"), Some(&"explicit".to_string()));
+    assert_eq!(mapping.get("inputs.z"), Some(&"z".to_string()));
+    assert_eq!(mapping.get("inputs.new"), Some(&"new".to_string()));
 }
 
 #[test]

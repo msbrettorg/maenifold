@@ -1,0 +1,106 @@
+[
+  {
+    "name": "open-pipelines",
+    "value": "Pipelines"
+  },
+  {
+    "name": "open-flyout",
+    "value": "Browse existing pipelines"
+  },
+  {
+    "name": "select-uat",
+    "value": "typed-handoff-uat\nTool-rooted typed-handoff UAT\n0/4 nodes\nLast run: —"
+  },
+  {
+    "name": "after-select",
+    "value": "maenifold\nHome\nAgents\nPipelines\nGate\nKnowledge\nWorkflows\nSchedules\nSettings\nPipeline\ntyped-handoff-uat-1779202380104\n↔ Layout LR\n↕ Layout TB\nDesign\nRun\nDelete\nactive\nMemory status root\ntool\nGatewayExecute\nTool: GatewayExecute\nInspect memory status\nprompt\nprompt: Inspect runtime_inputs.memory_status...\ncopilot\nmodel: gpt-5.5\nInspect runtime_inputs.memory_status_text — it contains the MemoryStatus report. Call complete_node with output_artifact...\nDispatch workflow-dispatch\nworkflow\nwf: workflow-d"
+  },
+  {
+    "name": "select-memory-status",
+    "value": "clicked"
+  },
+  {
+    "name": "edit-memory-status",
+    "value": "Edit…"
+  },
+  {
+    "name": "schema-fields-memory-status",
+    "value": "{\"hasInput\":true,\"hasOutput\":true,\"text\":\"maenifold\\nHome\\nAgents\\nPipelines\\nGate\\nKnowledge\\nWorkflows\\nSchedules\\nSettings\\nPipeline\\ntyped-handoff-uat-1779202380104\\n↔ Layout LR\\n↕ Layout TB\\nDesign\\nRun\\nDelete\\nactive\\nMemory status root\\ntool\\nGatewayExecute\\nTool: GatewayExecute\\nInspect memory status\\nprompt\\nprompt: Inspect runtime_inputs.memory_status...\\ncopilot\\nmodel: gpt-5.5\\nInspect runtime_inputs.memory_status_text — it contains the MemoryStatus report. Call complete_node with output_artifact...\\nDispatch workflow-dispatch\\nworkflow\\nwf: workflow-dispatch\\nworkflow: workflow-dispatch\\ncopilot\\nruntime_inputs.summary and runtime_inputs.verdict carry the upstream signal. Run workflow-dispatch on this short problem...\\nSummarize workflow outcome\\nsequential thinking\\nthink: Summarize the workflow outcome in one...\\ncopilot\\nmodel: gpt-5.5\\ntopic: Summarize the workflow outcome in one sentence and emit complete_node with output_artifact = {\\\"final_summary\\\": <sentence>}.\\nThought 0 of 2\\nRunner\\nactive — 0/4 completed — Active: none\\nNode inspector\\n\\nInspect or configure the selected pipeline node.\\n\\nMemory status root\\nLabel\\nID\\nType\\nTool\\nTool name\\n*\\nAgent\\nNone\\nTool arguments\\n\\nJSON object passed to the tool.\\n\\nInput schema\\n\\nJSON object schema. Leave blank for none.\\n\\nOutput schema\\n\\nJSON object schema. Leave blank for none.\\n\\nWorking directory\"}"
+  },
+  {
+    "name": "close-memory-status",
+    "value": "missing"
+  },
+  {
+    "name": "select-inspect-memory",
+    "value": "clicked"
+  },
+  {
+    "name": "edit-inspect-memory",
+    "value": "Edit…"
+  },
+  {
+    "name": "schema-fields-inspect-memory",
+    "value": "{\"hasInput\":true,\"hasOutput\":true,\"text\":\"maenifold\\nHome\\nAgents\\nPipelines\\nGate\\nKnowledge\\nWorkflows\\nSchedules\\nSettings\\nPipeline\\ntyped-handoff-uat-1779202380104\\n↔ Layout LR\\n↕ Layout TB\\nDesign\\nRun\\nDelete\\nactive\\nMemory status root\\ntool\\nGatewayExecute\\nTool: GatewayExecute\\nInspect memory status\\nprompt\\nprompt: Inspect runtime_inputs.memory_status...\\ncopilot\\nmodel: gpt-5.5\\nInspect runtime_inputs.memory_status_text — it contains the MemoryStatus report. Call complete_node with output_artifact...\\nDispatch workflow-dispatch\\nworkflow\\nwf: workflow-dispatch\\nworkflow: workflow-dispatch\\ncopilot\\nruntime_inputs.summary and runtime_inputs.verdict carry the upstream signal. Run workflow-dispatch on this short problem...\\nSummarize workflow outcome\\nsequential thinking\\nthink: Summarize the workflow outcome in one...\\ncopilot\\nmodel: gpt-5.5\\ntopic: Summarize the workflow outcome in one sentence and emit complete_node with output_artifact = {\\\"final_summary\\\": <sentence>}.\\nThought 0 of 2\\nRunner\\nactive — 0/4 completed — Active: none\\nNode inspector\\n\\nInspect or configure the selected pipeline node.\\n\\nInspect memory status\\nLabel\\nID\\nType\\nPrompt\\nAdvanced JSON\\nAgent *\\nmust be equal to one of the allowed values\\nPrompt template *\\nInput schema\\nOutput schema\\nSession reference\\nSession agent *\\nSession ID *\\nAdopt configuration\\nApply role, color, and perspective before node dispatch.\\nRole\\nNone\\nColor\\nNone\\nPerspective\\nNone\\nRequires role\\nNone\\nWorking directory\"}"
+  },
+  {
+    "name": "close-inspect-memory",
+    "value": "missing"
+  },
+  {
+    "name": "select-dispatch-workflow",
+    "value": "clicked"
+  },
+  {
+    "name": "edit-dispatch-workflow",
+    "value": "Edit…"
+  },
+  {
+    "name": "schema-fields-dispatch-workflow",
+    "value": "{\"hasInput\":true,\"hasOutput\":true,\"text\":\"maenifold\\nHome\\nAgents\\nPipelines\\nGate\\nKnowledge\\nWorkflows\\nSchedules\\nSettings\\nPipeline\\ntyped-handoff-uat-1779202380104\\n↔ Layout LR\\n↕ Layout TB\\nDesign\\nRun\\nDelete\\nactive\\nMemory status root\\ntool\\nGatewayExecute\\nTool: GatewayExecute\\nInspect memory status\\nprompt\\nprompt: Inspect runtime_inputs.memory_status...\\ncopilot\\nmodel: gpt-5.5\\nInspect runtime_inputs.memory_status_text — it contains the MemoryStatus report. Call complete_node with output_artifact...\\nDispatch workflow-dispatch\\nworkflow\\nwf: workflow-dispatch\\nworkflow: workflow-dispatch\\ncopilot\\nruntime_inputs.summary and runtime_inputs.verdict carry the upstream signal. Run workflow-dispatch on this short problem...\\nSummarize workflow outcome\\nsequential thinking\\nthink: Summarize the workflow outcome in one...\\ncopilot\\nmodel: gpt-5.5\\ntopic: Summarize the workflow outcome in one sentence and emit complete_node with output_artifact = {\\\"final_summary\\\": <sentence>}.\\nThought 0 of 2\\nRunner\\nactive — 0/4 completed — Active: none\\nNode inspector\\n\\nInspect or configure the selected pipeline node.\\n\\nDispatch workflow-dispatch\\nLabel\\nID\\nType\\nWorkflow\\nWorkflow ID\\n*\\nworkflow-dispatch\\nACP client\\nSelect acp client\\nPrompt\\nInput schema\\n\\nJSON object schema. Leave blank for none.\\n\\nOutput schema\\n\\nJSON object schema. Leave blank for none.\\n\\nAdopt configuration\\nApply role, color, and perspective before node dispatch.\\nRole\\nNone\\nColor\\nNone\\nPerspective\\nNone\\nRequires role\\nNone\\nWorking directory\"}"
+  },
+  {
+    "name": "close-dispatch-workflow",
+    "value": "missing"
+  },
+  {
+    "name": "select-summarize-outcome",
+    "value": "clicked"
+  },
+  {
+    "name": "edit-summarize-outcome",
+    "value": "Edit…"
+  },
+  {
+    "name": "schema-fields-summarize-outcome",
+    "value": "{\"hasInput\":true,\"hasOutput\":true,\"text\":\"maenifold\\nHome\\nAgents\\nPipelines\\nGate\\nKnowledge\\nWorkflows\\nSchedules\\nSettings\\nPipeline\\ntyped-handoff-uat-1779202380104\\n↔ Layout LR\\n↕ Layout TB\\nDesign\\nRun\\nDelete\\nactive\\nMemory status root\\ntool\\nGatewayExecute\\nTool: GatewayExecute\\nInspect memory status\\nprompt\\nprompt: Inspect runtime_inputs.memory_status...\\ncopilot\\nmodel: gpt-5.5\\nInspect runtime_inputs.memory_status_text — it contains the MemoryStatus report. Call complete_node with output_artifact...\\nDispatch workflow-dispatch\\nworkflow\\nwf: workflow-dispatch\\nworkflow: workflow-dispatch\\ncopilot\\nruntime_inputs.summary and runtime_inputs.verdict carry the upstream signal. Run workflow-dispatch on this short problem...\\nSummarize workflow outcome\\nsequential thinking\\nthink: Summarize the workflow outcome in one...\\ncopilot\\nmodel: gpt-5.5\\ntopic: Summarize the workflow outcome in one sentence and emit complete_node with output_artifact = {\\\"final_summary\\\": <sentence>}.\\nThought 0 of 2\\nRunner\\nactive — 0/4 completed — Active: none\\nNode inspector\\n\\nInspect or configure the selected pipeline node.\\n\\nSummarize workflow outcome\\nLabel\\nID\\nType\\nSequential thinking\\nTopic\\n*\\nAgent\\n*\\nSelect agent\\nTotal thoughts\\nAnalysis type\\nInput schema\\n\\nJSON object schema. Leave blank for none.\\n\\nOutput schema\\n\\nJSON object schema. Leave blank for none.\\n\\nAdopt configuration\\nApply role, color, and perspective before node dispatch.\\nRole\\nNone\\nColor\\nNone\\nPerspective\\nNone\\nRequires role\\nNone\\nWorking directory\"}"
+  },
+  {
+    "name": "close-summarize-outcome",
+    "value": "missing"
+  },
+  {
+    "name": "select-edge-memory-status->inspect-memory",
+    "value": "clicked"
+  },
+  {
+    "name": "edge-memory-status->inspect-memory",
+    "value": "{\"hasBinding\":false,\"text\":\"maenifold\\nHome\\nAgents\\nPipelines\\nGate\\nKnowledge\\nWorkflows\\nSchedules\\nSettings\\nPipeline\\ntyped-handoff-uat-1779202380104\\n↔ Layout LR\\n↕ Layout TB\\nDesign\\nRun\\nDelete\\nactive\\nMemory status root\\ntool\\nGatewayExecute\\nTool: GatewayExecute\\nInspect memory status\\nprompt\\nprompt: Inspect runtime_inputs.memory_status...\\ncopilot\\nmodel: gpt-5.5\\nInspect runtime_inputs.memory_status_text — it contains the MemoryStatus report. Call complete_node with output_artifact...\\nDispatch workflow-dispatch\\nworkflow\\nwf: workflow-dispatch\\nworkflow: workflow-dispatch\\ncopilot\\nruntime_inputs.summary and runtime_inputs.verdict carry the upstream signal. Run workflow-dispatch on this short problem...\\nSummarize workflow outcome\\nsequential thinking\\nthink: Summarize the workflow outcome in one...\\ncopilot\\nmodel: gpt-5.5\\ntopic: Summarize the workflow outcome in one sentence and emit complete_node with output_artifact = {\\\"final_summary\\\": <sentence>}.\\nThought 0 of 2\\nRunner\\nactive — 0/4 completed — Active: none\"}"
+  },
+  {
+    "name": "select-edge-inspect-memory->dispatch-workflow",
+    "value": "clicked"
+  },
+  {
+    "name": "edge-inspect-memory->dispatch-workflow",
+    "value": "{\"hasBinding\":false,\"text\":\"maenifold\\nHome\\nAgents\\nPipelines\\nGate\\nKnowledge\\nWorkflows\\nSchedules\\nSettings\\nPipeline\\ntyped-handoff-uat-1779202380104\\n↔ Layout LR\\n↕ Layout TB\\nDesign\\nRun\\nDelete\\nactive\\nMemory status root\\ntool\\nGatewayExecute\\nTool: GatewayExecute\\nInspect memory status\\nprompt\\nprompt: Inspect runtime_inputs.memory_status...\\ncopilot\\nmodel: gpt-5.5\\nInspect runtime_inputs.memory_status_text — it contains the MemoryStatus report. Call complete_node with output_artifact...\\nDispatch workflow-dispatch\\nworkflow\\nwf: workflow-dispatch\\nworkflow: workflow-dispatch\\ncopilot\\nruntime_inputs.summary and runtime_inputs.verdict carry the upstream signal. Run workflow-dispatch on this short problem...\\nSummarize workflow outcome\\nsequential thinking\\nthink: Summarize the workflow outcome in one...\\ncopilot\\nmodel: gpt-5.5\\ntopic: Summarize the workflow outcome in one sentence and emit complete_node with output_artifact = {\\\"final_summary\\\": <sentence>}.\\nThought 0 of 2\\nRunner\\nactive — 0/4 completed — Active: none\"}"
+  },
+  {
+    "name": "select-edge-dispatch-workflow->summarize-outcome",
+    "value": "clicked"
+  },
+  {
+    "name": "edge-dispatch-workflow->summarize-outcome",
+    "value": "{\"hasBinding\":false,\"text\":\"maenifold\\nHome\\nAgents\\nPipelines\\nGate\\nKnowledge\\nWorkflows\\nSchedules\\nSettings\\nPipeline\\ntyped-handoff-uat-1779202380104\\n↔ Layout LR\\n↕ Layout TB\\nDesign\\nRun\\nDelete\\nactive\\nMemory status root\\ntool\\nGatewayExecute\\nTool: GatewayExecute\\nInspect memory status\\nprompt\\nprompt: Inspect runtime_inputs.memory_status...\\ncopilot\\nmodel: gpt-5.5\\nInspect runtime_inputs.memory_status_text — it contains the MemoryStatus report. Call complete_node with output_artifact...\\nDispatch workflow-dispatch\\nworkflow\\nwf: workflow-dispatch\\nworkflow: workflow-dispatch\\ncopilot\\nruntime_inputs.summary and runtime_inputs.verdict carry the upstream signal. Run workflow-dispatch on this short problem...\\nSummarize workflow outcome\\nsequential thinking\\nthink: Summarize the workflow outcome in one...\\ncopilot\\nmodel: gpt-5.5\\ntopic: Summarize the workflow outcome in one sentence and emit complete_node with output_artifact = {\\\"final_summary\\\": <sentence>}.\\nThought 0 of 2\\nRunner\\nactive — 0/4 completed — Active: none\"}"
+  }
+]

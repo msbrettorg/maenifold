@@ -1,0 +1,8 @@
+{
+  "clicked": false,
+  "body": "maenifold\nHome\nAgents\nPipelines\nGate\nKnowledge\nWorkflows\nSchedules\nSettings\nBrowse existing pipelines\nWhat would you like to do?\n\nPress Enter to start designing your pipeline.\n\nOr choose a template\nResearch & Verify\nInvestigate a topic using the scientific method, then peer-review the findings.\nThink & Critique\nDeeply reason through a problem, then critically evaluate the reasoning.\nDraft & Refine\nDraft a response, stress-test it via falsification, then revise.\nExplore & Synthesize\nRun agentic research, then synthesize findings through critical analysis.",
+  "hasPipelineList": false,
+  "hasBinding": false,
+  "hasCompleted4": false,
+  "url": "file:///Users/brett/src/ma-collective/maenifold-rs/apps/desktop/out/maenifold-darwin-arm64/maenifold.app/Contents/Resources/app.asar/dist/index.html"
+}

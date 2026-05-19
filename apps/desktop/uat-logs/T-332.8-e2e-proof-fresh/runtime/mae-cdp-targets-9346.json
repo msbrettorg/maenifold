@@ -1,0 +1,17 @@
+[ {
+   "description": "",
+   "devtoolsFrontendUrl": "https://chrome-devtools-frontend.appspot.com/serve_rev/@cd86888bf4060607340fb173e94a5e87dd051e54/inspector.html?ws=127.0.0.1:9346/devtools/page/B173D56D8C84AE5FFAF3E9042B97E439",
+   "id": "B173D56D8C84AE5FFAF3E9042B97E439",
+   "title": "maenifold",
+   "type": "page",
+   "url": "file:///Users/brett/src/ma-collective/maenifold-rs/apps/desktop/out/maenifold-darwin-arm64/maenifold.app/Contents/Resources/app.asar/dist/index.html",
+   "webSocketDebuggerUrl": "ws://127.0.0.1:9346/devtools/page/B173D56D8C84AE5FFAF3E9042B97E439"
+}, {
+   "description": "",
+   "devtoolsFrontendUrl": "https://chrome-devtools-frontend.appspot.com/serve_rev/@cd86888bf4060607340fb173e94a5e87dd051e54/inspector.html?ws=127.0.0.1:9346/devtools/page/A21CF54AB18FA5AE1B3DAA52CAA397BF",
+   "id": "A21CF54AB18FA5AE1B3DAA52CAA397BF",
+   "title": "",
+   "type": "worker",
+   "url": "",
+   "webSocketDebuggerUrl": "ws://127.0.0.1:9346/devtools/page/A21CF54AB18FA5AE1B3DAA52CAA397BF"
+} ]

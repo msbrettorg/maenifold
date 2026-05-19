@@ -40,6 +40,8 @@ fn make_tool_node(id: &str) -> PipelineNode {
         thought_level: None,
         retry_policy: None,
         join_policy: None,
+        input_schema: None,
+        output_schema: None,
     }
 }
 

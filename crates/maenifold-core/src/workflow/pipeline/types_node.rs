@@ -87,6 +87,8 @@ pub enum PipelineNode {
         agent_config: Option<AgentConfig>,
         retry_policy: Option<RetryPolicy>,
         join_policy: Option<JoinPolicy>,
+        input_schema: Option<Value>,
+        output_schema: Option<Value>,
     },
 }
 
@@ -149,8 +151,8 @@ impl PipelineNode {
         match self {
             Self::Workflow { output_schema, .. }
             | Self::Prompt { output_schema, .. }
-            | Self::SequentialThinking { output_schema, .. } => output_schema.as_ref(),
-            Self::Tool { .. } => None,
+            | Self::SequentialThinking { output_schema, .. }
+            | Self::Tool { output_schema, .. } => output_schema.as_ref(),
         }
     }
 
@@ -158,8 +160,8 @@ impl PipelineNode {
         match self {
             Self::Workflow { input_schema, .. }
             | Self::Prompt { input_schema, .. }
-            | Self::SequentialThinking { input_schema, .. } => input_schema.as_ref(),
-            Self::Tool { .. } => None,
+            | Self::SequentialThinking { input_schema, .. }
+            | Self::Tool { input_schema, .. } => input_schema.as_ref(),
         }
     }
 

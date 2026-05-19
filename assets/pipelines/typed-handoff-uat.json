@@ -1,0 +1,163 @@
+{
+  "nodes": [
+    {
+      "id": "memory-status",
+      "type": "tool",
+      "displayLabel": "Memory status root",
+      "toolName": "GatewayExecute",
+      "toolArgs": {
+        "domain": "maenifold.system",
+        "command": "MemoryStatus",
+        "parameters": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "id": "inspect-memory",
+      "type": "prompt",
+      "displayLabel": "Inspect memory status",
+      "agent": "Copilot",
+      "model": "gpt-5.5",
+      "prompt": "Read runtime_inputs.memory_status_text. Return only this JSON object, with no markdown: {\"summary\": \"Memory status reports more than 100 files.\", \"verdict\": \"healthy\"}",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "memory_status_text"
+        ],
+        "properties": {
+          "memory_status_text": {
+            "type": "string"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "required": [
+          "summary",
+          "verdict"
+        ],
+        "properties": {
+          "summary": {
+            "type": "string"
+          },
+          "verdict": {
+            "enum": [
+              "healthy",
+              "degraded"
+            ]
+          }
+        }
+      },
+      "toolMode": "auto"
+    },
+    {
+      "id": "dispatch-workflow",
+      "type": "workflow",
+      "displayLabel": "Dispatch workflow-dispatch",
+      "workflowId": "workflow-dispatch",
+      "acpClient": "Copilot",
+      "prompt": "Read runtime_inputs.summary and runtime_inputs.verdict. Return only this JSON object, with no markdown: {\"workflow_summary\": \"The workflow-dispatch handoff received a healthy memory status summary.\"}",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "summary",
+          "verdict"
+        ],
+        "properties": {
+          "summary": {
+            "type": "string"
+          },
+          "verdict": {
+            "enum": [
+              "healthy",
+              "degraded"
+            ]
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "required": [
+          "workflow_summary"
+        ],
+        "properties": {
+          "workflow_summary": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "id": "summarize-outcome",
+      "type": "sequentialThinking",
+      "displayLabel": "Summarize workflow outcome",
+      "agent": "Copilot",
+      "model": "gpt-5.5",
+      "topic": "Read runtime_inputs.workflow_summary. Return only this JSON object, with no markdown: {\"final_summary\": \"Typed handoff propagated the tool result through prompt, workflow, and sequential thinking nodes.\"}",
+      "totalThoughts": 2,
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "workflow_summary"
+        ],
+        "properties": {
+          "workflow_summary": {
+            "type": "string"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "required": [
+          "final_summary"
+        ],
+        "properties": {
+          "final_summary": {
+            "type": "string"
+          }
+        }
+      },
+      "toolMode": "auto"
+    }
+  ],
+  "edges": [
+    {
+      "source": "memory-status",
+      "target": "inspect-memory",
+      "type": "success",
+      "mode": "binding",
+      "mapping": {
+        "inputs.memory_status_text": "data"
+      }
+    },
+    {
+      "source": "inspect-memory",
+      "target": "dispatch-workflow",
+      "type": "success",
+      "mode": "binding",
+      "mapping": {
+        "inputs.summary": "summary",
+        "inputs.verdict": "verdict"
+      }
+    },
+    {
+      "source": "dispatch-workflow",
+      "target": "summarize-outcome",
+      "type": "success",
+      "mode": "binding",
+      "mapping": {
+        "inputs.workflow_summary": "workflow_summary"
+      }
+    }
+  ]
+}

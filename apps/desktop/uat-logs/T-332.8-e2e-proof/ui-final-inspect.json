@@ -1,0 +1,23 @@
+{
+  "body": "maenifold\nHome\nAgents\nPipelines\nGate\nKnowledge\nWorkflows\nSchedules\nSettings\nmaenifold\nv0.1.10\nWhat can I help you with?\nAgent stopped\nStart a session before sending work.\nStart session\n💬\nAgents\nStart or resume sessions\n🔀\nPipelines\nRun multi-step workflows\n📋\nGate\nTrack tasks & delivery\n⚡\nWorkflows\nBrowse & author\n🧠\nKnowledge\nExplore the graph\n\nShift+Enter for new line\n\nRecent activity\n\nNothing here yet — open an Agents session, run a pipeline, or write a note.",
+  "buttons": [
+    "Home",
+    "Agents",
+    "Pipelines",
+    "Gate",
+    "Knowledge",
+    "Workflows",
+    "Schedules",
+    "Settings",
+    "Start session",
+    "💬\nAgents\nStart or resume sessions",
+    "🔀\nPipelines\nRun multi-step workflows",
+    "📋\nGate\nTrack tasks & delivery",
+    "⚡\nWorkflows\nBrowse & author",
+    "🧠\nKnowledge\nExplore the graph"
+  ],
+  "edgeInfo": [],
+  "hasBinding": false,
+  "hasOutputArtifact": false,
+  "hasCompleted4": false
+}

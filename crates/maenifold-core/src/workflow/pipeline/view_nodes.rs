@@ -77,6 +77,12 @@ pub(super) fn pipeline_nodes_json_with_live_sessions(
                 if let Some(output_tokens) = state.output_tokens {
                     node_object.insert("outputTokens".to_string(), json!(output_tokens));
                 }
+                if let Some(input_artifact) = &state.input_artifact {
+                    node_object.insert("inputArtifact".to_string(), input_artifact.clone());
+                }
+                if let Some(output_artifact) = &state.output_artifact {
+                    node_object.insert("outputArtifact".to_string(), output_artifact.clone());
+                }
                 if let Some(model) = &state.model {
                     node_object.insert("model".to_string(), json!(model));
                 }
@@ -186,6 +192,8 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
             prompt,
             timeout,
             agent_config,
+            input_schema,
+            output_schema,
             ..
         } => json!({
             "workflowId": workflow_id,
@@ -193,6 +201,8 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
             "prompt": prompt,
             "timeout": timeout,
             "agentConfig": agent_config,
+            "inputSchema": input_schema,
+            "outputSchema": output_schema,
         }),
         PipelineNode::Prompt {
             prompt,
@@ -205,6 +215,8 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
             cwd,
             timeout,
             agent_config,
+            input_schema,
+            output_schema,
             ..
         } => json!({
             "prompt": prompt,
@@ -217,6 +229,8 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
             "cwd": cwd,
             "timeout": timeout,
             "agentConfig": agent_config,
+            "inputSchema": input_schema,
+            "outputSchema": output_schema,
         }),
         PipelineNode::SequentialThinking {
             topic,
@@ -229,6 +243,8 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
             cwd,
             timeout,
             agent_config,
+            input_schema,
+            output_schema,
             ..
         } => json!({
             "topic": topic,
@@ -241,6 +257,8 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
             "cwd": cwd,
             "timeout": timeout,
             "agentConfig": agent_config,
+            "inputSchema": input_schema,
+            "outputSchema": output_schema,
         }),
         PipelineNode::Tool {
             tool_name,
@@ -253,6 +271,8 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
             cwd,
             timeout,
             agent_config,
+            input_schema,
+            output_schema,
             ..
         } => json!({
             "agent": agent,
@@ -265,6 +285,8 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
             "cwd": cwd,
             "timeout": timeout,
             "agentConfig": agent_config,
+            "inputSchema": input_schema,
+            "outputSchema": output_schema,
         }),
     };
 

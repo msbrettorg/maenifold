@@ -92,6 +92,8 @@ fn tool_args_with_handlebars_still_interpolated() {
         agent_config: None,
         retry_policy: None,
         join_policy: None,
+        input_schema: None,
+        output_schema: None,
     };
     let inputs = serde_json::Map::from_iter([("foo".to_string(), json!("bar"))]);
 

@@ -48,6 +48,8 @@ pub(super) fn tool_node(id: &str) -> PipelineNode {
         agent_config: None,
         retry_policy: None,
         join_policy: None,
+        input_schema: None,
+        output_schema: None,
     }
 }
 

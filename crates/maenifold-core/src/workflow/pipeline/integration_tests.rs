@@ -43,6 +43,8 @@ async fn conditional_retry_policy_transient_failure_then_success_pipeline_comple
                 agent_config: None,
                 retry_policy: None,
                 join_policy: None,
+                input_schema: None,
+                output_schema: None,
             },
             PipelineNode::Tool {
                 id: "retry-node".to_string(),
@@ -64,6 +66,8 @@ async fn conditional_retry_policy_transient_failure_then_success_pipeline_comple
                     jitter: false,
                 }),
                 join_policy: None,
+                input_schema: None,
+                output_schema: None,
             },
             PipelineNode::Tool {
                 id: "sink".to_string(),
@@ -80,6 +84,8 @@ async fn conditional_retry_policy_transient_failure_then_success_pipeline_comple
                 agent_config: None,
                 retry_policy: None,
                 join_policy: None,
+                input_schema: None,
+                output_schema: None,
             },
         ],
         edges: vec![

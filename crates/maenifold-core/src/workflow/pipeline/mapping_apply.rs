@@ -199,6 +199,8 @@ mod tests {
                 agent_config: None,
                 retry_policy: None,
                 join_policy: None,
+                input_schema: None,
+                output_schema: None,
             }],
             edges: vec![PipelineEdge {
                 source: "source".to_string(),

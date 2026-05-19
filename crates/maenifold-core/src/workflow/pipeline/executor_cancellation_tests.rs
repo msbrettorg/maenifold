@@ -72,6 +72,8 @@ fn acp_session_targets_only_returns_prompt_and_thinking_nodes_with_acp_lineage()
                 agent_config: None,
                 retry_policy: None,
                 join_policy: None,
+                input_schema: None,
+                output_schema: None,
             },
             PipelineNode::SequentialThinking {
                 id: "think-ready".to_string(),

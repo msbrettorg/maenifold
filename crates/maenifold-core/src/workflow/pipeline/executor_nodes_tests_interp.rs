@@ -99,7 +99,7 @@ fn build_node_execution_request_errors_when_tool_mapping_fails() {
 
 #[test]
 #[serial]
-fn build_node_execution_request_interpolates_inputs_in_prompt_and_tool_args() {
+fn build_node_execution_request_preserves_acp_prompt_and_interpolates_tool_args() {
     let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
     let definition = PipelineDefinition {
         nodes: vec![],
@@ -147,7 +147,7 @@ fn build_node_execution_request_interpolates_inputs_in_prompt_and_tool_args() {
     )
     .expect("build prompt request");
     match prompt_request {
-        NodeExecutionRequest::Prompt { prompt, .. } => assert_eq!(prompt, "Hello world"),
+        NodeExecutionRequest::Prompt { prompt, .. } => assert_eq!(prompt, "Hello {{inputs.name}}"),
         other => panic!("expected prompt request, got {other:?}"),
     }
 

@@ -219,6 +219,9 @@ fn simple_path_substitution_handlebars() -> Handlebars<'static> {
     handlebars
 }
 
+/// Interpolation is restricted to Tool node `tool_args`.
+/// ACP node prompts (Prompt, Workflow, SequentialThinking) MUST NOT pass through
+/// this function. Use the `## Runtime inputs` envelope (T-332.5) instead.
 pub(super) fn interpolate_string(template: &str, scope: &JsonValue) -> Result<String> {
     simple_path_substitution_handlebars()
         .render_template(template, scope)
@@ -229,6 +232,9 @@ pub(super) fn interpolate_string(template: &str, scope: &JsonValue) -> Result<St
         })
 }
 
+/// Interpolation is restricted to Tool node `tool_args`.
+/// ACP node prompts (Prompt, Workflow, SequentialThinking) MUST NOT pass through
+/// this function. Use the `## Runtime inputs` envelope (T-332.5) instead.
 pub(super) fn resolve_template_value(value: &JsonValue, scope: &JsonValue) -> Result<JsonValue> {
     match value {
         JsonValue::String(template) => Ok(JsonValue::String(interpolate_string(template, scope)?)),

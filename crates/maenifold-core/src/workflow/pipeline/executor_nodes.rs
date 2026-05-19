@@ -13,7 +13,7 @@ use super::executor_nodes_build_helpers::{
 };
 use super::executor_nodes_cwd::resolve_node_cwd;
 use super::mapping_apply::mapped_tool_args;
-use super::mapping_resolve::{interpolate_string, pipeline_inputs_scope};
+use super::mapping_resolve::pipeline_inputs_scope;
 use super::{NodeState, PipelineDefinition, PipelineNode, validate_pipeline_inputs};
 
 #[cfg(test)]
@@ -104,7 +104,6 @@ pub(super) fn build_node_execution_request(
                     ambient_prompt,
                     prompt.as_deref(),
                     true,
-                    &scope,
                 )?,
                 adopt_instructions: build_adopt_instructions(
                     context,
@@ -165,7 +164,6 @@ pub(super) fn build_node_execution_request(
                     ambient_prompt,
                     Some(prompt.as_str()),
                     false,
-                    &scope,
                 )?,
                 tool_mode: tool_mode.clone(),
                 adopt_instructions: build_adopt_instructions(
@@ -218,7 +216,7 @@ pub(super) fn build_node_execution_request(
                 .map(str::to_string);
             NodeExecutionRequest::SequentialThinking {
                 node_session_id: session_id.clone(),
-                topic: interpolate_string(topic.trim(), &scope)?,
+                topic: topic.trim().to_string(),
                 prompt_context: resolve_execution_prompt(
                     context,
                     definition,
@@ -227,7 +225,6 @@ pub(super) fn build_node_execution_request(
                     ambient_prompt,
                     Some(topic.as_str()),
                     false,
-                    &scope,
                 )?,
                 total_thoughts: *total_thoughts,
                 adopt_instructions: build_adopt_instructions(

@@ -20,6 +20,7 @@ pub(crate) struct AgentResponse {
     pub input_tokens: Option<u64>,
     pub output_tokens: Option<u64>,
     pub model: Option<String>,
+    pub complete_node_args: Option<Value>,
 }
 
 impl From<AcpPromptResult> for AgentResponse {
@@ -42,6 +43,7 @@ impl From<AcpPromptResult> for AgentResponse {
                 .get("model")
                 .and_then(Value::as_str)
                 .map(str::to_string),
+            complete_node_args: result.meta.get("completeNodeArgs").cloned(),
         }
     }
 }
@@ -57,6 +59,9 @@ pub(crate) struct AgentSession {
     pub(super) thought_level: Option<String>,
     pub(super) role_mode: Option<String>,
     pub(super) config_options: Vec<(String, String)>,
+    pub(super) output_schema: Option<Value>,
+    pub(super) allowed_tools: Option<Vec<String>>,
+    pub(super) fenced_json_fallback: bool,
     pub(super) auto_approve: bool,
     /// Optional ACP session ID to resume on the next prompt via `session/load`.
     pub(super) resume_state: ResumeState,
@@ -109,6 +114,7 @@ impl AgentSession {
 
     pub(crate) async fn prompt(&self, prompt: &str) -> Result<AgentResponse> {
         let _prompt_guard = self.prompt_gate.lock().await;
+        let prompt = self.prompt_with_fallback_contract(prompt);
         info!(
             agent = %self.agent_name,
             session_id = %self.session_id,
@@ -122,12 +128,14 @@ impl AgentSession {
         let result = jockey::acp::execute_runtime(
             &self.runtime_kind,
             &self.agent_name,
-            prompt,
+            &prompt,
             &[],
             &self.cwd,
             &self.event_tx,
             self.auto_approve,
             vec![],
+            self.allowed_tools.clone(),
+            self.output_schema.clone(),
             self.role_mode.clone(),
             self.config_options.clone(),
             None,
@@ -182,6 +190,18 @@ impl AgentSession {
         }
 
         Ok(result.into())
+    }
+
+    fn prompt_with_fallback_contract(&self, prompt: &str) -> String {
+        if !self.fenced_json_fallback {
+            return prompt.to_string();
+        }
+        let Some(schema) = self.output_schema.as_ref() else {
+            return prompt.to_string();
+        };
+        format!(
+            "{prompt}\n\nYou MUST end your response with a single fenced ```json block whose content validates against this schema:\n{schema}"
+        )
     }
 
     pub(crate) async fn close(self) -> Result<()> {

@@ -25,13 +25,15 @@ mod executor_run_classify;
 mod executor_run_exec;
 #[path = "executor_run_persist.rs"]
 mod executor_run_persist;
+#[path = "executor_run_structured.rs"]
+mod executor_run_structured;
 
 use executor_run_classify::{
     classify_prompt_result, classify_think_result, classify_tool_result, classify_workflow_result,
 };
 pub(super) use executor_run_exec::{
-    await_with_budget, run_prompt_node, run_tool_node, THINKING_PER_THOUGHT_BUDGET_SECS,
-    WORKFLOW_BUDGET_SECS,
+    THINKING_PER_THOUGHT_BUDGET_SECS, WORKFLOW_BUDGET_SECS, await_with_budget, run_prompt_node,
+    run_tool_node,
 };
 pub(crate) use executor_run_persist::persist_active_node_session;
 
@@ -95,6 +97,7 @@ pub(super) enum NodeOutcome {
 }
 
 const PROMPT_FAILURE_PREFIX: &str = "\u{0}pipeline_prompt_failure:";
+const PROMPT_HARD_FAILURE_PREFIX: &str = "\u{0}pipeline_prompt_hard_failure:";
 
 pub(super) fn classify_node_result(node_id: &str, result: NodeTaskResult) -> NodeOutcome {
     match result {
@@ -218,6 +221,16 @@ fn encode_prompt_failure(message: &str) -> String {
 fn decode_prompt_failure(response: &str) -> Option<String> {
     response
         .strip_prefix(PROMPT_FAILURE_PREFIX)
+        .map(str::to_string)
+}
+
+fn encode_prompt_hard_failure(message: &str) -> String {
+    format!("{PROMPT_HARD_FAILURE_PREFIX}{message}")
+}
+
+fn decode_prompt_hard_failure(response: &str) -> Option<String> {
+    response
+        .strip_prefix(PROMPT_HARD_FAILURE_PREFIX)
         .map(str::to_string)
 }
 

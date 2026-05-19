@@ -141,6 +141,8 @@ async fn execute_prompt(
         true,
         Vec::new(),
         None,
+        None,
+        None,
         role_config_options,
         None,
         None,

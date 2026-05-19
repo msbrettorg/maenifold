@@ -75,6 +75,26 @@ pub(super) fn apply_node_outcome(
             model,
             is_outer_timeout,
         } => {
+            if reason
+                == "ACP node did not produce valid structured output matching output_schema after 1 repair turn"
+            {
+                update_pipeline_node_status(
+                    context,
+                    session_id,
+                    node_id,
+                    "failed",
+                    None,
+                    acp_session_id.as_deref(),
+                    thinking_session_id.as_deref(),
+                    None,
+                    Some(&reason),
+                    input_tokens,
+                    output_tokens,
+                    model.as_deref(),
+                )?;
+                counts.abandoned += 1;
+                return Ok(());
+            }
             if phase.is_retryable() && !is_outer_timeout {
                 return persist_retryable_failure(
                     context,

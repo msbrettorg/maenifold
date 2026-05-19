@@ -65,6 +65,8 @@ pub(super) fn handle_prompt(
             auto_approve: true,
             mcp_servers: active.mcp_servers.clone(),
             client_capabilities: active.client_capabilities.clone(),
+            allowed_tools: None,
+            output_schema: None,
             role_mode: None,
             role_config_options: vec![],
             resume_session_id: None,

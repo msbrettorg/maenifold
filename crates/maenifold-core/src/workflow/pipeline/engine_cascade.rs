@@ -22,7 +22,7 @@ pub fn compute_blocked_cascade(
             matches!(
                 node_states.get(&graph[node_index]),
                 Some(NodeState {
-                    status: NodeStatus::Abandoned | NodeStatus::Stuck,
+                    status: NodeStatus::Abandoned | NodeStatus::Stuck | NodeStatus::Failed,
                     ..
                 })
             )
@@ -89,7 +89,7 @@ fn is_cascade_eligible(
                 EdgeType::Always => {
                     if !matches!(
                         effective_node_status(source_id, node_states, cascaded),
-                        Some(NodeStatus::Abandoned | NodeStatus::Stuck)
+                        Some(NodeStatus::Abandoned | NodeStatus::Stuck | NodeStatus::Failed)
                     ) {
                         return false;
                     }
@@ -98,7 +98,7 @@ fn is_cascade_eligible(
                     has_incoming_requirement = true;
                     if !matches!(
                         effective_node_status(source_id, node_states, cascaded),
-                        Some(NodeStatus::Abandoned | NodeStatus::Stuck)
+                        Some(NodeStatus::Abandoned | NodeStatus::Stuck | NodeStatus::Failed)
                     ) {
                         return false;
                     }
@@ -125,7 +125,7 @@ fn is_any_or_first_cascade_eligible(
                 EdgeType::Always => {
                     if !matches!(
                         effective_node_status(source_id, node_states, cascaded),
-                        Some(NodeStatus::Abandoned | NodeStatus::Stuck)
+                        Some(NodeStatus::Abandoned | NodeStatus::Stuck | NodeStatus::Failed)
                     ) {
                         return false;
                     }
@@ -134,7 +134,12 @@ fn is_any_or_first_cascade_eligible(
                     has_incoming_requirement = true;
                     match effective_node_status(source_id, node_states, cascaded) {
                         Some(NodeStatus::Completed) => has_firing_predecessor = true,
-                        Some(NodeStatus::Skipped | NodeStatus::Abandoned | NodeStatus::Stuck) => {}
+                        Some(
+                            NodeStatus::Skipped
+                            | NodeStatus::Abandoned
+                            | NodeStatus::Stuck
+                            | NodeStatus::Failed,
+                        ) => {}
                         _ => all_requirements_resolved = false,
                     }
                 }
@@ -195,6 +200,7 @@ mod tests {
             model: None,
             retry_policy: None,
             join_policy: None,
+            output_schema: None,
         }
     }
 
@@ -212,6 +218,7 @@ mod tests {
             output_tokens: None,
             model: None,
             output: None,
+            output_artifact: None,
             failure_reason: None,
             retry_after: None,
             retry_count: None,
@@ -234,13 +241,15 @@ mod tests {
                         path: "verdict".into(),
                         equals: serde_json::Value::String("FAIL".into()),
                     },
-                    mode: Default::default(), mapping: None,
+                    mode: Default::default(),
+                    mapping: None,
                 },
                 PipelineEdge {
                     source: "always".into(),
                     target: "target".into(),
                     edge_type: EdgeType::Always,
-                    mode: Default::default(), mapping: None,
+                    mode: Default::default(),
+                    mapping: None,
                 },
             ],
             template_id: None,
@@ -273,13 +282,15 @@ mod tests {
                     source: "branch".into(),
                     target: "child".into(),
                     edge_type: EdgeType::Success,
-                    mode: Default::default(), mapping: None,
+                    mode: Default::default(),
+                    mapping: None,
                 },
                 PipelineEdge {
                     source: "child".into(),
                     target: "grandchild".into(),
                     edge_type: EdgeType::Success,
-                    mode: Default::default(), mapping: None,
+                    mode: Default::default(),
+                    mapping: None,
                 },
             ],
             template_id: None,

@@ -4,7 +4,7 @@ use crate::tools::ToolContext;
 
 use super::super::runner::{self, AgentSessionConfig};
 use super::executor_nodes_dispatch::missing_agent_configuration;
-use super::executor_run::{await_with_budget, NodeTaskResult, THINKING_PER_THOUGHT_BUDGET_SECS};
+use super::executor_run::{NodeTaskResult, THINKING_PER_THOUGHT_BUDGET_SECS, await_with_budget};
 
 #[allow(clippy::too_many_arguments)]
 pub(super) async fn execute_thinking_node_request(

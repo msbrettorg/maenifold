@@ -18,6 +18,7 @@ fn node_state(status: NodeStatus, session_id: &str) -> NodeState {
         output_tokens: None,
         model: None,
         output: None,
+        output_artifact: None,
         failure_reason: None,
         retry_after: None,
         retry_count: None,
@@ -51,6 +52,7 @@ fn acp_session_targets_only_returns_prompt_and_thinking_nodes_with_acp_lineage()
                 requires_role: None,
                 retry_policy: None,
                 join_policy: None,
+                output_schema: None,
                 session_ref: None,
             },
             PipelineNode::Tool {
@@ -86,6 +88,7 @@ fn acp_session_targets_only_returns_prompt_and_thinking_nodes_with_acp_lineage()
                 requires_role: None,
                 retry_policy: None,
                 join_policy: None,
+                output_schema: None,
             },
         ],
         edges: vec![],

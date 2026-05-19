@@ -2,6 +2,7 @@ use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use chrono::Utc;
+use serde_json::Value as JsonValue;
 use serde_yml::Value as YamlValue;
 
 use super::NodeStatus;
@@ -15,6 +16,62 @@ use super::session_io::{
 use super::types::ToolProvenance;
 use super::update_context::inject_predecessor_context;
 use super::view::build_pipeline_view_result;
+
+const ACP_OUTPUT_SCHEMA_FAILURE: &str =
+    "ACP node did not produce valid structured output matching output_schema after 1 repair turn";
+
+fn validate_structured_output(conclusion: &str, schema: &JsonValue) -> Result<JsonValue> {
+    let value = serde_json::from_str::<JsonValue>(conclusion).map_err(|error| {
+        MaenifoldError::InvalidArgument(format!(
+            "complete_node validation failed: invalid JSON arguments: {error}"
+        ))
+    })?;
+    let validator = jsonschema::validator_for(schema).map_err(|error| {
+        MaenifoldError::InvalidArgument(format!("complete_node validation schema error: {error}"))
+    })?;
+    if let Err(error) = validator.validate(&value) {
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "complete_node validation failed: {error}"
+        )));
+    }
+    Ok(value)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn reject_invalid_structured_output(
+    context: &ToolContext,
+    frontmatter: &mut crate::markdown::Frontmatter,
+    uri: &str,
+    pipeline_content: &str,
+    node_states: &mut std::collections::HashMap<String, super::NodeState>,
+    node_id: &str,
+    workflow_session_id: &str,
+    reason: &str,
+) -> Result<String> {
+    let state = node_states.get_mut(node_id).ok_or_else(|| {
+        MaenifoldError::Message(format!(
+            "ERROR: Pipeline session missing node state for '{node_id}'"
+        ))
+    })?;
+    let repair_count = state.retry_count.unwrap_or(0);
+    state.output_artifact = None;
+    state.failure_reason = Some(reason.to_string());
+    if repair_count == 0 {
+        state.retry_count = Some(1);
+        persist_pipeline_state(frontmatter, node_states, uri, pipeline_content, context)?;
+        return Err(MaenifoldError::InvalidArgument(reason.to_string()));
+    }
+
+    state.status = NodeStatus::Failed;
+    state.completed_at = Some(Utc::now());
+    state.output = None;
+    state.failure_reason = Some(ACP_OUTPUT_SCHEMA_FAILURE.to_string());
+    persist_pipeline_state(frontmatter, node_states, uri, pipeline_content, context)?;
+    update_workflow_node_frontmatter(context, workflow_session_id, "failed", None)?;
+    Err(MaenifoldError::InvalidArgument(
+        ACP_OUTPUT_SCHEMA_FAILURE.to_string(),
+    ))
+}
 
 #[allow(clippy::too_many_lines)]
 #[allow(clippy::too_many_arguments)]
@@ -36,7 +93,7 @@ pub(super) fn update_pipeline_node_status(
     let definition = pipeline_definition_from_frontmatter(&frontmatter)?;
     let raw_node_states = frontmatter_value(&frontmatter, "nodeStates")?;
     let mut node_states = derive_pipeline_node_states(context, &raw_node_states)?;
-    definition
+    let current_node = definition
         .nodes
         .iter()
         .find(|node| node.id() == node_id)
@@ -45,6 +102,7 @@ pub(super) fn update_pipeline_node_status(
                 "ERROR: Pipeline definition missing node '{node_id}'"
             ))
         })?;
+    let output_schema = current_node.output_schema().cloned();
     let workflow_session_id = {
         let state = raw_node_states.get(node_id).ok_or_else(|| {
             MaenifoldError::Message(format!(
@@ -70,6 +128,25 @@ pub(super) fn update_pipeline_node_status(
                             .to_string(),
                     )
                 })?;
+            let output_artifact = if let Some(schema) = output_schema.as_ref() {
+                match validate_structured_output(conclusion, schema) {
+                    Ok(value) => Some(value),
+                    Err(reason) => {
+                        return reject_invalid_structured_output(
+                            context,
+                            &mut frontmatter,
+                            &uri,
+                            &pipeline_content,
+                            &mut node_states,
+                            node_id,
+                            &workflow_session_id,
+                            &reason.to_string(),
+                        );
+                    }
+                }
+            } else {
+                None
+            };
             update_workflow_node_frontmatter(
                 context,
                 &workflow_session_id,
@@ -91,7 +168,9 @@ pub(super) fn update_pipeline_node_status(
                 state.output_tokens = output_tokens;
                 state.model = model.map(str::to_string);
                 state.output = Some(conclusion.to_string());
+                state.output_artifact = output_artifact;
                 state.failure_reason = None;
+                state.retry_count = None;
             }
             if definition.edges.iter().any(|edge| {
                 edge.source == node_id
@@ -125,6 +204,7 @@ pub(super) fn update_pipeline_node_status(
                 unreachable_state.output_tokens = None;
                 unreachable_state.model = None;
                 unreachable_state.output = None;
+                unreachable_state.output_artifact = None;
                 unreachable_state.failure_reason = Some(failure_reason.clone());
             }
 
@@ -144,6 +224,7 @@ pub(super) fn update_pipeline_node_status(
                 cascaded_state.output_tokens = None;
                 cascaded_state.model = None;
                 cascaded_state.output = None;
+                cascaded_state.output_artifact = None;
                 cascaded_state.failure_reason = Some("predecessor abandoned".to_string());
             }
 
@@ -164,6 +245,28 @@ pub(super) fn update_pipeline_node_status(
                     .clone();
                 update_workflow_node_frontmatter(context, &inactive_session_id, "abandoned", None)?;
             }
+        }
+        "failed" => {
+            let state = node_states.get_mut(node_id).ok_or_else(|| {
+                MaenifoldError::Message(format!(
+                    "ERROR: Pipeline session missing node state for '{node_id}'"
+                ))
+            })?;
+            state.status = NodeStatus::Failed;
+            state.completed_at = Some(Utc::now());
+            state.acp_session_id = acp_session_id.map(str::to_string);
+            state.thinking_session_id = thinking_session_id.map(str::to_string);
+            state.tool_provenance = None;
+            state.input_tokens = input_tokens;
+            state.output_tokens = output_tokens;
+            state.model = model.map(str::to_string);
+            state.output = None;
+            state.output_artifact = None;
+            state.failure_reason = failure_reason
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string);
+            update_workflow_node_frontmatter(context, &workflow_session_id, "failed", None)?;
         }
         "abandoned" | "stuck" => {
             let transitioned_status = if status == "stuck" {
@@ -189,6 +292,7 @@ pub(super) fn update_pipeline_node_status(
             state.output_tokens = output_tokens;
             state.model = model.map(str::to_string);
             state.output = None;
+            state.output_artifact = None;
             state.failure_reason = failure_reason
                 .map(str::trim)
                 .filter(|value| !value.is_empty())
@@ -210,6 +314,7 @@ pub(super) fn update_pipeline_node_status(
                 cascaded_state.output_tokens = None;
                 cascaded_state.model = None;
                 cascaded_state.output = None;
+                cascaded_state.output_artifact = None;
                 cascaded_state.failure_reason = Some("predecessor abandoned".to_string());
             }
 

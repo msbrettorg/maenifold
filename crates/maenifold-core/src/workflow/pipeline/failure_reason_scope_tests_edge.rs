@@ -31,6 +31,7 @@ fn workflow_node(id: &str) -> PipelineNode {
         requires_role: None,
         retry_policy: None,
         join_policy: None,
+        output_schema: None,
     }
 }
 
@@ -56,6 +57,7 @@ fn node_state(node_id: &str, status: NodeStatus) -> NodeState {
         output_tokens: None,
         model: None,
         output: None,
+        output_artifact: None,
         failure_reason: None,
         retry_after: None,
         retry_count: None,
@@ -167,6 +169,7 @@ fn conditional_false_branch_is_abandoned_and_pipeline_leaves_active_state() {
                 output_tokens: None,
                 model: None,
                 output: None,
+                output_artifact: None,
                 failure_reason: None,
                 retry_after: None,
                 retry_count: None,
@@ -187,6 +190,7 @@ fn conditional_false_branch_is_abandoned_and_pipeline_leaves_active_state() {
                 output_tokens: None,
                 model: None,
                 output: None,
+                output_artifact: None,
                 failure_reason: None,
                 retry_after: None,
                 retry_count: None,
@@ -207,6 +211,7 @@ fn conditional_false_branch_is_abandoned_and_pipeline_leaves_active_state() {
                 output_tokens: None,
                 model: None,
                 output: None,
+                output_artifact: None,
                 failure_reason: None,
                 retry_after: None,
                 retry_count: None,

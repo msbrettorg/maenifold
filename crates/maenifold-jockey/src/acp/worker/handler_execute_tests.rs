@@ -1,10 +1,81 @@
 use super::*;
+use serde_json::json;
 use std::path::PathBuf;
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 
 #[derive(Clone, Default)]
 struct CapturingAgent {
     prompts: Arc<Mutex<Vec<acp::PromptRequest>>>,
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn handler_execute_advertises_complete_node_schema_in_prompt_meta() {
+    let local = tokio::task::LocalSet::new();
+    local
+        .run_until(async {
+            let key = super::super::pool::pool_key("schema-session", "mock-runtime", "mock-role");
+            let agent = CapturingAgent::default();
+            let prompts = agent.prompts.clone();
+            let _health_tx = insert_mock_connection(&key, agent);
+            let schema = json!({
+                "type": "object",
+                "required": ["verdict"],
+                "properties": {
+                    "verdict": {"enum": ["PASS", "FAIL"]}
+                }
+            });
+
+            let (delta_tx, _delta_rx) = mpsc::channel(16);
+            let (result_tx, result_rx) = oneshot::channel();
+
+            handle_execute(
+                key.clone(),
+                "mock-runtime",
+                "unused-binary".to_string(),
+                Vec::new(),
+                Vec::new(),
+                acp::ClientCapabilities::default(),
+                "mock-role".to_string(),
+                "schema-session".to_string(),
+                "produce structured output".to_string(),
+                Vec::new(),
+                None,
+                "/".to_string(),
+                delta_tx,
+                result_tx,
+                true,
+                Vec::new(),
+                Some(vec!["complete_node".to_string()]),
+                Some(schema.clone()),
+                None,
+                Vec::new(),
+                None,
+                None,
+            )
+            .await;
+
+            let result = result_rx.await.expect("worker result sent");
+            assert!(result.is_ok(), "prompt should complete: {result:?}");
+
+            let captured = prompts.lock().unwrap().clone();
+            assert_eq!(captured.len(), 1);
+            let meta = captured[0]
+                .meta
+                .as_ref()
+                .expect("complete_node prompt should carry tool catalog metadata");
+            let tool = meta
+                .get("tools")
+                .and_then(|value| value.as_array())
+                .and_then(|tools| tools.first())
+                .expect("tool catalog should contain complete_node");
+            assert_eq!(tool.get("name"), Some(&json!("complete_node")));
+            assert_eq!(tool.get("input_schema"), Some(&schema));
+
+            CONN_MAP.with(|map| {
+                map.borrow_mut().remove(&key);
+            });
+        })
+        .await;
 }
 
 #[async_trait::async_trait(?Send)]
@@ -132,6 +203,8 @@ async fn handler_execute_forwards_multipart_prompt_blocks_to_upstream_agent() {
                 result_tx,
                 true,
                 Vec::new(),
+                None,
+                None,
                 None,
                 Vec::new(),
                 None,

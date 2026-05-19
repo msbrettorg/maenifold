@@ -78,10 +78,11 @@ impl PipelineDefinition {
                 continue;
             }
 
-            let Some(PipelineNode::Workflow { .. }
-            | PipelineNode::Prompt { .. }
-            | PipelineNode::SequentialThinking { .. }) =
-                nodes_by_id.get(edge.target.as_str()).copied()
+            let Some(
+                PipelineNode::Workflow { .. }
+                | PipelineNode::Prompt { .. }
+                | PipelineNode::SequentialThinking { .. },
+            ) = nodes_by_id.get(edge.target.as_str()).copied()
             else {
                 continue;
             };
@@ -191,6 +192,8 @@ pub struct NodeState {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output_artifact: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub failure_reason: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub retry_after: Option<String>,
@@ -230,6 +233,7 @@ pub enum NodeStatus {
     #[serde(alias = "cancelled")]
     Abandoned,
     Stuck,
+    Failed,
     Retrying,
 }
 

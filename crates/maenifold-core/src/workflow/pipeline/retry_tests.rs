@@ -29,6 +29,7 @@ fn workflow_node(id: &str) -> PipelineNode {
         requires_role: None,
         retry_policy: None,
         join_policy: None,
+        output_schema: None,
     }
 }
 
@@ -92,6 +93,7 @@ fn retrying_node_not_in_ready_set() {
                 output_tokens: None,
                 model: None,
                 output: None,
+                output_artifact: None,
                 failure_reason: None,
                 retry_after: Some("2025-01-01T00:00:00Z".to_string()),
                 retry_count: Some(1),
@@ -112,6 +114,7 @@ fn retrying_node_not_in_ready_set() {
                 output_tokens: None,
                 model: None,
                 output: None,
+                output_artifact: None,
                 failure_reason: None,
                 retry_after: None,
                 retry_count: None,
@@ -144,6 +147,7 @@ fn retrying_is_remaining_work() {
             output_tokens: None,
             model: None,
             output: None,
+            output_artifact: None,
             failure_reason: None,
             retry_after: Some("2025-01-01T00:00:00Z".to_string()),
             retry_count: Some(1),
@@ -170,6 +174,7 @@ fn retrying_pipeline_status_is_active() {
             output_tokens: None,
             model: None,
             output: None,
+            output_artifact: None,
             failure_reason: None,
             retry_after: Some("2025-01-01T00:00:00Z".to_string()),
             retry_count: Some(1),

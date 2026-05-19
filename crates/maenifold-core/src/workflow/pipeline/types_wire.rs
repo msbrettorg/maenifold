@@ -85,6 +85,12 @@ pub(super) struct PipelineNodeWire {
     allowed_tools: Option<Vec<String>>,
     #[serde(default, rename = "maxTurns", skip_serializing_if = "Option::is_none")]
     max_turns: Option<u32>,
+    #[serde(
+        default,
+        rename = "outputSchema",
+        skip_serializing_if = "Option::is_none"
+    )]
+    output_schema: Option<Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     timeout: Option<u64>,
     #[serde(
@@ -154,6 +160,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 requires_role: wire.requires_role,
                 retry_policy,
                 join_policy,
+                output_schema: wire.output_schema,
             },
             "prompt" => {
                 let prompt = required(wire.prompt, "prompt")?;
@@ -185,6 +192,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                     retry_policy,
                     session_ref: wire.session_ref,
                     join_policy,
+                    output_schema: wire.output_schema,
                 }
             }
             "sequentialThinking" => Self::SequentialThinking {
@@ -204,6 +212,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 requires_role: wire.requires_role,
                 retry_policy,
                 join_policy,
+                output_schema: wire.output_schema,
             },
             "tool" => Self::Tool {
                 id: wire.id,

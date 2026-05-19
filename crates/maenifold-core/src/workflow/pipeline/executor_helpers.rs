@@ -118,7 +118,7 @@ pub(super) fn derive_execution_status(
         Ok("completed".to_string())
     } else if node_states
         .values()
-        .any(|state| matches!(state.status, NodeStatus::Stuck))
+        .any(|state| matches!(state.status, NodeStatus::Stuck | NodeStatus::Failed))
     {
         Ok("stuck".to_string())
     } else if node_states

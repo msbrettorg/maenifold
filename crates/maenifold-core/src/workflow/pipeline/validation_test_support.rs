@@ -12,6 +12,7 @@ pub(super) fn sample_definition() -> PipelineDefinition {
                 timeout: None,
                 retry_policy: None,
                 join_policy: None,
+                output_schema: None,
             },
             PipelineNode::Workflow {
                 id: "b".to_string(),
@@ -22,6 +23,7 @@ pub(super) fn sample_definition() -> PipelineDefinition {
                 timeout: None,
                 retry_policy: None,
                 join_policy: None,
+                output_schema: None,
             },
             PipelineNode::Workflow {
                 id: "c".to_string(),
@@ -32,6 +34,7 @@ pub(super) fn sample_definition() -> PipelineDefinition {
                 timeout: None,
                 retry_policy: None,
                 join_policy: None,
+                output_schema: None,
             },
         ],
         edges: vec![
@@ -65,6 +68,7 @@ pub(super) fn mixed_definition() -> PipelineDefinition {
                 timeout: None,
                 retry_policy: None,
                 join_policy: None,
+                output_schema: None,
             },
             PipelineNode::Prompt {
                 id: "prompt".to_string(),
@@ -80,6 +84,7 @@ pub(super) fn mixed_definition() -> PipelineDefinition {
                 timeout: None,
                 retry_policy: None,
                 join_policy: None,
+                output_schema: None,
             },
             PipelineNode::SequentialThinking {
                 id: "thinking".to_string(),
@@ -95,6 +100,7 @@ pub(super) fn mixed_definition() -> PipelineDefinition {
                 timeout: None,
                 retry_policy: None,
                 join_policy: None,
+                output_schema: None,
             },
         ],
         edges: vec![

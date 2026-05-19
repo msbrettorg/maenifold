@@ -104,6 +104,7 @@ pub(super) fn fork_pipeline(
                     requires_role: requires_role.clone(),
                     retry_policy: retry_policy.clone(),
                     join_policy: join_policy.clone(),
+                    output_schema: None,
                 },
                 super::super::PipelineNode::Prompt {
                     display_label,
@@ -140,6 +141,7 @@ pub(super) fn fork_pipeline(
                     requires_role: requires_role.clone(),
                     retry_policy: retry_policy.clone(),
                     join_policy: join_policy.clone(),
+                    output_schema: None,
                     session_ref: session_ref.clone(),
                 },
                 super::super::PipelineNode::SequentialThinking {
@@ -176,6 +178,7 @@ pub(super) fn fork_pipeline(
                     requires_role: requires_role.clone(),
                     retry_policy: retry_policy.clone(),
                     join_policy: join_policy.clone(),
+                    output_schema: None,
                 },
                 super::super::PipelineNode::Tool {
                     display_label,
@@ -244,6 +247,7 @@ pub(super) fn fork_pipeline(
             output_tokens: None,
             model: None,
             output: None,
+            output_artifact: None,
             failure_reason: None,
             retry_after: None,
             retry_count: None,

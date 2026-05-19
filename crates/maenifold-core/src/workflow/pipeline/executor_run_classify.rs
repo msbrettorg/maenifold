@@ -109,7 +109,19 @@ pub(super) fn classify_prompt_result(
 ) -> NodeOutcome {
     match result {
         Ok(result) => {
-            if let Some(reason) = decode_prompt_failure(&result.response) {
+            if let Some(reason) = decode_prompt_hard_failure(&result.response) {
+                eprintln!("[pipeline] node {node_id} failed: {reason}");
+                abandoned(
+                    reason,
+                    FailurePhase::PostPrompt,
+                    None,
+                    result.acp_session_id,
+                    None,
+                    result.input_tokens,
+                    result.output_tokens,
+                    result.model,
+                )
+            } else if let Some(reason) = decode_prompt_failure(&result.response) {
                 eprintln!("[pipeline] node {node_id} failed: {reason}");
                 abandoned(
                     reason,

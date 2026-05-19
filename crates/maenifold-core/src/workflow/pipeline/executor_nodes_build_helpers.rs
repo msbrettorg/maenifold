@@ -1,6 +1,7 @@
 use std::{collections::HashMap, path::Path};
 
 use serde_json::Value as JsonValue;
+use serde_json::json;
 
 use crate::assets::{AssetKind, AssetManager};
 use crate::error::Result;
@@ -78,6 +79,7 @@ pub(super) fn merged_session_config(
             .clone()
             .or_else(|| agent_config.and_then(|config| config.thought_level.clone())),
         config_options: agent_config.and_then(|config| config.config_options.clone()),
+        output_schema: None,
         allowed_tools: allowed_tools.clone(),
         max_turns,
         timeout_seconds,
@@ -85,6 +87,31 @@ pub(super) fn merged_session_config(
         auto_approve: true, // Pipeline nodes run headless; auto-grant permissions.
         resume_session_id,
     })
+}
+
+pub(super) fn with_output_schema_contract(
+    mut config: AgentSessionConfig,
+    output_schema: Option<&JsonValue>,
+) -> AgentSessionConfig {
+    let Some(schema) = output_schema else {
+        return config;
+    };
+    let mut allowed_tools = config.allowed_tools.take().unwrap_or_default();
+    allowed_tools.retain(|tool| tool != "complete_node");
+    allowed_tools.insert(0, "complete_node".to_string());
+    config.allowed_tools = Some(allowed_tools);
+
+    let mut options = config.config_options.take().unwrap_or_default();
+    options.insert("outputSchemaRepairTurns".to_string(), json!(1));
+    options.insert(
+        "completeNodeDescription".to_string(),
+        json!(
+            "Submit the final structured output for this pipeline node. The pipeline will not advance until this tool is called with valid arguments matching the declared output_schema."
+        ),
+    );
+    config.config_options = Some(options);
+    config.output_schema = Some(schema.clone());
+    config
 }
 
 pub(super) fn build_adopt_instructions(

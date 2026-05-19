@@ -5,7 +5,7 @@ use serde_json::Value as JsonValue;
 use crate::error::{MaenifoldError, Result};
 
 use super::mapping_resolve::{resolve_dot_path, resolve_template_value};
-use super::{NodeState, NodeStatus, PipelineDefinition};
+use super::{EdgeDataMode, NodeState, NodeStatus, PipelineDefinition};
 
 pub(super) fn mapped_tool_args(
     definition: &PipelineDefinition,
@@ -39,14 +39,20 @@ pub(super) fn mapped_tool_args(
             continue;
         }
 
-        let source_output = match source_state.output.as_deref() {
-            Some(value) => serde_json::from_str::<JsonValue>(value).map_err(|error| {
-                MaenifoldError::InvalidArgument(format!(
-                    "Pipeline mapping from '{}' to '{}' could not parse node '{}' output as JSON: {error}",
-                    edge.source, edge.target, edge.source
-                ))
-            })?,
-            None => JsonValue::Null,
+        let source_output = match edge.mode {
+            EdgeDataMode::Binding => source_state
+                .output_artifact
+                .clone()
+                .unwrap_or(JsonValue::Null),
+            EdgeDataMode::Context | EdgeDataMode::None => match source_state.output.as_deref() {
+                Some(value) => serde_json::from_str::<JsonValue>(value).map_err(|error| {
+                    MaenifoldError::InvalidArgument(format!(
+                        "Pipeline mapping from '{}' to '{}' could not parse node '{}' output as JSON: {error}",
+                        edge.source, edge.target, edge.source
+                    ))
+                })?,
+                None => JsonValue::Null,
+            },
         };
         for (target_key, source_path) in mapping {
             applied_mapping = true;
@@ -109,6 +115,7 @@ mod tests {
                 output_tokens: None,
                 model: None,
                 output: Some("not-json".to_string()),
+                output_artifact: None,
                 failure_reason: None,
                 retry_after: None,
                 retry_count: None,
@@ -158,6 +165,7 @@ mod tests {
                 output_tokens: None,
                 model: None,
                 output: Some(json!({ "result": {} }).to_string()),
+                output_artifact: None,
                 failure_reason: None,
                 retry_after: None,
                 retry_count: None,
@@ -219,6 +227,7 @@ mod tests {
                 output_tokens: None,
                 model: None,
                 output: Some(json!({ "result": { "value": 7 } }).to_string()),
+                output_artifact: None,
                 failure_reason: None,
                 retry_after: None,
                 retry_count: None,

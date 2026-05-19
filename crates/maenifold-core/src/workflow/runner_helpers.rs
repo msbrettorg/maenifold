@@ -239,6 +239,7 @@ mod tests {
             input_tokens: None,
             output_tokens: None,
             model: None,
+            complete_node_args: None,
         }))
         .expect("success response should remain ok");
 
@@ -253,6 +254,7 @@ mod tests {
             input_tokens: None,
             output_tokens: None,
             model: None,
+            complete_node_args: None,
         }));
 
         assert!(

@@ -115,7 +115,7 @@ fn is_node_blocked(
                     matches!(edge.weight(), EdgeType::Success)
                         && matches!(
                             node_states.get(source_id).map(|state| &state.status),
-                            Some(NodeStatus::Abandoned | NodeStatus::Stuck)
+                            Some(NodeStatus::Abandoned | NodeStatus::Stuck | NodeStatus::Failed)
                         )
                 })
         })

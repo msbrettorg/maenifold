@@ -83,6 +83,7 @@ mod tests {
             mode: None,
             thought_level: None,
             config_options: None,
+            output_schema: None,
             allowed_tools: None,
             max_turns: None,
             timeout_seconds,

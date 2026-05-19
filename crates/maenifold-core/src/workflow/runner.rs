@@ -1,7 +1,7 @@
 use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use jockey::EventSender;
-use serde_json::json;
+use serde_json::{Value as JsonValue, json};
 use std::sync::Arc;
 
 use super::adoption::require_adopted_role;
@@ -49,6 +49,9 @@ pub struct WorkflowResult {
     pub status: WorkflowRunStatus,
 }
 
+const ACP_OUTPUT_SCHEMA_FAILURE: &str =
+    "ACP node did not produce valid structured output matching output_schema after 1 repair turn";
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ActiveNodeSessionPersistence {
     pub pipeline_session_id: String,
@@ -68,6 +71,32 @@ fn workflow_failure_result(
         steps_completed: 0,
         status: WorkflowRunStatus::Failed(error.to_string()),
     }
+}
+
+fn validate_workflow_output_schema(
+    result: Result<WorkflowResult>,
+    output_schema: Option<&JsonValue>,
+) -> Result<WorkflowResult> {
+    let Some(schema) = output_schema else {
+        return result;
+    };
+    let mut workflow = result?;
+    if workflow.status != WorkflowRunStatus::Completed {
+        return Ok(workflow);
+    }
+    let valid = workflow
+        .conclusion
+        .as_deref()
+        .and_then(|conclusion| serde_json::from_str::<JsonValue>(conclusion).ok())
+        .is_some_and(|value| {
+            jsonschema::validator_for(schema)
+                .is_ok_and(|validator| validator.validate(&value).is_ok())
+        });
+    if !valid {
+        workflow.conclusion = None;
+        workflow.status = WorkflowRunStatus::Failed(ACP_OUTPUT_SCHEMA_FAILURE.to_string());
+    }
+    Ok(workflow)
 }
 
 /// Shared state carried through the workflow run loop.
@@ -178,14 +207,16 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
     };
     if keep_session_alive {
         driver.keep_alive();
-        match result {
+        match validate_workflow_output_schema(result, session_config.output_schema.as_ref()) {
             Ok(value) => Ok(value),
             Err(error) => Ok(failure_result(&error)),
         }
     } else {
         let close_result = driver.close().await;
         match (result, close_result) {
-            (Ok(value), Ok(())) => Ok(value),
+            (Ok(value), Ok(())) => {
+                validate_workflow_output_schema(Ok(value), session_config.output_schema.as_ref())
+            }
             (Ok(_), Err(error)) => Err(error),
             (Err(error), Err(close_error)) => {
                 let error = append_close_error_context(error, close_error);

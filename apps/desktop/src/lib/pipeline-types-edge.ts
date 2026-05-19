@@ -2,6 +2,13 @@
 
 export type EdgeType = "success" | "always" | "conditional";
 
+export interface EdgeBinding {
+  from: string;
+  to: string;
+}
+
+export type EdgeMode = "context" | "binding" | "none";
+
 export type EdgeConditionEquals = string | number | boolean;
 
 export interface EdgeCondition {
@@ -25,6 +32,8 @@ export interface PipelineEdge {
    * Local UI convenience shape used by the canvas/editor.
    */
   condition?: EdgeCondition;
+  mode?: EdgeMode;
+  bindings?: EdgeBinding[];
   mapping?: Record<string, string>;
 }
 

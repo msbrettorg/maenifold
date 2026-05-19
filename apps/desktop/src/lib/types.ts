@@ -31,7 +31,7 @@ export type McpServerEntry =
 export interface McpDiscoveredTool {
   name: string;
   description?: string | null;
-  inputSchema: Record<string, unknown>;
+  inputSchema?: unknown;
   appUi?: McpAppUiMetadata | null;
 }
 

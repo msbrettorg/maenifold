@@ -222,6 +222,7 @@ fn rewind_clears_failure_reason_for_selected_node_and_descendants() {
             source: "root".to_string(),
             target: "child".to_string(),
             edge_type: EdgeType::Success,
+            mode: Default::default(),
             mapping: None,
         }],
         inputs: None,

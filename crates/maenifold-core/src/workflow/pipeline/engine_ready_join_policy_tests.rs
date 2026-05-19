@@ -59,6 +59,7 @@ fn fan_in_definition(join_policy: Option<JoinPolicy>) -> PipelineDefinition {
                 source: source.into(),
                 target: "terminal".into(),
                 edge_type: EdgeType::Success,
+                mode: Default::default(),
                 mapping: None,
             })
             .collect(),

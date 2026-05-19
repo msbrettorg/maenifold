@@ -4,13 +4,14 @@ use crate::util::json::{OutputFormat, success};
 use chrono::Utc;
 use serde_yml::Value as YamlValue;
 
+use super::NodeStatus;
 use super::session_io::{
     NodeFile, allocate_node_session_id, derive_pipeline_node_states, frontmatter_value,
-    node_status_name, persist_pipeline_state, read_pipeline_session, write_workflow_node_session,
+    node_status_name, persist_pipeline_state, pipeline_definition_from_frontmatter,
+    read_pipeline_session, write_workflow_node_session,
 };
 use super::update_context::inject_predecessor_context_for_node;
 use super::view::build_pipeline_view_result;
-use super::{NodeStatus, PipelineDefinition};
 
 #[allow(clippy::too_many_lines)]
 pub(super) fn restart_pipeline_node(
@@ -24,7 +25,7 @@ pub(super) fn restart_pipeline_node(
             "Cannot restart node '{node_id}' while pipeline is running. Cancel the pipeline first, or use 'rewind' after it stops."
         )));
     }
-    let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
+    let definition = pipeline_definition_from_frontmatter(&frontmatter)?;
     let mut node_states =
         derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
     let max_attempts = frontmatter

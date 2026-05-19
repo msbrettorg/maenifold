@@ -84,6 +84,7 @@ mod tests {
                 source: "source".to_string(),
                 target: "target".to_string(),
                 edge_type: EdgeType::Success,
+                mode: Default::default(),
                 mapping: Some(HashMap::from([(
                     "payload".to_string(),
                     "result.value".to_string(),
@@ -131,6 +132,7 @@ mod tests {
                 source: "source".to_string(),
                 target: "target".to_string(),
                 edge_type: EdgeType::Success,
+                mode: Default::default(),
                 mapping: Some(HashMap::from([(
                     "payload".to_string(),
                     "result.value".to_string(),
@@ -190,6 +192,7 @@ mod tests {
                 source: "source".to_string(),
                 target: "target".to_string(),
                 edge_type: EdgeType::Success,
+                mode: Default::default(),
                 mapping: Some(HashMap::from([(
                     "payload".to_string(),
                     "result.value".to_string(),

@@ -8,14 +8,15 @@ use serde_json::Value;
 use serde_yml::Value as YamlValue;
 use std::collections::{HashSet, VecDeque};
 
+use super::super::NodeStatus;
 use super::super::handler_validation::workflow_node_file;
 use super::super::lease;
 use super::super::session_io::{
     allocate_node_session_id, derive_pipeline_node_states, frontmatter_value,
-    persist_pipeline_state_with_status, read_pipeline_session, write_workflow_node_session,
+    persist_pipeline_state_with_status, pipeline_definition_from_frontmatter,
+    read_pipeline_session, write_workflow_node_session,
 };
 use super::super::view::build_pipeline_view_result;
-use super::super::{NodeStatus, PipelineDefinition};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -49,7 +50,7 @@ fn rewind_pipeline(
         )));
     }
 
-    let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
+    let definition = pipeline_definition_from_frontmatter(&frontmatter)?;
     let mut node_states =
         derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
     let graph = definition.build_graph();

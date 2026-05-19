@@ -1,7 +1,7 @@
 pub(super) use super::session_delete_files::delete_pipeline_session_files_with_default_retention;
 pub(super) use super::session_read::{
     derive_pipeline_node_states, frontmatter_value, optional_frontmatter_value,
-    read_pipeline_session,
+    pipeline_definition_from_frontmatter, read_pipeline_session,
 };
 pub(super) use super::session_write::{
     NodeFile, allocate_node_session_id, generate_pipeline_node_session_id, node_status_name,

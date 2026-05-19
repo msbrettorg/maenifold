@@ -97,10 +97,11 @@ pub(super) fn persist_pipeline_state_with_status(
     // terminal-node-aware derivation when a definition is present in frontmatter.
     let status: String = if let Some(s) = status_override {
         s.to_string()
-    } else if let Some(def) = frontmatter
+    } else if let Some(mut def) = frontmatter
         .get("definition")
         .and_then(|v| serde_yml::from_value::<PipelineDefinition>(v.clone()).ok())
     {
+        def.migrate_legacy_edges();
         compute_pipeline_status_with_definition(&def, node_states).to_string()
     } else {
         compute_pipeline_status(node_states).to_string()

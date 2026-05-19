@@ -10,8 +10,8 @@ use std::collections::{HashMap, HashSet};
 use super::super::handler_validation::workflow_node_file;
 use super::super::resource_notifications::emit_pipeline_resource_updated;
 use super::super::session_io::{
-    frontmatter_value, node_status_name, read_pipeline_session,
-    write_workflow_node_session_with_status,
+    frontmatter_value, node_status_name, pipeline_definition_from_frontmatter,
+    read_pipeline_session, write_workflow_node_session_with_status,
 };
 use super::super::view::build_pipeline_view_result;
 use super::super::{NodeState, NodeStatus, PipelineDefinition, validate_pipeline};
@@ -28,10 +28,8 @@ pub(super) fn join_pipeline(
         read_pipeline_session(context, target_session_id)?;
     let (_, source_frontmatter, _) = read_pipeline_session(context, &join.source_session_id)?;
 
-    let target_definition: PipelineDefinition =
-        frontmatter_value(&target_frontmatter, "definition")?;
-    let source_definition: PipelineDefinition =
-        frontmatter_value(&source_frontmatter, "definition")?;
+    let target_definition = pipeline_definition_from_frontmatter(&target_frontmatter)?;
+    let source_definition = pipeline_definition_from_frontmatter(&source_frontmatter)?;
     let target_states = resolve_join_node_states(
         context,
         &frontmatter_value(&target_frontmatter, "nodeStates")?,

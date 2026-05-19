@@ -30,7 +30,10 @@ pub(super) fn completed_node_count(node_states: &HashMap<String, NodeState>) -> 
 pub(super) fn definition_node_count(value: Option<&serde_yml::Value>) -> usize {
     value
         .and_then(|value| serde_yml::from_value::<PipelineDefinition>(value.clone()).ok())
-        .map(|definition| definition.nodes.len())
+        .map(|mut definition| {
+            definition.migrate_legacy_edges();
+            definition.nodes.len()
+        })
         .unwrap_or(0)
 }
 
@@ -153,6 +156,7 @@ mod terminal_node_tests {
             source: source.to_string(),
             target: target.to_string(),
             edge_type,
+            mode: Default::default(),
             mapping: None,
         }
     }

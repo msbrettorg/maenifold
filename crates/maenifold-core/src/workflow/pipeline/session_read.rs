@@ -119,6 +119,14 @@ where
     serde_yml::from_value(value).map_err(Into::into)
 }
 
+pub(super) fn pipeline_definition_from_frontmatter(
+    frontmatter: &Frontmatter,
+) -> Result<super::PipelineDefinition> {
+    let mut definition: super::PipelineDefinition = frontmatter_value(frontmatter, "definition")?;
+    definition.migrate_legacy_edges();
+    Ok(definition)
+}
+
 pub(super) fn optional_frontmatter_value<T>(
     frontmatter: &Frontmatter,
     key: &str,

@@ -12,7 +12,7 @@ use super::lease;
 use super::resource_notifications::emit_pipeline_resource_updated;
 use super::session_io::{
     NodeFile, allocate_node_session_id, derive_pipeline_node_states, frontmatter_value,
-    read_pipeline_session, write_workflow_node_session,
+    pipeline_definition_from_frontmatter, read_pipeline_session, write_workflow_node_session,
 };
 use super::{NodeState, NodeStatus, PipelineDefinition, compute_ready_set, validate_pipeline};
 
@@ -47,7 +47,7 @@ fn update_pipeline_locked(
     definition: PipelineDefinition,
 ) -> Result<String> {
     let (uri, mut frontmatter, content) = read_pipeline_session(context, session_id)?;
-    let existing_definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
+    let existing_definition = pipeline_definition_from_frontmatter(&frontmatter)?;
     let existing_states: HashMap<String, NodeState> =
         derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
     if existing_states

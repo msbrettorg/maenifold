@@ -139,7 +139,8 @@ fn create_pipeline_persists_effective_inputs_on_definition_and_session() {
     let pipeline_id = payload["data"]["pipelineId"].as_str().expect("pipeline id");
     let (_, frontmatter, _) = read_pipeline_session(&context, pipeline_id).expect("read pipeline");
     let definition: PipelineDefinition =
-        frontmatter_value(&frontmatter, "definition").expect("definition");
+        super::super::session_io::pipeline_definition_from_frontmatter(&frontmatter)
+            .expect("definition");
     let inputs: JsonMap<String, Value> = frontmatter_value(&frontmatter, "inputs").expect("inputs");
 
     assert_eq!(definition.nodes, vec![tool_node("tool")]);

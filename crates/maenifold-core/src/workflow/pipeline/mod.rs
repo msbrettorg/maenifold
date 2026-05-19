@@ -127,6 +127,8 @@ mod test_fixtures_helpers;
 #[cfg(test)]
 mod test_support;
 mod types;
+#[cfg(test)]
+mod types_edge_mode_tests;
 mod types_node;
 mod types_wire;
 mod update;
@@ -159,8 +161,8 @@ pub use quarantine::{
 };
 pub use session_write::persist_final_pipeline_status;
 pub use types::{
-    EdgeType, JoinPolicy, NodeAdopt, NodeState, NodeStatus, PipelineDefinition, PipelineEdge,
-    PipelineNode, PredecessorOutput, RetryPolicy, SessionRef, ToolProvenance,
+    EdgeDataMode, EdgeType, JoinPolicy, NodeAdopt, NodeState, NodeStatus, PipelineDefinition,
+    PipelineEdge, PipelineNode, PredecessorOutput, RetryPolicy, SessionRef, ToolProvenance,
 };
 pub use validation::validate_pipeline;
 use workflow_id::workflow_id_for_node;

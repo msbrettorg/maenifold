@@ -65,6 +65,7 @@ fn validate_pipeline_accepts_conditional_edge_with_non_empty_path() {
             path: "result.verdict".to_string(),
             equals: serde_json::json!("PASS"),
         },
+        mode: Default::default(),
         mapping: None,
     });
 
@@ -82,6 +83,7 @@ fn validate_pipeline_rejects_conditional_edge_with_empty_path() {
             path: "   ".to_string(),
             equals: serde_json::json!("PASS"),
         },
+        mode: Default::default(),
         mapping: None,
     });
 
@@ -102,6 +104,7 @@ fn validate_pipeline_rejects_conditional_edge_with_unknown_source_node() {
             path: "verdict".to_string(),
             equals: serde_json::json!("PASS"),
         },
+        mode: Default::default(),
         mapping: None,
     });
 

@@ -7,7 +7,9 @@ use serde_json::{Value, json};
 use serial_test::serial;
 
 use super::handler::pipeline;
-use super::session_io::{frontmatter_value, read_pipeline_session};
+use super::session_io::{
+    frontmatter_value, pipeline_definition_from_frontmatter, read_pipeline_session,
+};
 use super::test_support::{pipeline_test_context, seed_pipeline_session_with_workflows};
 use super::{NodeState, NodeStatus, PipelineDefinition};
 
@@ -223,7 +225,7 @@ fn update_pipeline_t301_26_overwrites_existing_session_in_place_no_new_file() {
     let (_, frontmatter, _) =
         read_pipeline_session(&context, "pipeline-1778851690641").expect("read updated");
     let definition: PipelineDefinition =
-        frontmatter_value(&frontmatter, "definition").expect("definition");
+        pipeline_definition_from_frontmatter(&frontmatter).expect("definition");
 
     assert_eq!(updated_id, Some("pipeline-1778851690641"));
     assert_eq!(
@@ -255,7 +257,7 @@ fn update_pipeline_t301_26_preserves_runtime_state_for_unchanged_nodes() {
     let (_, frontmatter, _) =
         read_pipeline_session(&context, "pipeline-1778851690641").expect("read updated pipeline");
     let definition: PipelineDefinition =
-        frontmatter_value(&frontmatter, "definition").expect("definition");
+        pipeline_definition_from_frontmatter(&frontmatter).expect("definition");
     let states: HashMap<String, NodeState> =
         frontmatter_value(&frontmatter, "nodeStates").expect("node states");
 

@@ -2,7 +2,7 @@ use crate::error::{MaenifoldError, Result};
 use petgraph::algo::is_cyclic_directed;
 use std::collections::{HashMap, HashSet};
 
-use super::{PipelineDefinition, PipelineNode};
+use super::{EdgeDataMode, PipelineDefinition, PipelineNode};
 
 fn validate_non_empty_node_field(node_id: &str, field: &str, value: &str) -> Result<()> {
     if value.trim().is_empty() {
@@ -89,6 +89,7 @@ pub fn validate_pipeline(definition: &PipelineDefinition) -> Result<()> {
     for edge in &definition.edges {
         validate_edge_nodes_exist(edge, &node_ids)?;
         validate_conditional_edge(edge)?;
+        validate_edge_data_mode(edge)?;
 
         if !edge_pairs.insert((edge.source.as_str(), edge.target.as_str())) {
             return Err(MaenifoldError::InvalidArgument(format!(
@@ -163,6 +164,26 @@ fn validate_conditional_edge(edge: &super::PipelineEdge) -> Result<()> {
     {
         return Err(MaenifoldError::InvalidArgument(format!(
             "Conditional edge '{} -> {}' field 'path' must not be empty",
+            edge.source, edge.target
+        )));
+    }
+
+    Ok(())
+}
+
+fn validate_edge_data_mode(edge: &super::PipelineEdge) -> Result<()> {
+    if edge.mode == EdgeDataMode::None
+        && edge.mapping.as_ref().is_some_and(|mapping| !mapping.is_empty())
+    {
+        return Err(MaenifoldError::Message(format!(
+            "None mode forbids mapping on edge '{} -> {}'",
+            edge.source, edge.target
+        )));
+    }
+
+    if edge.mode == EdgeDataMode::Binding {
+        return Err(MaenifoldError::Message(format!(
+            "Binding edge requires declared schemas on both endpoints for edge '{} -> {}'",
             edge.source, edge.target
         )));
     }

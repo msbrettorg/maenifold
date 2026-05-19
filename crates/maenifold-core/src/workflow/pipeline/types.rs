@@ -67,6 +67,29 @@ pub enum JoinPolicy {
 }
 
 impl PipelineDefinition {
+    pub fn migrate_legacy_edges(&mut self) {
+        let nodes_by_id: HashMap<&str, &PipelineNode> =
+            self.nodes.iter().map(|node| (node.id(), node)).collect();
+
+        for edge in &mut self.edges {
+            if edge.mapping.as_ref().is_none_or(HashMap::is_empty) {
+                continue;
+            }
+
+            let Some(PipelineNode::Workflow { .. }
+            | PipelineNode::Prompt { .. }
+            | PipelineNode::SequentialThinking { .. }) =
+                nodes_by_id.get(edge.target.as_str()).copied()
+            else {
+                continue;
+            };
+
+            edge.mapping = None;
+            tracing::warn!(source = %edge.source, target = %edge.target,
+                "legacy edge.mapping ignored for ACP target — see T-332.0 typed-handoff plan");
+        }
+    }
+
     pub(crate) fn build_graph(&self) -> StableGraph<String, EdgeType> {
         let mut graph = StableGraph::with_capacity(self.nodes.len(), self.edges.len());
         let mut node_indices = HashMap::with_capacity(self.nodes.len());
@@ -89,6 +112,15 @@ impl PipelineDefinition {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum EdgeDataMode {
+    #[default]
+    Context,
+    Binding,
+    None,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PipelineEdge {
@@ -96,6 +128,8 @@ pub struct PipelineEdge {
     pub target: String,
     #[serde(default, flatten)]
     pub edge_type: EdgeType,
+    #[serde(default)]
+    pub mode: EdgeDataMode,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mapping: Option<HashMap<String, String>>,
 }

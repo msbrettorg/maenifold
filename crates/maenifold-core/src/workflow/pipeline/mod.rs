@@ -13,6 +13,8 @@ use crate::{
 mod acp_input_schema_tests;
 #[cfg(test)]
 mod acp_output_schema_tests;
+#[cfg(test)]
+mod acp_workflow_output_schema_tests;
 mod acp_reaper;
 #[cfg(test)]
 mod active_session_persistence_tests;

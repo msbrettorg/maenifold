@@ -153,9 +153,11 @@ fn workflow_response_text(response: AgentResponse) -> Result<String> {
 }
 
 fn normalize_workflow_prompt_response(response: Result<AgentResponse>) -> Result<String> {
-    response
-        .and_then(workflow_response_text)
-        .map(|text| tag_fallback(&text))
+    let response = response?;
+    if let Some(args) = response.complete_node_args {
+        return Ok(args.to_string());
+    }
+    workflow_response_text(response).map(|text| tag_fallback(&text))
 }
 
 pub(crate) fn tag_fallback(response: &str) -> String {
@@ -244,6 +246,21 @@ mod tests {
         .expect("success response should remain ok");
 
         assert_eq!(response, "Completed [[step]]");
+    }
+
+    #[test]
+    fn normalize_workflow_prompt_response_prefers_complete_node_args() {
+        let response = normalize_workflow_prompt_response(Ok(AgentResponse {
+            text: "prose response that must not become node output".to_string(),
+            error: None,
+            input_tokens: None,
+            output_tokens: None,
+            model: None,
+            complete_node_args: Some(serde_json::json!({"verdict":"PASS"})),
+        }))
+        .expect("complete_node args should produce workflow output text");
+
+        assert_eq!(response, r#"{"verdict":"PASS"}"#);
     }
 
     #[test]

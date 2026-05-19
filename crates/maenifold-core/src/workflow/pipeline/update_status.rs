@@ -175,8 +175,12 @@ pub(super) fn update_pipeline_node_status(
             if definition.edges.iter().any(|edge| {
                 edge.source == node_id
                     && matches!(edge.edge_type, super::EdgeType::Conditional { .. })
-            }) && !conditional_output_has_json(Some(conclusion))
-            {
+            }) && !conditional_output_has_json(
+                node_states
+                    .get(node_id)
+                    .and_then(|state| state.output_artifact.as_ref()),
+                Some(conclusion),
+            ) {
                 let state = node_states.get_mut(node_id).ok_or_else(|| {
                     MaenifoldError::Message(format!(
                         "ERROR: Pipeline session missing node state for '{node_id}'"

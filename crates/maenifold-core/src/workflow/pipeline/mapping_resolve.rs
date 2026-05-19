@@ -3,6 +3,7 @@ use serde_json::Value as JsonValue;
 
 use crate::error::{MaenifoldError, Result};
 
+#[allow(deprecated)]
 use super::conditional_output::extract_conditional_json_value;
 
 pub(super) fn resolve_dot_path(value: &JsonValue, path: &str) -> Result<JsonValue> {
@@ -112,7 +113,14 @@ pub(super) fn conditional_parse_failure_reason(source_id: &str) -> String {
     format!("{CONDITIONAL_PARSE_FAILURE_REASON} (source node: {source_id})")
 }
 
-pub(super) fn conditional_output_has_json(upstream_output: Option<&str>) -> bool {
+pub(super) fn conditional_output_has_json(
+    upstream_artifact: Option<&JsonValue>,
+    upstream_output: Option<&str>,
+) -> bool {
+    if upstream_artifact.is_some() {
+        return true;
+    }
+    #[allow(deprecated)]
     upstream_output
         .and_then(extract_conditional_json_value)
         .is_some()
@@ -121,29 +129,44 @@ pub(super) fn conditional_output_has_json(upstream_output: Option<&str>) -> bool
 /// Test whether a `Conditional` edge predicate is satisfied for the upstream
 /// node's output.
 pub(super) fn conditional_predicate_satisfied(
+    upstream_artifact: Option<&JsonValue>,
     upstream_output: Option<&str>,
     path: &str,
     equals: &JsonValue,
 ) -> bool {
-    conditional_predicate_result(upstream_output, path, equals)
+    conditional_predicate_result(upstream_artifact, upstream_output, path, equals)
         == ConditionalPredicateResult::Satisfied
 }
 
 pub(super) fn conditional_predicate_result(
+    upstream_artifact: Option<&JsonValue>,
     upstream_output: Option<&str>,
     path: &str,
     equals: &JsonValue,
 ) -> ConditionalPredicateResult {
-    let Some(output) = upstream_output else {
-        return ConditionalPredicateResult::Unparseable;
-    };
-    let Some(parsed) = extract_conditional_json_value(output) else {
-        return ConditionalPredicateResult::Unparseable;
+    let parsed;
+    let source = if let Some(artifact) = upstream_artifact {
+        artifact
+    } else {
+        let Some(output) = upstream_output else {
+            return ConditionalPredicateResult::Unparseable;
+        };
+        #[allow(deprecated)]
+        {
+            let Some(value) = extract_conditional_json_value(output) else {
+                return ConditionalPredicateResult::Unparseable;
+            };
+            tracing::debug!(
+                "conditional edge falling back to parsing source output as JSON — declare output_schema on the source for stable behavior"
+            );
+            parsed = value;
+        }
+        &parsed
     };
     let resolved = if path.starts_with('/') {
-        parsed.pointer(path).cloned()
+        source.pointer(path).cloned()
     } else {
-        resolve_dot_path(&parsed, path).ok()
+        resolve_dot_path(source, path).ok()
     };
     match resolved {
         Some(value) if &value == equals => ConditionalPredicateResult::Satisfied,

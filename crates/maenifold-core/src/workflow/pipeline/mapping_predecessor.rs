@@ -67,7 +67,12 @@ pub(super) fn predecessor_context_content(
                 .get(&edge.source)
                 .map(|state| {
                     state.status == NodeStatus::Completed
-                        && conditional_predicate_satisfied(state.output.as_deref(), path, equals)
+                        && conditional_predicate_satisfied(
+                            state.output_artifact.as_ref(),
+                            state.output.as_deref(),
+                            path,
+                            equals,
+                        )
                 })
                 .unwrap_or(false),
         }

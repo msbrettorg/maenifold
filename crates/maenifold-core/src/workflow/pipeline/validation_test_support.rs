@@ -12,6 +12,7 @@ pub(super) fn sample_definition() -> PipelineDefinition {
                 timeout: None,
                 retry_policy: None,
                 join_policy: None,
+                input_schema: None,
                 output_schema: None,
             },
             PipelineNode::Workflow {
@@ -23,6 +24,7 @@ pub(super) fn sample_definition() -> PipelineDefinition {
                 timeout: None,
                 retry_policy: None,
                 join_policy: None,
+                input_schema: None,
                 output_schema: None,
             },
             PipelineNode::Workflow {
@@ -34,6 +36,7 @@ pub(super) fn sample_definition() -> PipelineDefinition {
                 timeout: None,
                 retry_policy: None,
                 join_policy: None,
+                input_schema: None,
                 output_schema: None,
             },
         ],
@@ -68,6 +71,7 @@ pub(super) fn mixed_definition() -> PipelineDefinition {
                 timeout: None,
                 retry_policy: None,
                 join_policy: None,
+                input_schema: None,
                 output_schema: None,
             },
             PipelineNode::Prompt {
@@ -84,6 +88,7 @@ pub(super) fn mixed_definition() -> PipelineDefinition {
                 timeout: None,
                 retry_policy: None,
                 join_policy: None,
+                input_schema: None,
                 output_schema: None,
             },
             PipelineNode::SequentialThinking {
@@ -100,6 +105,7 @@ pub(super) fn mixed_definition() -> PipelineDefinition {
                 timeout: None,
                 retry_policy: None,
                 join_policy: None,
+                input_schema: None,
                 output_schema: None,
             },
         ],

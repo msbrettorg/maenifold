@@ -18,6 +18,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 requires_role,
                 retry_policy,
                 join_policy,
+                input_schema,
                 output_schema,
             } => Self {
                 kind: Some("workflow".to_string()),
@@ -47,6 +48,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 retry_backoff_min_ms: retry_policy.as_ref().map(|policy| policy.backoff_min_ms),
                 retry_backoff_max_ms: retry_policy.as_ref().map(|policy| policy.backoff_max_ms),
                 retry_jitter: retry_policy.as_ref().map(|policy| policy.jitter),
+                input_schema,
                 output_schema,
             },
             PipelineNode::Prompt {
@@ -67,6 +69,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 retry_policy,
                 session_ref,
                 join_policy,
+                input_schema,
                 output_schema,
             } => Self {
                 kind: Some("prompt".to_string()),
@@ -96,6 +99,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 retry_backoff_min_ms: retry_policy.as_ref().map(|policy| policy.backoff_min_ms),
                 retry_backoff_max_ms: retry_policy.as_ref().map(|policy| policy.backoff_max_ms),
                 retry_jitter: retry_policy.as_ref().map(|policy| policy.jitter),
+                input_schema,
                 output_schema,
             },
             PipelineNode::SequentialThinking {
@@ -115,6 +119,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 requires_role,
                 retry_policy,
                 join_policy,
+                input_schema,
                 output_schema,
             } => Self {
                 kind: Some("sequentialThinking".to_string()),
@@ -144,6 +149,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 retry_backoff_min_ms: retry_policy.as_ref().map(|policy| policy.backoff_min_ms),
                 retry_backoff_max_ms: retry_policy.as_ref().map(|policy| policy.backoff_max_ms),
                 retry_jitter: retry_policy.as_ref().map(|policy| policy.jitter),
+                input_schema,
                 output_schema,
             },
             PipelineNode::Tool {
@@ -189,6 +195,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 retry_backoff_min_ms: retry_policy.as_ref().map(|policy| policy.backoff_min_ms),
                 retry_backoff_max_ms: retry_policy.as_ref().map(|policy| policy.backoff_max_ms),
                 retry_jitter: retry_policy.as_ref().map(|policy| policy.jitter),
+                input_schema: None,
                 output_schema: None,
             },
         }

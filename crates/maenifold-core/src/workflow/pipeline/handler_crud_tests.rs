@@ -27,6 +27,7 @@ pub(super) fn workflow_node(id: &str) -> PipelineNode {
         requires_role: None,
         retry_policy: None,
         join_policy: None,
+        input_schema: None,
         output_schema: None,
     }
 }
@@ -69,6 +70,7 @@ pub(super) fn states(specs: &[(&str, NodeStatus, u32)]) -> HashMap<String, NodeS
                     output_tokens: None,
                     model: None,
                     output: None,
+                    input_artifact: None,
                     output_artifact: None,
                     failure_reason: None,
                     retry_after: None,

@@ -25,6 +25,7 @@ fn active_node_state(session_id: &str) -> NodeState {
         output_tokens: None,
         model: None,
         output: None,
+        input_artifact: None,
         output_artifact: None,
         failure_reason: None,
         retry_after: None,

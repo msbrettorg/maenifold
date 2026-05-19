@@ -16,7 +16,7 @@ use super::session_io::{
     pipeline_definition_from_frontmatter, read_pipeline_session,
 };
 use super::{
-    EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineNode,
+    EdgeDataMode, EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineNode,
     compute_pipeline_status_with_definition,
 };
 
@@ -202,6 +202,9 @@ pub(super) fn predecessor_context_content(
 
     for edge in definition.edges.iter().filter(|edge| {
         if edge.target != downstream_node_id {
+            return false;
+        }
+        if edge.mode == EdgeDataMode::Binding {
             return false;
         }
         match &edge.edge_type {

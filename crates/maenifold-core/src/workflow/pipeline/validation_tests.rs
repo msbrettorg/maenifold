@@ -21,6 +21,7 @@ fn make_node(id: &str) -> PipelineNode {
         requires_role: None,
         retry_policy: None,
         join_policy: None,
+        input_schema: None,
         output_schema: None,
     }
 }
@@ -53,6 +54,7 @@ fn make_prompt_node(id: &str, session_ref: Option<SessionRef>) -> PipelineNode {
         requires_role: None,
         retry_policy: None,
         join_policy: None,
+        input_schema: None,
         output_schema: None,
         session_ref,
     }

@@ -183,6 +183,7 @@ fn pending_state(session_id: String) -> NodeState {
         output_tokens: None,
         model: None,
         output: None,
+        input_artifact: None,
         output_artifact: None,
         failure_reason: None,
         retry_after: None,

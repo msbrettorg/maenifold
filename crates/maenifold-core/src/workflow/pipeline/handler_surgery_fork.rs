@@ -104,6 +104,7 @@ pub(super) fn fork_pipeline(
                     requires_role: requires_role.clone(),
                     retry_policy: retry_policy.clone(),
                     join_policy: join_policy.clone(),
+                    input_schema: None,
                     output_schema: None,
                 },
                 super::super::PipelineNode::Prompt {
@@ -141,6 +142,7 @@ pub(super) fn fork_pipeline(
                     requires_role: requires_role.clone(),
                     retry_policy: retry_policy.clone(),
                     join_policy: join_policy.clone(),
+                    input_schema: None,
                     output_schema: None,
                     session_ref: session_ref.clone(),
                 },
@@ -178,6 +180,7 @@ pub(super) fn fork_pipeline(
                     requires_role: requires_role.clone(),
                     retry_policy: retry_policy.clone(),
                     join_policy: join_policy.clone(),
+                    input_schema: None,
                     output_schema: None,
                 },
                 super::super::PipelineNode::Tool {
@@ -247,6 +250,7 @@ pub(super) fn fork_pipeline(
             output_tokens: None,
             model: None,
             output: None,
+            input_artifact: None,
             output_artifact: None,
             failure_reason: None,
             retry_after: None,

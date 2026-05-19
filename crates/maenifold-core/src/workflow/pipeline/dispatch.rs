@@ -1,28 +1,29 @@
 use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use serde_json::json;
 use serde_yml::Value as YamlValue;
 use std::collections::HashMap;
 
+#[path = "dispatch_retry.rs"]
+mod dispatch_retry;
 use super::dispatch_non_workflow::activate_non_workflow_node_session;
 use super::dispatch_prompt::build_prompt_dispatch_response;
 use super::dispatch_thinking::build_thinking_dispatch_response;
 use super::dispatch_tool::build_tool_dispatch_response;
 use super::dispatch_workflow::{activate_workflow_node_session, build_workflow_dispatch_response};
+use super::input_bindings::{resolve_input_bindings, validate_input_bindings};
 use super::session_io::{
-    NodeFile, derive_pipeline_node_states, frontmatter_value, persist_pipeline_state,
-    pipeline_definition_from_frontmatter, read_pipeline_session, update_workflow_node_frontmatter,
-    write_workflow_node_session_with_status,
+    derive_pipeline_node_states, frontmatter_value, persist_pipeline_state,
+    pipeline_definition_from_frontmatter, read_pipeline_session,
 };
 use super::view::node_ids_with_status;
 use super::{
     NodeState, NodeStatus, PipelineDefinition, PipelineNode, compute_ready_set,
     workflow_id_for_node,
 };
-use crate::markdown::file_exists;
-use crate::sessions::workflow_session_uri;
+use dispatch_retry::release_retrying_nodes;
 
 // T-45.7: RTM-337 / RTM-342 / RTM-343 / RTM-344
 // Dispatch computes the ready set, atomically claims eligible nodes (pending→active),
@@ -112,75 +113,6 @@ pub(super) fn dispatch_pipeline(context: &ToolContext, session_id: &str) -> Resu
     })
 }
 
-fn release_retrying_nodes(
-    context: &ToolContext,
-    session_id: &str,
-    definition: &PipelineDefinition,
-    node_states: &mut HashMap<String, NodeState>,
-) -> Result<()> {
-    let now = Utc::now();
-    for (node_id, state) in node_states.iter_mut() {
-        if state.status != NodeStatus::Retrying {
-            continue;
-        }
-        ensure_retry_workflow_session(context, session_id, definition, node_id, state)?;
-        let Some(retry_after) = state.retry_after.as_deref() else {
-            state.status = NodeStatus::Pending;
-            state.retry_after = None;
-            update_workflow_node_frontmatter(context, &state.session_id, "pending", None)?;
-            continue;
-        };
-        let retry_at = DateTime::parse_from_rfc3339(retry_after)
-            .map(|timestamp| timestamp.with_timezone(&Utc))
-            .inspect_err(|error| {
-                tracing::warn!(
-                    node_id,
-                    session_id = %state.session_id,
-                    retry_after,
-                    error = %error,
-                    "[pipeline] invalid retry_after timestamp, releasing node immediately"
-                );
-            })
-            .ok();
-        if retry_at.is_some_and(|retry_at| retry_at > now) {
-            continue;
-        }
-        state.status = NodeStatus::Pending;
-        state.retry_after = None;
-        update_workflow_node_frontmatter(context, &state.session_id, "pending", None)?;
-    }
-    Ok(())
-}
-
-fn ensure_retry_workflow_session(
-    context: &ToolContext,
-    session_id: &str,
-    definition: &PipelineDefinition,
-    node_id: &str,
-    state: &NodeState,
-) -> Result<()> {
-    let workflow_uri = workflow_session_uri(&state.session_id);
-    if file_exists(&workflow_uri, &context.config)? {
-        return Ok(());
-    }
-
-    let node = definition
-        .nodes
-        .iter()
-        .find(|node| node.id() == node_id)
-        .ok_or_else(|| missing_definition_node(node_id))?;
-    write_workflow_node_session_with_status(
-        context,
-        session_id,
-        &NodeFile {
-            session_id: state.session_id.clone(),
-            node_id: node_id.to_string(),
-            workflow_id: node.effective_workflow_id(),
-        },
-        "retrying",
-    )
-}
-
 fn dispatch_node(
     context: &ToolContext,
     definition: &PipelineDefinition,
@@ -193,6 +125,17 @@ fn dispatch_node(
         .find(|node| node.id() == node_id)
         .ok_or_else(|| missing_definition_node(node_id))?;
     ensure_dispatchable(node)?;
+    let input_artifact = if let Some(schema) = node.input_schema() {
+        let inputs = resolve_input_bindings(definition, node_states, node_id)?;
+        validate_input_bindings(node_id, schema, &inputs)?;
+        if inputs.is_empty() {
+            None
+        } else {
+            Some(serde_json::Value::Object(inputs))
+        }
+    } else {
+        None
+    };
     let node_session_id = node_states
         .get(node_id)
         .ok_or_else(|| missing_node_state(node_id))?
@@ -211,6 +154,7 @@ fn dispatch_node(
                 &node_session_id,
             )?;
             state.status = NodeStatus::Active;
+            state.input_artifact = input_artifact.clone();
             state.started_at = Some(Utc::now());
             state.completed_at = None;
             state.input_tokens = None;
@@ -228,6 +172,7 @@ fn dispatch_node(
             let response = build_prompt_dispatch_response(node, &node_session_id)?;
             let activated = activate_non_workflow_node_session(context, &node_session_id)?;
             state.status = NodeStatus::Active;
+            state.input_artifact = input_artifact.clone();
             state.started_at = Some(Utc::now());
             state.completed_at = None;
             state.input_tokens = None;
@@ -247,6 +192,7 @@ fn dispatch_node(
             let response = build_thinking_dispatch_response(node, &node_session_id)?;
             let activated = activate_non_workflow_node_session(context, &node_session_id)?;
             state.status = NodeStatus::Active;
+            state.input_artifact = input_artifact.clone();
             state.started_at = Some(Utc::now());
             state.completed_at = None;
             state.input_tokens = None;
@@ -266,6 +212,7 @@ fn dispatch_node(
             let response = build_tool_dispatch_response(node, &node_session_id)?;
             let activated = activate_non_workflow_node_session(context, &node_session_id)?;
             state.status = NodeStatus::Active;
+            state.input_artifact = None;
             state.started_at = Some(Utc::now());
             state.completed_at = None;
             state.input_tokens = None;

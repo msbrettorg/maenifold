@@ -20,6 +20,10 @@ interface ToolPaletteIntentInput {
   description: string;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
 export interface ToolPaletteEntry {
   kind: 'tool' | 'server_state';
   key: string;
@@ -199,7 +203,7 @@ function createToolEntry(result: McpServerDiscoveryResult, tool: McpDiscoveredTo
     status: result.status,
     error: result.error,
     health: toolHealth,
-    inputSchema: tool.inputSchema,
+    inputSchema: isRecord(tool.inputSchema) ? tool.inputSchema : null,
   };
 }
 

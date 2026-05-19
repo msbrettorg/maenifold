@@ -180,11 +180,7 @@ onBeforeUnmount(() => { detachBeforeUnload?.(); window.removeEventListener('keyd
           @new-pipeline="handleNewPipeline"
         />
       </section>
-      <Sheet
-        v-if="isNarrowViewport"
-        :open="mobileSidebarOpen"
-        @update:open="(value: boolean) => mobileSidebarOpen = value"
-      >
+      <Sheet v-if="isNarrowViewport" :open="mobileSidebarOpen" @update:open="(value: boolean) => mobileSidebarOpen = value">
         <SheetContent side="left" class="w-72 max-w-[88vw] p-0">
           <PipelineSidebar />
         </SheetContent>
@@ -297,18 +293,8 @@ onBeforeUnmount(() => { detachBeforeUnload?.(); window.removeEventListener('keyd
     </div>
     <GraftNodesDialog v-if="graftDialogOpen && currentView" :busy="graftSubmitting" :existing-node-ids="existingNodeIds" :source-node-id="null" :workflows="workflows" @cancel="graftDialogOpen = false" @submit="handleGraftSubmit" />
     <JoinPipelineDialog v-if="joinDialogOpen && currentView" :busy="joinSubmitting" @cancel="joinDialogOpen = false" @submit="handleJoinSubmit" />
-    <PromotionDialog
-      v-if="promotionNode && currentView?.pipelineId"
-      :node="promotionNode"
-      :pipeline-id="currentView.pipelineId"
-      @close="promotionNode = null"
-    />
-    <DesignNodeConfigModal
-      v-if="isConfigModalOpen"
-      :selected-node-id="configModalNodeId"
-      :selected-edge="configModalEdge"
-      @close="closeConfigModal"
-    />
+    <PromotionDialog v-if="promotionNode && currentView?.pipelineId" :node="promotionNode" :pipeline-id="currentView.pipelineId" @close="promotionNode = null" />
+    <DesignNodeConfigModal v-if="isConfigModalOpen" :selected-node-id="configModalNodeId" :selected-edge="configModalEdge" @close="closeConfigModal" />
     <SemanticZoomOverlay />
   </div>
 </template>

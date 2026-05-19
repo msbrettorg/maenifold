@@ -1,3 +1,4 @@
+#[allow(deprecated)]
 use super::super::conditional_output::extract_conditional_json_value;
 use super::*;
 
@@ -69,6 +70,8 @@ fn structured_args_from_response(
     schema: &JsonValue,
     errors: &mut Vec<String>,
 ) -> Option<JsonValue> {
+    // T-332.0 followup: migrate to output_artifact-aware extraction.
+    #[allow(deprecated)]
     let candidate = response
         .complete_node_args
         .clone()

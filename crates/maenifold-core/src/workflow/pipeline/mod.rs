@@ -20,6 +20,8 @@ mod audit;
 pub(super) mod circuit_breaker;
 #[cfg(test)]
 mod conditional_extraction_tests;
+#[cfg(test)]
+mod conditional_predicate_artifact_tests;
 mod conditional_output;
 #[cfg(test)]
 mod delete_verification_tests;

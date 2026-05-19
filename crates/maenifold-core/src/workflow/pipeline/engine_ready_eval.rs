@@ -42,6 +42,7 @@ pub(super) fn conditional_only_unreachable_reason(
                         match edge.weight() {
                             EdgeType::Conditional { path, equals } => {
                                 match conditional_predicate_result(
+                                    state.output_artifact.as_ref(),
                                     state.output.as_deref(),
                                     path,
                                     equals,
@@ -98,8 +99,12 @@ pub(super) fn is_edge_satisfied(
         }
         (EdgeType::Conditional { path, equals }, Some(state)) => {
             matches!(state.status, NodeStatus::Completed)
-                && conditional_predicate_result(state.output.as_deref(), path, equals)
-                    == ConditionalPredicateResult::Satisfied
+                && conditional_predicate_result(
+                    state.output_artifact.as_ref(),
+                    state.output.as_deref(),
+                    path,
+                    equals,
+                ) == ConditionalPredicateResult::Satisfied
         }
         (_, None) => false,
     }

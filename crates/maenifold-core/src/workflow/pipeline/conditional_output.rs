@@ -1,5 +1,13 @@
 use serde_json::Value as JsonValue;
 
+/// Extract legacy conditional-edge JSON from prompt text.
+///
+/// T-332.0 introduced declared structured outputs, and T-332.9 moved
+/// conditional predicates to prefer `NodeState.output_artifact`. This helper
+/// remains only for legacy pipelines still persisted with text-only output.
+#[deprecated(
+    note = "Use NodeState.output_artifact directly. Will be removed when no legacy pipelines remain on disk."
+)]
 pub(super) fn extract_conditional_json_value(output: &str) -> Option<JsonValue> {
     let trimmed = output.trim();
     if trimmed.is_empty() {

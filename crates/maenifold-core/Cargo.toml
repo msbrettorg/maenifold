@@ -75,6 +75,7 @@ reqwest.workspace = true
 serial_test = "3"
 tempfile.workspace = true
 tower = "0.5"
+tracing-test = "0.2"
 
 [[test]]
 name = "gateway_integration"

@@ -13,7 +13,7 @@ use super::dispatch_tool::build_tool_dispatch_response;
 use super::dispatch_workflow::{activate_workflow_node_session, build_workflow_dispatch_response};
 use super::session_io::{
     NodeFile, derive_pipeline_node_states, frontmatter_value, persist_pipeline_state,
-    read_pipeline_session, update_workflow_node_frontmatter,
+    pipeline_definition_from_frontmatter, read_pipeline_session, update_workflow_node_frontmatter,
     write_workflow_node_session_with_status,
 };
 use super::view::node_ids_with_status;
@@ -30,7 +30,7 @@ use crate::sessions::workflow_session_uri;
 #[allow(clippy::too_many_lines)]
 pub(super) fn dispatch_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
     let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
-    let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
+    let definition = pipeline_definition_from_frontmatter(&frontmatter)?;
     let mut node_states: HashMap<String, NodeState> =
         frontmatter_value(&frontmatter, "nodeStates")?;
     release_retrying_nodes(context, session_id, &definition, &mut node_states)?;

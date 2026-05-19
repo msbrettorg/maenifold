@@ -63,6 +63,7 @@ fn verdict_definition() -> PipelineDefinition {
                     path: "verdict".to_string(),
                     equals: serde_json::json!("PASS"),
                 },
+                mode: Default::default(),
                 mapping: None,
             },
             PipelineEdge {
@@ -72,6 +73,7 @@ fn verdict_definition() -> PipelineDefinition {
                     path: "verdict".to_string(),
                     equals: serde_json::json!("FAIL"),
                 },
+                mode: Default::default(),
                 mapping: None,
             },
         ],

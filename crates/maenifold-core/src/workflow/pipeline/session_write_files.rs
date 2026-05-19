@@ -106,8 +106,7 @@ pub(super) fn persist_pipeline_runtime_context(
 ) -> Result<String> {
     let (uri, mut frontmatter, pipeline_content) =
         super::session_read::read_pipeline_session(context, session_id)?;
-    let definition: PipelineDefinition =
-        super::session_read::frontmatter_value(&frontmatter, "definition")?;
+    let definition = super::session_read::pipeline_definition_from_frontmatter(&frontmatter)?;
     let mut inputs = super::session_read::optional_frontmatter_value::<JsonMap<String, JsonValue>>(
         &frontmatter,
         "inputs",

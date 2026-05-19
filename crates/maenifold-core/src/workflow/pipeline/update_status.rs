@@ -4,17 +4,17 @@ use crate::util::json::{OutputFormat, success};
 use chrono::Utc;
 use serde_yml::Value as YamlValue;
 
+use super::NodeStatus;
 use super::compute_blocked_cascade;
 use super::engine_ready::compute_unreachable_conditional_failures;
 use super::mapping_resolve::{conditional_output_has_json, conditional_parse_failure_reason};
 use super::session_io::{
-    derive_pipeline_node_states, frontmatter_value, persist_pipeline_state, read_pipeline_session,
-    update_workflow_node_frontmatter,
+    derive_pipeline_node_states, frontmatter_value, persist_pipeline_state,
+    pipeline_definition_from_frontmatter, read_pipeline_session, update_workflow_node_frontmatter,
 };
 use super::types::ToolProvenance;
 use super::update_context::inject_predecessor_context;
 use super::view::build_pipeline_view_result;
-use super::{NodeStatus, PipelineDefinition};
 
 #[allow(clippy::too_many_lines)]
 #[allow(clippy::too_many_arguments)]
@@ -33,7 +33,7 @@ pub(super) fn update_pipeline_node_status(
     model: Option<&str>,
 ) -> Result<String> {
     let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
-    let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
+    let definition = pipeline_definition_from_frontmatter(&frontmatter)?;
     let raw_node_states = frontmatter_value(&frontmatter, "nodeStates")?;
     let mut node_states = derive_pipeline_node_states(context, &raw_node_states)?;
     definition

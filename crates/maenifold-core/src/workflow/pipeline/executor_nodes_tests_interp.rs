@@ -41,6 +41,7 @@ fn build_node_execution_request_errors_when_tool_mapping_fails() {
             source: "source".to_string(),
             target: "target".to_string(),
             edge_type: super::super::types::EdgeType::Success,
+            mode: Default::default(),
             mapping: Some(HashMap::from([(
                 "payload".to_string(),
                 "result.value".to_string(),

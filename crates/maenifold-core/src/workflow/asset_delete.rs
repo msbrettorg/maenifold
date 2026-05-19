@@ -123,7 +123,8 @@ fn running_pipeline_references_workflow(
     let Some(definition_value) = frontmatter.get("definition").cloned() else {
         return Ok(false);
     };
-    let definition: PipelineDefinition = serde_yml::from_value(definition_value)?;
+    let mut definition: PipelineDefinition = serde_yml::from_value(definition_value)?;
+    definition.migrate_legacy_edges();
     Ok(definition
         .nodes
         .iter()

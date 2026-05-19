@@ -13,7 +13,7 @@ use crate::workflow::runner_helpers::EnvelopeError;
 use super::mapping_resolve::conditional_predicate_satisfied;
 use super::session_io::{
     derive_pipeline_node_states, frontmatter_value, optional_frontmatter_value,
-    read_pipeline_session,
+    pipeline_definition_from_frontmatter, read_pipeline_session,
 };
 use super::{
     EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineNode,
@@ -62,7 +62,7 @@ pub(super) fn load_execution_config(
     session_id: &str,
 ) -> Result<PipelineExecutionConfig> {
     let (_, frontmatter, _) = read_pipeline_session(context, session_id)?;
-    let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
+    let definition = pipeline_definition_from_frontmatter(&frontmatter)?;
     let max_concurrency = frontmatter
         .get("maxConcurrency")
         .and_then(YamlValue::as_u64)

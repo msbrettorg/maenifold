@@ -116,9 +116,12 @@ pub(super) fn augment_list_payload(
     live_sessions: &HashSet<String>,
 ) -> Result<Value> {
     let node_states = pipeline_node_states(frontmatter);
-    let definition = frontmatter
+    let mut definition = frontmatter
         .get("definition")
         .and_then(|value| serde_yml::from_value::<PipelineDefinition>(value.clone()).ok());
+    if let Some(definition) = &mut definition {
+        definition.migrate_legacy_edges();
+    }
     let nodes = match definition.as_ref() {
         Some(definition) => pipeline_nodes_json_with_live_sessions(
             context,

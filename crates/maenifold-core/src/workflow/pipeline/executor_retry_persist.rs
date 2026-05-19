@@ -8,10 +8,11 @@ use crate::tools::ToolContext;
 
 use super::session_io::{
     NodeFile, allocate_node_session_id, derive_pipeline_node_states, frontmatter_value,
-    persist_pipeline_state, read_pipeline_session, write_workflow_node_session_with_status,
+    persist_pipeline_state, pipeline_definition_from_frontmatter, read_pipeline_session,
+    write_workflow_node_session_with_status,
 };
 use super::update::update_pipeline_node_status;
-use super::{NodeStatus, PipelineDefinition, RetryPolicy};
+use super::{NodeStatus, RetryPolicy};
 
 use super::executor_retry::extract_retry_count_from_state;
 
@@ -27,7 +28,7 @@ pub(super) fn persist_retryable_failure(
     thinking_session_id: Option<&str>,
 ) -> Result<()> {
     let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
-    let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
+    let definition = pipeline_definition_from_frontmatter(&frontmatter)?;
     let mut node_states =
         derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
     let fallback_max_attempts = frontmatter

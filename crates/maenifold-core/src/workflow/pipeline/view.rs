@@ -7,7 +7,10 @@ use std::collections::HashMap;
 
 use super::acp_reaper::{live_acp_sessions, orphaned_acp_worker_count};
 use super::lease;
-use super::session_io::{derive_pipeline_node_states, frontmatter_value, read_pipeline_session};
+use super::session_io::{
+    derive_pipeline_node_states, frontmatter_value, pipeline_definition_from_frontmatter,
+    read_pipeline_session,
+};
 use super::view_mermaid::{edge_type_name, render_pipeline_mermaid};
 use super::view_nodes::pipeline_nodes_json_with_live_sessions;
 use super::{
@@ -40,7 +43,7 @@ pub(super) fn view_pipeline_session_value(
     session_id: &str,
 ) -> Result<Value> {
     let (_, frontmatter, _) = read_pipeline_session(context, session_id)?;
-    let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
+    let definition = pipeline_definition_from_frontmatter(&frontmatter)?;
     let node_states =
         derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
     let ambient_prompt = frontmatter
@@ -73,7 +76,7 @@ pub(super) fn view_pipeline_summary_session_value(
     session_id: &str,
 ) -> Result<Value> {
     let (_, frontmatter, _) = read_pipeline_session(context, session_id)?;
-    let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
+    let definition = pipeline_definition_from_frontmatter(&frontmatter)?;
     let node_states =
         derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
     let persisted_status = frontmatter

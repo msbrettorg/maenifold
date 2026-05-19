@@ -162,6 +162,7 @@ mod tests {
                     path: "a|b".to_string(),
                     equals: serde_json::Value::String("c|d".to_string()),
                 },
+                mode: Default::default(),
                 mapping: None,
             }],
             inputs: None,

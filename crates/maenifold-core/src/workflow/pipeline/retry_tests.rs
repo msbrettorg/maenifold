@@ -69,6 +69,7 @@ fn retrying_node_not_in_ready_set() {
             source: "upstream".to_string(),
             target: "downstream".to_string(),
             edge_type: super::super::EdgeType::Always,
+            mode: Default::default(),
             mapping: None,
         }],
         inputs: None,

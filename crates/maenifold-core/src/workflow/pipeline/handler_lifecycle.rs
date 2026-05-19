@@ -7,14 +7,16 @@ use serde_json::{Map as JsonMap, Value, json};
 use serde_yml::Value as YamlValue;
 use std::process::Command;
 
+use super::NodeState;
 use super::acp_reaper::{reap_acp_sessions, reaped_json};
 use super::handler_wait::{await_terminal, parse_timeout_ms, wait_requested};
 use super::lease;
 use super::resource_notifications::emit_pipeline_resource_updated;
-use super::session_io::{frontmatter_value, read_pipeline_session};
+use super::session_io::{
+    frontmatter_value, pipeline_definition_from_frontmatter, read_pipeline_session,
+};
 use super::session_write::persist_final_pipeline_status;
 use super::session_write_files::persist_pipeline_runtime_context;
-use super::{NodeState, PipelineDefinition};
 
 #[path = "handler_lifecycle_rewind.rs"]
 mod rewind;
@@ -214,7 +216,7 @@ fn cancel_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
 
 fn cancel_orphan_pipeline(context: &ToolContext, session_id: &str, reason: &str) -> Result<String> {
     let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
-    let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
+    let definition = pipeline_definition_from_frontmatter(&frontmatter)?;
     let node_states: std::collections::HashMap<String, NodeState> =
         frontmatter_value(&frontmatter, "nodeStates")?;
     let reaped = reap_acp_sessions(&definition, &node_states);

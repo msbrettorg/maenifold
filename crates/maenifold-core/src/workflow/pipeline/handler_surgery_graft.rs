@@ -12,7 +12,7 @@ use super::super::handler_validation::{validate_workflow_node_definitions, workf
 use super::super::resource_notifications::emit_pipeline_resource_updated;
 use super::super::session_io::{
     allocate_node_session_id, derive_pipeline_node_states, frontmatter_value,
-    read_pipeline_session, write_workflow_node_session,
+    pipeline_definition_from_frontmatter, read_pipeline_session, write_workflow_node_session,
 };
 use super::super::view::build_pipeline_view_result;
 use super::super::{NodeState, NodeStatus, PipelineDefinition, validate_pipeline};
@@ -26,7 +26,7 @@ pub(super) fn graft_pipeline(
 ) -> Result<String> {
     AssetManager::initialize_assets(&context.config)?;
     let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
-    let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
+    let definition = pipeline_definition_from_frontmatter(&frontmatter)?;
     let mut node_states =
         derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
     let pipeline_status = frontmatter

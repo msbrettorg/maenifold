@@ -1,8 +1,8 @@
 use super::super::handler_validation::workflow_node_file;
 use super::super::resource_notifications::emit_pipeline_resource_updated;
 use super::super::session_io::{
-    allocate_node_session_id, frontmatter_value, read_pipeline_session, write_pipeline_session,
-    write_workflow_node_session,
+    allocate_node_session_id, frontmatter_value, pipeline_definition_from_frontmatter,
+    read_pipeline_session, write_pipeline_session, write_workflow_node_session,
 };
 use super::super::view::build_pipeline_view_result;
 use super::super::{NodeState, NodeStatus, PipelineDefinition, validate_pipeline};
@@ -43,7 +43,7 @@ pub(super) fn fork_pipeline(
         )));
     }
     let (_, frontmatter, _) = read_pipeline_session(context, session_id)?;
-    let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
+    let definition = pipeline_definition_from_frontmatter(&frontmatter)?;
     let graph = definition.build_graph();
     let max_concurrency: u64 = frontmatter_value(&frontmatter, "maxConcurrency")?;
     let source_node_states: HashMap<String, NodeState> =
@@ -218,6 +218,7 @@ pub(super) fn fork_pipeline(
                 source: node_id_map[&edge.source].clone(),
                 target: node_id_map[&edge.target].clone(),
                 edge_type: edge.edge_type.clone(),
+                mode: edge.mode.clone(),
                 mapping: edge.mapping.clone(),
             })
             .collect(),

@@ -21,6 +21,7 @@ fn validate_node_semantics(node: &PipelineNode) -> Result<()> {
             id,
             workflow_id,
             acp_client,
+            prompt,
             ..
         } => {
             validate_non_empty_node_field(id, "workflowId", workflow_id)?;
@@ -33,12 +34,14 @@ fn validate_node_semantics(node: &PipelineNode) -> Result<()> {
                     ))
                 })?,
             )?;
+            warn_if_acp_prompt_has_handlebars(id, prompt.as_deref());
             Ok(())
         }
         PipelineNode::Prompt {
             id, prompt, agent, ..
         } => {
             validate_non_empty_node_field(id, "prompt", prompt)?;
+            warn_if_acp_prompt_has_handlebars(id, Some(prompt));
             validate_non_empty_node_field(id, "agent", agent)
         }
         PipelineNode::SequentialThinking {
@@ -49,6 +52,7 @@ fn validate_node_semantics(node: &PipelineNode) -> Result<()> {
             ..
         } => {
             validate_non_empty_node_field(id, "topic", topic)?;
+            warn_if_acp_prompt_has_handlebars(id, Some(topic));
             validate_non_empty_node_field(id, "agent", agent)?;
 
             if *total_thoughts == 0 {
@@ -62,6 +66,12 @@ fn validate_node_semantics(node: &PipelineNode) -> Result<()> {
         PipelineNode::Tool { id, tool_name, .. } => {
             validate_non_empty_node_field(id, "toolName", tool_name)
         }
+    }
+}
+
+fn warn_if_acp_prompt_has_handlebars(id: &str, prompt: Option<&str>) {
+    if prompt.is_some_and(|value| value.contains("{{")) {
+        tracing::warn!(node_id = %id, "ACP prompt contains Handlebars-style tokens which are NOT interpolated for ACP nodes; use runtime_inputs envelope or reference values by name");
     }
 }
 

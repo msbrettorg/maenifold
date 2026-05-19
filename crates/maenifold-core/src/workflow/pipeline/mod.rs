@@ -71,6 +71,8 @@ mod failure_reason_scope_tests;
 mod failure_reason_scope_tests_cascade;
 #[cfg(test)]
 mod failure_reason_scope_tests_edge;
+#[cfg(test)]
+mod handlebars_acp_kill_tests;
 mod handler;
 mod handler_crud;
 #[cfg(test)]

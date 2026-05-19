@@ -15,7 +15,6 @@ use super::executor_nodes_cwd::resolve_node_cwd;
 use super::input_bindings::{
     render_runtime_inputs_envelope, resolve_input_bindings, validate_input_bindings,
 };
-use super::mapping_resolve::interpolate_string;
 use super::types::{AgentConfig, NodeAdopt};
 use super::{NodeState, PipelineDefinition};
 
@@ -27,20 +26,17 @@ pub(super) fn resolve_execution_prompt(
     ambient_prompt: &str,
     node_instruction: Option<&str>,
     workflow_fallback: bool,
-    scope: &JsonValue,
 ) -> Result<String> {
     let predecessor_context =
         predecessor_context_content(context, definition, node_states, node_id)?;
-    let ambient_prompt = interpolate_string(ambient_prompt.trim(), scope)?;
+    let ambient_prompt = ambient_prompt.trim();
     let node_instruction = node_instruction
         .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(|value| interpolate_string(value, scope))
-        .transpose()?;
+        .filter(|value| !value.is_empty());
     let mut prompt = assemble_prompt_from_parts(
         predecessor_context.as_deref(),
-        &ambient_prompt,
-        node_instruction.as_deref(),
+        ambient_prompt,
+        node_instruction,
         workflow_fallback,
     );
     let Some(node) = definition.nodes.iter().find(|node| node.id() == node_id) else {

@@ -19,7 +19,7 @@ use super::*;
 
 #[test]
 #[serial]
-fn build_node_execution_request_interpolates_sequential_thinking_topic() {
+fn build_node_execution_request_preserves_sequential_thinking_topic_verbatim() {
     let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
     let definition = PipelineDefinition {
         nodes: vec![],
@@ -72,8 +72,8 @@ fn build_node_execution_request_interpolates_sequential_thinking_topic() {
             prompt_context,
             ..
         } => {
-            assert_eq!(topic, "Plan for world");
-            assert_eq!(prompt_context, "Plan for world");
+            assert_eq!(topic, "Plan for {{inputs.name}}");
+            assert_eq!(prompt_context, "Plan for {{inputs.name}}");
         }
         other => panic!("expected sequential thinking request, got {other:?}"),
     }

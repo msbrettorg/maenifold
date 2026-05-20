@@ -1,5 +1,6 @@
 use ort::session::Session;
 use serde::Deserialize;
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use tokenizers::Tokenizer;
@@ -8,6 +9,9 @@ mod discovery;
 mod inference;
 mod output;
 mod tokenizer;
+
+#[cfg(test)]
+mod inference_tests;
 
 pub(crate) use discovery::model_candidate_dirs;
 pub use discovery::{cleanup, is_initialized, load_model};
@@ -42,6 +46,7 @@ pub(crate) struct ModelState {
     pub(crate) max_tokens: usize,
     pub(crate) model_filename: String,
     pub(crate) model_path: PathBuf,
+    pub(crate) input_names: HashSet<String>,
 }
 
 #[derive(Debug, Clone)]

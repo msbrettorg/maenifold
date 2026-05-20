@@ -5,6 +5,7 @@ use crate::Config;
 use crate::error::{MaenifoldError, Result};
 use crate::tools::embedding_models::load_catalog;
 use ort::session::Session;
+use std::collections::HashSet;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -33,6 +34,11 @@ pub fn load_model() -> Result<()> {
         .commit_from_file(&model_path)
         .map_err(map_ort_error)?;
     let embedding_dims = discover_embedding_dimensions(&session)?;
+    let input_names: HashSet<String> = session
+        .inputs()
+        .iter()
+        .map(|input| input.name().to_string())
+        .collect();
     let (tokenizer, max_tokens) = load_tokenizer_assets(model_dir)?;
     let model_filename = model_path
         .file_name()
@@ -47,6 +53,7 @@ pub fn load_model() -> Result<()> {
         max_tokens,
         model_filename,
         model_path: model_path.clone(),
+        input_names,
     });
     Ok(())
 }

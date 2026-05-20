@@ -157,7 +157,8 @@ pub(super) fn handle_regenerate(context: &ToolContext, _payload: &Value) -> Resu
     // Idempotent: table may not exist on first run before any sync
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS model_metadata (key TEXT PRIMARY KEY, value TEXT); \
-         DELETE FROM model_metadata WHERE key = 'embedding_dimensions';",
+         DELETE FROM model_metadata WHERE key = 'embedding_dimensions'; \
+         DELETE FROM model_metadata WHERE key = 'file_embedding_preprocessing_version';",
     )
     .map_err(|e| {
         crate::error::MaenifoldError::Message(format!("Failed to clear embedding metadata: {e}"))

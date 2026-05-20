@@ -8,10 +8,7 @@ use std::sync::{Mutex, OnceLock};
 use tar::Archive;
 
 /// In-process mutex serializing concurrent `download_runtime` calls.
-/// Sufficient because the maenifold daemon is a single process per
-/// repo-root (see AGENTS.md localhost trust model + maenifold.json).
 static DOWNLOAD_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-
 fn download_lock() -> &'static Mutex<()> {
     DOWNLOAD_LOCK.get_or_init(|| Mutex::new(()))
 }
@@ -35,9 +32,7 @@ pub async fn download_runtime(
     )
 }
 
-/// Inner implementation that takes pre-fetched archive bytes.
-/// Serializes concurrent callers via `DOWNLOAD_LOCK` and rechecks
-/// the refuse-if-exists guard inside the critical section.
+/// Inner: takes pre-fetched archive bytes, serializes via DOWNLOAD_LOCK.
 pub(crate) fn download_runtime_inner(
     archive_bytes: &[u8],
     expected_sha256: &str,
@@ -47,12 +42,11 @@ pub(crate) fn download_runtime_inner(
     let lib_dir = assets_path.join("lib");
     let final_dylib = lib_dir.join(dylib_filename);
 
-    // Acquire in-process lock — single-process assumption (see DOWNLOAD_LOCK doc).
+    // Acquire in-process lock (single-process assumption).
     let _guard = download_lock()
         .lock()
         .map_err(|e| format!("download lock poisoned: {e}"))?;
-
-    // Refuse-if-exists checked INSIDE the critical section to prevent TOCTOU.
+    // Refuse-if-exists INSIDE critical section to prevent TOCTOU.
     if final_dylib.is_file() {
         return Err(format!(
             "ORT runtime already installed at {}",
@@ -85,6 +79,7 @@ pub(crate) fn extract_runtime_dylibs(
     for entry in archive.entries().map_err(|error| error.to_string())? {
         let mut entry = entry.map_err(|error| error.to_string())?;
         let path = entry.path().map_err(|error| error.to_string())?;
+        let path_str = path.to_string_lossy().to_string();
         let Some(file_name) = path
             .file_name()
             .and_then(|name| name.to_str())
@@ -92,7 +87,15 @@ pub(crate) fn extract_runtime_dylibs(
         else {
             continue;
         };
+        // Fast-path basename filter (keeps only *.dylib matching ort naming).
+        // NOTE: This is a pre-filter only. The full-path predicate below is
+        // the authoritative gate that prevents dSYM collisions.
         if !is_runtime_dylib(&file_name) {
+            continue;
+        }
+        // Authoritative full-path gate: reject any entry inside a .dSYM
+        // bundle and require the pattern `*/lib/<filename>.dylib`.
+        if !is_valid_dylib_archive_path(&path_str) {
             continue;
         }
 
@@ -127,45 +130,37 @@ pub(crate) fn extract_runtime_dylibs(
     )
 }
 
-/// Atomic staging: verify sha256 in-memory, extract to a per-invocation
-/// staging directory, then rename files into the final target_dir. The
-/// final directory is never written to directly — existing files are safe
-/// if extraction fails partway through.
+/// Atomic staging: verify sha256, extract to staging dir, validate Mach-O
+/// magic + filetype, then rename into target_dir. Staging auto-cleans on fail.
 pub(crate) fn stage_and_extract_checked(
     archive_bytes: &[u8],
     expected_sha256: &str,
     target_dir: &Path,
 ) -> Result<(), String> {
-    // Verify SHA-256 BEFORE any disk write (contract: verify before disk).
+    // Verify SHA-256 BEFORE any disk write.
     let actual = sha256_bytes(archive_bytes);
     if actual != expected_sha256.to_ascii_lowercase() {
         return Err(format!(
-            "SHA-256 verification failed for ort-runtime.tar.gz: \
-             expected {expected_sha256}, got {actual}"
+            "SHA-256 verification failed: expected {expected_sha256}, got {actual}"
         ));
     }
 
     std::fs::create_dir_all(target_dir).map_err(|error| error.to_string())?;
 
-    let staging = tempfile::tempdir_in(target_dir).map_err(|error| {
-        format!("Failed to create staging directory: {error}")
-    })?;
+    let staging = tempfile::tempdir_in(target_dir)
+        .map_err(|e| format!("Failed to create staging directory: {e}"))?;
 
     extract_runtime_dylibs(archive_bytes, staging.path())?;
+    // Post-extraction: validate magic + filetype BEFORE rename into final dir.
+    validate_staged_dylib_magic(staging.path())?;
 
-    // Atomic finalize: rename each staged file into target_dir.
-    let entries = std::fs::read_dir(staging.path())
-        .map_err(|error| error.to_string())?;
-    for dir_entry in entries {
-        let dir_entry = dir_entry.map_err(|error| error.to_string())?;
+    // Atomic finalize: rename staged files into target_dir.
+    for dir_entry in std::fs::read_dir(staging.path()).map_err(|e| e.to_string())? {
+        let dir_entry = dir_entry.map_err(|e| e.to_string())?;
         let file_name = dir_entry.file_name();
         let final_path = target_dir.join(&file_name);
-        std::fs::rename(dir_entry.path(), &final_path).map_err(|error| {
-            format!(
-                "Atomic rename failed for {}: {error}",
-                file_name.to_string_lossy()
-            )
-        })?;
+        std::fs::rename(dir_entry.path(), &final_path)
+            .map_err(|e| format!("Atomic rename failed for {}: {e}", file_name.to_string_lossy()))?;
     }
 
     Ok(())
@@ -203,6 +198,100 @@ fn is_runtime_dylib(file_name: &str) -> bool {
     file_name == "libonnxruntime.dylib"
         || (file_name.starts_with("libonnxruntime.") && file_name.ends_with(".dylib"))
 }
+
+/// Authoritative full-path gate. Rejects entries inside `.dSYM` bundles and
+/// requires the archive path to match `<prefix>/lib/<basename>.dylib` — i.e.
+/// the file must be a direct child of a `lib/` directory with no deeper nesting.
+fn is_valid_dylib_archive_path(archive_path: &str) -> bool {
+    // Reject any path containing a .dSYM segment (debug symbol bundles).
+    // Case-insensitive: also catches `.dsym/` (rare but defensive).
+    let lower = archive_path.to_ascii_lowercase();
+    if lower.contains(".dsym/") || lower.contains(".dsym\\") {
+        return false;
+    }
+    // Require pattern: <anything>/lib/<filename>.dylib
+    let Some(lib_idx) = archive_path.rfind("/lib/") else {
+        return false;
+    };
+    let after_lib = &archive_path[lib_idx + 5..]; // skip "/lib/"
+    // Must be a direct child — no further path separators.
+    !after_lib.contains('/')
+}
+
+/// Validates staged .dylib files: magic bytes + Mach-O filetype (MH_DYLIB/MH_BUNDLE).
+/// Fat binaries pass on magic alone (documented: path filter is primary dSYM gate).
+#[cfg(target_os = "macos")]
+fn validate_staged_dylib_magic(staging_dir: &Path) -> Result<(), String> {
+    use std::io::Read;
+    for dir_entry in std::fs::read_dir(staging_dir).map_err(|e| e.to_string())? {
+        let dir_entry = dir_entry.map_err(|e| e.to_string())?;
+        if !dir_entry.path().is_file() {
+            continue;
+        }
+        let mut buf = [0u8; 16];
+        let mut file = std::fs::File::open(dir_entry.path()).map_err(|e| e.to_string())?;
+        let n = file.read(&mut buf).map_err(|e| e.to_string())?;
+        let name = dir_entry.file_name();
+        if n < 4 {
+            return Err(format!(
+                "Staged file {} too small ({n} bytes)", name.to_string_lossy()
+            ));
+        }
+        if !is_loadable_library_magic(&[buf[0], buf[1], buf[2], buf[3]]) {
+            return Err(format!(
+                "expected Mach-O magic, got 0x{:02x}{:02x}{:02x}{:02x} in staged file {}",
+                buf[0], buf[1], buf[2], buf[3], name.to_string_lossy()
+            ));
+        }
+        validate_macho_filetype(&buf, n, &name)?;
+    }
+    Ok(())
+}
+
+/// Recognized Mach-O / fat-binary magic numbers (6 constants preserved).
+#[cfg(target_os = "macos")]
+fn is_loadable_library_magic(header: &[u8; 4]) -> bool {
+    let magic = u32::from_ne_bytes(*header);
+    matches!(
+        magic,
+        0xfeedfacf | 0xcffaedfe | 0xfeedface | 0xcefaedfe | 0xcafebabe | 0xbebafeca
+    )
+}
+
+/// Layer 2 filetype check: byte 12 = filetype. MH_DYLIB(0x6)/MH_BUNDLE(0x8) pass.
+/// Swapped magic → read filetype as BE. Fat binaries skip (accepted on magic).
+#[cfg(target_os = "macos")]
+fn validate_macho_filetype(
+    buf: &[u8; 16], bytes_read: usize, filename: &std::ffi::OsStr,
+) -> Result<(), String> {
+    let magic = u32::from_ne_bytes([buf[0], buf[1], buf[2], buf[3]]);
+    if magic == 0xcafebabe || magic == 0xbebafeca {
+        return Ok(());
+    }
+    if bytes_read < 16 {
+        return Err(format!(
+            "{} has Mach-O magic but only {bytes_read} bytes (need 16)",
+            filename.to_string_lossy()
+        ));
+    }
+    let ft = [buf[12], buf[13], buf[14], buf[15]];
+    let filetype = if magic == 0xcffaedfe || magic == 0xcefaedfe {
+        u32::from_be_bytes(ft)
+    } else {
+        u32::from_le_bytes(ft)
+    };
+    if filetype != 0x6 && filetype != 0x8 {
+        return Err(format!(
+            "Mach-O filetype 0x{filetype:x} in {} is not MH_DYLIB/MH_BUNDLE",
+            filename.to_string_lossy()
+        ));
+    }
+    Ok(())
+}
+
+/// Non-macOS: no dSYM filetype concern; stub accepts all staged files.
+#[cfg(not(target_os = "macos"))]
+fn validate_staged_dylib_magic(_staging_dir: &Path) -> Result<(), String> { Ok(()) }
 
 fn sha256_bytes(data: &[u8]) -> String {
     let mut hasher = Sha256::new();

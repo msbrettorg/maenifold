@@ -12,6 +12,8 @@ model-download = ["dep:hf-hub"]
 [dependencies]
 anyhow.workspace = true
 axum = { workspace = true, features = ["ws"] }
+azure_core = "1.0.0"
+azure_identity = { version = "1.0.0", features = ["tokio"] }
 backon.workspace = true
 base64.workspace = true
 chrono.workspace = true
@@ -52,7 +54,7 @@ tokio-util = { workspace = true, features = ["compat"] }
 agent-client-protocol = { workspace = true }
 agent-client-protocol-schema = { workspace = true }
 async-trait = { workspace = true }
-rmcp = { workspace = true, features = ["auth", "client", "reqwest", "transport-child-process", "transport-streamable-http-client-reqwest", "transport-streamable-http-server"] }
+rmcp = { workspace = true, features = ["client", "reqwest", "transport-child-process", "transport-streamable-http-client-reqwest", "transport-streamable-http-server"] }
 reqwest.workspace = true
 tokio-tungstenite = { version = "0.29", features = ["rustls-tls-webpki-roots"] }
 tower-http.workspace = true

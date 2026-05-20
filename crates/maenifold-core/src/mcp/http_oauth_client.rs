@@ -1,57 +1,49 @@
 use futures_util::stream::BoxStream;
 use reqwest::header::{HeaderName, HeaderValue};
-use rmcp::transport::{
-    auth::{AuthClient, AuthError, ClientCredentialsConfig},
-    streamable_http_client::{
-        StreamableHttpClient, StreamableHttpError, StreamableHttpPostResponse,
-    },
+use rmcp::transport::streamable_http_client::{
+    StreamableHttpClient, StreamableHttpError, StreamableHttpPostResponse,
 };
 use sse_stream::{Error as SseError, Sse};
+use std::borrow::Cow;
 use std::{collections::HashMap, sync::Arc};
+
+use super::http_oauth::AzureDefaultCredential;
 
 #[derive(Clone)]
 pub(super) enum GatewayHttpClient {
     Plain(reqwest::Client),
-    OAuth(OAuthHttpClient),
+    Azure(AzureHttpClient),
 }
 
 #[derive(Clone)]
-pub(super) struct OAuthHttpClient {
-    pub(super) inner: AuthClient<reqwest::Client>,
-    pub(super) client_credentials: ClientCredentialsConfig,
+pub(super) struct AzureHttpClient {
+    http_client: reqwest::Client,
+    credential: AzureDefaultCredential,
+    scope: Arc<str>,
 }
 
-impl OAuthHttpClient {
-    pub(super) async fn current_token(
-        &self,
-    ) -> std::result::Result<String, StreamableHttpError<reqwest::Error>> {
-        let manager = self.inner.auth_manager.lock().await;
-        match manager.get_access_token().await {
-            Ok(token) => Ok(token),
-            Err(AuthError::AuthorizationRequired | AuthError::TokenRefreshFailed(_)) => {
-                manager
-                    .exchange_client_credentials(&self.client_credentials)
-                    .await?;
-                manager
-                    .get_access_token()
-                    .await
-                    .map_err(StreamableHttpError::Auth)
-            }
-            Err(error) => Err(StreamableHttpError::Auth(error)),
+impl AzureHttpClient {
+    pub(super) fn new(
+        http_client: reqwest::Client,
+        credential: AzureDefaultCredential,
+        scope: String,
+    ) -> Self {
+        Self {
+            http_client,
+            credential,
+            scope: Arc::<str>::from(scope),
         }
     }
 
-    async fn refresh_token(
+    async fn current_token(
         &self,
     ) -> std::result::Result<String, StreamableHttpError<reqwest::Error>> {
-        let manager = self.inner.auth_manager.lock().await;
-        manager
-            .exchange_client_credentials(&self.client_credentials)
-            .await?;
-        manager
-            .get_access_token()
+        self.credential
+            .get_token(self.scope.as_ref())
             .await
-            .map_err(StreamableHttpError::Auth)
+            .map_err(|error| {
+                StreamableHttpError::UnexpectedServerResponse(Cow::Owned(error.to_string()))
+            })
     }
 }
 
@@ -72,10 +64,9 @@ impl StreamableHttpClient for GatewayHttpClient {
                     .post_message(uri, message, session_id, auth_token, custom_headers)
                     .await
             }
-            Self::OAuth(client) => {
+            Self::Azure(client) => {
                 let token = client.current_token().await?;
                 let result = client
-                    .inner
                     .http_client
                     .post_message(
                         uri.clone(),
@@ -85,12 +76,16 @@ impl StreamableHttpClient for GatewayHttpClient {
                         custom_headers.clone(),
                     )
                     .await;
-                if should_reauthenticate(&result) {
-                    let token = client.refresh_token().await?;
+                if should_retry_with_fresh_token(&result) {
                     return client
-                        .inner
                         .http_client
-                        .post_message(uri, message, session_id, Some(token), custom_headers)
+                        .post_message(
+                            uri,
+                            message,
+                            session_id,
+                            Some(client.current_token().await?),
+                            custom_headers,
+                        )
                         .await;
                 }
                 result
@@ -111,10 +106,9 @@ impl StreamableHttpClient for GatewayHttpClient {
                     .delete_session(uri, session_id, auth_token, custom_headers)
                     .await
             }
-            Self::OAuth(client) => {
+            Self::Azure(client) => {
                 let token = client.current_token().await?;
                 let result = client
-                    .inner
                     .http_client
                     .delete_session(
                         uri.clone(),
@@ -123,12 +117,15 @@ impl StreamableHttpClient for GatewayHttpClient {
                         custom_headers.clone(),
                     )
                     .await;
-                if should_reauthenticate(&result) {
-                    let token = client.refresh_token().await?;
+                if should_retry_with_fresh_token(&result) {
                     return client
-                        .inner
                         .http_client
-                        .delete_session(uri, session_id, Some(token), custom_headers)
+                        .delete_session(
+                            uri,
+                            session_id,
+                            Some(client.current_token().await?),
+                            custom_headers,
+                        )
                         .await;
                 }
                 result
@@ -153,10 +150,9 @@ impl StreamableHttpClient for GatewayHttpClient {
                     .get_stream(uri, session_id, last_event_id, auth_token, custom_headers)
                     .await
             }
-            Self::OAuth(client) => {
+            Self::Azure(client) => {
                 let token = client.current_token().await?;
                 let result = client
-                    .inner
                     .http_client
                     .get_stream(
                         uri.clone(),
@@ -166,12 +162,16 @@ impl StreamableHttpClient for GatewayHttpClient {
                         custom_headers.clone(),
                     )
                     .await;
-                if should_reauthenticate(&result) {
-                    let token = client.refresh_token().await?;
+                if should_retry_with_fresh_token(&result) {
                     return client
-                        .inner
                         .http_client
-                        .get_stream(uri, session_id, last_event_id, Some(token), custom_headers)
+                        .get_stream(
+                            uri,
+                            session_id,
+                            last_event_id,
+                            Some(client.current_token().await?),
+                            custom_headers,
+                        )
                         .await;
                 }
                 result
@@ -180,7 +180,7 @@ impl StreamableHttpClient for GatewayHttpClient {
     }
 }
 
-fn should_reauthenticate<T>(
+fn should_retry_with_fresh_token<T>(
     result: &std::result::Result<T, StreamableHttpError<reqwest::Error>>,
 ) -> bool {
     match result {

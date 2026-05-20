@@ -1,180 +1,210 @@
 use crate::acp_config::HttpAuthConfig;
 use crate::error::{MaenifoldError, Result};
-use reqwest::Url;
-use rmcp::transport::{
-    auth::{
-        AuthClient, AuthError, AuthorizationManager, AuthorizationMetadata, ClientCredentialsConfig,
-    },
-    streamable_http_client::StreamableHttpError,
-};
+use azure_core::credentials::{Secret, TokenCredential};
+use azure_identity::{ClientSecretCredential, DeveloperToolsCredential, ManagedIdentityCredential};
+use serde::Deserialize;
+use std::env;
+use std::fmt;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use super::gateway_session::HttpServerConfig;
-use super::http_oauth_client::{GatewayHttpClient, OAuthHttpClient};
+use super::http_oauth_client::{AzureHttpClient, GatewayHttpClient};
+
+const NO_CACHED_SOURCE: usize = usize::MAX;
+
+#[derive(Clone)]
+pub(super) struct AzureDefaultCredential {
+    sources: Arc<[AzureCredentialSource]>,
+    cached_source: Arc<AtomicUsize>,
+}
+
+#[derive(Clone)]
+struct AzureCredentialSource {
+    name: &'static str,
+    credential: Arc<dyn TokenCredential>,
+}
+
+#[derive(Deserialize)]
+struct ProtectedResourceMetadata {
+    #[serde(default)]
+    scopes_supported: Vec<String>,
+}
+
+impl fmt::Debug for AzureDefaultCredential {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("AzureDefaultCredential")
+            .field(
+                "sources",
+                &self
+                    .sources
+                    .iter()
+                    .map(|source| source.name)
+                    .collect::<Vec<_>>(),
+            )
+            .finish()
+    }
+}
+
+impl AzureDefaultCredential {
+    pub(super) fn new() -> Result<Self> {
+        let mut sources = Vec::new();
+        if let Some(env_credential) = env_client_secret_credential()? {
+            sources.push(AzureCredentialSource {
+                name: "environment",
+                credential: env_credential,
+            });
+        }
+        if let Ok(credential) = ManagedIdentityCredential::new(None) {
+            sources.push(AzureCredentialSource {
+                name: "managed-identity",
+                credential,
+            });
+        }
+        let developer_tools = DeveloperToolsCredential::new(None)
+            .map_err(|error| azure_auth_error(error.to_string()))?;
+        sources.push(AzureCredentialSource {
+            name: "developer-tools",
+            credential: developer_tools,
+        });
+        Ok(Self {
+            sources: sources.into(),
+            cached_source: Arc::new(AtomicUsize::new(NO_CACHED_SOURCE)),
+        })
+    }
+
+    pub(super) async fn get_token(&self, scope: &str) -> Result<String> {
+        if let Some(token) = self.token_from_cached_source(scope).await? {
+            return Ok(token);
+        }
+        let mut errors = Vec::new();
+        for (index, source) in self.sources.iter().enumerate() {
+            match source.credential.get_token(&[scope], None).await {
+                Ok(token) => {
+                    self.cached_source.store(index, Ordering::Relaxed);
+                    return Ok(token.token.secret().to_string());
+                }
+                Err(error) => errors.push(format!("{}: {error}", source.name)),
+            }
+        }
+        Err(azure_auth_error(format!(
+            "no Azure credential source produced a token for scope '{scope}': {}",
+            errors.join(" | ")
+        )))
+    }
+
+    async fn token_from_cached_source(&self, scope: &str) -> Result<Option<String>> {
+        let cached = self.cached_source.load(Ordering::Relaxed);
+        if cached == NO_CACHED_SOURCE {
+            return Ok(None);
+        }
+        let Some(source) = self.sources.get(cached) else {
+            self.cached_source
+                .store(NO_CACHED_SOURCE, Ordering::Relaxed);
+            return Ok(None);
+        };
+        match source.credential.get_token(&[scope], None).await {
+            Ok(token) => Ok(Some(token.token.secret().to_string())),
+            Err(_) => {
+                self.cached_source
+                    .store(NO_CACHED_SOURCE, Ordering::Relaxed);
+                Ok(None)
+            }
+        }
+    }
+}
 
 pub(super) struct PreparedHttpClient {
     pub(super) client: GatewayHttpClient,
     pub(super) auth_header: Option<String>,
 }
 
-impl OAuthHttpClient {
-    pub(super) async fn new(
-        config: &HttpServerConfig,
-        http_client: reqwest::Client,
-    ) -> Result<Self> {
-        let mut manager = AuthorizationManager::new(config.url.as_str())
-            .await
-            .map_err(map_auth_error)?;
-        manager
-            .with_client(http_client.clone())
-            .map_err(map_auth_error)?;
-
-        let mut metadata = manager.discover_metadata().await.map_err(map_auth_error)?;
-        apply_authority_overrides(&mut metadata, config.auth.as_ref())?;
-        manager.set_metadata(metadata);
-
-        let client_credentials =
-            build_client_credentials(config.auth.as_ref(), config.url.as_str(), &manager)?;
-        manager
-            .validate_client_credentials_metadata(&client_credentials)
-            .map_err(map_auth_error)?;
-        manager
-            .configure_client_credentials(&client_credentials)
-            .map_err(map_auth_error)?;
-        manager
-            .exchange_client_credentials(&client_credentials)
-            .await
-            .map_err(map_auth_error)?;
-
-        Ok(Self {
-            inner: AuthClient::new(http_client, manager),
-            client_credentials,
-        })
-    }
-}
-
 pub(super) async fn prepare_http_client(
     config: &HttpServerConfig,
     http_client: reqwest::Client,
 ) -> Result<PreparedHttpClient> {
-    if config.auth.is_none() {
+    let Some(auth) = config.auth.as_ref() else {
         return Ok(PreparedHttpClient {
             client: GatewayHttpClient::Plain(http_client),
             auth_header: None,
         });
+    };
+    match auth {
+        HttpAuthConfig::AzureDefault => {
+            let scope = discover_scope(&http_client, &config.url).await?;
+            let credential = AzureDefaultCredential::new()?;
+            let token = credential.get_token(&scope).await?;
+            Ok(PreparedHttpClient {
+                client: GatewayHttpClient::Azure(AzureHttpClient::new(
+                    http_client,
+                    credential,
+                    scope,
+                )),
+                auth_header: Some(token),
+            })
+        }
     }
+}
 
-    let oauth_client = OAuthHttpClient::new(config, http_client).await?;
-    let auth_header = Some(
-        oauth_client
-            .current_token()
-            .await
-            .map_err(map_transport_error)?,
-    );
-
-    Ok(PreparedHttpClient {
-        client: GatewayHttpClient::OAuth(oauth_client),
-        auth_header,
+async fn discover_scope(http_client: &reqwest::Client, base_url: &str) -> Result<String> {
+    let metadata_url = protected_resource_metadata_url(base_url)?;
+    let metadata = http_client
+        .get(metadata_url.clone())
+        .send()
+        .await
+        .map_err(|error| {
+            azure_auth_error(format!(
+                "failed to fetch protected-resource metadata from '{metadata_url}': {error}"
+            ))
+        })?
+        .error_for_status()
+        .map_err(|error| {
+            azure_auth_error(format!(
+                "protected-resource metadata request failed for '{metadata_url}': {error}"
+            ))
+        })?
+        .json::<ProtectedResourceMetadata>()
+        .await
+        .map_err(|error| {
+            azure_auth_error(format!(
+                "failed to parse protected-resource metadata from '{metadata_url}': {error}"
+            ))
+        })?;
+    metadata.scopes_supported.into_iter().next().ok_or_else(|| {
+        azure_auth_error(format!(
+            "protected-resource metadata at '{metadata_url}' did not include scopes_supported"
+        ))
     })
 }
 
-fn build_client_credentials(
-    auth: Option<&HttpAuthConfig>,
-    base_url: &str,
-    manager: &AuthorizationManager,
-) -> Result<ClientCredentialsConfig> {
-    let auth =
-        auth.ok_or_else(|| MaenifoldError::Message("missing HTTP auth config".to_string()))?;
-    let scopes = if auth.scopes.is_empty() {
-        manager.select_scopes(None, &[])
-    } else {
-        auth.scopes.clone()
-    };
+fn protected_resource_metadata_url(base_url: &str) -> Result<reqwest::Url> {
+    reqwest::Url::parse(&format!(
+        "{}/.well-known/oauth-protected-resource/",
+        base_url.trim_end_matches('/')
+    ))
+    .map_err(|error| azure_auth_error(format!("invalid HTTP MCP URL '{base_url}': {error}")))
+}
 
-    if auth.client_certificate_path.is_some() && auth.client_secret.is_none() {
-        return Err(MaenifoldError::Message(
-            "HTTP MCP OAuth clientCertificatePath is not supported without rmcp JWT auth features"
-                .to_string(),
-        ));
-    }
-
-    let client_secret = auth.client_secret.clone().ok_or_else(|| {
-        MaenifoldError::Message(
-            "HTTP MCP OAuth requires clientSecret until certificate auth is enabled".to_string(),
+fn env_client_secret_credential() -> Result<Option<Arc<dyn TokenCredential>>> {
+    let client_id = env::var("AZURE_CLIENT_ID").ok();
+    let tenant_id = env::var("AZURE_TENANT_ID").ok();
+    let client_secret = env::var("AZURE_CLIENT_SECRET").ok();
+    match (client_id, tenant_id, client_secret) {
+        (Some(client_id), Some(tenant_id), Some(client_secret)) => ClientSecretCredential::new(
+            &tenant_id,
+            client_id,
+            Secret::new(client_secret),
+            None,
         )
-    })?;
-
-    Ok(ClientCredentialsConfig::ClientSecret {
-        client_id: auth.client_id.clone(),
-        client_secret,
-        scopes,
-        resource: Some(match auth.resource.clone() {
-            Some(resource) => resource,
-            None => oauth_resource(base_url)?,
-        }),
-    })
-}
-
-fn oauth_resource(base_url: &str) -> Result<String> {
-    let url = Url::parse(base_url).map_err(|error| {
-        MaenifoldError::Message(format!("invalid HTTP MCP URL '{base_url}': {error}"))
-    })?;
-    Ok(url.origin().ascii_serialization())
-}
-
-fn apply_authority_overrides(
-    metadata: &mut AuthorizationMetadata,
-    auth: Option<&HttpAuthConfig>,
-) -> Result<()> {
-    let Some(tenant_id) = auth.and_then(|auth| auth.tenant_id.as_deref()) else {
-        return Ok(());
-    };
-
-    metadata.authorization_endpoint =
-        rewrite_aad_tenant(&metadata.authorization_endpoint, tenant_id)?;
-    metadata.token_endpoint = rewrite_aad_tenant(&metadata.token_endpoint, tenant_id)?;
-    metadata.registration_endpoint = metadata
-        .registration_endpoint
-        .as_deref()
-        .map(|value| rewrite_aad_tenant(value, tenant_id))
-        .transpose()?;
-    metadata.issuer = metadata
-        .issuer
-        .as_deref()
-        .map(|value| rewrite_aad_tenant(value, tenant_id))
-        .transpose()?;
-    Ok(())
-}
-
-fn rewrite_aad_tenant(endpoint: &str, tenant_id: &str) -> Result<String> {
-    let mut url = Url::parse(endpoint).map_err(|error| {
-        MaenifoldError::Message(format!("invalid OAuth endpoint '{endpoint}': {error}"))
-    })?;
-    let Some(host) = url.host_str() else {
-        return Ok(endpoint.to_string());
-    };
-    if !matches!(host, "login.microsoftonline.com" | "login.windows.net") {
-        return Ok(endpoint.to_string());
+        .map(|credential| Some(credential as Arc<dyn TokenCredential>))
+        .map_err(|error| azure_auth_error(error.to_string())),
+        (None, None, None) => Ok(None),
+        _ => Err(azure_auth_error(
+            "AZURE_CLIENT_ID, AZURE_TENANT_ID, and AZURE_CLIENT_SECRET must all be set to enable environment-based Azure auth".to_string(),
+        )),
     }
-
-    let Some(segments) = url.path_segments() else {
-        return Ok(endpoint.to_string());
-    };
-    let mut segments: Vec<String> = segments.map(str::to_string).collect();
-    if segments
-        .first()
-        .is_none_or(|segment| !matches!(segment.as_str(), "common" | "organizations" | "consumers"))
-    {
-        return Ok(endpoint.to_string());
-    }
-    segments[0] = tenant_id.to_string();
-    url.set_path(&segments.join("/"));
-    Ok(url.to_string())
 }
 
-fn map_auth_error(error: AuthError) -> MaenifoldError {
-    MaenifoldError::Message(format!("HTTP MCP OAuth setup failed: {error}"))
-}
-
-fn map_transport_error(error: StreamableHttpError<reqwest::Error>) -> MaenifoldError {
-    MaenifoldError::Message(format!("HTTP MCP OAuth setup failed: {error}"))
+fn azure_auth_error(message: String) -> MaenifoldError {
+    MaenifoldError::Message(format!("HTTP MCP Azure auth failed: {message}"))
 }

@@ -201,18 +201,27 @@ Agent-facing markdown MUST render in terminal MCP clients. No ` ```mermaid ` (us
 
 ## Build
 
+### Deploy (the one and only command)
+
 ```bash
-cargo build --release -p maenifold-cli     # CLI/app
-cargo build --release -p maenifold-pipeline-driver
-cd apps/desktop && npm run package          # Electron bundle
-cd apps/desktop && npx vue-tsc --noEmit     # frontend typecheck
-./rebuild.sh                                # full rebuild + restart
-make audit                                  # all constitution linters
-make audit-crates                           # Rust: 300 LOC, no TODO, no unwrap
-make audit-frontend                         # Vue/TS: lint-design + audit-components
+./rebuild.sh
 ```
 
-Binaries: `target/release/maenifold` (→ `/usr/local/bin/maenifold`) and `target/release/maenifold-pipeline-driver`.
+This is the canonical redeploy. It builds every crate in release, verifies the `/usr/local/bin/maenifold` symlink, packages the Electron app, and `launchctl kickstart`s the launchd service. **There is no separate "restart the daemon" step.** `/usr/local/bin/maenifold` is a symlink to `target/release/maenifold`, so the live daemon binary updates the moment the release build finishes, and the launchd kickstart picks up the new bits on next request. Never ask the user "should I redeploy myself or do you want to?" — just run `./rebuild.sh`.
+
+### Focused targets (when you don't need a full rebuild)
+
+```bash
+cargo build --release -p maenifold-cli              # CLI/app only
+cargo build --release -p maenifold-pipeline-driver  # driver only
+cd apps/desktop && npm run package                  # Electron bundle only
+cd apps/desktop && npx vue-tsc --noEmit             # frontend typecheck only
+make audit                                          # all constitution linters
+make audit-crates                                   # Rust: 300 LOC, no TODO, no unwrap
+make audit-frontend                                 # Vue/TS: lint-design + audit-components
+```
+
+Binaries: `target/release/maenifold` (symlinked to `/usr/local/bin/maenifold`) and `target/release/maenifold-pipeline-driver`.
 
 The daemon hosts MCP/HTTP; the driver hosts pipeline node execution. ANY change touching `crates/maenifold-core/src/workflow/` requires rebuilding both. After rebuild + restart, terminate stale driver PIDs one by one.
 
@@ -245,6 +254,7 @@ The daemon hosts MCP/HTTP; the driver hosts pipeline node execution. ANY change 
 | Fix lives in code we don't own | **Escalate to user this iter** — name the dependency, the upstream issue, and what they must decide. Don't shim. |
 | Blocked >1 iter | Close or dispatch this iter. |
 | Instinct: "file for next PM" | **Stop. That's punting.** Fix this iter. |
+| Instinct: "should I redeploy or do you want to?" | **Stop. Just run `./rebuild.sh`.** It is the one-shot full redeploy. The binary is a symlink to `target/release/maenifold`; rebuild.sh builds + packages + restarts launchd. Never ask. |
 
 ---
 

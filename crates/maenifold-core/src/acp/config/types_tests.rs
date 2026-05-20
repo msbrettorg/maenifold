@@ -202,17 +202,12 @@ mod tests {
             "arm": {
                 "url": "https://mcp.management.azure.com",
                 "gateway": true,
-                "auth": {
-                    "clientId": "client-id",
-                    "clientSecret": "client-secret",
-                    "tenantId": "tenant-id"
-                }
+                "auth": "azure-default"
             }
         }))
         .expect("http auth config should deserialize");
 
         let serialized = serde_json::to_value(&entries).expect("http auth config should serialize");
-        assert_eq!(serialized["arm"]["auth"]["clientId"], json!("client-id"));
-        assert_eq!(serialized["arm"]["auth"]["tenantId"], json!("tenant-id"));
+        assert_eq!(serialized["arm"]["auth"], json!("azure-default"));
     }
 }

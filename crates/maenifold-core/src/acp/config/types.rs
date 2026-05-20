@@ -142,23 +142,9 @@ impl<'de> Deserialize<'de> for McpServerEntry {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct HttpAuthConfig {
-    pub client_id: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub client_secret: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub client_certificate_path: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tenant_id: Option<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub scopes: Vec<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub authorization_server: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub resource: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub redirect_uri: Option<String>,
+#[serde(rename_all = "kebab-case")]
+pub enum HttpAuthConfig {
+    AzureDefault,
 }
 
 fn acp_http_url(name: &str, url: &str) -> String {

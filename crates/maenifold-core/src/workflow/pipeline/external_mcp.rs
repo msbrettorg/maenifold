@@ -139,12 +139,12 @@ pub(super) fn resolve_server_entry(
     server_name: &str,
     agent_name: Option<&str>,
 ) -> Result<McpServerEntry> {
-    if let Some(entry) = config.mcp_servers.iter().find(|s| s.name() == server_name) {
+    if let Some(entry) = config.mcp_servers.get(server_name) {
         return Ok(entry.clone());
     }
     if let Some(agent_name) = agent_name {
         if let Some(agent) = config.agents.get(agent_name) {
-            if let Some(entry) = agent.mcp_servers.iter().find(|s| s.name() == server_name) {
+            if let Some(entry) = agent.mcp_servers.get(server_name) {
                 return Ok(entry.clone());
             }
         }

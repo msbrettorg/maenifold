@@ -185,7 +185,10 @@ mod acp_output_schema_repair_tests {
         let repaired = response("```json\n{\"verdict\":\"MAYBE\"}\n```", None);
         let args = structured_args_from_response(&repaired, &output_schema(), &mut errors);
         assert_eq!(args, None);
-        assert!(!errors.is_empty(), "schema validation error must be recorded");
+        assert!(
+            !errors.is_empty(),
+            "schema validation error must be recorded"
+        );
     }
 
     #[test]

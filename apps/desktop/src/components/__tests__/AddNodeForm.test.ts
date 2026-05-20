@@ -52,7 +52,7 @@ function createTestEnv() {
 
   const configStore = useConfigStore();
   configStore.config = {
-    mcpServers: [],
+    mcpServers: {},
     agents: {
       architect: { command: 'architect' },
     },

@@ -196,7 +196,7 @@ async function createTestEnv(results: McpServerDiscoveryResult[] = healthyDiscov
   installMockLocalStorage();
   window.localStorage.clear();
 
-  useConfigStore().config = { mcpServers: [], agents: { architect: { command: 'architect' } } };
+  useConfigStore().config = { mcpServers: {}, agents: { architect: { command: 'architect' } } };
   useAgentCapabilitiesStore().probeResults = new Map([
     ['architect', normalizeAgentProbeResult({ configOptions: [] })],
   ]);

@@ -127,7 +127,7 @@ describe('OnboardingStepDone', () => {
       // Setup a real config path
       configStore.configPath = '/Users/testuser/.config/maenifold/maenifold.json';
       configStore.config = {
-        mcpServers: [],
+        mcpServers: {},
         agents: { architect: { command: 'arch' } },
       };
 
@@ -159,7 +159,7 @@ describe('OnboardingStepDone', () => {
       const realConfigPath = '/Users/testuser/.config/maenifold/maenifold.json';
       configStore.configPath = realConfigPath;
       configStore.config = {
-        mcpServers: [],
+        mcpServers: {},
         agents: { architect: { command: 'arch' } },
       };
 

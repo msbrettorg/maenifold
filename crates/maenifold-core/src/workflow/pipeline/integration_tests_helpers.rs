@@ -59,12 +59,12 @@ pub(super) fn write_mcp_server_config(context: &crate::tools::ToolContext, mcp_s
 pub(super) fn write_sleep_mcp_server_config(context: &crate::tools::ToolContext) {
     write_mcp_server_config(
         context,
-        json!([{
-            "type": "stdio",
-            "name": "sleepmcp",
+        json!({
+          "sleepmcp": {
             "command": "/bin/sleep",
             "args": ["5"]
-        }]),
+          }
+        }),
     );
 }
 
@@ -215,11 +215,11 @@ while True:
 
     write_mcp_server_config(
         context,
-        json!([{
-            "type": "stdio",
-            "name": "flakymcp",
+        json!({
+          "flakymcp": {
             "command": "/usr/bin/python3",
             "args": ["-u", "-c", script, counter_file]
-        }]),
+          }
+        }),
     );
 }

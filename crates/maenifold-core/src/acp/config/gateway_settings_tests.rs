@@ -11,11 +11,11 @@ fn config_with_agent(name: &str) -> AgentsConfig {
             env: HashMap::new(),
             env_from_file: HashMap::new(),
             env_from_command: HashMap::new(),
-            mcp_servers: Vec::new(),
+            mcp_servers: HashMap::new(),
         },
     );
     AgentsConfig {
-        mcp_servers: Vec::new(),
+        mcp_servers: HashMap::new(),
         agents,
         settings: None,
     }
@@ -47,9 +47,10 @@ fn explicit_gateway_settings_deserialize() {
             "thoughtLevel": "high", "timeoutSeconds": 30, "maxCandidates": 8,
             "autoExecuteReadSafe": true, "autoExecuteConfidenceThreshold": 0.75,
             "maxCatalogCharacters": 12000,
-            "mcpServers": [{"type": "stdio", "name": "tools", "command": "/bin/echo", "args": ["ok"]}]
+            "mcpServers": {"tools": {"command": "/bin/echo", "args": ["ok"]}}
         }
-    })).expect("gateway settings should deserialize");
+    }))
+    .expect("gateway settings should deserialize");
 
     let resolver = settings.intent_resolver;
     assert!(resolver.enabled);
@@ -139,10 +140,13 @@ fn gateway_settings_roundtrip_uses_camel_case() {
             auto_execute_read_safe: true,
             auto_execute_confidence_threshold: 0.5,
             max_catalog_characters: 1234,
-            mcp_servers: vec![McpServerEntry::Http {
-                name: "m".to_string(),
-                url: "http://localhost".to_string(),
-            }],
+            mcp_servers: HashMap::from([(
+                "m".to_string(),
+                McpServerEntry::Http {
+                    url: "http://localhost".to_string(),
+                    gateway: false,
+                },
+            )]),
             direct_inference: None,
         },
     };
@@ -168,7 +172,7 @@ fn gateway_settings_roundtrip_uses_camel_case() {
 #[test]
 fn existing_configs_without_gateway_section_parse() {
     let cfg: AgentsConfig = serde_json::from_value(json!({
-        "mcpServers": [], "agents": {}, "settings": {"logRotation": "hourly"}
+        "mcpServers": {}, "agents": {}, "settings": {"logRotation": "hourly"}
     }))
     .expect("legacy config should deserialize");
     let settings = cfg.settings.expect("settings should be present");

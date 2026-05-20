@@ -9,7 +9,7 @@ import { toastError } from '@/composables/useToast';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { sanitizeResourceErrorMessage, warnRawResourceErrorInDev } from '../lib/error-sanitizer';
-import type { AgentConfig, AgentsConfig } from '../lib/types';
+import type { AgentConfig, AgentsConfig, McpServerEntry, McpServersMap } from '../lib/types';
 
 interface ConfigFileApi {
   read(): Promise<{ path: string; content: string; exists: boolean }>;
@@ -43,21 +43,42 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function parseAgentsConfig(content: string): AgentsConfig {
-  if (content.trim().length === 0) return { mcpServers: [], agents: {} };
+  if (content.trim().length === 0) return { mcpServers: {}, agents: {} };
   const parsed: unknown = JSON.parse(content);
   if (!isRecord(parsed)) {
     throw new Error('maenifold.json root must be a JSON object');
   }
   const config: AgentsConfig = {
-    mcpServers: Array.isArray(parsed.mcpServers)
-      ? (parsed.mcpServers as AgentsConfig['mcpServers'])
-      : [],
+    mcpServers: normalizeMcpServers(parsed.mcpServers),
     agents: normalizeAgents(parsed.agents),
   };
   if (parsed.settings !== undefined) {
     config.settings = parsed.settings as AgentsConfig['settings'];
   }
   return config;
+}
+
+function normalizeMcpServers(value: unknown): McpServersMap {
+  if (value === undefined) return {};
+  if (!isRecord(value)) {
+    throw new Error('mcpServers must be an object keyed by server name; migrate array entries to {"name": {"command": "..."}}');
+  }
+  const servers: McpServersMap = {};
+  for (const [name, entry] of Object.entries(value)) {
+    if (!isRecord(entry)) {
+      throw new Error(`mcpServers.${name} must be an object`);
+    }
+    if ('name' in entry || 'type' in entry) {
+      throw new Error(`mcpServers.${name} must not include name or type fields`);
+    }
+    const hasCommand = typeof entry.command === 'string';
+    const hasUrl = typeof entry.url === 'string';
+    if (hasCommand === hasUrl) {
+      throw new Error(`mcpServers.${name} must include exactly one of command or url`);
+    }
+    servers[name] = entry as McpServerEntry;
+  }
+  return servers;
 }
 
 function normalizeAgents(agents: unknown): Record<string, AgentConfig> {
@@ -116,7 +137,7 @@ function serializeConfig(config: AgentsConfig): string {
 }
 
 export const useConfigStore = defineStore('config', () => {
-  const config = ref<AgentsConfig>({ mcpServers: [], agents: {} });
+  const config = ref<AgentsConfig>({ mcpServers: {}, agents: {} });
   const configPath = ref<string>('');
   const loading = ref(false);
   const error = ref<string | null>(null);
@@ -202,6 +223,25 @@ export const useConfigStore = defineStore('config', () => {
     }
   }
 
+  async function addMcpServer(name: string, entry: McpServerEntry): Promise<void> {
+    loading.value = true;
+    error.value = null;
+    try {
+      const servers = config.value.mcpServers ?? {};
+      if (Object.hasOwn(servers, name)) {
+        throw new Error(`duplicate mcp server name: ${name}`);
+      }
+      config.value.mcpServers = { ...servers, [name]: entry };
+      await save();
+    } catch (e) {
+      const message = getErrorMessage(e);
+      error.value = message;
+      throw new Error(message);
+    } finally {
+      loading.value = false;
+    }
+  }
+
   function updateFromEvent(newConfig: AgentsConfig): void {
     config.value = newConfig;
   }
@@ -241,6 +281,7 @@ export const useConfigStore = defineStore('config', () => {
     updateFromEvent,
     clearError,
     addAgent,
+    addMcpServer,
     teardown,
   };
 });

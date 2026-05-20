@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use serde_json::json;
 
-use super::{EdgeDataMode, EdgeType, PipelineDefinition, PipelineEdge, PipelineNode, validate_pipeline};
+use super::{
+    EdgeDataMode, EdgeType, PipelineDefinition, PipelineEdge, PipelineNode, validate_pipeline,
+};
 
 #[test]
 fn tool_output_schema_allows_binding_validation_to_prompt_input_schema() {

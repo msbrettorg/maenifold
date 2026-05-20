@@ -247,7 +247,7 @@ describe('OnboardingStepAgent', () => {
 
       // Simulate existing agents in config
       configStore.config = {
-        mcpServers: [],
+        mcpServers: {},
         agents: {
           'existing-agent': { command: 'npx some-agent --acp' },
         },

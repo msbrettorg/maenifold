@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AgentsConfig } from '../../lib/types';
+import type { AgentsConfig, McpServersMap } from '../../lib/types';
 
-async function setupConfigStore(content = '{"mcpServers":[],"agents":{}}') {
+async function setupConfigStore(content = '{"mcpServers":{},"agents":{}}') {
   vi.resetModules();
   setActivePinia(createPinia());
   const configRead = vi.fn().mockResolvedValue({ path: '/test/maenifold.json', content, exists: true });
@@ -90,7 +90,7 @@ describe('config store agents serializer contract', () => {
   it('parseAgentsConfig_accepts_legacy_array_agent_shape_for_migration', async () => {
     // Old on-disk shape (pre-T-307.4) — agents written as array.
     const legacy = JSON.stringify({
-      mcpServers: [],
+      mcpServers: {},
       agents: [
         { name: 'codex', command: '/path/to/codex' },
         { name: 'gpt5', command: 'gpt5 --fast' },
@@ -105,5 +105,63 @@ describe('config store agents serializer contract', () => {
     expect(Object.keys(parsed.agents).sort()).toEqual(['codex', 'gpt5']);
     expect(parsed.agents.codex.command).toBe('/path/to/codex');
     expect(parsed.agents.gpt5.command).toBe('gpt5 --fast');
+  });
+
+  it('mcp_servers_schema_hydrates_object_keyed_servers_and_exposes_named_entries', async () => {
+    const content = JSON.stringify({
+      mcpServers: {
+        workiq: {
+          command: '/usr/bin/env',
+          args: ['agency', 'mcp', 'workiq'],
+          gateway: true,
+        },
+        learn: {
+          url: 'https://learn.microsoft.com/api/mcp',
+          gateway: true,
+        },
+      } satisfies McpServersMap,
+      agents: {},
+    });
+
+    const { store } = await setupConfigStore(content);
+    const entries = Object.entries(store.config.mcpServers ?? {});
+
+    expect(entries.map(([name]) => name)).toEqual(['workiq', 'learn']);
+    expect(entries[0]).toEqual([
+      'workiq',
+      {
+        command: '/usr/bin/env',
+        args: ['agency', 'mcp', 'workiq'],
+        gateway: true,
+      },
+    ]);
+    expect(entries[1]).toEqual([
+      'learn',
+      {
+        url: 'https://learn.microsoft.com/api/mcp',
+        gateway: true,
+      },
+    ]);
+  });
+
+  it('mcp_servers_schema_add_mcp_server_rejects_duplicate_name', async () => {
+    const { store, configWrite } = await setupConfigStore(
+      JSON.stringify({
+        mcpServers: {
+          workiq: {
+            command: '/usr/bin/env',
+            args: ['agency', 'mcp', 'workiq'],
+          },
+        } satisfies McpServersMap,
+        agents: {},
+      }),
+    );
+
+    await expect(
+      store.addMcpServer('workiq', {
+        url: 'https://example.invalid/mcp',
+      }),
+    ).rejects.toThrow(/duplicate|exists|unique/i);
+    expect(configWrite).not.toHaveBeenCalled();
   });
 });

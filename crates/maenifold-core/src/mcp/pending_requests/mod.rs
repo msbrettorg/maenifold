@@ -121,8 +121,7 @@ impl PendingRequestRegistry {
                         ]));
                     };
                     let PendingPayload::Elicitation { params, .. } = &request.payload;
-                    validate_response_content(params, content)
-                        .map_err(RespondError::Invalid)?;
+                    validate_response_content(params, content).map_err(RespondError::Invalid)?;
                 }
                 let request = pending.remove(&id).ok_or(RespondError::Gone)?;
                 let PendingPayload::Elicitation { sender, .. } = request.payload;

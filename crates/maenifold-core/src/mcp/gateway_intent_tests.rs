@@ -58,7 +58,14 @@ mod scoped_env {
 }
 
 async fn state(settings: IntentResolverSettings) -> GatewayState {
-    let pool = Arc::new(StdioPool::start(vec![], std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new())).await.expect("empty pool"));
+    let pool = Arc::new(
+        StdioPool::start(
+            vec![],
+            std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()),
+        )
+        .await
+        .expect("empty pool"),
+    );
     let routing = ToolRoutingRegistry::build(&[], pool.as_ref()).expect("routing");
     let catalog = GatewayCatalog::build(&[], &[], &routing).expect("catalog");
     let resources = Arc::new(ResourceRoutingRegistry::build(pool.as_ref()).expect("resources"));
@@ -216,6 +223,16 @@ async fn ambiguous_candidates_do_not_auto_execute() {
 async fn gateway_intent_visible_when_enabled_without_agent() {
     let disabled = state(IntentResolverSettings::default()).await;
     let enabled = state(settings(true)).await;
-    assert!(!disabled.list_tools().iter().any(|tool| tool.name == "GatewayIntent"));
-    assert!(enabled.list_tools().iter().any(|tool| tool.name == "GatewayIntent"));
+    assert!(
+        !disabled
+            .list_tools()
+            .iter()
+            .any(|tool| tool.name == "GatewayIntent")
+    );
+    assert!(
+        enabled
+            .list_tools()
+            .iter()
+            .any(|tool| tool.name == "GatewayIntent")
+    );
 }

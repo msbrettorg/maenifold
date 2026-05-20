@@ -42,14 +42,12 @@ fn write_sleep_mcp_server_config(context: &crate::tools::ToolContext) {
     fs::write(
         context.config.maenifold_root.join("maenifold.json"),
         serde_json::to_vec_pretty(&json!({
-            "mcpServers": [
-                {
-                    "type": "stdio",
-                    "name": "sleepmcp",
+            "mcpServers": {
+                "sleepmcp": {
                     "command": "/bin/sleep",
                     "args": ["5"]
                 }
-            ]
+            }
         }))
         .expect("serialize MCP server config"),
     )

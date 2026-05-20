@@ -6,8 +6,8 @@ use super::super::external_mcp_transport::build_child_path_env;
 use super::*;
 
 fn config_with_global_and_agents(
-    global_servers: Vec<McpServerEntry>,
-    agents: impl IntoIterator<Item = (&'static str, Vec<McpServerEntry>)>,
+    global_servers: HashMap<String, McpServerEntry>,
+    agents: impl IntoIterator<Item = (&'static str, HashMap<String, McpServerEntry>)>,
 ) -> AgentsConfig {
     AgentsConfig {
         mcp_servers: global_servers,
@@ -44,10 +44,11 @@ fn split_namespaced_tool_name_requires_non_empty_segments() {
 #[test]
 fn resolve_server_entry_finds_global_server_without_agent() {
     let server = McpServerEntry::Http {
-        name: "gate".to_string(),
         url: "http://localhost:8081".to_string(),
+        gateway: false,
     };
-    let config = config_with_global_and_agents(vec![server.clone()], []);
+    let config =
+        config_with_global_and_agents(HashMap::from([("gate".to_string(), server.clone())]), []);
 
     let resolved = resolve_server_entry(&config, "gate", None).expect("global server resolves");
 
@@ -57,11 +58,10 @@ fn resolve_server_entry_finds_global_server_without_agent() {
 #[test]
 fn resolve_server_entry_prefers_global_over_agent() {
     let global = McpServerEntry::Http {
-        name: "gate".to_string(),
         url: "http://localhost:8081".to_string(),
+        gateway: false,
     };
     let agent_local = McpServerEntry::Stdio {
-        name: "gate".to_string(),
         command: "/usr/bin/gate".to_string(),
         args: vec![],
         timeout: None,
@@ -70,8 +70,13 @@ fn resolve_server_entry_prefers_global_over_agent() {
         env_from_command: HashMap::new(),
         gateway: false,
     };
-    let config =
-        config_with_global_and_agents(vec![global.clone()], [("agent-a", vec![agent_local])]);
+    let config = config_with_global_and_agents(
+        HashMap::from([("gate".to_string(), global.clone())]),
+        [(
+            "agent-a",
+            HashMap::from([("gate".to_string(), agent_local)]),
+        )],
+    );
 
     let resolved = resolve_server_entry(&config, "gate", Some("agent-a"))
         .expect("global server takes precedence");
@@ -82,7 +87,6 @@ fn resolve_server_entry_prefers_global_over_agent() {
 #[test]
 fn resolve_server_entry_falls_back_to_agent_server() {
     let agent_server = McpServerEntry::Stdio {
-        name: "weather".to_string(),
         command: "/usr/bin/weather".to_string(),
         args: vec![],
         timeout: None,
@@ -91,7 +95,13 @@ fn resolve_server_entry_falls_back_to_agent_server() {
         env_from_command: HashMap::new(),
         gateway: false,
     };
-    let config = config_with_global_and_agents(vec![], [("agent-a", vec![agent_server.clone()])]);
+    let config = config_with_global_and_agents(
+        HashMap::new(),
+        [(
+            "agent-a",
+            HashMap::from([("weather".to_string(), agent_server.clone())]),
+        )],
+    );
 
     let resolved = resolve_server_entry(&config, "weather", Some("agent-a"))
         .expect("agent server resolves as fallback");
@@ -101,7 +111,7 @@ fn resolve_server_entry_falls_back_to_agent_server() {
 
 #[test]
 fn resolve_server_entry_errors_when_not_found() {
-    let config = config_with_global_and_agents(vec![], []);
+    let config = config_with_global_and_agents(HashMap::new(), []);
     let error =
         resolve_server_entry(&config, "missing", None).expect_err("unknown server should fail");
     assert!(error.to_string().contains("not found"));
@@ -185,7 +195,7 @@ fn require_tool_allowed_rejects_banned_tool_against_allow_list() {
 
 #[test]
 fn resolve_server_entry_reports_unresolved_server_name_clearly() {
-    let config = config_with_global_and_agents(vec![], []);
+    let config = config_with_global_and_agents(HashMap::new(), []);
     let error = resolve_server_entry(&config, "missing-server", Some("agent-a"))
         .expect_err("missing server should produce a clear error");
 

@@ -86,8 +86,8 @@ pub(super) async fn discover_mcp_tools_handler(
     let non_gateway: Vec<_> = config
         .mcp_servers
         .iter()
-        .filter(|server| !server.is_gateway())
-        .cloned()
+        .filter(|(_name, server)| !server.is_gateway())
+        .map(|(name, server)| (name.clone(), server.clone()))
         .collect();
     if !non_gateway.is_empty() {
         results.extend(

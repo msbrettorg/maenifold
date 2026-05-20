@@ -119,4 +119,3 @@ async fn stdio_session_timeout_kills_process_group_children() {
     );
     session.shutdown().await;
 }
-

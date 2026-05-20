@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 use super::types::McpServerEntry;
@@ -44,8 +46,8 @@ pub struct IntentResolverSettings {
     pub auto_execute_confidence_threshold: f64,
     #[serde(default = "default_catalog_chars")]
     pub max_catalog_characters: u32,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub mcp_servers: Vec<McpServerEntry>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub mcp_servers: HashMap<String, McpServerEntry>,
     /// Optional explicit direct-inference config. When absent the resolver
     /// uses env-var fallbacks (AZURE_OPENAI_ENDPOINT / AZURE_OPENAI_DEPLOYMENT_NAME
     /// / AZURE_OPENAI_API_KEY) so most setups need nothing here.
@@ -78,10 +80,12 @@ impl IntentResolverSettings {
         let provider = explicit
             .provider
             .unwrap_or_else(|| infer_provider(&endpoint));
-        let api_key_env = explicit.api_key_env.unwrap_or_else(|| match provider.as_str() {
-            "azureOpenAI" => "AZURE_OPENAI_API_KEY".to_string(),
-            _ => "OPENAI_API_KEY".to_string(),
-        });
+        let api_key_env = explicit
+            .api_key_env
+            .unwrap_or_else(|| match provider.as_str() {
+                "azureOpenAI" => "AZURE_OPENAI_API_KEY".to_string(),
+                _ => "OPENAI_API_KEY".to_string(),
+            });
         let api_key = std::env::var(&api_key_env).map_err(|_| {
             format!("env var {api_key_env} is not set; required for direct inference")
         })?;
@@ -115,7 +119,7 @@ impl Default for IntentResolverSettings {
             auto_execute_read_safe: false,
             auto_execute_confidence_threshold: default_threshold(),
             max_catalog_characters: default_catalog_chars(),
-            mcp_servers: Vec::new(),
+            mcp_servers: HashMap::new(),
             direct_inference: None,
         }
     }

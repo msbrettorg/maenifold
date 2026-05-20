@@ -143,7 +143,7 @@ describe('OnboardingStepDaemon', () => {
       // Simulate successful config load
       vi.spyOn(configStore, 'loadConfig').mockImplementation(async () => {
         configStore.config = {
-          mcpServers: [],
+          mcpServers: {},
           agents: { architect: { command: 'architect' } },
         };
         configStore.error = null;
@@ -175,9 +175,9 @@ describe('OnboardingStepDaemon', () => {
       // Simulate successful config load with real AgentsConfig shape
       vi.spyOn(configStore, 'loadConfig').mockImplementation(async () => {
         configStore.config = {
-          mcpServers: [
-            { type: 'stdio', name: 'maenifold', command: 'maenifold', args: ['--mcp'] },
-          ],
+          mcpServers: {
+            maenifold: { command: 'maenifold', args: ['--mcp'] },
+          },
           agents: {
             architect: { command: 'architect' },
             swe: { command: 'swe' },

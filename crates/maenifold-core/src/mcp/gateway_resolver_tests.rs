@@ -7,7 +7,12 @@ use crate::acp_config::IntentResolverSettings;
 use serde_json::json;
 
 async fn catalog() -> GatewayCatalog {
-    let pool = StdioPool::start(Vec::new(), std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new())).await.expect("pool");
+    let pool = StdioPool::start(
+        Vec::new(),
+        std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()),
+    )
+    .await
+    .expect("pool");
     let routing = ToolRoutingRegistry::build(&[], &pool).expect("routing");
     GatewayCatalog::build(&[], &[], &routing).expect("catalog")
 }

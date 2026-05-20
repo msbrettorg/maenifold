@@ -61,7 +61,10 @@ fn tool_node_round_trips_input_and_output_schema() {
             output_schema,
             ..
         } => {
-            assert_eq!(input_schema.as_ref().and_then(|v| v.get("type")), Some(&json!("object")));
+            assert_eq!(
+                input_schema.as_ref().and_then(|v| v.get("type")),
+                Some(&json!("object"))
+            );
             assert_eq!(
                 output_schema
                     .as_ref()
@@ -74,7 +77,10 @@ fn tool_node_round_trips_input_and_output_schema() {
 
     let value = serde_json::to_value(node).expect("serialize tool node");
     assert_eq!(value["inputSchema"]["type"], json!("object"));
-    assert_eq!(value["outputSchema"]["properties"]["data"]["type"], json!("string"));
+    assert_eq!(
+        value["outputSchema"]["properties"]["data"]["type"],
+        json!("string")
+    );
 }
 
 #[test]

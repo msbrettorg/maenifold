@@ -55,7 +55,10 @@ impl fmt::Display for ResolverError {
                 f.write_str("gateway intent direct inference is not configured")
             }
             Self::Timeout { seconds, .. } => {
-                write!(f, "gateway intent direct inference timed out after {seconds}s")
+                write!(
+                    f,
+                    "gateway intent direct inference timed out after {seconds}s"
+                )
             }
             Self::Malformed { message, .. } => {
                 write!(

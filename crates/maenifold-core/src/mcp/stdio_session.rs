@@ -1,10 +1,10 @@
 use crate::error::MaenifoldError;
 use crate::mcp::MaenifoldClient;
+use crate::mcp::PendingRequestRegistry;
 use crate::mcp::gateway_metadata;
 use crate::mcp::stdio_session_support::{
     collect_failure_stderr, lock_std, map_service_error, spawn, to_message_error,
 };
-use crate::mcp::PendingRequestRegistry;
 use agent_client_protocol_schema::McpServerStdio as McpServerStdioConfig;
 use rmcp::{
     Peer, RoleClient, ServiceExt,
@@ -105,13 +105,10 @@ impl StdioSession {
         let (transport, stderr_task, stderr, process_group_id) =
             spawn(entry).map_err(|error| StdioStartupError::new(error, None))?;
         let startup = async move {
-            let mut client = MaenifoldClient::new_with_server_name(
-                registry,
-                entry.name.as_str(),
-            )
-            .serve(transport)
-            .await
-            .map_err(to_message_error)?;
+            let mut client = MaenifoldClient::new_with_server_name(registry, entry.name.as_str())
+                .serve(transport)
+                .await
+                .map_err(to_message_error)?;
             let server_info = client.peer().peer_info().cloned().ok_or_else(|| {
                 MaenifoldError::Message("MCP server did not return initialize result".to_string())
             })?;

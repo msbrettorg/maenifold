@@ -62,7 +62,7 @@ describe('SettingsMcpServers', () => {
   });
 
   it('shows the empty state when no servers are configured', () => {
-    setupConfig({ agents: {}, mcpServers: [] });
+    setupConfig({ agents: {}, mcpServers: {} });
     const wrapper = mountSubject();
 
     expect(wrapper.text()).toContain("No MCP servers configured yet. Click 'Add server' to add one.");
@@ -71,10 +71,10 @@ describe('SettingsMcpServers', () => {
   it('renders configured servers as cards', () => {
     setupConfig({
       agents: {},
-      mcpServers: [
-        { type: 'stdio', name: 'filesystem', command: 'npx', args: ['-y', 'server'], env: { TOKEN: 'secret' } } as any,
-        { type: 'http', name: 'remote', url: 'https://example.com/mcp' },
-      ],
+      mcpServers: {
+        filesystem: { command: 'npx', args: ['-y', 'server'], env: { TOKEN: 'secret' } },
+        remote: { url: 'https://example.com/mcp' },
+      },
     });
     const wrapper = mountSubject();
 
@@ -86,10 +86,33 @@ describe('SettingsMcpServers', () => {
     expect(wrapper.text()).toContain('https://example.com/mcp');
   });
 
+  it('mcp_servers_schema_renders_object_keyed_servers_in_stable_key_order', () => {
+    setupConfig({
+      agents: {},
+      mcpServers: {
+        workiq: {
+          command: '/usr/bin/env',
+          args: ['agency', 'mcp', 'workiq'],
+          gateway: true,
+        },
+        learn: {
+          url: 'https://learn.microsoft.com/api/mcp',
+          gateway: true,
+        },
+      },
+    });
+    const wrapper = mountSubject();
+    const titles = wrapper.findAllComponents({ name: 'CardTitle' }).map((title) => title.text());
+
+    expect(titles).toEqual(['MCP servers', 'workiq', 'learn']);
+    expect(wrapper.text()).toContain('/usr/bin/env · agency mcp workiq');
+    expect(wrapper.text()).toContain('https://learn.microsoft.com/api/mcp');
+  });
+
   it('confirms and removes a server from configStore', async () => {
     const { confirmDialogStore, writeConfig, configStore } = setupConfig({
       agents: {},
-      mcpServers: [{ type: 'http', name: 'remote', url: 'https://example.com/mcp' }],
+      mcpServers: { remote: { url: 'https://example.com/mcp' } },
     });
     vi.spyOn(confirmDialogStore, 'confirm').mockResolvedValue(true);
     const wrapper = mountSubject();
@@ -98,12 +121,12 @@ describe('SettingsMcpServers', () => {
     await flushPromises();
 
     expect(confirmDialogStore.confirm).toHaveBeenCalledWith('Remove MCP server?', 'Remove "remote" from maenifold.json?');
-    expect(writeConfig).toHaveBeenCalledWith({ mcpServers: [] });
-    expect(configStore.config.mcpServers).toEqual([]);
+    expect(writeConfig).toHaveBeenCalledWith({ mcpServers: {} });
+    expect(configStore.config.mcpServers).toEqual({});
   });
 
   it('opens the editor from the Add server button', async () => {
-    setupConfig({ agents: {}, mcpServers: [] });
+    setupConfig({ agents: {}, mcpServers: {} });
     const wrapper = mountSubject();
 
     await wrapper.findAll('button').find((button) => button.text().includes('Add server'))!.trigger('click');
@@ -113,7 +136,7 @@ describe('SettingsMcpServers', () => {
   });
 
   it('shows Stdio command, args, and env fields by default', async () => {
-    setupConfig({ agents: {}, mcpServers: [] });
+    setupConfig({ agents: {}, mcpServers: {} });
     const wrapper = mountSubject();
 
     await wrapper.findAll('button').find((button) => button.text().includes('Add server'))!.trigger('click');
@@ -126,7 +149,7 @@ describe('SettingsMcpServers', () => {
   it('shows URL only for Http transport and hides env editing', async () => {
     setupConfig({
       agents: {},
-      mcpServers: [{ type: 'http', name: 'remote', url: 'https://example.com/mcp' }],
+      mcpServers: { remote: { url: 'https://example.com/mcp' } },
     });
     const wrapper = mountSubject();
 
@@ -137,7 +160,7 @@ describe('SettingsMcpServers', () => {
   });
 
   it('submits a valid stdio form and adds the server', async () => {
-    const { writeConfig } = setupConfig({ agents: {}, mcpServers: [] });
+    const { writeConfig } = setupConfig({ agents: {}, mcpServers: {} });
     const wrapper = mountSubject();
 
     await wrapper.findAll('button').find((button) => button.text().includes('Add server'))!.trigger('click');
@@ -151,14 +174,14 @@ describe('SettingsMcpServers', () => {
     await flushPromises();
 
     expect(writeConfig).toHaveBeenCalledWith({
-      mcpServers: [{ type: 'stdio', name: 'filesystem', command: 'npx', args: ['-y', 'server'], env: { TOKEN: 'secret' } }],
+      mcpServers: { filesystem: { command: 'npx', args: ['-y', 'server'], env: { TOKEN: 'secret' } } },
     });
   });
 
   it('shows an inline error for duplicate names', async () => {
     const { writeConfig } = setupConfig({
       agents: {},
-      mcpServers: [{ type: 'http', name: 'remote', url: 'https://example.com/mcp' }],
+      mcpServers: { remote: { url: 'https://example.com/mcp' } },
     });
     const wrapper = mountSubject();
 
@@ -172,7 +195,7 @@ describe('SettingsMcpServers', () => {
   });
 
   it('cancels without saving dirty edits', async () => {
-    const { writeConfig } = setupConfig({ agents: {}, mcpServers: [] });
+    const { writeConfig } = setupConfig({ agents: {}, mcpServers: {} });
     const wrapper = mountSubject();
 
     await wrapper.findAll('button').find((button) => button.text().includes('Add server'))!.trigger('click');
@@ -188,7 +211,7 @@ describe('SettingsMcpServers', () => {
   it('pre-populates the edit form for an existing server', async () => {
     setupConfig({
       agents: {},
-      mcpServers: [{ type: 'stdio', name: 'filesystem', command: 'npx', args: ['-y', 'server'] }],
+      mcpServers: { filesystem: { command: 'npx', args: ['-y', 'server'] } },
     });
     const wrapper = mountSubject();
 

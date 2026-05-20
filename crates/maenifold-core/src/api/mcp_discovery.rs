@@ -40,14 +40,14 @@ pub(crate) struct McpServerDiscoveryResult {
 }
 
 pub(crate) async fn discover_all_mcp_tools(
-    servers: &[McpServerEntry],
+    servers: &[(String, McpServerEntry)],
     _timeout_duration: Duration,
 ) -> Vec<McpServerDiscoveryResult> {
     let mut tasks = JoinSet::new();
-    for (index, server) in servers.iter().cloned().enumerate() {
+    for (index, (name, server)) in servers.iter().cloned().enumerate() {
         tasks.spawn(async move {
             let timeout_duration = server.discovery_timeout();
-            (index, discover_server(server, timeout_duration).await)
+            (index, discover_server(name, server, timeout_duration).await)
         });
     }
 
@@ -126,12 +126,13 @@ pub(super) fn normalize_tools(
 }
 
 async fn discover_server(
+    name: String,
     server: McpServerEntry,
     timeout_duration: Duration,
 ) -> McpServerDiscoveryResult {
-    let (name, server_type) = match &server {
-        McpServerEntry::Http { name, .. } => (name.clone(), "http".to_string()),
-        McpServerEntry::Stdio { name, .. } => (name.clone(), "stdio".to_string()),
+    let server_type = match &server {
+        McpServerEntry::Http { .. } => "http".to_string(),
+        McpServerEntry::Stdio { .. } => "stdio".to_string(),
     };
 
     if name.contains('.') {
@@ -149,17 +150,13 @@ async fn discover_server(
     }
 
     let (name, server_type, result) = match server {
-        McpServerEntry::Http { name, url } => (
+        McpServerEntry::Http { url, .. } => (
             name,
             "http".to_string(),
             http::discover_http_tools(&url, timeout_duration).await,
         ),
         McpServerEntry::Stdio {
-            name,
-            command,
-            args,
-            env,
-            ..
+            command, args, env, ..
         } => (
             name,
             "stdio".to_string(),

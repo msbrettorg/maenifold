@@ -139,7 +139,12 @@ fn candidate(
 }
 
 async fn experiment_catalog() -> GatewayCatalog {
-    let pool = StdioPool::start(Vec::new(), std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new())).await.expect("pool");
+    let pool = StdioPool::start(
+        Vec::new(),
+        std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()),
+    )
+    .await
+    .expect("pool");
     let routing = ToolRoutingRegistry::build(&[], &pool).expect("routing");
     GatewayCatalog::build(&[], &[], &routing).expect("catalog builds")
 }

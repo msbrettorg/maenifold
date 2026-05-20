@@ -18,8 +18,8 @@ use super::types::{AgentEntry, McpServerEntry};
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentsConfig {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub mcp_servers: Vec<McpServerEntry>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub mcp_servers: HashMap<String, McpServerEntry>,
     #[serde(default)]
     pub agents: HashMap<String, AgentEntry>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -31,12 +31,8 @@ impl AgentsConfig {
         let config_path = root.join("maenifold.json");
         let contents = read_config_contents(&config_path)?;
 
-        let parsed: AgentsConfig = serde_json::from_str(&contents).map_err(|error| {
-            MaenifoldError::AgentSetup(format!(
-                "failed to parse agents config '{}': {error}",
-                config_path.display()
-            ))
-        })?;
+        reject_legacy_mcp_servers_array(&contents, &config_path)?;
+        let parsed: AgentsConfig = parse_agents_config(&contents, &config_path)?;
 
         let mut agents = HashMap::new();
         for (name, entry) in parsed.agents {
@@ -68,12 +64,9 @@ impl AgentsConfig {
             }
         };
 
-        let parsed: AgentsConfig = match serde_json::from_str(&contents).map_err(|error| {
-            MaenifoldError::AgentSetup(format!(
-                "failed to parse agents config '{}': {error}",
-                config_path.display()
-            ))
-        }) {
+        let parsed: AgentsConfig = match reject_legacy_mcp_servers_array(&contents, &config_path)
+            .and_then(|_| parse_agents_config(&contents, &config_path))
+        {
             Ok(parsed) => parsed,
             Err(error) => {
                 warn!(root = %root.display(), error = %error, "using default agents config");
@@ -100,6 +93,34 @@ impl AgentsConfig {
 
         Ok(config)
     }
+}
+
+fn parse_agents_config(contents: &str, config_path: &Path) -> Result<AgentsConfig> {
+    serde_json::from_str(contents).map_err(|error| {
+        MaenifoldError::AgentSetup(format!(
+            "failed to parse agents config '{}': {error}",
+            config_path.display()
+        ))
+    })
+}
+
+fn reject_legacy_mcp_servers_array(contents: &str, config_path: &Path) -> Result<()> {
+    let value: serde_json::Value = serde_json::from_str(contents).map_err(|error| {
+        MaenifoldError::AgentSetup(format!(
+            "failed to parse agents config '{}': {error}",
+            config_path.display()
+        ))
+    })?;
+    if value
+        .get("mcpServers")
+        .is_some_and(serde_json::Value::is_array)
+    {
+        return Err(MaenifoldError::AgentSetup(format!(
+            "failed to parse agents config '{}': mcpServers legacy array form is not supported; migration T-334.4 requires the new object-keyed shape: {{\"mcpServers\": {{\"server-name\": {{\"command\": \"...\"}}}}}}",
+            config_path.display()
+        )));
+    }
+    Ok(())
 }
 
 fn read_config_contents(config_path: &Path) -> Result<String> {

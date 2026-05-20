@@ -36,18 +36,17 @@ impl StdioPool {
         if let Some(message) = lock_state(&restart_state).backoff_error(server_name) {
             return Err(MaenifoldError::Message(message));
         }
-        let mut replacement = match start_session_with_registry(
-            &config,
-            Arc::clone(&self.pending_request_registry),
-        )
-        .await
-        {
-            Ok(session) => Some(Arc::new(session)),
-            Err(error) => {
-                lock_state(&restart_state).record_failure(error.error.to_string(), error.stderr);
-                return Err(error.error);
-            }
-        };
+        let mut replacement =
+            match start_session_with_registry(&config, Arc::clone(&self.pending_request_registry))
+                .await
+            {
+                Ok(session) => Some(Arc::new(session)),
+                Err(error) => {
+                    lock_state(&restart_state)
+                        .record_failure(error.error.to_string(), error.stderr);
+                    return Err(error.error);
+                }
+            };
         lock_state(&restart_state).record_success();
         let outcome = {
             let mut servers = self.servers.write().await;

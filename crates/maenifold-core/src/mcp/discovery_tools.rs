@@ -113,8 +113,8 @@ async fn discover_mcp_tools(
     let unresolved_servers: Vec<_> = config
         .mcp_servers
         .iter()
-        .filter(|server| !pool_server_names.contains(server.name()))
-        .cloned()
+        .filter(|(name, _server)| !pool_server_names.contains(name.as_str()))
+        .map(|(name, server)| (name.clone(), server.clone()))
         .collect();
     if !unresolved_servers.is_empty() {
         results.extend(

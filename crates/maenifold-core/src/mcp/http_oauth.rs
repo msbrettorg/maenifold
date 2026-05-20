@@ -55,18 +55,21 @@ impl AzureDefaultCredential {
                 credential: env_credential,
             });
         }
-        if let Ok(credential) = ManagedIdentityCredential::new(None) {
-            sources.push(AzureCredentialSource {
-                name: "managed-identity",
-                credential,
-            });
-        }
+        // Developer tools (az login / azd) BEFORE managed identity — on local
+        // dev machines, ManagedIdentityCredential hangs for 30+ seconds trying
+        // IMDS at 169.254.169.254 which doesn't exist outside Azure VMs.
         let developer_tools = DeveloperToolsCredential::new(None)
             .map_err(|error| azure_auth_error(error.to_string()))?;
         sources.push(AzureCredentialSource {
             name: "developer-tools",
             credential: developer_tools,
         });
+        if let Ok(credential) = ManagedIdentityCredential::new(None) {
+            sources.push(AzureCredentialSource {
+                name: "managed-identity",
+                credential,
+            });
+        }
         Ok(Self {
             sources: sources.into(),
             cached_source: Arc::new(AtomicUsize::new(NO_CACHED_SOURCE)),

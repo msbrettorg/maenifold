@@ -90,8 +90,13 @@ async fn discover_mcp_tools(
     let mut pool_server_names = std::collections::HashSet::new();
 
     if let Some(gateway) = gateway {
+        pool_server_names.insert("maenifold".to_string());
+        results.push(native_maenifold_discovery_result(gateway));
         for (server_name, tools) in gateway.pool().all_gateway_tools() {
             pool_server_names.insert(server_name.clone());
+            if server_name == "maenifold" {
+                continue;
+            }
             let tools = tools
                 .into_iter()
                 .map(|tool| mcp_discovery::McpDiscoveredTool {
@@ -127,6 +132,27 @@ async fn discover_mcp_tools(
     }
 
     results
+}
+
+fn native_maenifold_discovery_result(
+    gateway: &GatewayState,
+) -> mcp_discovery::McpServerDiscoveryResult {
+    let tools = gateway
+        .list_tools()
+        .into_iter()
+        .map(|tool| mcp_discovery::McpDiscoveredTool {
+            name: format!("maenifold.{}", tool.name),
+            description: tool.description.as_ref().map(ToString::to_string),
+            input_schema: serde_json::Value::Object((*tool.input_schema).clone()),
+        })
+        .collect();
+    mcp_discovery::McpServerDiscoveryResult {
+        server: "maenifold".to_string(),
+        server_type: "native".to_string(),
+        status: mcp_discovery::McpDiscoveryStatus::Ok,
+        error: None,
+        tools,
+    }
 }
 
 async fn discover_mcp_prompts(gateway: Option<&GatewayState>) -> Vec<McpPromptDiscoveryResult> {
@@ -181,26 +207,5 @@ fn maenifold_error(error: MaenifoldError) -> rmcp::ErrorData {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn discover_mcp_prompts_returns_empty_when_no_pool() {
-        assert!(discover_mcp_prompts(None).await.is_empty());
-    }
-
-    #[tokio::test]
-    async fn get_mcp_prompt_unknown_server_returns_error() {
-        let error = get_mcp_prompt(
-            None,
-            GetMcpPromptParams {
-                server: "missing".to_string(),
-                name: "summarize".to_string(),
-                arguments: None,
-            },
-        )
-        .await
-        .expect_err("missing gateway should fail");
-        assert!(error.message.contains("unknown server 'missing'"));
-    }
-}
+#[path = "discovery_tools_tests.rs"]
+mod tests;

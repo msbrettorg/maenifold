@@ -1,0 +1,11 @@
+[
+  {
+    "id": "onnxruntime",
+    "version": "1.24.1",
+    "targetOs": "macos",
+    "targetArch": "aarch64",
+    "dylibFilename": "libonnxruntime.dylib",
+    "downloadUrl": "https://github.com/microsoft/onnxruntime/releases/download/v1.24.1/onnxruntime-osx-arm64-1.24.1.tgz",
+    "sha256": "c2969315cd9ce0f5fa04f6b53ff72cb92f87f7dcf38e88cacfa40c8f983fbba9"
+  }
+]

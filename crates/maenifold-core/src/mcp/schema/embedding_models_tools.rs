@@ -6,7 +6,7 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
     match registry_name {
         "EmbeddingModels" => Some(derived_tool_definition::<EmbeddingModelsParams>(
             registry_name,
-            "Manages embedding models. List available curated models, show current model status.",
+            "Manages embedding models and ONNX Runtime downloads. List curated models, check status, and download runtime assets.",
         )),
         _ => None,
     }

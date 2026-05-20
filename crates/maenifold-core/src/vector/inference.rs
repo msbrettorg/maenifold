@@ -7,6 +7,8 @@ use super::{DEFAULT_MAX_BATCH, model_state, zero_embedding_vector};
 use crate::error::{MaenifoldError, Result};
 use base64::Engine as _;
 use ort::value::Tensor;
+#[cfg(test)]
+use std::collections::HashSet;
 
 /// Generate embedding for a single text
 pub fn generate_embedding(text: &str) -> Result<Vec<f32>> {
@@ -89,14 +91,24 @@ pub fn generate_embeddings(texts: &[&str], max_batch: usize) -> Result<Vec<Vec<f
             }
         }
 
-        let outputs = state
-            .session
-            .run(ort::inputs! {
-                "input_ids" => Tensor::from_array(([batch_size, max_tokens], input_ids.clone().into_boxed_slice())).map_err(map_ort_error)?,
-                "attention_mask" => Tensor::from_array(([batch_size, max_tokens], attention_mask.clone().into_boxed_slice())).map_err(map_ort_error)?,
-                "token_type_ids" => Tensor::from_array(([batch_size, max_tokens], token_type_ids.into_boxed_slice())).map_err(map_ort_error)?,
-            })
-            .map_err(map_ort_error)?;
+        let outputs = if state.input_names.contains("token_type_ids") {
+            state
+                .session
+                .run(ort::inputs! {
+                    "input_ids" => Tensor::from_array(([batch_size, max_tokens], input_ids.clone().into_boxed_slice())).map_err(map_ort_error)?,
+                    "attention_mask" => Tensor::from_array(([batch_size, max_tokens], attention_mask.clone().into_boxed_slice())).map_err(map_ort_error)?,
+                    "token_type_ids" => Tensor::from_array(([batch_size, max_tokens], token_type_ids.into_boxed_slice())).map_err(map_ort_error)?,
+                })
+                .map_err(map_ort_error)?
+        } else {
+            state
+                .session
+                .run(ort::inputs! {
+                    "input_ids" => Tensor::from_array(([batch_size, max_tokens], input_ids.clone().into_boxed_slice())).map_err(map_ort_error)?,
+                    "attention_mask" => Tensor::from_array(([batch_size, max_tokens], attention_mask.clone().into_boxed_slice())).map_err(map_ort_error)?,
+                })
+                .map_err(map_ort_error)?
+        };
 
         let chosen = select_best_output(&outputs)?;
         let (dims, flat_data) = extract_output_data(&outputs, &chosen)?;
@@ -142,4 +154,16 @@ pub fn to_sqlite_vector_blob(embedding: &[f32]) -> Vec<u8> {
         blob.extend_from_slice(&value.to_le_bytes());
     }
     blob
+}
+
+/// Determine which input names to emit for a session run given the model's
+/// declared input set. Always includes `input_ids` and `attention_mask`;
+/// includes `token_type_ids` only when the model declares it.
+#[cfg(test)]
+pub(crate) fn select_active_input_names(model_input_names: &HashSet<String>) -> Vec<&'static str> {
+    let mut names = vec!["input_ids", "attention_mask"];
+    if model_input_names.contains("token_type_ids") {
+        names.push("token_type_ids");
+    }
+    names
 }

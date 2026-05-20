@@ -1,3 +1,5 @@
+#![cfg_attr(test, allow(dead_code))]
+
 use crate::acp_config::{AgentEntry, AgentsConfig, MaenifoldSettings, McpServerEntry};
 use crate::api::config_manager::ConfigManager;
 use crate::config::Config;
@@ -10,9 +12,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::sync::Arc;
 
-use crate::mcp::resources::{
-    CONFIG_AGENTS_URI, CONFIG_MCP_SERVERS_URI, CONFIG_SETTINGS_URI, notify_resource_updated,
-};
+use crate::mcp::resources::notify_resource_updated;
+
+const CONFIG_SETTINGS_URI: &str = "config://settings";
+const CONFIG_AGENTS_URI: &str = "config://agents";
+const CONFIG_MCP_SERVERS_URI: &str = "config://mcpServers";
 
 const CONFIG_MUTATION_TOOLS: &[&str] = &[
     "ReloadConfig",
@@ -94,6 +98,7 @@ struct NameRequest {
 
 #[derive(Deserialize)]
 struct McpServerRequest {
+    name: String,
     entry: McpServerEntry,
 }
 
@@ -184,7 +189,7 @@ fn update_settings(
         .update_settings(settings)
         .map_err(internal_error)?;
     state.refresh_settings(&config);
-    render(&config)
+    state.config_manager.render_config().map_err(internal_error)
 }
 
 fn add_agent(
@@ -197,7 +202,8 @@ fn add_agent(
         .add_agent(request.name, request.config)
         .map_err(internal_error)?;
     clear_adapter_cache();
-    render(&config)
+    let _ = config;
+    state.config_manager.render_config().map_err(internal_error)
 }
 
 fn update_agent(
@@ -210,7 +216,8 @@ fn update_agent(
         .update_agent(request.name, request.config)
         .map_err(internal_error)?;
     clear_adapter_cache();
-    render(&config)
+    let _ = config;
+    state.config_manager.render_config().map_err(internal_error)
 }
 
 fn delete_agent(
@@ -223,7 +230,8 @@ fn delete_agent(
         .remove_agent(&request.name)
         .map_err(internal_error)?;
     clear_adapter_cache();
-    render(&config)
+    let _ = config;
+    state.config_manager.render_config().map_err(internal_error)
 }
 
 fn add_mcp_server(
@@ -233,9 +241,10 @@ fn add_mcp_server(
     let request: McpServerRequest = parse(arguments)?;
     let config = state
         .config_manager
-        .add_mcp_server(request.entry)
+        .add_mcp_server(request.name, request.entry)
         .map_err(internal_error)?;
-    render(&config)
+    let _ = config;
+    state.config_manager.render_config().map_err(internal_error)
 }
 
 fn update_mcp_server(
@@ -247,7 +256,8 @@ fn update_mcp_server(
         .config_manager
         .update_mcp_server(&request.name, request.entry)
         .map_err(internal_error)?;
-    render(&config)
+    let _ = config;
+    state.config_manager.render_config().map_err(internal_error)
 }
 
 fn delete_mcp_server(
@@ -259,7 +269,8 @@ fn delete_mcp_server(
         .config_manager
         .remove_mcp_server(&request.name)
         .map_err(internal_error)?;
-    render(&config)
+    let _ = config;
+    state.config_manager.render_config().map_err(internal_error)
 }
 
 fn deep_merge(target: &mut Value, patch: Value) {

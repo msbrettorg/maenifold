@@ -37,6 +37,7 @@ schemars.workspace = true
 serde_yml.workspace = true
 handlebars = "6"
 html_escape = { package = "html-escape", version = "0.2" }
+indexmap = { version = "2", features = ["serde"] }
 jsonschema = { version = "0.28", default-features = false }
 sha2.workspace = true
 slug.workspace = true

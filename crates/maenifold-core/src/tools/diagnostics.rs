@@ -71,8 +71,8 @@ fn build_config_value(context: &ToolContext, agents_config: &AgentsConfig) -> Va
                 }
 
                 // Redact env in nested mcpServers entries.
-                if let Some(Value::Array(servers)) = map.get_mut("mcpServers") {
-                    for server in servers.iter_mut() {
+                if let Some(Value::Object(servers)) = map.get_mut("mcpServers") {
+                    for server in servers.values_mut() {
                         if let Some(env_val) = server.as_object_mut().and_then(|m| m.get_mut("env"))
                         {
                             redact_env(env_val);
@@ -87,8 +87,8 @@ fn build_config_value(context: &ToolContext, agents_config: &AgentsConfig) -> Va
 
     // MCP servers — serialized from config, with sensitive env values redacted.
     let mut mcp_servers = serde_json::to_value(&agents_config.mcp_servers).unwrap_or(json!([]));
-    if let Value::Array(servers) = &mut mcp_servers {
-        for server in servers.iter_mut() {
+    if let Value::Object(servers) = &mut mcp_servers {
+        for server in servers.values_mut() {
             if let Some(env_val) = server.as_object_mut().and_then(|m| m.get_mut("env")) {
                 redact_env(env_val);
             }

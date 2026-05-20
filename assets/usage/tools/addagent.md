@@ -8,7 +8,7 @@ Adds or replaces a configured ACP agent entry.
 - `config` (object, required): Agent configuration.
   - `command` (string, required): Executable command.
   - `env` (object, optional): Environment variables.
-  - `mcpServers` (array, optional): MCP servers exposed to the agent.
+  - `mcpServers` (object, optional): MCP servers exposed to the agent, keyed by server name.
 
 ## Example
 

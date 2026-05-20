@@ -15,10 +15,15 @@ import { useConfirmDialogStore } from '@/stores/confirm-dialog';
 import { useConfigStore } from '@/stores/config';
 import SettingsMcpServerEditor from './SettingsMcpServerEditor.vue';
 
-type EditableServer = McpServerEntry & {
-  env?: Record<string, string>;
-  timeout?: number;
-};
+type EditableServer =
+  | (Extract<McpServerEntry, { command: string }> & {
+      name: string;
+      type: 'stdio';
+    })
+  | (Extract<McpServerEntry, { url: string }> & {
+      name: string;
+      type: 'http';
+    });
 
 const configStore = useConfigStore();
 const confirmDialogStore = useConfirmDialogStore();
@@ -27,7 +32,14 @@ const editingIndex = ref<number | null>(null);
 const isSaving = ref(false);
 const saveError = ref<string | null>(null);
 
-const servers = computed<EditableServer[]>(() => (configStore.config.mcpServers ?? []) as EditableServer[]);
+const servers = computed<EditableServer[]>(() =>
+  Object.entries(configStore.config.mcpServers ?? {}).map(([name, entry]) => {
+    if ('command' in entry) {
+      return { ...entry, name, type: 'stdio' };
+    }
+    return { ...entry, name, type: 'http' };
+  }),
+);
 const existingNames = computed(() => servers.value.map((server) => server.name));
 const editingServer = computed(() =>
   editingIndex.value === null ? null : servers.value[editingIndex.value] ?? null
@@ -45,7 +57,7 @@ function openEdit(index: number): void {
   editorOpen.value = true;
 }
 
-function transportLabel(type: McpServerEntry['type']): string {
+function transportLabel(type: EditableServer['type']): string {
   return type === 'stdio' ? 'Stdio' : 'Http';
 }
 
@@ -58,15 +70,27 @@ function envCount(server: EditableServer): number {
   return server.type === 'stdio' && server.env ? Object.keys(server.env).length : 0;
 }
 
+function stripUiFields(server: EditableServer): McpServerEntry {
+  if (server.type === 'http') {
+    const { url, gateway } = server;
+    return gateway === undefined ? { url } : { url, gateway };
+  }
+  const { command, args, env, timeout, gateway } = server;
+  return { command, args, env, timeout, gateway };
+}
+
 async function persistServers(nextServers: EditableServer[]): Promise<void> {
+  const mcpServers = Object.fromEntries(
+    nextServers.map((server) => [server.name, stripUiFields(server)]),
+  );
   const writer = configStore as unknown as {
     writeConfig?: (updates: Partial<AgentsConfig>) => Promise<void>;
   };
   if (writer.writeConfig) {
-    await writer.writeConfig({ mcpServers: nextServers });
+    await writer.writeConfig({ mcpServers });
     return;
   }
-  configStore.config = { ...configStore.config, mcpServers: nextServers };
+  configStore.config = { ...configStore.config, mcpServers };
   await configStore.save();
 }
 

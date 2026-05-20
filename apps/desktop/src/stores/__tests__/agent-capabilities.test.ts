@@ -37,7 +37,7 @@ vi.mock('../../composables/usePipelineMcp', () => ({
 function seedConfig() {
   const configStore = useConfigStore();
   configStore.config = {
-    mcpServers: [],
+    mcpServers: {},
     agents: {
       architect: { command: 'architect' },
     },
@@ -79,7 +79,7 @@ describe('useAgentCapabilitiesStore', () => {
       agents: {
         architect: { command: 'architect', capabilities: { configOptions: [] } },
       },
-      mcpServers: [],
+      mcpServers: {},
       paths: {},
       settings: {},
     });
@@ -178,7 +178,7 @@ describe('useAgentCapabilitiesStore', () => {
           command: 'architect',
         },
       },
-      mcpServers: [],
+      mcpServers: {},
       paths: {},
       settings: {},
     });

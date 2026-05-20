@@ -25,6 +25,9 @@ mod loader_tests;
 #[cfg(test)]
 #[path = "config/tests.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "config/types_tests.rs"]
+mod types_tests;
 
 #[allow(unused_imports)]
 #[allow(unused_imports)]

@@ -5,16 +5,14 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use agent_client_protocol as acp;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::api::mcp_discovery::DEFAULT_DISCOVERY_TIMEOUT;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase", tag = "type")]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(untagged, rename_all = "camelCase")]
 pub enum McpServerEntry {
-    #[serde(rename = "stdio")]
     Stdio {
-        name: String,
         command: String,
         #[serde(default)]
         args: Vec<String>,
@@ -37,36 +35,29 @@ pub enum McpServerEntry {
         #[serde(default)]
         gateway: bool,
     },
-    #[serde(rename = "http")]
-    Http { name: String, url: String },
+    Http {
+        url: String,
+        #[serde(default)]
+        gateway: bool,
+    },
 }
 
 impl McpServerEntry {
-    pub fn name(&self) -> &str {
-        match self {
-            McpServerEntry::Stdio { name, .. } | McpServerEntry::Http { name, .. } => name,
-        }
-    }
-
     #[allow(dead_code)]
     /// Returns true if this server should expose its tools through the HTTP gateway.
     pub fn is_gateway(&self) -> bool {
         match self {
             McpServerEntry::Stdio { gateway, .. } => *gateway,
-            McpServerEntry::Http { .. } => false,
+            McpServerEntry::Http { gateway, .. } => *gateway,
         }
     }
 
-    pub fn to_acp(&self) -> acp::McpServer {
+    pub fn to_acp(&self, name: &str) -> acp::McpServer {
         match self {
             McpServerEntry::Stdio {
-                name,
-                command,
-                args,
-                env,
-                ..
+                command, args, env, ..
             } => acp::McpServer::Stdio(
-                acp::McpServerStdio::new(name.clone(), command.clone())
+                acp::McpServerStdio::new(name.to_string(), command.clone())
                     .args(args.clone())
                     .env(
                         env.iter()
@@ -74,8 +65,8 @@ impl McpServerEntry {
                             .collect(),
                     ),
             ),
-            McpServerEntry::Http { name, url } => acp::McpServer::Http(acp::McpServerHttp::new(
-                name.clone(),
+            McpServerEntry::Http { url, .. } => acp::McpServer::Http(acp::McpServerHttp::new(
+                name.to_string(),
                 acp_http_url(name, url),
             )),
         }
@@ -87,6 +78,55 @@ impl McpServerEntry {
                 .map(Duration::from_secs)
                 .unwrap_or(DEFAULT_DISCOVERY_TIMEOUT),
             McpServerEntry::Http { .. } => DEFAULT_DISCOVERY_TIMEOUT,
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for McpServerEntry {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase", deny_unknown_fields)]
+        struct RawEntry {
+            command: Option<String>,
+            #[serde(default)]
+            args: Vec<String>,
+            #[serde(default)]
+            timeout: Option<u64>,
+            #[serde(default)]
+            env: HashMap<String, String>,
+            #[serde(default, rename = "envFromFile")]
+            env_from_file: HashMap<String, String>,
+            #[serde(default, rename = "envFromCommand")]
+            env_from_command: HashMap<String, EnvFromCommand>,
+            #[serde(default)]
+            gateway: bool,
+            url: Option<String>,
+        }
+
+        let raw = RawEntry::deserialize(deserializer)?;
+        match (raw.command, raw.url) {
+            (Some(command), None) => Ok(McpServerEntry::Stdio {
+                command,
+                args: raw.args,
+                timeout: raw.timeout,
+                env: raw.env,
+                env_from_file: raw.env_from_file,
+                env_from_command: raw.env_from_command,
+                gateway: raw.gateway,
+            }),
+            (None, Some(url)) => Ok(McpServerEntry::Http {
+                url,
+                gateway: raw.gateway,
+            }),
+            (Some(_), Some(_)) => Err(serde::de::Error::custom(
+                "mcpServers entry must contain command or url, not both command and url",
+            )),
+            (None, None) => Err(serde::de::Error::custom(
+                "mcpServers entry must contain command or url",
+            )),
         }
     }
 }
@@ -108,40 +148,6 @@ fn ipv4_loopback_url(url: &str) -> String {
         }
     }
     url.to_string()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::McpServerEntry;
-    use agent_client_protocol as acp;
-
-    #[test]
-    fn maenifold_http_mcp_uses_ipv4_loopback_for_acp_agents() {
-        let entry = McpServerEntry::Http {
-            name: "maenifold".to_string(),
-            url: "http://localhost:8080/mcp".to_string(),
-        };
-
-        let acp::McpServer::Http(server) = entry.to_acp() else {
-            panic!("expected HTTP MCP server");
-        };
-
-        assert_eq!(server.url.as_str(), "http://127.0.0.1:8080/mcp");
-    }
-
-    #[test]
-    fn non_maenifold_http_mcp_keeps_configured_hostname() {
-        let entry = McpServerEntry::Http {
-            name: "other-local".to_string(),
-            url: "http://localhost:9999/mcp".to_string(),
-        };
-
-        let acp::McpServer::Http(server) = entry.to_acp() else {
-            panic!("expected HTTP MCP server");
-        };
-
-        assert_eq!(server.url.as_str(), "http://localhost:9999/mcp");
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -170,8 +176,8 @@ pub struct AgentEntry {
         skip_serializing_if = "HashMap::is_empty"
     )]
     pub env_from_command: HashMap<String, EnvFromCommand>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub mcp_servers: Vec<McpServerEntry>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub mcp_servers: HashMap<String, McpServerEntry>,
 }
 
 impl AgentEntry {

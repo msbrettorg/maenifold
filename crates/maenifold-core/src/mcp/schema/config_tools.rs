@@ -2,6 +2,8 @@ use super::support::tool_definition;
 use crate::mcp::McpToolDefinition;
 use serde_json::{Value, json};
 
+const NAME_PARAM: &str = "name";
+
 pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
     match registry_name {
         "ReloadConfig" => Some(tool_definition(
@@ -29,12 +31,10 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
         "AddMcpServer" => Some(mcp_server_tool(
             "AddMcpServer",
             "Adds a configured MCP server entry.",
-            false,
         )),
         "UpdateMcpServer" => Some(mcp_server_tool(
             "UpdateMcpServer",
             "Updates an existing configured MCP server entry by name.",
-            true,
         )),
         "DeleteMcpServer" => Some(name_tool(
             "DeleteMcpServer",
@@ -45,29 +45,24 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
 }
 
 fn agent_tool(name: &str, description: &str) -> McpToolDefinition {
-    tool_definition(
-        name,
-        description,
-        object_schema(json!({
-            "name": { "type": "string", "minLength": 1 },
-            "config": agent_entry_schema()
-        })),
-    )
+    let mut properties = json!({ "config": agent_entry_schema() });
+    properties[NAME_PARAM] = name_param_schema();
+    tool_definition(name, description, object_schema(properties))
 }
 
 fn name_tool(name: &str, description: &str) -> McpToolDefinition {
-    tool_definition(
-        name,
-        description,
-        object_schema(json!({ "name": { "type": "string", "minLength": 1 } })),
-    )
+    let mut properties = json!({});
+    properties[NAME_PARAM] = name_param_schema();
+    tool_definition(name, description, object_schema(properties))
 }
 
-fn mcp_server_tool(name: &str, description: &str, include_name: bool) -> McpToolDefinition {
+fn name_param_schema() -> Value {
+    json!({ "type": "string", "minLength": 1 })
+}
+
+fn mcp_server_tool(name: &str, description: &str) -> McpToolDefinition {
     let mut properties = json!({ "entry": mcp_server_schema() });
-    if include_name {
-        properties["name"] = json!({ "type": "string", "minLength": 1 });
-    }
+    properties[NAME_PARAM] = name_param_schema();
     tool_definition(name, description, object_schema(properties))
 }
 
@@ -87,7 +82,7 @@ fn agent_entry_schema() -> Value {
             "env": { "type": "object", "additionalProperties": { "type": "string" } },
             "envFromFile": { "type": "object", "additionalProperties": { "type": "string" } },
             "envFromCommand": env_from_command_schema(),
-            "mcpServers": { "type": "array", "items": mcp_server_schema() }
+            "mcpServers": { "type": "object", "additionalProperties": mcp_server_schema() }
         },
         "required": ["command"],
         "additionalProperties": false
@@ -100,8 +95,6 @@ fn mcp_server_schema() -> Value {
             {
                 "type": "object",
                 "properties": {
-                    "type": { "const": "stdio" },
-                    "name": { "type": "string", "minLength": 1 },
                     "command": { "type": "string", "minLength": 1 },
                     "args": { "type": "array", "items": { "type": "string" } },
                     "timeout": { "type": "integer", "minimum": 1 },
@@ -110,17 +103,16 @@ fn mcp_server_schema() -> Value {
                     "envFromCommand": env_from_command_schema(),
                     "gateway": { "type": "boolean" }
                 },
-                "required": ["type", "name", "command"],
+                "required": ["command"],
                 "additionalProperties": false
             },
             {
                 "type": "object",
                 "properties": {
-                    "type": { "const": "http" },
-                    "name": { "type": "string", "minLength": 1 },
-                    "url": { "type": "string", "minLength": 1 }
+                    "url": { "type": "string", "minLength": 1 },
+                    "gateway": { "type": "boolean" }
                 },
-                "required": ["type", "name", "url"],
+                "required": ["url"],
                 "additionalProperties": false
             }
         ]

@@ -217,9 +217,12 @@ while True:
     #[tokio::test]
     async fn build_delegates_to_build_from_sources() {
         let native_tools = vec![tool("native-tool")];
-        let pool = StdioPool::start(vec![server_config("server-a", "gateway-a")], std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()))
-            .await
-            .expect("pool should start");
+        let pool = StdioPool::start(
+            vec![server_config("server-a", "gateway-a")],
+            std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()),
+        )
+        .await
+        .expect("pool should start");
 
         let from_build =
             ToolRoutingRegistry::build(&native_tools, &pool).expect("build should succeed");

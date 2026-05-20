@@ -57,14 +57,13 @@ pub(crate) async fn resolve_intent_with_direct_inference(
         }
     })?;
     let status = response.status();
-    let body_text =
-        response
-            .text()
-            .await
-            .map_err(|err| ResolverError::DirectInferenceFailed {
-                message: format!("failed to read response body: {err}"),
-                fallback: fallback(),
-            })?;
+    let body_text = response
+        .text()
+        .await
+        .map_err(|err| ResolverError::DirectInferenceFailed {
+            message: format!("failed to read response body: {err}"),
+            fallback: fallback(),
+        })?;
     if !status.is_success() {
         return Err(ResolverError::DirectInferenceFailed {
             message: format!(
@@ -74,11 +73,10 @@ pub(crate) async fn resolve_intent_with_direct_inference(
             fallback: fallback(),
         });
     }
-    let raw: Value =
-        serde_json::from_str(&body_text).map_err(|err| ResolverError::Malformed {
-            message: format!("response was not JSON: {err}"),
-            fallback: fallback(),
-        })?;
+    let raw: Value = serde_json::from_str(&body_text).map_err(|err| ResolverError::Malformed {
+        message: format!("response was not JSON: {err}"),
+        fallback: fallback(),
+    })?;
     let assistant_text = extract_assistant_text(&raw)?;
     parse_and_validate_output(catalog, &assistant_text, settings.max_candidates)
 }

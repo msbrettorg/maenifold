@@ -26,7 +26,7 @@ const nodeCounter = ref(0);
 
 const configStore = useConfigStore();
 configStore.config = {
-  mcpServers: [],
+  mcpServers: {},
   agents: {
     architect: { command: 'architect' },
   },

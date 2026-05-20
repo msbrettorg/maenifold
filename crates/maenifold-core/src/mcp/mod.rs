@@ -1,6 +1,10 @@
 mod client_handler;
 #[cfg(test)]
 mod client_handler_tests;
+#[cfg(test)]
+mod config_tools;
+#[cfg(test)]
+mod config_tools_tests;
 mod cors;
 pub(crate) mod discovery_tools;
 pub(crate) mod domain_mapping;
@@ -17,6 +21,7 @@ mod gateway_catalog_render;
 mod gateway_catalog_test_fixtures;
 mod gateway_cli;
 pub mod gateway_consolidation;
+mod gateway_direct_inference_resolver;
 pub mod gateway_dispatch;
 mod gateway_errors;
 #[cfg(test)]
@@ -39,7 +44,6 @@ mod gateway_resolver;
 #[cfg(test)]
 mod gateway_resolver_tests;
 mod gateway_resolver_types;
-mod gateway_direct_inference_resolver;
 mod gateway_schema_validation;
 mod gateway_startup;
 mod gateway_tasks;

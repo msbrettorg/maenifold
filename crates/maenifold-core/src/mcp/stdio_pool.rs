@@ -1,10 +1,10 @@
 use crate::error::{JSONRPC_INVALID_PARAMS, MaenifoldError, Result};
+use crate::mcp::PendingRequestRegistry;
 use crate::mcp::stdio_pool_health::{RestartState, lock_state};
 pub use crate::mcp::stdio_pool_health::{ServerStartupStatus, StdioPoolHealth, StdioServerHealth};
 use crate::mcp::stdio_pool_prompts::collect_gateway_prompts;
 use crate::mcp::stdio_pool_tools::{collect_gateway_tools, shutdown_servers};
 use crate::mcp::stdio_session::{StdioSession, StdioStartupError};
-use crate::mcp::PendingRequestRegistry;
 use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
 use futures_util::stream::{FuturesUnordered, StreamExt};
 use rmcp::model::{CallToolResult, GetPromptResult, Prompt, ReadResourceResult, Tool};
@@ -64,7 +64,8 @@ impl StdioPool {
     pub async fn start(
         servers: Vec<StdioServerConfig>,
         registry: Arc<PendingRequestRegistry>,
-    ) -> Result<Self> {        let mut seen = HashSet::new();
+    ) -> Result<Self> {
+        let mut seen = HashSet::new();
         for config in &servers {
             if !seen.insert(&config.name) {
                 return Err(MaenifoldError::Message(format!(
@@ -81,11 +82,7 @@ impl StdioPool {
                 (
                     name,
                     config.clone(),
-                    start_session_with_registry(
-                        &config,
-                        registry,
-                    )
-                    .await,
+                    start_session_with_registry(&config, registry).await,
                 )
             });
         }

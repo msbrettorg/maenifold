@@ -108,7 +108,7 @@ fn settings_deserializes_from_json() {
 fn settings_defaults_when_absent() {
     let config: AgentsConfig = serde_json::from_value(json!({
         "agents": {},
-        "mcpServers": [],
+        "mcpServers": {},
         "settings": {}
     }))
     .expect("config should deserialize");
@@ -161,33 +161,27 @@ fn settings_roundtrips_through_json() {
 #[test]
 fn agents_config_includes_settings() {
     let config: AgentsConfig = serde_json::from_value(json!({
-        "mcpServers": [
-            {
-                "type": "stdio",
-                "name": "local",
+        "mcpServers": {
+            "local": {
                 "command": "/bin/echo",
                 "args": ["hello"]
             },
-            {
-                "type": "http",
-                "name": "remote",
+            "remote": {
                 "url": "http://localhost:3000/mcp"
             }
-        ],
+        },
         "agents": {
             "planner": {
                 "command": "/bin/echo --plan",
                 "env": {
                     "MODE": "test"
                 },
-                "mcpServers": [
-                    {
-                        "type": "stdio",
-                        "name": "local",
+                "mcpServers": {
+                    "local": {
                         "command": "/bin/echo",
                         "args": ["planner"]
                     }
-                ]
+                }
             }
         },
         "settings": sample_settings_json()
@@ -197,8 +191,8 @@ fn agents_config_includes_settings() {
     let settings = config.settings.expect("settings should be present");
     assert_eq!(settings, expected_settings());
     assert_eq!(config.mcp_servers.len(), 2);
-    assert_eq!(config.mcp_servers[0].name(), "local");
-    assert_eq!(config.mcp_servers[1].name(), "remote");
+    assert!(config.mcp_servers.contains_key("local"));
+    assert!(config.mcp_servers.contains_key("remote"));
 
     let agent = config
         .agents
@@ -207,14 +201,15 @@ fn agents_config_includes_settings() {
     assert_eq!(agent.command, "/bin/echo --plan");
     assert_eq!(agent.env.get("MODE").map(String::as_str), Some("test"));
     assert_eq!(agent.mcp_servers.len(), 1);
-    assert_eq!(agent.mcp_servers[0].name(), "local");
+    assert!(agent.mcp_servers.contains_key("local"));
 }
 
 fn first_stdio(entry: serde_json::Value) -> McpServerEntry {
-    serde_json::from_value::<AgentsConfig>(json!({"mcpServers": [entry], "agents": {}}))
+    serde_json::from_value::<AgentsConfig>(json!({"mcpServers": {"local": entry}, "agents": {}}))
         .expect("config")
         .mcp_servers
         .into_iter()
+        .map(|(_name, entry)| entry)
         .next()
         .expect("stdio entry")
 }
@@ -230,7 +225,7 @@ fn first_agent(entry: serde_json::Value) -> AgentEntry {
 #[test]
 fn stdio_entry_deserializes_env_from_file_only() {
     let entry = first_stdio(
-        json!({"type":"stdio","name":"local","command":"/bin/echo","envFromFile":{"AZURE_OPENAI_API_KEY":"~/.secrets/azure"}}),
+        json!({"command":"/bin/echo","envFromFile":{"AZURE_OPENAI_API_KEY":"~/.secrets/azure"}}),
     );
     let McpServerEntry::Stdio {
         env,
@@ -272,7 +267,7 @@ fn agent_entry_deserializes_env_from_command_only() {
 #[test]
 fn stdio_entry_deserializes_all_env_sources() {
     let entry = first_stdio(
-        json!({"type":"stdio","name":"local","command":"/bin/echo","env":{"PATH":"/usr/bin"},"envFromFile":{"OPENAI_API_KEY":"~/.secrets/openai"},"envFromCommand":{"ANTHROPIC_API_KEY":{"command":"/usr/bin/security","args":["find-generic-password"]}}}),
+        json!({"command":"/bin/echo","env":{"PATH":"/usr/bin"},"envFromFile":{"OPENAI_API_KEY":"~/.secrets/openai"},"envFromCommand":{"ANTHROPIC_API_KEY":{"command":"/usr/bin/security","args":["find-generic-password"]}}}),
     );
     let McpServerEntry::Stdio {
         env,

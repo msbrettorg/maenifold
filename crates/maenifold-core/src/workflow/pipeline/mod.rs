@@ -13,18 +13,18 @@ use crate::{
 mod acp_input_schema_tests;
 #[cfg(test)]
 mod acp_output_schema_tests;
+mod acp_reaper;
 #[cfg(test)]
 mod acp_workflow_output_schema_tests;
-mod acp_reaper;
 #[cfg(test)]
 mod active_session_persistence_tests;
 mod audit;
 pub(super) mod circuit_breaker;
 #[cfg(test)]
 mod conditional_extraction_tests;
+mod conditional_output;
 #[cfg(test)]
 mod conditional_predicate_artifact_tests;
-mod conditional_output;
 #[cfg(test)]
 mod delete_verification_tests;
 mod dispatch;
@@ -140,11 +140,11 @@ mod test_fixtures;
 mod test_fixtures_helpers;
 #[cfg(test)]
 mod test_support;
+#[cfg(test)]
+mod typed_handoff_tool_tests;
 mod types;
 #[cfg(test)]
 mod types_edge_mode_tests;
-#[cfg(test)]
-mod typed_handoff_tool_tests;
 mod types_node;
 mod types_wire;
 mod update;
@@ -256,21 +256,20 @@ async fn default_stdio_pool() -> Option<Arc<StdioPool>> {
 fn collect_stdio_servers(config: &AgentsConfig) -> Vec<StdioServerConfig> {
     let mut servers = Vec::new();
     let mut seen = HashSet::new();
-    collect_stdio_entries(&mut servers, &mut seen, &config.mcp_servers);
+    collect_stdio_entries(&mut servers, &mut seen, config.mcp_servers.iter());
     for agent in config.agents.values() {
-        collect_stdio_entries(&mut servers, &mut seen, &agent.mcp_servers);
+        collect_stdio_entries(&mut servers, &mut seen, agent.mcp_servers.iter());
     }
     servers
 }
 
-fn collect_stdio_entries(
+fn collect_stdio_entries<'a>(
     servers: &mut Vec<StdioServerConfig>,
     seen: &mut HashSet<String>,
-    entries: &[McpServerEntry],
+    entries: impl Iterator<Item = (&'a String, &'a McpServerEntry)>,
 ) {
-    for entry in entries {
+    for (name, entry) in entries {
         let McpServerEntry::Stdio {
-            name,
             command,
             args,
             timeout,

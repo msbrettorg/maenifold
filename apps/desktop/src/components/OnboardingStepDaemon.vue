@@ -20,7 +20,7 @@ const copied = ref(false);
 const command = 'maenifold --http';
 
 const agentCount = computed(() => configStore.agentNames.length);
-const mcpServerCount = computed(() => (configStore.config.mcpServers ?? []).length);
+const mcpServerCount = computed(() => Object.keys(configStore.config.mcpServers ?? {}).length);
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let copyTimer: ReturnType<typeof setTimeout> | null = null;

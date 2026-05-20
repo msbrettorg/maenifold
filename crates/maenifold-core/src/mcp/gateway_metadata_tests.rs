@@ -18,7 +18,12 @@ async fn upstream_domain_description_uses_initialize_metadata() {
     let (consolidated, passthrough) =
         build_consolidated_tools(vec![("billing".to_string(), vec![tool("usage_export")])])
             .expect("consolidated");
-    let pool = StdioPool::start(Vec::new(), std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new())).await.expect("empty pool");
+    let pool = StdioPool::start(
+        Vec::new(),
+        std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()),
+    )
+    .await
+    .expect("empty pool");
     let routing = ToolRoutingRegistry::build(&[], &pool).expect("routing");
     let mut descriptions = BTreeMap::new();
     descriptions.insert(
@@ -50,7 +55,12 @@ async fn upstream_domain_fallback_names_domain_and_gatewayindex() {
     let (consolidated, passthrough) =
         build_consolidated_tools(vec![("opaque".to_string(), vec![tool("lookup")])])
             .expect("consolidated");
-    let pool = StdioPool::start(Vec::new(), std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new())).await.expect("empty pool");
+    let pool = StdioPool::start(
+        Vec::new(),
+        std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()),
+    )
+    .await
+    .expect("empty pool");
     let routing = ToolRoutingRegistry::build(&[], &pool).expect("routing");
     let catalog = GatewayCatalog::build_with_upstream_descriptions(
         &consolidated,
@@ -93,12 +103,24 @@ async fn initialize_metadata_advertises_live_gateway_domains() {
 }
 
 async fn empty_routing() -> ToolRoutingRegistry {
-    let pool = StdioPool::start(Vec::new(), std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new())).await.expect("empty pool");
+    let pool = StdioPool::start(
+        Vec::new(),
+        std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()),
+    )
+    .await
+    .expect("empty pool");
     ToolRoutingRegistry::build(&[], &pool).expect("routing")
 }
 
 async fn gateway_state_with_catalog(catalog: GatewayCatalog) -> GatewayState {
-    let pool = Arc::new(StdioPool::start(Vec::new(), std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new())).await.expect("empty pool"));
+    let pool = Arc::new(
+        StdioPool::start(
+            Vec::new(),
+            std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()),
+        )
+        .await
+        .expect("empty pool"),
+    );
     let routing = ResourceRoutingRegistry::build(pool.as_ref()).expect("resource routing");
     GatewayState::new(
         pool,

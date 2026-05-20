@@ -24,10 +24,15 @@ import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard';
 import type { McpServerEntry } from '@/lib/types';
 
 type Transport = 'stdio' | 'http';
-type EditableServer = McpServerEntry & {
-  env?: Record<string, string>;
-  timeout?: number;
-};
+type EditableServer =
+  | (Extract<McpServerEntry, { command: string }> & {
+      name: string;
+      type: 'stdio';
+    })
+  | (Extract<McpServerEntry, { url: string }> & {
+      name: string;
+      type: 'http';
+    });
 
 interface EnvRow {
   id: number;

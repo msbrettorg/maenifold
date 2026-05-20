@@ -263,14 +263,10 @@ fn binding_edge_into_acp_target_without_input_schema_rejected_at_validation() {
 
 #[test]
 fn input_schema_with_no_bindings_validates_empty_and_fails_when_required_fields_missing() {
-    let def = definition(
-        vec![source_node(), target_node_with_input_schema()],
-        vec![],
-    );
+    let def = definition(vec![source_node(), target_node_with_input_schema()], vec![]);
 
-    let error = build_target_request(&def).expect_err(
-        "dispatch must fail when input_schema requires fields but zero bindings exist",
-    );
+    let error = build_target_request(&def)
+        .expect_err("dispatch must fail when input_schema requires fields but zero bindings exist");
     let message = error.to_string();
     assert!(
         message.contains("foo") || message.contains("bar"),

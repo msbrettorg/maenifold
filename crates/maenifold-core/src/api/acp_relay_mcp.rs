@@ -150,15 +150,17 @@ pub(super) fn load_configured_mcp_servers(root: &Path, agent_name: &str) -> Vec<
     let agent_servers = config
         .agents
         .get(agent_name)
-        .map(|entry| entry.mcp_servers.as_slice())
-        .unwrap_or(&[]);
+        .map(|entry| &entry.mcp_servers);
 
     let mut seen = HashSet::new();
     let mut servers = Vec::new();
-    for entry in config.mcp_servers.iter().chain(agent_servers.iter()) {
-        let name = entry.name().to_ascii_lowercase();
-        if seen.insert(name) {
-            servers.push(entry.to_acp());
+    for (name, entry) in config
+        .mcp_servers
+        .iter()
+        .chain(agent_servers.into_iter().flat_map(|servers| servers.iter()))
+    {
+        if seen.insert(name.to_ascii_lowercase()) {
+            servers.push(entry.to_acp(name));
         }
     }
     servers

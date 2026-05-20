@@ -51,10 +51,9 @@ pub(super) fn resolve_agent(root: &Path, agent: &str) -> Result<ResolvedAgent> {
     let mut seen = HashSet::new();
     let mut mcp_servers = Vec::new();
 
-    for server in config.mcp_servers.iter().chain(entry.mcp_servers.iter()) {
-        let name = server.name().to_ascii_lowercase();
-        if seen.insert(name) {
-            mcp_servers.push(server.to_acp());
+    for (name, server) in config.mcp_servers.iter().chain(entry.mcp_servers.iter()) {
+        if seen.insert(name.to_ascii_lowercase()) {
+            mcp_servers.push(server.to_acp(name));
         }
     }
 
@@ -139,7 +138,7 @@ mod tests {
             env: HashMap::new(),
             env_from_file: HashMap::new(),
             env_from_command: HashMap::new(),
-            mcp_servers: vec![],
+            mcp_servers: HashMap::new(),
         };
 
         assert_eq!(
@@ -155,7 +154,7 @@ mod tests {
             env: HashMap::new(),
             env_from_file: HashMap::new(),
             env_from_command: HashMap::new(),
-            mcp_servers: vec![],
+            mcp_servers: HashMap::new(),
         };
 
         let err = infer_runtime_kind(&entry).expect_err("empty command should be rejected");
@@ -172,7 +171,7 @@ mod tests {
             env: HashMap::new(),
             env_from_file: HashMap::new(),
             env_from_command: HashMap::new(),
-            mcp_servers: vec![],
+            mcp_servers: HashMap::new(),
         };
 
         let err = infer_runtime_kind(&entry).expect_err("mock runtime should be rejected");

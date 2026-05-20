@@ -37,6 +37,8 @@ pub enum McpServerEntry {
     },
     Http {
         url: String,
+        #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+        headers: HashMap<String, String>,
         #[serde(default)]
         gateway: bool,
     },
@@ -104,6 +106,8 @@ impl<'de> Deserialize<'de> for McpServerEntry {
             #[serde(default)]
             gateway: bool,
             url: Option<String>,
+            #[serde(default)]
+            headers: HashMap<String, String>,
         }
 
         let raw = RawEntry::deserialize(deserializer)?;
@@ -119,6 +123,7 @@ impl<'de> Deserialize<'de> for McpServerEntry {
             }),
             (None, Some(url)) => Ok(McpServerEntry::Http {
                 url,
+                headers: raw.headers,
                 gateway: raw.gateway,
             }),
             (Some(_), Some(_)) => Err(serde::de::Error::custom(

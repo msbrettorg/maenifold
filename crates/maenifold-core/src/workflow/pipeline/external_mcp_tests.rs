@@ -45,6 +45,7 @@ fn split_namespaced_tool_name_requires_non_empty_segments() {
 fn resolve_server_entry_finds_global_server_without_agent() {
     let server = McpServerEntry::Http {
         url: "http://localhost:8081".to_string(),
+        headers: HashMap::new(),
         gateway: false,
     };
     let config =
@@ -59,6 +60,7 @@ fn resolve_server_entry_finds_global_server_without_agent() {
 fn resolve_server_entry_prefers_global_over_agent() {
     let global = McpServerEntry::Http {
         url: "http://localhost:8081".to_string(),
+        headers: HashMap::new(),
         gateway: false,
     };
     let agent_local = McpServerEntry::Stdio {

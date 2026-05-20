@@ -9,6 +9,7 @@ mod tests {
     fn maenifold_http_mcp_uses_ipv4_loopback_for_acp_agents() {
         let entry = McpServerEntry::Http {
             url: "http://localhost:8080/mcp".to_string(),
+            headers: HashMap::new(),
             gateway: false,
         };
 
@@ -23,6 +24,7 @@ mod tests {
     fn non_maenifold_http_mcp_keeps_configured_hostname() {
         let entry = McpServerEntry::Http {
             url: "http://localhost:9999/mcp".to_string(),
+            headers: HashMap::new(),
             gateway: false,
         };
 

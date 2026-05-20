@@ -10,6 +10,7 @@ mod tests {
         let entry = McpServerEntry::Http {
             url: "http://localhost:8080/mcp".to_string(),
             headers: HashMap::new(),
+            auth: None,
             gateway: false,
         };
 
@@ -25,6 +26,7 @@ mod tests {
         let entry = McpServerEntry::Http {
             url: "http://localhost:9999/mcp".to_string(),
             headers: HashMap::new(),
+            auth: None,
             gateway: false,
         };
 
@@ -192,5 +194,25 @@ mod tests {
                 .get("type")
                 .is_none()
         );
+    }
+
+    #[test]
+    fn http_auth_config_roundtrips_when_present() {
+        let entries: HashMap<String, McpServerEntry> = serde_json::from_value(json!({
+            "arm": {
+                "url": "https://mcp.management.azure.com",
+                "gateway": true,
+                "auth": {
+                    "clientId": "client-id",
+                    "clientSecret": "client-secret",
+                    "tenantId": "tenant-id"
+                }
+            }
+        }))
+        .expect("http auth config should deserialize");
+
+        let serialized = serde_json::to_value(&entries).expect("http auth config should serialize");
+        assert_eq!(serialized["arm"]["auth"]["clientId"], json!("client-id"));
+        assert_eq!(serialized["arm"]["auth"]["tenantId"], json!("tenant-id"));
     }
 }

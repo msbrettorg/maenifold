@@ -140,7 +140,7 @@ fn candidate(
 
 async fn experiment_catalog() -> GatewayCatalog {
     let pool = StdioPool::start(
-        Vec::new(),
+        Vec::<crate::mcp::gateway_session::GatewayServerConfig>::new(),
         std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()),
     )
     .await

@@ -78,7 +78,7 @@ async fn create_task(name: &str, nodes: usize) -> String {
 async fn state() -> GatewayState {
     let pool = Arc::new(
         StdioPool::start(
-            vec![],
+            Vec::<crate::mcp::gateway_session::GatewayServerConfig>::new(),
             std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()),
         )
         .await

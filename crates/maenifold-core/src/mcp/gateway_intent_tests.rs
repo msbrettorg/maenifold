@@ -60,7 +60,7 @@ mod scoped_env {
 async fn state(settings: IntentResolverSettings) -> GatewayState {
     let pool = Arc::new(
         StdioPool::start(
-            vec![],
+            Vec::<crate::mcp::gateway_session::GatewayServerConfig>::new(),
             std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()),
         )
         .await

@@ -229,7 +229,7 @@ async fn gate_upstream_catalog_entries_are_annotated_when_available() {
     let (consolidated, passthrough) =
         build_consolidated_tools(vec![("gate".to_string(), gate_tools)]).expect("gate catalog");
     let pool = StdioPool::start(
-        Vec::new(),
+        Vec::<crate::mcp::gateway_session::GatewayServerConfig>::new(),
         std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()),
     )
     .await
@@ -256,7 +256,7 @@ async fn gate_upstream_catalog_entries_are_annotated_when_available() {
 
 pub(super) async fn native_catalog() -> GatewayCatalog {
     let pool = StdioPool::start(
-        Vec::new(),
+        Vec::<crate::mcp::gateway_session::GatewayServerConfig>::new(),
         std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()),
     )
     .await
@@ -272,7 +272,7 @@ async fn empty_gateway_tools() -> Vec<Tool> {
 async fn gateway_tools(settings: IntentResolverSettings) -> Vec<Tool> {
     let pool = Arc::new(
         StdioPool::start(
-            Vec::new(),
+            Vec::<crate::mcp::gateway_session::GatewayServerConfig>::new(),
             std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()),
         )
         .await

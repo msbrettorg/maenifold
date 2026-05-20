@@ -145,6 +145,7 @@ fn gateway_settings_roundtrip_uses_camel_case() {
                 McpServerEntry::Http {
                     url: "http://localhost".to_string(),
                     headers: HashMap::new(),
+                    auth: None,
                     gateway: false,
                 },
             )]),

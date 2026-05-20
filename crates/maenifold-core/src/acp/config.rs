@@ -37,4 +37,4 @@ pub use loader::AgentsConfig;
 pub use settings::{
     CommunitySettings, DebugSettings, DecaySettings, MaenifoldSettings, VectorSettings,
 };
-pub use types::{AgentEntry, EnvFromCommand, McpServerEntry};
+pub use types::{AgentEntry, EnvFromCommand, HttpAuthConfig, McpServerEntry};

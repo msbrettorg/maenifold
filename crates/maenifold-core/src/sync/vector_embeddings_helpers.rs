@@ -53,7 +53,12 @@ pub(super) fn ensure_file_embedding_preprocessing(
     if db::get_model_metadata(connection, FILE_EMBEDDING_PREPROCESSING_VERSION_KEY).as_deref()
         == Some(FILE_EMBEDDING_PREPROCESSING_VERSION)
     {
-        return;
+        match connection.query_row("SELECT COUNT(*) FROM vec_memory_files", [], |row| {
+            row.get::<_, i64>(0)
+        }) {
+            Ok(count) if count > 0 => return,
+            Ok(_) | Err(_) => {}
+        }
     }
 
     if connection

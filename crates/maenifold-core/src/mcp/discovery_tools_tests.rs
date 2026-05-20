@@ -28,7 +28,12 @@ async fn discover_mcp_tools_returns_native_maenifold_entry_with_prefixed_tools()
         matches!(entry.status, mcp_discovery::McpDiscoveryStatus::Ok),
         "expected synthetic native entry to be ok"
     );
-    assert!(entry.tools.iter().all(|tool| tool.name.starts_with("maenifold.")));
+    assert!(
+        entry
+            .tools
+            .iter()
+            .all(|tool| tool.name.starts_with("maenifold."))
+    );
     assert_tool_names(
         entry,
         &[
@@ -58,7 +63,10 @@ async fn discover_mcp_tools_surfaces_synthetic_entry_once_with_self_loopback_con
     let results = discover_mcp_tools(Some(&gateway)).await;
 
     assert_eq!(
-        results.iter().filter(|entry| entry.server == "maenifold").count(),
+        results
+            .iter()
+            .filter(|entry| entry.server == "maenifold")
+            .count(),
         1,
         "maenifold should appear exactly once"
     );
@@ -81,7 +89,10 @@ async fn discover_mcp_tools_keeps_synthetic_entry_without_self_loopback_config()
     let results = discover_mcp_tools(Some(&gateway)).await;
 
     assert_eq!(
-        results.iter().filter(|entry| entry.server == "maenifold").count(),
+        results
+            .iter()
+            .filter(|entry| entry.server == "maenifold")
+            .count(),
         1,
         "synthetic maenifold entry should exist even without config self-loopback"
     );
@@ -117,7 +128,9 @@ fn maenifold_entry(
 }
 
 fn lock_config() -> std::sync::MutexGuard<'static, ()> {
-    CONFIG_LOCK.lock().unwrap_or_else(|error| error.into_inner())
+    CONFIG_LOCK
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
 }
 
 fn assert_tool_names(entry: &mcp_discovery::McpServerDiscoveryResult, expected: &[&str]) {
@@ -127,14 +140,17 @@ fn assert_tool_names(entry: &mcp_discovery::McpServerDiscoveryResult, expected: 
         .map(|tool| tool.name.as_str())
         .collect::<Vec<_>>();
     for name in expected {
-        assert!(tool_names.contains(name), "missing tool {name} in {tool_names:?}");
+        assert!(
+            tool_names.contains(name),
+            "missing tool {name} in {tool_names:?}"
+        );
     }
 }
 
 async fn gateway_state() -> GatewayState {
     let pool = Arc::new(
         StdioPool::start(
-            Vec::new(),
+            Vec::<crate::mcp::gateway_session::GatewayServerConfig>::new(),
             std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()),
         )
         .await

@@ -89,22 +89,24 @@ fn server_config(name: &str, tool_name: &str) -> StdioServerConfig {
 
 async fn started_server(name: &str, tool_name: &str) -> ManagedServer {
     ManagedServer::running(
-        server_config(name, tool_name),
-        StdioSession::start(
-            &agent_client_protocol_schema::McpServerStdio::new(
-                name.to_string(),
-                PYTHON.to_string(),
+        server_config(name, tool_name).into(),
+        crate::mcp::gateway_session::GatewaySession::Stdio(
+            StdioSession::start(
+                &agent_client_protocol_schema::McpServerStdio::new(
+                    name.to_string(),
+                    PYTHON.to_string(),
+                )
+                .args(vec![
+                    "-u".to_string(),
+                    "-c".to_string(),
+                    GOOD_SERVER.to_string(),
+                    tool_name.to_string(),
+                ]),
+                Duration::from_secs(2),
             )
-            .args(vec![
-                "-u".to_string(),
-                "-c".to_string(),
-                GOOD_SERVER.to_string(),
-                tool_name.to_string(),
-            ]),
-            Duration::from_secs(2),
-        )
-        .await
-        .expect("session should start"),
+            .await
+            .expect("session should start"),
+        ),
     )
 }
 

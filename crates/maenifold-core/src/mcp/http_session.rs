@@ -20,6 +20,7 @@ use std::sync::{Arc, Mutex as StdMutex};
 use std::time::Duration;
 
 use super::gateway_session::{GatewayStartupError, HttpServerConfig};
+use super::http_oauth::prepare_http_client;
 
 const MCP_PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion::V_2025_03_26;
 const LEGACY_PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion::V_2024_11_05;
@@ -49,10 +50,16 @@ impl HttpSession {
                 .timeout(config.timeout)
                 .build()
                 .map_err(|error| MaenifoldError::Message(error.to_string()))?;
-            let transport = StreamableHttpClientTransport::with_client(
-                http_client,
+            let prepared_client = prepare_http_client(config, http_client).await?;
+            let mut transport_config =
                 StreamableHttpClientTransportConfig::with_uri(config.url.clone())
-                    .custom_headers(config.custom_headers()?),
+                    .custom_headers(config.custom_headers()?);
+            if let Some(auth_header) = prepared_client.auth_header {
+                transport_config = transport_config.auth_header(auth_header);
+            }
+            let transport = StreamableHttpClientTransport::with_client(
+                prepared_client.client,
+                transport_config,
             );
             let mut client = MaenifoldClient::new_with_server_name(registry, &config.name)
                 .serve(transport)
@@ -135,7 +142,11 @@ impl HttpSession {
     }
 
     pub(super) async fn shutdown(&self) {
-        let client = self.client.lock().unwrap_or_else(|error| error.into_inner()).take();
+        let client = self
+            .client
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .take();
         if let Some(mut client) = client {
             let _ = client.close_with_timeout(SHUTDOWN_WAIT).await;
         }

@@ -83,14 +83,15 @@ pub(super) async fn build_gateway_with_registry(
                     timeout: timeout.map(std::time::Duration::from_secs),
                 })
             }
-            McpServerEntry::Http { url, headers, .. } => {
-                GatewayServerConfig::Http(HttpServerConfig {
-                    name: (*name).clone(),
-                    url: url.clone(),
-                    headers: headers.clone(),
-                    timeout: std::time::Duration::from_secs(60),
-                })
-            }
+            McpServerEntry::Http {
+                url, headers, auth, ..
+            } => GatewayServerConfig::Http(HttpServerConfig {
+                name: (*name).clone(),
+                url: url.clone(),
+                headers: headers.clone(),
+                auth: auth.clone(),
+                timeout: std::time::Duration::from_secs(60),
+            }),
         })
         .collect();
 

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "maenifold": {
+      "command": "/usr/bin/false",
+      "args": [],
+      "gateway": false
+    }
+  },
+  "agents": {}
+}

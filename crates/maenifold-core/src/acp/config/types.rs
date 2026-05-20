@@ -39,6 +39,8 @@ pub enum McpServerEntry {
         url: String,
         #[serde(default, skip_serializing_if = "HashMap::is_empty")]
         headers: HashMap<String, String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        auth: Option<HttpAuthConfig>,
         #[serde(default)]
         gateway: bool,
     },
@@ -108,6 +110,8 @@ impl<'de> Deserialize<'de> for McpServerEntry {
             url: Option<String>,
             #[serde(default)]
             headers: HashMap<String, String>,
+            #[serde(default)]
+            auth: Option<HttpAuthConfig>,
         }
 
         let raw = RawEntry::deserialize(deserializer)?;
@@ -124,6 +128,7 @@ impl<'de> Deserialize<'de> for McpServerEntry {
             (None, Some(url)) => Ok(McpServerEntry::Http {
                 url,
                 headers: raw.headers,
+                auth: raw.auth,
                 gateway: raw.gateway,
             }),
             (Some(_), Some(_)) => Err(serde::de::Error::custom(
@@ -134,6 +139,26 @@ impl<'de> Deserialize<'de> for McpServerEntry {
             )),
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct HttpAuthConfig {
+    pub client_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_secret: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_certificate_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tenant_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub scopes: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub authorization_server: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resource: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub redirect_uri: Option<String>,
 }
 
 fn acp_http_url(name: &str, url: &str) -> String {

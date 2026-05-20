@@ -8,7 +8,7 @@ use serde_json::json;
 
 async fn catalog() -> GatewayCatalog {
     let pool = StdioPool::start(
-        Vec::new(),
+        Vec::<crate::mcp::gateway_session::GatewayServerConfig>::new(),
         std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()),
     )
     .await
@@ -103,15 +103,17 @@ async fn gateway_resolver_enabled_without_config_returns_direct_inference_setup(
 }
 
 #[tokio::test]
-async fn gateway_resolver_safety_mismatch_is_rejected() {
+async fn gateway_resolver_safety_mismatch_snaps_to_catalog() {
     let catalog = catalog().await;
-    let err = parse_and_validate_output(
+    let resolved = parse_and_validate_output(
         &catalog,
         &output(json!([candidate("WriteMemory", 0.95, "read", true)])),
         None,
     )
-    .expect_err("safety mismatch");
-    assert!(matches!(err, ResolverError::Malformed { .. }));
+    .expect("safety should snap to catalog");
+    assert_eq!(resolved.candidates.len(), 1);
+    assert_eq!(resolved.candidates[0].safety_class.to_string(), "write");
+    assert!(resolved.candidates[0].requires_exact_execute);
 }
 
 #[tokio::test]

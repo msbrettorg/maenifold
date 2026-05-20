@@ -1,11 +1,12 @@
+use crate::acp_config::HttpAuthConfig;
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::PendingRequestRegistry;
 use crate::mcp::http_session::HttpSession;
 use crate::mcp::stdio_pool::StdioServerConfig;
 use crate::mcp::stdio_session::{StdioSession, StdioStartupError};
 use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
-use rmcp::model::{CallToolResult, GetPromptResult, Prompt, ReadResourceResult, Tool};
 use reqwest::header::{HeaderName, HeaderValue};
+use rmcp::model::{CallToolResult, GetPromptResult, Prompt, ReadResourceResult, Tool};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -16,6 +17,7 @@ pub(crate) struct HttpServerConfig {
     pub(crate) name: String,
     pub(crate) url: String,
     pub(crate) headers: HashMap<String, String>,
+    pub(crate) auth: Option<HttpAuthConfig>,
     pub(crate) timeout: Duration,
 }
 
@@ -127,12 +129,12 @@ pub(crate) async fn start_session_with_registry(
     registry: Arc<PendingRequestRegistry>,
 ) -> std::result::Result<GatewaySession, GatewayStartupError> {
     match config {
-        GatewayServerConfig::Stdio(config) => {
-            start_stdio_session_with_registry(config, registry).await.map(GatewaySession::Stdio)
-        }
-        GatewayServerConfig::Http(config) => {
-            HttpSession::start_with_registry(config, registry).await.map(GatewaySession::Http)
-        }
+        GatewayServerConfig::Stdio(config) => start_stdio_session_with_registry(config, registry)
+            .await
+            .map(GatewaySession::Stdio),
+        GatewayServerConfig::Http(config) => HttpSession::start_with_registry(config, registry)
+            .await
+            .map(GatewaySession::Http),
     }
 }
 

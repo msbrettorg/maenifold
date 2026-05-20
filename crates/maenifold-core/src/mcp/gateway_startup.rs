@@ -6,6 +6,7 @@ use crate::mcp::PendingRequestRegistry;
 use crate::mcp::gateway_catalog::GatewayCatalog;
 use crate::mcp::gateway_consolidation::{build_consolidated_tools, gateway_tool_counts};
 use crate::mcp::gateway_handler::GatewayState;
+use crate::mcp::gateway_session::{GatewayServerConfig, HttpServerConfig};
 use crate::mcp::resource_routing::ResourceRoutingRegistry;
 use crate::mcp::resources;
 use crate::mcp::stdio_pool::{StdioPool, StdioServerConfig};
@@ -41,15 +42,13 @@ pub(super) async fn build_gateway_with_registry(
     let gateway_servers: Vec<_> = agents_config
         .mcp_servers
         .iter()
-        .filter(|(_name, server)| {
-            server.is_gateway() && matches!(server, McpServerEntry::Stdio { .. })
-        })
+        .filter(|(_name, server)| server.is_gateway())
         .collect();
     if gateway_servers.is_empty() {
         return native_only_gateway(config, registry).await;
     }
 
-    let configs: Vec<StdioServerConfig> = gateway_servers
+    let configs: Vec<GatewayServerConfig> = gateway_servers
         .iter()
         .map(|(name, entry)| match entry {
             McpServerEntry::Stdio {
@@ -76,15 +75,22 @@ pub(super) async fn build_gateway_with_registry(
                         env.clone()
                     }
                 };
-                StdioServerConfig {
+                GatewayServerConfig::Stdio(StdioServerConfig {
                     name: (*name).clone(),
                     command: command.clone(),
                     args: args.clone(),
                     env: resolved_env,
                     timeout: timeout.map(std::time::Duration::from_secs),
-                }
+                })
             }
-            McpServerEntry::Http { .. } => unreachable!("gateway filter keeps only stdio entries"),
+            McpServerEntry::Http { url, headers, .. } => {
+                GatewayServerConfig::Http(HttpServerConfig {
+                    name: (*name).clone(),
+                    url: url.clone(),
+                    headers: headers.clone(),
+                    timeout: std::time::Duration::from_secs(60),
+                })
+            }
         })
         .collect();
 
@@ -193,7 +199,7 @@ async fn native_only_gateway(
     config: &Config,
     registry: Arc<PendingRequestRegistry>,
 ) -> Result<GatewayStartup> {
-    let pool = Arc::new(StdioPool::start(Vec::new(), registry).await?);
+    let pool = Arc::new(StdioPool::start(Vec::<StdioServerConfig>::new(), registry).await?);
     let native_tools = tool_registry_tools()?;
     let routing = ToolRoutingRegistry::build(&native_tools, pool.as_ref())?;
     let resource_routing = ResourceRoutingRegistry::build(pool.as_ref())?;

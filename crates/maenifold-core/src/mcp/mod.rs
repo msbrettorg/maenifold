@@ -41,6 +41,7 @@ mod gateway_metadata;
 #[cfg(test)]
 mod gateway_metadata_tests;
 mod gateway_resolver;
+mod gateway_session;
 #[cfg(test)]
 mod gateway_resolver_tests;
 mod gateway_resolver_types;
@@ -54,6 +55,7 @@ mod handler_impl;
 #[cfg(test)]
 mod handler_impl_task_hooks_tests;
 pub mod http;
+mod http_session;
 mod mcp_tool_calls;
 pub mod pending_requests;
 mod resource_routing;

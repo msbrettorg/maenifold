@@ -1,5 +1,6 @@
 use crate::error::{JSONRPC_INVALID_PARAMS, MaenifoldError, Result};
-use crate::mcp::stdio_pool::{StdioPool, start_session_with_registry};
+use crate::mcp::gateway_session::start_session_with_registry;
+use crate::mcp::stdio_pool::StdioPool;
 use crate::mcp::stdio_pool_health::lock_state;
 use crate::mcp::stdio_pool_prompts::collect_gateway_prompts;
 use crate::mcp::stdio_pool_tools::{collect_gateway_tools, ensure_replacement_tools};

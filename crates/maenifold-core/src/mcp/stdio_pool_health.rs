@@ -1,4 +1,5 @@
 use crate::mcp::gateway_schema_validation::compute_schema_hash;
+use crate::mcp::gateway_session::GatewayServerConfig;
 use crate::mcp::stdio_pool::StdioPool;
 use serde_json::Value;
 use std::sync::{Mutex as StdMutex, MutexGuard};
@@ -96,7 +97,7 @@ impl StdioPool {
                     .as_ref()
                     .is_some_and(|session| session.is_usable());
                 StdioServerHealth {
-                    name: server.config.name.clone(),
+                    name: server.config.name().to_string(),
                     status: if running {
                         ServerStartupStatus::Started
                     } else {
@@ -125,7 +126,7 @@ impl StdioPool {
                         hashes.sort_by(|left, right| left.0.cmp(&right.0));
                         hashes
                     }),
-                    env_keys: redacted_env_keys(&server.config.env),
+                    env_keys: redacted_env_keys(&server.config),
                 }
             })
             .collect::<Vec<_>>();
@@ -138,10 +139,15 @@ pub(crate) fn lock_state(state: &StdMutex<RestartState>) -> MutexGuard<'_, Resta
     state.lock().unwrap_or_else(|error| error.into_inner())
 }
 
-fn redacted_env_keys(env: &std::collections::HashMap<String, String>) -> Vec<String> {
-    let mut keys = env.keys().cloned().collect::<Vec<_>>();
-    keys.sort();
-    keys
+fn redacted_env_keys(config: &GatewayServerConfig) -> Vec<String> {
+    match config {
+        GatewayServerConfig::Stdio(config) => {
+            let mut keys = config.env.keys().cloned().collect::<Vec<_>>();
+            keys.sort();
+            keys
+        }
+        GatewayServerConfig::Http(_) => Vec::new(),
+    }
 }
 
 pub(crate) fn sanitize_error(msg: &str) -> String {

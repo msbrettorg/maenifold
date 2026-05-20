@@ -1,11 +1,12 @@
 use crate::error::{JSONRPC_INVALID_PARAMS, MaenifoldError, Result};
+use crate::mcp::gateway_session::{
+    GatewayServerConfig, GatewaySession, start_session_with_registry,
+};
 use crate::mcp::PendingRequestRegistry;
 use crate::mcp::stdio_pool_health::{RestartState, lock_state};
 pub use crate::mcp::stdio_pool_health::{ServerStartupStatus, StdioPoolHealth, StdioServerHealth};
 use crate::mcp::stdio_pool_prompts::collect_gateway_prompts;
 use crate::mcp::stdio_pool_tools::{collect_gateway_tools, shutdown_servers};
-use crate::mcp::stdio_session::{StdioSession, StdioStartupError};
-use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
 use futures_util::stream::{FuturesUnordered, StreamExt};
 use rmcp::model::{CallToolResult, GetPromptResult, Prompt, ReadResourceResult, Tool};
 use serde_json::Value;
@@ -32,13 +33,13 @@ pub struct StdioServerConfig {
     pub timeout: Option<Duration>,
 }
 pub(super) struct ManagedServer {
-    pub(super) config: StdioServerConfig,
-    pub(super) session: Option<Arc<StdioSession>>,
+    pub(super) config: GatewayServerConfig,
+    pub(super) session: Option<Arc<GatewaySession>>,
     pub(super) restart_lock: Arc<Mutex<()>>,
     pub(super) restart_state: Arc<StdMutex<RestartState>>,
 }
 impl ManagedServer {
-    fn running(config: StdioServerConfig, session: StdioSession) -> Self {
+    fn running(config: GatewayServerConfig, session: GatewaySession) -> Self {
         Self {
             config,
             session: Some(Arc::new(session)),
@@ -46,12 +47,12 @@ impl ManagedServer {
             restart_state: Arc::new(StdMutex::new(RestartState::new())),
         }
     }
-    fn degraded(config: StdioServerConfig, error: String, stderr: Option<String>) -> Self {
+    fn degraded(config: GatewayServerConfig, error: String, stderr: Option<String>) -> Self {
         let server = Self::configured(config);
         lock_state(&server.restart_state).record_failure(error, stderr);
         server
     }
-    fn configured(config: StdioServerConfig) -> Self {
+    fn configured(config: GatewayServerConfig) -> Self {
         Self {
             config,
             session: None,
@@ -61,16 +62,20 @@ impl ManagedServer {
     }
 }
 impl StdioPool {
-    pub async fn start(
-        servers: Vec<StdioServerConfig>,
+    pub(crate) async fn start<S>(
+        servers: Vec<S>,
         registry: Arc<PendingRequestRegistry>,
-    ) -> Result<Self> {
+    ) -> Result<Self>
+    where
+        S: Into<GatewayServerConfig>,
+    {
+        let servers: Vec<GatewayServerConfig> = servers.into_iter().map(Into::into).collect();
         let mut seen = HashSet::new();
         for config in &servers {
-            if !seen.insert(&config.name) {
+            if !seen.insert(config.name()) {
                 return Err(MaenifoldError::Message(format!(
                     "Duplicate gateway server name: '{}'. Each server must have a unique name.",
-                    config.name
+                    config.name()
                 )));
             }
         }
@@ -78,7 +83,7 @@ impl StdioPool {
         for config in servers {
             let registry = Arc::clone(&registry);
             tasks.spawn(async move {
-                let name = config.name.clone();
+                let name = config.name().to_string();
                 (
                     name,
                     config.clone(),
@@ -90,10 +95,10 @@ impl StdioPool {
         while let Some(joined) = tasks.join_next().await {
             match joined {
                 Ok((_, config, Ok(session))) => {
-                    started.insert(config.name.clone(), ManagedServer::running(config, session));
+                    started.insert(config.name().to_string(), ManagedServer::running(config, session));
                 }
                 Ok((name, config, Err(error))) => {
-                    warn!(server = %name, error = %error.error, "failed to start stdio MCP server");
+                    warn!(server = %name, error = %error.error, "failed to start gateway MCP server");
                     started.insert(
                         name,
                         ManagedServer::degraded(config, error.error.to_string(), error.stderr),
@@ -195,7 +200,7 @@ impl StdioPool {
         &self,
         server_name: &str,
         f: impl Fn(
-            Arc<StdioSession>,
+            Arc<GatewaySession>,
         ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<T>> + Send>>,
     ) -> Result<T> {
         let session = {
@@ -230,26 +235,6 @@ impl StdioPool {
         };
         f(session).await
     }
-}
-pub(super) async fn start_session_with_registry(
-    config: &StdioServerConfig,
-    registry: Arc<PendingRequestRegistry>,
-) -> std::result::Result<StdioSession, StdioStartupError> {
-    let entry = McpServerStdioConfig::new(config.name.clone(), config.command.clone())
-        .args(config.args.clone())
-        .env(
-            config
-                .env
-                .iter()
-                .map(|(name, value)| EnvVariable::new(name.clone(), value.clone()))
-                .collect(),
-        );
-    StdioSession::start_with_registry(
-        &entry,
-        config.timeout.unwrap_or(Duration::from_secs(60)),
-        registry,
-    )
-    .await
 }
 fn is_prewrite_failure(error: &MaenifoldError) -> bool {
     matches!(error, MaenifoldError::SessionUnusable)

@@ -37,6 +37,8 @@ fn activate_clears_vec0_tables_after_loading_extension() {
         action: EmbeddingModelsAction::Activate,
         model_id: Some("all-MiniLM-L6-v2".to_string()),
         trust_external_catalog: false,
+        target_os: None,
+        target_arch: None,
         allow_restricted_license: false,
         learn: false,
     };

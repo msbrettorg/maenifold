@@ -7,6 +7,7 @@ pub(crate) use super::embedding_catalog::{
 use super::embedding_models_actions::{handle_activate, handle_download};
 use super::embedding_models_detect::{handle_delete, handle_list, handle_regenerate};
 use super::embedding_models_scan::active_model_status;
+use super::ort_runtime_actions::handle_download_runtime;
 use crate::db;
 use crate::error::Result;
 use crate::mcp::schema::{EmbeddingModelsAction, EmbeddingModelsParams};
@@ -36,6 +37,7 @@ pub fn embedding_models(context: &ToolContext, payload: &Value) -> Result<String
         EmbeddingModelsAction::Status => handle_status(context, &params),
         EmbeddingModelsAction::List => handle_list(context, &params),
         EmbeddingModelsAction::Download => handle_download(context, &params)?,
+        EmbeddingModelsAction::DownloadRuntime => handle_download_runtime(context, &params)?,
         EmbeddingModelsAction::Activate => handle_activate(context, &params)?,
         EmbeddingModelsAction::Delete => handle_delete(context, payload)?,
         EmbeddingModelsAction::Regenerate => handle_regenerate(context, payload)?,

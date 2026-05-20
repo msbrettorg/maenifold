@@ -13,6 +13,9 @@ pub enum EmbeddingModelsAction {
     /// Download a model from HuggingFace into the managed catalog (subdir layout)
     #[serde(rename = "download")]
     Download,
+    /// Download ONNX Runtime dylib into assets/lib for vector embedding sync.
+    #[serde(rename = "download-runtime")]
+    DownloadRuntime,
     /// Set the active model (writes config; daemon restart + sync required to apply)
     Activate,
     /// Delete an installed model from disk (refuses to delete the active model)
@@ -33,6 +36,12 @@ pub struct EmbeddingModelsParams {
     /// Explicitly trust and use an external `{assets_path}/models/catalog.json` override.
     #[serde(default)]
     pub trust_external_catalog: bool,
+    /// Optional target OS override for ONNX Runtime download selection.
+    #[serde(default)]
+    pub target_os: Option<String>,
+    /// Optional target architecture override for ONNX Runtime download selection.
+    #[serde(default)]
+    pub target_arch: Option<String>,
     /// Explicitly allow downloads/activation for non-MIT/Apache model licenses.
     #[serde(default)]
     pub allow_restricted_license: bool,

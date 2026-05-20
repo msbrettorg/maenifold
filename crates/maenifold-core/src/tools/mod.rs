@@ -11,6 +11,9 @@ pub(crate) mod embedding_models;
 mod embedding_models_actions;
 mod embedding_models_detect;
 mod embedding_models_scan;
+mod ort_runtime_actions;
+mod ort_runtime_catalog;
+mod ort_runtime_download;
 mod read_text_file;
 mod recent_activity;
 mod recent_activity_collect;
@@ -41,3 +44,9 @@ pub use recent_activity_render::recent_activity_extract_snippet;
 pub use response::{with_hint, with_next_steps};
 pub use schedule::schedule;
 pub use sessions::list_sessions;
+
+#[cfg(test)]
+mod ort_runtime_archive_tests;
+
+#[cfg(test)]
+mod ort_runtime_contract_tests;

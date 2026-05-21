@@ -1,0 +1,15 @@
+{
+  "graph://corpus/primer": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "contents": [
+        {
+          "uri": "graph://corpus/primer",
+          "mimeType": "application/json",
+          "text": "{\"lines\":[\"**[[concept-a]]** [[concept-b]]\",\"**[[concept-c]]**\"]}"
+        }
+      ]
+    }
+  }
+}

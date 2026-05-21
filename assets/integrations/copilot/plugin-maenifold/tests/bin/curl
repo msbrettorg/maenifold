@@ -50,6 +50,18 @@ def emit(obj):
 
 
 lower_payload = payload.lower()
+request_uri = ""
+try:
+    request_uri = json.loads(payload).get("params", {}).get("uri", "")
+except Exception:
+    request_uri = ""
+
+override_map_path = os.environ.get("CURL_STUB_RESOURCE_MAP_FILE", "")
+if request_uri and override_map_path:
+    override = json.loads(pathlib.Path(override_map_path).read_text()).get(request_uri)
+    if override is not None:
+        emit(override)
+        sys.exit(0)
 
 if "writememory" in lower_payload:
     record = {"payload": payload, "uri": f"memory://stub/{len(state['writes']) + 1}"}

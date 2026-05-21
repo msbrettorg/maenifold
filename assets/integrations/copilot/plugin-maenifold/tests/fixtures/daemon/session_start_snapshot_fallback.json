@@ -1,0 +1,23 @@
+{
+  "graph://corpus/primer": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32004,
+      "message": "primer unavailable"
+    }
+  },
+  "graph://corpus/snapshot": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "contents": [
+        {
+          "uri": "graph://corpus/snapshot",
+          "mimeType": "application/json",
+          "text": "{\"nodes\":[{\"id\":\"concept-a\"},{\"id\":\"concept-b\"}],\"edges\":[{\"source\":\"concept-a\",\"target\":\"concept-b\"}],\"generated_at\":\"2026-05-21T00:00:00Z\"}"
+        }
+      ]
+    }
+  }
+}

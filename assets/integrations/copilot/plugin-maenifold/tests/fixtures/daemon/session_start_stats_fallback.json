@@ -1,0 +1,36 @@
+{
+  "graph://corpus/primer": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32004,
+      "message": "primer unavailable"
+    }
+  },
+  "graph://corpus/snapshot": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "contents": [
+        {
+          "uri": "graph://corpus/snapshot",
+          "mimeType": "application/json",
+          "text": "{\"broken\":true}"
+        }
+      ]
+    }
+  },
+  "graph://stats": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "contents": [
+        {
+          "uri": "graph://stats",
+          "mimeType": "application/json",
+          "text": "{\"node_count\":9,\"edge_count\":12,\"community_count\":3}"
+        }
+      ]
+    }
+  }
+}

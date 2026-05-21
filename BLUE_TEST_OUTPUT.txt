@@ -1,0 +1,51 @@
+source "$HOME/.cargo/env" && cd /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-303.50.2 && cargo test -p maenifold-core --lib graph_corpus_primer_
+
+Finished `test` profile [unoptimized + debuginfo] target(s) in 1.45s
+     Running unittests src/lib.rs (target/debug/deps/maenifold_core-4df6544e4e2b4f5f)
+
+running 5 tests
+test mcp::resources::resources_graph_corpus_primer_tests::graph_corpus_primer_limit_query_prefers_fresh_community ... FAILED
+test mcp::resources::resources_graph_corpus_primer_tests::graph_corpus_primer_large_fixture_stays_under_eight_kib ... FAILED
+test mcp::resources::resources_graph_corpus_primer_tests::graph_corpus_primer_empty_graph_returns_empty_lines_payload ... FAILED
+test mcp::resources::resources_graph_corpus_primer_tests::graph_corpus_primer_fixture_payload_is_deterministic ... FAILED
+test mcp::resources::resources_graph_corpus_primer_http_tests::graph_corpus_primer_http_read_returns_application_json ... FAILED
+
+failures:
+
+---- mcp::resources::resources_graph_corpus_primer_tests::graph_corpus_primer_limit_query_prefers_fresh_community stdout ----
+
+thread 'mcp::resources::resources_graph_corpus_primer_tests::graph_corpus_primer_limit_query_prefers_fresh_community' (3209939) panicked at crates/maenifold-core/src/mcp/resources/resources_graph_corpus_primer_tests.rs:27:14:
+primer resource with limit query should be readable: InvalidResourceUri("graph://corpus/primer?limit=1. Expected one of 'graph://corpus/snapshot', 'graph://corpus/communities', 'graph://stats', 'graph://concept/{name}', or 'graph://community/{id}'")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- mcp::resources::resources_graph_corpus_primer_tests::graph_corpus_primer_large_fixture_stays_under_eight_kib stdout ----
+
+thread 'mcp::resources::resources_graph_corpus_primer_tests::graph_corpus_primer_large_fixture_stays_under_eight_kib' (3209938) panicked at crates/maenifold-core/src/mcp/resources/resources_graph_corpus_primer_tests.rs:51:42:
+primer resource should render large fixtures: InvalidResourceUri("graph://corpus/primer. Expected one of 'graph://corpus/snapshot', 'graph://corpus/communities', 'graph://stats', 'graph://concept/{name}', or 'graph://community/{id}'")
+
+---- mcp::resources::resources_graph_corpus_primer_tests::graph_corpus_primer_empty_graph_returns_empty_lines_payload stdout ----
+
+thread 'mcp::resources::resources_graph_corpus_primer_tests::graph_corpus_primer_empty_graph_returns_empty_lines_payload' (3209936) panicked at crates/maenifold-core/src/mcp/resources/resources_graph_corpus_primer_tests.rs:39:42:
+primer resource should handle empty graphs: InvalidResourceUri("graph://corpus/primer. Expected one of 'graph://corpus/snapshot', 'graph://corpus/communities', 'graph://stats', 'graph://concept/{name}', or 'graph://community/{id}'")
+
+---- mcp::resources::resources_graph_corpus_primer_tests::graph_corpus_primer_fixture_payload_is_deterministic stdout ----
+
+thread 'mcp::resources::resources_graph_corpus_primer_tests::graph_corpus_primer_fixture_payload_is_deterministic' (3209937) panicked at crates/maenifold-core/src/mcp/resources/resources_graph_corpus_primer_tests.rs:10:42:
+primer resource should be readable: InvalidResourceUri("graph://corpus/primer. Expected one of 'graph://corpus/snapshot', 'graph://corpus/communities', 'graph://stats', 'graph://concept/{name}', or 'graph://community/{id}'")
+
+---- mcp::resources::resources_graph_corpus_primer_http_tests::graph_corpus_primer_http_read_returns_application_json stdout ----
+
+thread 'mcp::resources::resources_graph_corpus_primer_http_tests::graph_corpus_primer_http_read_returns_application_json' (3209935) panicked at crates/maenifold-core/src/mcp/resources/resources_graph_corpus_primer_http_tests.rs:108:5:
+primer resources/read should succeed: {"jsonrpc":"2.0","id":1,"error":{"code":-32602,"message":"Invalid resource URI format: graph://corpus/primer. Expected one of 'graph://corpus/snapshot', 'graph://corpus/communities', 'graph://stats', 'graph://concept/{name}', or 'graph://community/{id}'"}}
+
+
+failures:
+    mcp::resources::resources_graph_corpus_primer_http_tests::graph_corpus_primer_http_read_returns_application_json
+    mcp::resources::resources_graph_corpus_primer_tests::graph_corpus_primer_empty_graph_returns_empty_lines_payload
+    mcp::resources::resources_graph_corpus_primer_tests::graph_corpus_primer_fixture_payload_is_deterministic
+    mcp::resources::resources_graph_corpus_primer_tests::graph_corpus_primer_large_fixture_stays_under_eight_kib
+    mcp::resources::resources_graph_corpus_primer_tests::graph_corpus_primer_limit_query_prefers_fresh_community
+
+test result: FAILED. 0 passed; 5 failed; 0 ignored; 0 measured; 763 filtered out; finished in 0.66s
+
+error: test failed, to rerun pass `-p maenifold-core --lib`

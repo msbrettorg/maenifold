@@ -71,8 +71,9 @@ call_daemon() {
 
 mcp_read_resource() {
   local uri="$1"
+  local timeout="${2:-5}"
   local response
-  response="$(call_daemon "$(jq -nc --arg uri "$uri" '{jsonrpc:"2.0",id:1,method:"resources/read",params:{uri:$uri}}')" 5)" || return 1
+  response="$(call_daemon "$(jq -nc --arg uri "$uri" '{jsonrpc:"2.0",id:1,method:"resources/read",params:{uri:$uri}}')" "$timeout")" || return 1
   printf '%s' "$response" | extract_response_body
 }
 
@@ -125,7 +126,9 @@ maybe_emit_block() {
   local has_confession="false"
   local has_confession_sections="false"
   [[ "$assistant_content" =~ \[\[[^][]+\]\] ]] && has_links="true"
-  [[ "$assistant_content" == *"ConfessionReport"* ]] && has_confession="true"
+  if printf '%s\n' "$assistant_content" | grep -Eq '^#{1,6}[[:space:]]+ConfessionReport([[:space:]:]|$)'; then
+    has_confession="true"
+  fi
   if has_markdown_section "$assistant_content" "Compliance" &&
     has_markdown_section "$assistant_content" "Files" &&
     has_markdown_section "$assistant_content" "Gaps" &&
@@ -164,15 +167,11 @@ session_start() {
   session_id="$(printf '%s' "$input" | jq -r '.sessionId // empty' 2>/dev/null)"
   [[ -n "$session_id" ]] && ingest_checkpoints "$session_id" || true
 
-  if ! graph_summary="$(mcp_read_resource 'graph://corpus/primer' | extract_primer_lines)"; then
-    graph_summary="$(mcp_read_resource 'graph://corpus/snapshot' || true)"
-    if ! graph_summary="$(printf '%s' "$graph_summary" | format_graph_summary)"; then
-      graph_summary="$(mcp_read_resource 'graph://stats' || true)"
-      graph_summary="$(printf '%s' "$graph_summary" | format_graph_summary || true)"
-    fi
+  if ! graph_summary="$(mcp_read_resource 'graph://corpus/primer' 2 | extract_primer_lines)"; then
+    graph_summary=""
   fi
 
-  recent_activity="$(mcp_call_tool 'RecentActivity' '{"limit":5}' 5 || true)"
+  recent_activity="$(mcp_call_tool 'RecentActivity' '{"limit":5}' 2 || true)"
   if printf '%s' "$recent_activity" | jq -e 'type == "object" and .files? | type == "array"' >/dev/null 2>&1; then
     recent_activity="$(printf '%s' "$recent_activity" | jq -r '.files[:5] | join(", ")')"
   fi

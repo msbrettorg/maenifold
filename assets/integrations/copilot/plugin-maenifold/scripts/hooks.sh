@@ -82,6 +82,12 @@ is_substantial_response() {
   [[ ${#content} -ge 120 ]]
 }
 
+has_markdown_section() {
+  local content="$1"
+  local name="$2"
+  printf '%s\n' "$content" | grep -Eq "^#{1,6}[[:space:]]+${name}[[:space:]]*$"
+}
+
 emit_context() {
   local context="${1:-}"
   [[ -n "$context" ]] || return 0
@@ -100,7 +106,10 @@ maybe_emit_block() {
   local has_confession_sections="false"
   [[ "$assistant_content" =~ \[\[[^][]+\]\] ]] && has_links="true"
   [[ "$assistant_content" == *"ConfessionReport"* ]] && has_confession="true"
-  if [[ "$has_confession" == "true" && "$assistant_content" == *"Compliance"* && "$assistant_content" == *"Files"* && "$assistant_content" == *"Gaps"* && "$assistant_content" == *"WikiLinks"* ]]; then
+  if has_markdown_section "$assistant_content" "Compliance" &&
+    has_markdown_section "$assistant_content" "Files" &&
+    has_markdown_section "$assistant_content" "Gaps" &&
+    has_markdown_section "$assistant_content" "WikiLinks"; then
     has_confession_sections="true"
   fi
   [[ "$has_links" == "true" && "$has_confession_sections" == "true" ]] && return 0

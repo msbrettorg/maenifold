@@ -6,7 +6,13 @@ checkpoint_exists() {
   response="$(mcp_call_tool 'SearchMemories' "$(jq -nc --arg query "$title" '{query:$query,pageSize:5}')" 5 || true)"
   [[ -n "$response" ]] || return 1
   printf '%s' "$response" | jq -e --arg title "$title" '
-    [.results[]? | .payload? | fromjson? | .params?.arguments?.title?]
+    (
+      if (.data.results? | type) == "array" then
+        [.data.results[]?.title?]
+      else
+        [.results[]? | .payload? | fromjson? | .params?.arguments?.title?]
+      end
+    )
     | index($title) != null
   ' >/dev/null 2>&1
 }

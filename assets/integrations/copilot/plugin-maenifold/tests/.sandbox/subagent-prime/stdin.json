@@ -1,9 +1,0 @@
-{
-  "sessionId": "session-alpha",
-  "timestamp": 1763681400001,
-  "cwd": "/Users/brett/src/ma-collective/maenifold-rs/worktrees/T-303.50.1/assets/integrations/copilot/plugin-maenifold",
-  "transcriptPath": "/Users/brett/src/ma-collective/maenifold-rs/worktrees/T-303.50.1/assets/integrations/copilot/plugin-maenifold/tests/fixtures/transcripts/task-with-wikilinks.jsonl",
-  "agentName": "blue-team",
-  "agentDisplayName": "Blue Team",
-  "agentDescription": "Writes failing tests first."
-}

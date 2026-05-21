@@ -22,6 +22,7 @@ struct CorpusSnapshot {
 struct SnapshotNode {
     name: String,
     weight: i64,
+    community_id: Option<i64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -131,6 +132,7 @@ fn read_corpus_snapshot(connection: &Connection) -> Result<CorpusSnapshot> {
         .map(|node| SnapshotNode {
             name: node.name,
             weight: node.degree,
+            community_id: node.community_id,
         })
         .collect();
     let edges = api::graph::get_edges(connection, None)?;

@@ -1,0 +1,2 @@
+{"role":"user","content":"Evaluate the hook transcript policy."}
+{"role":"assistant","content":"I formatted the report structurally but intentionally omitted wikilinks so the hook must take the existing missing-link path.\n\n## Compliance\n- Followed the hook contract exactly.\n## Files\n- assets/integrations/copilot/plugin-maenifold/tests/test_confession_structural.sh\n## Gaps\n- Production remains untouched in blue phase.\n## WikiLinks\n- None recorded in the body."}

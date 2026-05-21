@@ -1,0 +1,2 @@
+{"role":"user","content":"Evaluate the hook transcript policy."}
+{"role":"assistant","content":"I reviewed [[maenifold]] execution details and included ConfessionReport language inline only: Compliance is covered, Files are noted, Gaps will be filled, and WikiLinks will be added if needed. This is prose, not a headed markdown report, and it intentionally models the false-positive path the hook must reject."}

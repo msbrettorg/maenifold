@@ -1,0 +1,2 @@
+{"role":"user","content":"Evaluate the hook transcript policy."}
+{"role":"assistant","content":"I reviewed [[maenifold]] [[copilot-cli]] [[wikilinks]] handling and referenced ConfessionReport in prose so the old substring check can be fooled.\n\n## Compliance\n- Followed the hook contract exactly.\n## Files\n- assets/integrations/copilot/plugin-maenifold/tests/test_confession_structural.sh\nI will document any Gaps after the run, but I did not provide that heading.\n## WikiLinks\n- [[maenifold]] [[copilot-cli]] [[wikilinks]]"}

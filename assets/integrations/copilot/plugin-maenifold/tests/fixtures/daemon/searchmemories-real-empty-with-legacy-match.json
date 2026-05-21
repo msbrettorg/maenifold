@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "data": {
+    "mode": "hybrid",
+    "page": 1,
+    "pageSize": 5,
+    "query": "checkpoint-session-alpha-0001-summary",
+    "results": [],
+    "totalCount": 0
+  },
+  "results": [
+    {
+      "payload": "{\"params\":{\"arguments\":{\"title\":\"checkpoint-session-alpha-0001-summary\"}}}"
+    }
+  ]
+}

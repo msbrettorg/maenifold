@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+import json
+import os
+import pathlib
+import sys
+
+
+def extract_payload(argv):
+    for index, arg in enumerate(argv):
+        if arg in ("-d", "--data", "--data-raw", "--data-binary") and index + 1 < len(argv):
+            return argv[index + 1]
+    return ""
+
+
+def load_state(path):
+    state_path = pathlib.Path(path)
+    if not state_path.exists():
+        return {"writes": []}
+    try:
+        return json.loads(state_path.read_text())
+    except Exception:
+        return {"writes": []}
+
+
+def save_state(path, state):
+    pathlib.Path(path).write_text(json.dumps(state))
+
+
+def append_log(path, payload):
+    if not path:
+        return
+    pathlib.Path(path).parent.mkdir(parents=True, exist_ok=True)
+    with pathlib.Path(path).open("a", encoding="utf-8") as handle:
+        handle.write(payload + "\n")
+
+
+payload = extract_payload(sys.argv[1:])
+append_log(os.environ.get("CURL_STUB_LOG", ""), payload)
+
+exit_code = int(os.environ.get("CURL_STUB_EXIT_CODE", "0"))
+if exit_code != 0:
+    sys.exit(exit_code)
+
+state_path = os.environ.get("CURL_STUB_STATE", "")
+state = load_state(state_path) if state_path else {"writes": []}
+
+
+def emit(obj):
+    sys.stdout.write(json.dumps(obj))
+
+
+lower_payload = payload.lower()
+
+if "writememory" in lower_payload:
+    record = {"payload": payload, "uri": f"memory://stub/{len(state['writes']) + 1}"}
+    state["writes"].append(record)
+    if state_path:
+      save_state(state_path, state)
+    emit({"jsonrpc": "2.0", "id": 1, "result": {"uri": record["uri"]}})
+elif "searchmemories" in lower_payload or "readmemory" in lower_payload:
+    override_path = os.environ.get("CURL_STUB_SEARCH_TEXT_FILE", "")
+    if "searchmemories" in lower_payload and override_path:
+        text = pathlib.Path(override_path).read_text()
+        emit({"jsonrpc": "2.0", "id": 1, "result": {"content": [{"type": "text", "text": text}]}})
+    else:
+        results = [{"uri": item["uri"], "payload": item["payload"]} for item in state["writes"]]
+        emit({"jsonrpc": "2.0", "id": 1, "result": {"results": results}})
+elif "graph://concept/" in lower_payload:
+    emit({"jsonrpc": "2.0", "id": 1, "result": {"communityId": 7, "concept": "maenifold"}})
+elif "graph://community/" in lower_payload:
+    emit({"jsonrpc": "2.0", "id": 1, "result": {"text": "**[[maenifold]]** [[copilot-cli]] [[wikilinks]] [[graph]]"}})
+elif "recentactivity" in lower_payload:
+    emit({"jsonrpc": "2.0", "id": 1, "result": {"files": ["memory://projects/minima/example"]}})
+elif "graph://stats" in lower_payload:
+    emit({"jsonrpc": "2.0", "id": 1, "result": {"node_count": 15651, "edge_count": 727556, "community_count": 486}})
+elif "buildcontext" in lower_payload or "\"learn\":true" in lower_payload or "\"learn\": true" in lower_payload:
+    emit({"jsonrpc": "2.0", "id": 1, "result": {"text": "BuildContext help from stub"}})
+else:
+    emit({"jsonrpc": "2.0", "id": 1, "result": {"text": "stub response"}})

@@ -1,0 +1,24 @@
+{
+  "success": true,
+  "data": {
+    "mode": "hybrid",
+    "page": 1,
+    "pageSize": 5,
+    "query": "checkpoint-session-alpha-0001-summary",
+    "results": [
+      {
+        "title": "checkpoint-session-alpha-other",
+        "path": "memory://thinking/compaction/2026/05/21/session-alpha-other",
+        "snippet": "Different checkpoint title",
+        "score": 0.51,
+        "decayWeight": 0.7
+      }
+    ],
+    "totalCount": 1
+  },
+  "results": [
+    {
+      "payload": "{\"params\":{\"arguments\":{\"title\":\"checkpoint-session-alpha-0001-summary\"}}}"
+    }
+  ]
+}

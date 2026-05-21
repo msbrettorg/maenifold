@@ -1,0 +1,24 @@
+{
+  "success": true,
+  "data": {
+    "mode": "hybrid",
+    "page": 1,
+    "pageSize": 5,
+    "query": "checkpoint-session-alpha-0001-summary",
+    "results": [
+      {
+        "title": "checkpoint-session-alpha-0001-summary",
+        "path": "memory://thinking/compaction/2026/05/21/session-alpha-0001-summary",
+        "snippet": "Preserved [[maenifold]] checkpoint summary",
+        "score": 0.99,
+        "decayWeight": 1.0
+      }
+    ],
+    "totalCount": 1
+  },
+  "results": [
+    {
+      "payload": "{\"params\":{\"arguments\":{\"title\":\"checkpoint-session-alpha-other\"}}}"
+    }
+  ]
+}

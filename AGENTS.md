@@ -140,7 +140,8 @@ The `task-pm` tier is deprecated and forbidden. The outer-loop PM owns the per-s
 | Gate Role | Agent Type | Model | What it does |
 |-----------|-----------|-------|--------------|
 | SWE | `inner-loop` | `gpt-5.4` | Scoped code execution in an isolated worktree. Returns WorkResult. |
-| Red-team | `rubber-duck` | `gpt-5.5` | Read modified files + reason about correctness. No test execution. |
+| Red-team (reasoning) | `rubber-duck` | `gpt-5.5` | Read modified files + reason about correctness. No test execution. For design/logic review. |
+| Red-team (diff) | `code-review` | `gpt-5.5` | Analyze branch diff for bugs, security, logic errors. For refactors, deletions, mechanical changes. |
 | Blue-team | `inner-loop` | `gpt-5.4` | Write and run tests for changed code. |
 | Wave-boundary review 1 | `rubber-duck` | `gpt-5.5` | Independent critique at milestone boundaries. |
 | Wave-boundary review 2 | `rubber-duck` | `claude-opus-4.6` | Second independent critique, different model. |

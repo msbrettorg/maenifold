@@ -1,0 +1,95 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling sdd v3.0.10
+   Compiling tracing-test-macro v0.2.6
+   Compiling serial_test_derive v3.4.0
+    Building [=======================> ] 513/528: serial_test_derive, tracing-test-macro, sdd                            Compiling scc v2.4.0
+    Building [=======================> ] 513/528: serial_test_derive, tracing-test-macro, scc, sdd                        Building [=======================> ] 514/528: serial_test_derive, tracing-test-macro, scc                            Compiling tracing-test v0.2.6
+    Building [=======================> ] 515/528: serial_test_derive, tracing-test, scc                                   Building [=======================> ] 516/528: tracing-test, scc                                                       Building [=======================> ] 517/528: scc                                                                    Compiling serial_test v3.4.0
+    Building [=======================> ] 517/528: scc, serial_test                                                        Building [=======================> ] 518/528: serial_test                                                            Compiling maenifold-core v0.1.0 (/Users/brett/src/ma-collective/maenifold-rs/worktrees/T-303.51/crates/maenifold-core)
+    Building [=======================> ] 520/528: gateway_streamable_http(test), prompt_aggregation_contract(test),...error[E0624]: associated function `start` is private
+  --> crates/maenifold-core/tests/prompt_aggregation_contract.rs:25:27
+   |
+25 |       let pool = StdioPool::start(vec![
+   |                             ^^^^^ private associated function
+   |
+  ::: /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-303.51/crates/maenifold-core/src/mcp/stdio_pool.rs:65:5
+   |
+65 | /     pub(crate) async fn start<S>(
+66 | |         servers: Vec<S>,
+67 | |         registry: Arc<PendingRequestRegistry>,
+68 | |     ) -> Result<Self>
+69 | |     where
+70 | |         S: Into<GatewayServerConfig>,
+   | |_____________________________________- private associated function defined here
+
+    Building [=======================> ] 520/528: gateway_streamable_http(test), prompt_aggregation_contract(test),...error[E0624]: associated function `start` is private
+   --> crates/maenifold-core/tests/gateway_integration.rs:100:27
+    |
+100 |       let pool = StdioPool::start(vec![
+    |                             ^^^^^ private associated function
+    |
+   ::: /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-303.51/crates/maenifold-core/src/mcp/stdio_pool.rs:65:5
+    |
+ 65 | /     pub(crate) async fn start<S>(
+ 66 | |         servers: Vec<S>,
+ 67 | |         registry: Arc<PendingRequestRegistry>,
+ 68 | |     ) -> Result<Self>
+ 69 | |     where
+ 70 | |         S: Into<GatewayServerConfig>,
+    | |_____________________________________- private associated function defined here
+
+    Building [=======================> ] 520/528: gateway_streamable_http(test), prompt_aggregation_contract(test),...error[E0624]: associated function `start` is private
+   --> crates/maenifold-core/tests/gateway_integration.rs:129:34
+    |
+129 |       let error = match StdioPool::start(vec![
+    |                                    ^^^^^ private associated function
+    |
+   ::: /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-303.51/crates/maenifold-core/src/mcp/stdio_pool.rs:65:5
+    |
+ 65 | /     pub(crate) async fn start<S>(
+ 66 | |         servers: Vec<S>,
+ 67 | |         registry: Arc<PendingRequestRegistry>,
+ 68 | |     ) -> Result<Self>
+ 69 | |     where
+ 70 | |         S: Into<GatewayServerConfig>,
+    | |_____________________________________- private associated function defined here
+
+    Building [=======================> ] 520/528: gateway_streamable_http(test), prompt_aggregation_contract(test),...For more information about this error, try `rustc --explain E0624`.
+    Building [=======================> ] 520/528: gateway_streamable_http(test), prompt_aggregation_contract(test),...error[E0624]: associated function `start` is private
+   --> crates/maenifold-core/tests/gateway_integration.rs:147:27
+    |
+147 |       let pool = StdioPool::start(vec![server_config(
+    |                             ^^^^^ private associated function
+    |
+   ::: /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-303.51/crates/maenifold-core/src/mcp/stdio_pool.rs:65:5
+    |
+ 65 | /     pub(crate) async fn start<S>(
+ 66 | |         servers: Vec<S>,
+ 67 | |         registry: Arc<PendingRequestRegistry>,
+ 68 | |     ) -> Result<Self>
+ 69 | |     where
+ 70 | |         S: Into<GatewayServerConfig>,
+    | |_____________________________________- private associated function defined here
+
+    Building [=======================> ] 520/528: gateway_streamable_http(test), prompt_aggregation_contract(test),...error: could not compile `maenifold-core` (test "prompt_aggregation_contract") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+    Building [=======================> ] 521/528: gateway_streamable_http(test), maenifold_core(test), save_workflo...error[E0624]: associated function `start` is private
+   --> crates/maenifold-core/tests/gateway_integration.rs:181:27
+    |
+181 |       let pool = StdioPool::start(vec![server_config(
+    |                             ^^^^^ private associated function
+    |
+   ::: /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-303.51/crates/maenifold-core/src/mcp/stdio_pool.rs:65:5
+    |
+ 65 | /     pub(crate) async fn start<S>(
+ 66 | |         servers: Vec<S>,
+ 67 | |         registry: Arc<PendingRequestRegistry>,
+ 68 | |     ) -> Result<Self>
+ 69 | |     where
+ 70 | |         S: Into<GatewayServerConfig>,
+    | |_____________________________________- private associated function defined here
+
+    Building [=======================> ] 521/528: gateway_streamable_http(test), maenifold_core(test), save_workflo...error: could not compile `maenifold-core` (test "gateway_integration") due to 4 previous errors
+    Building [=======================> ] 522/528: gateway_streamable_http(test), maenifold_core(test), save_workflo...    Building [=======================> ] 523/528: gateway_streamable_http(test), maenifold_core(test), save_workflo...    Building [=======================> ] 524/528: gateway_streamable_http(test), maenifold_core(test), gateway_conf...    Building [=======================> ] 525/528: gateway_streamable_http(test), maenifold_core(test), gateway_conf...    Building [=======================> ] 526/528: gateway_streamable_http(test), maenifold_core(test)                     Building [=======================> ] 527/528: maenifold_core(test)

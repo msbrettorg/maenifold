@@ -97,12 +97,18 @@ maybe_emit_block() {
 
   local has_links="false"
   local has_confession="false"
+  local has_confession_sections="false"
   [[ "$assistant_content" =~ \[\[[^][]+\]\] ]] && has_links="true"
   [[ "$assistant_content" == *"ConfessionReport"* ]] && has_confession="true"
-  [[ "$has_links" == "true" && "$has_confession" == "true" ]] && return 0
+  if [[ "$has_confession" == "true" && "$assistant_content" == *"Compliance"* && "$assistant_content" == *"Files"* && "$assistant_content" == *"Gaps"* && "$assistant_content" == *"WikiLinks"* ]]; then
+    has_confession_sections="true"
+  fi
+  [[ "$has_links" == "true" && "$has_confession_sections" == "true" ]] && return 0
 
   local reason="Your last substantial response must include durable [[WikiLinks]] and a ConfessionReport with Compliance, Files, Gaps, and WikiLinks sections."
-  if [[ "$has_links" == "false" && "$has_confession" == "true" ]]; then
+  if [[ "$has_confession" == "true" && "$has_confession_sections" == "false" ]]; then
+    reason="Your last substantial response included ConfessionReport, but it must contain Compliance, Files, Gaps, and WikiLinks sections."
+  elif [[ "$has_links" == "false" && "$has_confession_sections" == "true" ]]; then
     reason="Your last substantial response is missing durable [[WikiLinks]]. Tag important concepts, decisions, and entities; do not tag trivial words."
   elif [[ "$has_links" == "true" && "$has_confession" == "false" ]]; then
     reason="Your last substantial response is missing a ConfessionReport with Compliance, Files, Gaps, and WikiLinks sections."

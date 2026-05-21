@@ -58,8 +58,13 @@ if "writememory" in lower_payload:
       save_state(state_path, state)
     emit({"jsonrpc": "2.0", "id": 1, "result": {"uri": record["uri"]}})
 elif "searchmemories" in lower_payload or "readmemory" in lower_payload:
-    results = [{"uri": item["uri"], "payload": item["payload"]} for item in state["writes"]]
-    emit({"jsonrpc": "2.0", "id": 1, "result": {"results": results}})
+    override_path = os.environ.get("CURL_STUB_SEARCH_TEXT_FILE", "")
+    if "searchmemories" in lower_payload and override_path:
+        text = pathlib.Path(override_path).read_text()
+        emit({"jsonrpc": "2.0", "id": 1, "result": {"content": [{"type": "text", "text": text}]}})
+    else:
+        results = [{"uri": item["uri"], "payload": item["payload"]} for item in state["writes"]]
+        emit({"jsonrpc": "2.0", "id": 1, "result": {"results": results}})
 elif "graph://concept/" in lower_payload:
     emit({"jsonrpc": "2.0", "id": 1, "result": {"communityId": 7, "concept": "maenifold"}})
 elif "graph://community/" in lower_payload:

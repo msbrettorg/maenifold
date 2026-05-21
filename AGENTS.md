@@ -131,12 +131,20 @@ SWE agents are unreliable narrators. Mandatory behaviors:
 2. **Trace render path before UI work.** Use LSP `findReferences` to confirm the component is in the active path.
 3. **Report actual changes.** "No changes needed" requires PM review — highest-risk claim.
 
-### Sub-PM (`task-pm`) Verification
+### Sub-PM (`task-pm`) — DEPRECATED
 
-- **Worktree ownership:** Top PM creates worktree BEFORE dispatching.
-- **Spec + CDP port:** Passed in the dispatch prompt.
-- **Escalation triage:** Re-author / decompose / delete-as-not-a-task / senior-dispatch / escalate-to-user. Never re-dispatch same spec.
-- **Terminal pass + merge:** Verify artifact, merge to `dev`, remove worktree, `gate_Pass`.
+The `task-pm` tier is deprecated and forbidden. The outer-loop PM owns the per-stage acceptance loop directly.
+
+### Agent Type Mapping
+
+| Gate Role | Agent Type | Model | What it does |
+|-----------|-----------|-------|--------------|
+| SWE | `inner-loop` | `gpt-5.4` | Scoped code execution in an isolated worktree. Returns WorkResult. |
+| Red-team | `rubber-duck` | `gpt-5.5` | Read modified files + reason about correctness. No test execution. |
+| Blue-team | `inner-loop` | `gpt-5.4` | Write and run tests for changed code. |
+| Wave-boundary review 1 | `rubber-duck` | `gpt-5.5` | Independent critique at milestone boundaries. |
+| Wave-boundary review 2 | `rubber-duck` | `claude-opus-4.6` | Second independent critique, different model. |
+| PM (outer-loop) | — | — | You. Owns Gate transitions, git, worktrees, acceptance loops. |
 
 ### Test Policy
 

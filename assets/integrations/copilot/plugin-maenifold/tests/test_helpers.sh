@@ -15,6 +15,11 @@ log() {
   printf '%s\n' "$*"
 }
 
+fail_assert() {
+  log "ASSERTION FAILED: $*"
+  return 1
+}
+
 run_case() {
   local name="$1"
   shift
@@ -133,6 +138,13 @@ assert_output_is_empty_or_json() {
   assert_valid_json "$value"
 }
 
+assert_file_matches_multiline_regex() {
+  python3 -c 'import pathlib,re,sys
+text = pathlib.Path(sys.argv[1]).read_text()
+sys.exit(0 if re.search(sys.argv[2], text, re.S) else 1)
+' "$1" "$2"
+}
+
 count_write_memory_calls() {
   local log_file="$1"
   if [[ ! -f "$log_file" ]]; then
@@ -140,4 +152,23 @@ count_write_memory_calls() {
     return 0
   fi
   grep -c 'WriteMemory' "$log_file" || true
+}
+
+write_memory_titles() {
+  python3 -c 'import json,pathlib,sys
+path = pathlib.Path(sys.argv[1])
+if not path.exists():
+    raise SystemExit(0)
+for line in path.read_text().splitlines():
+    line = line.strip()
+    if not line:
+        continue
+    payload = json.loads(line)
+    params = payload.get("params", {})
+    if params.get("name") != "WriteMemory":
+        continue
+    title = params.get("arguments", {}).get("title")
+    if title is not None:
+        print(title)
+' "$1"
 }

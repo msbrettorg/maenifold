@@ -28,6 +28,26 @@ extract_response_body() {
   ' 2>/dev/null
 }
 
+extract_primer_lines() {
+  jq -er '
+    select(type == "object" and (.lines? | type == "array") and (.lines | length > 0) and all(.lines[]; type == "string"))
+    | .lines
+    | join("\n")
+  ' 2>/dev/null
+}
+
+format_graph_summary() {
+  jq -er '
+    if type == "object" and (.nodes? | type == "array") then
+      "snapshot nodes=\(.nodes | length) edges=\(.edges | length) generated_at=\(.generated_at // "unknown")"
+    elif type == "object" and .node_count? != null then
+      "stats nodes=\(.node_count) edges=\(.edge_count) communities=\(.community_count)"
+    else
+      empty
+    end
+  ' 2>/dev/null
+}
+
 read_token() {
   [[ -f "$TOKEN_FILE" ]] || return 1
   local token
@@ -142,16 +162,12 @@ session_start() {
   session_id="$(printf '%s' "$input" | jq -r '.sessionId // empty' 2>/dev/null)"
   [[ -n "$session_id" ]] && ingest_checkpoints "$session_id" || true
 
-  graph_summary="$(mcp_read_resource 'graph://corpus/snapshot' || true)"
-  if ! printf '%s' "$graph_summary" | jq -e 'type == "object" and ((.nodes? | type == "array") or (.node_count? != null))' >/dev/null 2>&1; then
-    graph_summary="$(mcp_read_resource 'graph://stats' || true)"
-  fi
-  if printf '%s' "$graph_summary" | jq -e 'type == "object" and .nodes? | type == "array"' >/dev/null 2>&1; then
-    graph_summary="$(printf '%s' "$graph_summary" | jq -r '"snapshot nodes=\(.nodes | length) edges=\(.edges | length) generated_at=\(.generated_at // "unknown")"')"
-  elif printf '%s' "$graph_summary" | jq -e 'type == "object" and .node_count? != null' >/dev/null 2>&1; then
-    graph_summary="$(printf '%s' "$graph_summary" | jq -r '"stats nodes=\(.node_count) edges=\(.edge_count) communities=\(.community_count)"')"
-  else
-    graph_summary=""
+  if ! graph_summary="$(mcp_read_resource 'graph://corpus/primer' | extract_primer_lines)"; then
+    graph_summary="$(mcp_read_resource 'graph://corpus/snapshot' || true)"
+    if ! graph_summary="$(printf '%s' "$graph_summary" | format_graph_summary)"; then
+      graph_summary="$(mcp_read_resource 'graph://stats' || true)"
+      graph_summary="$(printf '%s' "$graph_summary" | format_graph_summary || true)"
+    fi
   fi
 
   recent_activity="$(mcp_call_tool 'RecentActivity' '{"limit":5}' 5 || true)"
@@ -161,7 +177,7 @@ session_start() {
 
   [[ -n "$graph_summary$recent_activity" ]] || return 0
   context=$'# maenifold\n\nTag important concepts as [[WikiLinks]]. Use lowercase-hyphenated concepts and skip trivial words.\n'
-  [[ -n "$graph_summary" ]] && context+=$'\n<graph>\n'"$graph_summary"$'\n</graph>\n'
+  [[ -n "$graph_summary" ]] && context+=$'\n<communities>\n'"$graph_summary"$'\n</communities>\n'
   [[ -n "$recent_activity" ]] && context+=$'\n<recent-activity>\n'"$recent_activity"$'\n</recent-activity>\n'
   emit_context "$context"
 }

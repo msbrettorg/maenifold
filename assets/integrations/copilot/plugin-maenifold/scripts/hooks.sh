@@ -132,11 +132,13 @@ maybe_emit_block() {
     has_markdown_section "$assistant_content" "WikiLinks"; then
     has_confession_sections="true"
   fi
-  [[ "$has_links" == "true" && "$has_confession_sections" == "true" ]] && return 0
+  [[ "$has_links" == "true" && "$has_confession" == "true" && "$has_confession_sections" == "true" ]] && return 0
 
   local reason="Your last substantial response must include durable [[WikiLinks]] and a ConfessionReport with Compliance, Files, Gaps, and WikiLinks sections."
   if [[ "$has_confession" == "true" && "$has_confession_sections" == "false" ]]; then
     reason="Your last substantial response included ConfessionReport, but it must contain Compliance, Files, Gaps, and WikiLinks sections."
+  elif [[ "$has_confession" == "false" && "$has_confession_sections" == "true" && "$has_links" == "true" ]]; then
+    reason="Your last substantial response includes the four required sections and durable [[WikiLinks]], but it is missing the ConfessionReport label. Add a 'ConfessionReport' marker heading to the report."
   elif [[ "$has_links" == "false" && "$has_confession_sections" == "true" ]]; then
     reason="Your last substantial response is missing durable [[WikiLinks]]. Tag important concepts, decisions, and entities; do not tag trivial words."
   elif [[ "$has_links" == "true" && "$has_confession" == "false" ]]; then

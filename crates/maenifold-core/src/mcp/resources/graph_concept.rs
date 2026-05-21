@@ -83,9 +83,17 @@ pub(super) fn read_concept_context(connection: &Connection, uri: &str) -> Result
         .iter()
         .filter_map(|neighbor| neighbor.get("coOccurrenceCount").and_then(Value::as_f64))
         .sum::<f64>();
+    let community_id: Option<i64> = connection
+        .query_row(
+            "SELECT community_id FROM concept_communities WHERE concept_name = ?1 LIMIT 1",
+            [canonical_name.as_str()],
+            |row| row.get(0),
+        )
+        .optional()?;
 
     Ok(json!({
         "concept": canonical_name,
+        "communityId": community_id,
         "coOccurrenceCount": co_occurrence_count,
         "neighbors": neighbors,
         "files": files.into_iter().collect::<Vec<_>>(),

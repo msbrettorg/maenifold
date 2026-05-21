@@ -1,0 +1,2 @@
+{"role":"user","content":"Evaluate the hook transcript policy."}
+{"role":"assistant","content":"## ConfessionReport\n## Compliance\n- Followed the hook contract exactly for [[maenifold]] [[copilot-cli]] [[wikilinks]].\n## Files\n- assets/integrations/copilot/plugin-maenifold/tests/test_confession_structural.sh\n## Gaps\n- Production remains untouched in blue phase.\n## WikiLinks\n- [[maenifold]] [[copilot-cli]] [[wikilinks]]"}

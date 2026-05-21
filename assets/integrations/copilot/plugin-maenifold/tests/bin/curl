@@ -78,7 +78,7 @@ elif "searchmemories" in lower_payload or "readmemory" in lower_payload:
         results = [{"uri": item["uri"], "payload": item["payload"]} for item in state["writes"]]
         emit({"jsonrpc": "2.0", "id": 1, "result": {"results": results}})
 elif "graph://concept/" in lower_payload:
-    emit({"jsonrpc": "2.0", "id": 1, "result": {"communityId": 7, "concept": "maenifold"}})
+    emit({"jsonrpc": "2.0", "id": 1, "result": {"communityId": 7, "concept": "maenifold", "coOccurrenceCount": 3, "neighbors": [{"name": "copilot-cli", "coOccurrenceCount": 3, "files": ["memory://fixtures/graph/maenifold.md"]}], "files": ["memory://fixtures/graph/maenifold.md"]}})
 elif "graph://community/" in lower_payload:
     emit({"jsonrpc": "2.0", "id": 1, "result": {"text": "**[[maenifold]]** [[copilot-cli]] [[wikilinks]] [[graph]]"}})
 elif "recentactivity" in lower_payload:

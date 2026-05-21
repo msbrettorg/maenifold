@@ -5,6 +5,7 @@ use rusqlite::{Connection, OptionalExtension};
 use serde::Serialize;
 
 use super::graph_concept;
+use super::graph_corpus_primer;
 
 pub(super) const CORPUS_SNAPSHOT_URI: &str = "graph://corpus/snapshot";
 pub(super) const CORPUS_COMMUNITIES_URI: &str = "graph://corpus/communities";
@@ -57,6 +58,11 @@ pub(super) fn list_resources() -> Vec<Resource> {
             "Detected graph communities with members and graph edges.",
         ),
         make_resource(
+            graph_corpus_primer::CORPUS_PRIMER_URI,
+            "Corpus Primer",
+            "Decay-weighted community primer for session start graph priming.",
+        ),
+        make_resource(
             GRAPH_STATS_URI,
             "Graph Stats",
             "Graph-wide statistics and sync/cluster timestamps.",
@@ -82,6 +88,16 @@ pub(super) fn read_or_route_to_concept(
         )
         .map_err(|err| GraphReadRouteError::ResourceError(err.into()))?,
         _ => {
+            if let Some(limit) =
+                graph_corpus_primer::parse_limit(uri).map_err(GraphReadRouteError::ResourceError)?
+            {
+                return Ok(ReadResourceResult::new(vec![ResourceContents::text(
+                    graph_corpus_primer::render_corpus_primer(connection, limit)
+                        .map_err(GraphReadRouteError::ResourceError)?,
+                    uri.to_string(),
+                )
+                .with_mime_type("application/json")]));
+            }
             let concept_payload = graph_concept::read_concept_context(connection, uri).map_err(
                 |error| match error {
                     MaenifoldError::InvalidResourceUri(_) => GraphReadRouteError::NotHandled,
@@ -93,9 +109,11 @@ pub(super) fn read_or_route_to_concept(
         }
     };
 
-    Ok(ReadResourceResult::new(vec![
-        ResourceContents::text(body, uri.to_string()).with_mime_type("application/json"),
-    ]))
+    Ok(ReadResourceResult::new(vec![ResourceContents::text(
+        body,
+        uri.to_string(),
+    )
+    .with_mime_type("application/json")]))
 }
 
 fn make_resource(uri: &str, name: &str, description: &str) -> Resource {

@@ -196,6 +196,12 @@ pub fn map_resource_error(err: MaenifoldError) -> rmcp::ErrorData {
 #[cfg(test)]
 mod resources_tests_common;
 #[cfg(test)]
+mod resources_graph_corpus_primer_test_support;
+#[cfg(test)]
+mod resources_graph_corpus_primer_tests;
+#[cfg(test)]
+mod resources_graph_corpus_primer_http_tests;
+#[cfg(test)]
 mod resources_tests_invocation;
 #[cfg(test)]
 mod resources_tests_list;

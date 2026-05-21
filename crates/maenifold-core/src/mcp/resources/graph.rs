@@ -9,6 +9,10 @@ mod graph_community;
 mod graph_concept;
 #[path = "graph_corpus.rs"]
 mod graph_corpus;
+#[path = "graph_corpus_primer.rs"]
+mod graph_corpus_primer;
+
+const GRAPH_CORPUS_PRIMER_ALLOWLIST_URI: &str = "graph://corpus/primer";
 
 pub(super) fn list_resources() -> Vec<Resource> {
     graph_corpus::list_resources()
@@ -36,9 +40,10 @@ pub(super) fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
                 |error| match error {
                     MaenifoldError::InvalidResourceUri(_) => {
                         MaenifoldError::InvalidResourceUri(format!(
-                            "{uri}. Expected one of '{}', '{}', '{}', '{}', or '{}'",
+                            "{uri}. Expected one of '{}', '{}', '{}', '{}', '{}', or '{}'",
                             graph_corpus::CORPUS_SNAPSHOT_URI,
                             graph_corpus::CORPUS_COMMUNITIES_URI,
+                            GRAPH_CORPUS_PRIMER_ALLOWLIST_URI,
                             graph_corpus::GRAPH_STATS_URI,
                             graph_concept::CONCEPT_TEMPLATE_URI,
                             graph_community::COMMUNITY_TEMPLATE_URI

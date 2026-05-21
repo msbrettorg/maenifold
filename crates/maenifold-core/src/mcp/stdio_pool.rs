@@ -62,7 +62,8 @@ impl ManagedServer {
     }
 }
 impl StdioPool {
-    pub(crate) async fn start<S>(
+    #[allow(private_bounds)]
+    pub async fn start<S>(
         servers: Vec<S>,
         registry: Arc<PendingRequestRegistry>,
     ) -> Result<Self>

@@ -1,6 +1,6 @@
 use super::gateway_startup::{GatewayStartup, build_gateway_with_registry};
 use super::{MaenifoldHandler, TransportKind};
-use crate::api::routes::{ApiState, api_routes, endophasia_routes};
+use crate::api::routes::{ApiState, api_routes};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::PendingRequestRegistry;
@@ -21,7 +21,6 @@ pub(super) fn router(service: MaenifoldHttpService, state: ApiState) -> Router {
     Router::new()
         .nest_service("/mcp", service)
         .merge(api_routes(state.clone()))
-        .merge(endophasia_routes(state))
         .route(
             "/api/acp/session",
             get(crate::api::acp_relay::ws_handler).with_state(relay_state),

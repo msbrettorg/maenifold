@@ -1,10 +1,45 @@
 {
   "version": 1,
   "hooks": {
+    "agentStop": [
+      {
+        "type": "command",
+        "bash": "${CLAUDE_PLUGIN_ROOT}/scripts/hooks.sh agent_stop",
+        "timeoutSec": 10
+      }
+    ],
+    "postToolUseFailure": [
+      {
+        "type": "command",
+        "bash": "${CLAUDE_PLUGIN_ROOT}/scripts/hooks.sh tool_failure",
+        "timeoutSec": 5
+      }
+    ],
+    "preCompact": [
+      {
+        "type": "command",
+        "bash": "${CLAUDE_PLUGIN_ROOT}/scripts/hooks.sh pre_compact",
+        "timeoutSec": 10
+      }
+    ],
+    "sessionStart": [
+      {
+        "type": "command",
+        "bash": "${CLAUDE_PLUGIN_ROOT}/scripts/hooks.sh session_start",
+        "timeoutSec": 10
+      }
+    ],
+    "subagentStart": [
+      {
+        "type": "command",
+        "bash": "${CLAUDE_PLUGIN_ROOT}/scripts/hooks.sh subagent_prime",
+        "timeoutSec": 10
+      }
+    ],
     "subagentStop": [
       {
         "type": "command",
-        "bash": "./scripts/hooks.sh subagent_stop",
+        "bash": "${CLAUDE_PLUGIN_ROOT}/scripts/hooks.sh subagent_stop",
         "timeoutSec": 10
       }
     ]

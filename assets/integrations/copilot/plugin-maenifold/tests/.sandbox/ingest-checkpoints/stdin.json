@@ -1,0 +1,8 @@
+{
+  "sessionId": "session-alpha",
+  "timestamp": 1763681400002,
+  "cwd": "/Users/brett/src/ma-collective/maenifold-rs/worktrees/T-303.50.1/assets/integrations/copilot/plugin-maenifold",
+  "transcriptPath": "/Users/brett/src/ma-collective/maenifold-rs/worktrees/T-303.50.1/assets/integrations/copilot/plugin-maenifold/tests/fixtures/transcripts/task-with-wikilinks.jsonl",
+  "trigger": "auto",
+  "customInstructions": "Preserve [[WikiLinks]] in the summary."
+}

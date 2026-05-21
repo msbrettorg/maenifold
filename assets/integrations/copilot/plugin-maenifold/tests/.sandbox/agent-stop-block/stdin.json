@@ -1,0 +1,7 @@
+{
+  "sessionId": "session-alpha",
+  "timestamp": 1763681400006,
+  "cwd": "/Users/brett/src/ma-collective/maenifold-rs/worktrees/T-303.50.1/assets/integrations/copilot/plugin-maenifold",
+  "transcriptPath": "/Users/brett/src/ma-collective/maenifold-rs/worktrees/T-303.50.1/assets/integrations/copilot/plugin-maenifold/tests/fixtures/transcripts/assistant-no-links-no-confession.jsonl",
+  "stopReason": "end_turn"
+}

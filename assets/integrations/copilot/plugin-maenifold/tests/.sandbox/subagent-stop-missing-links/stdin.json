@@ -1,0 +1,9 @@
+{
+  "sessionId": "session-alpha",
+  "timestamp": 1763681400005,
+  "cwd": "/Users/brett/src/ma-collective/maenifold-rs/worktrees/T-303.50.1/assets/integrations/copilot/plugin-maenifold",
+  "transcriptPath": "/Users/brett/src/ma-collective/maenifold-rs/worktrees/T-303.50.1/assets/integrations/copilot/plugin-maenifold/tests/fixtures/transcripts/assistant-no-links-with-confession.jsonl",
+  "agentName": "blue-team",
+  "agentDisplayName": "Blue Team",
+  "stopReason": "end_turn"
+}

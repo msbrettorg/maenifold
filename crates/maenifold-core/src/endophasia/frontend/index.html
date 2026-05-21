@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Endophasia V2</title>
+  <!-- TODO: inline D3 for production native-webview builds instead of loading from CDN. -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0a0e;
+      --panel: rgba(255, 255, 255, 0.03);
+      --line: rgba(255, 255, 255, 0.08);
+      --text: rgba(255, 255, 255, 0.92);
+      --muted: rgba(255, 255, 255, 0.52);
+      --cluster: rgba(255, 255, 255, 0.16);
+      --writing: #0078d4;
+      --thinking: #107c10;
+      --exploring: #ffb900;
+      --remembering: #d83b01;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at 50% 18%, rgba(255,255,255,0.035), transparent 34%),
+        radial-gradient(circle at 50% 72%, rgba(0,120,212,0.055), transparent 28%),
+        var(--bg);
+      color: var(--text);
+      font-family: "JetBrains Mono", "SFMono-Regular", "Cascadia Mono", "Roboto Mono", Consolas, monospace;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+    }
+
+    html.portrait,
+    body.portrait {
+      overflow: hidden;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .shell {
+      position: relative;
+      flex: 1;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0) 20%),
+        linear-gradient(90deg, rgba(0,120,212,0.05), transparent 18%, transparent 82%, rgba(16,124,16,0.05)),
+        rgba(255, 255, 255, 0.01);
+    }
+
+    .shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.2;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px);
+      background-size: 24px 24px;
+      mask-image: radial-gradient(circle at center, black, transparent 82%);
+    }
+
+    .header,
+    .footer {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(10, 10, 14, 0.72);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+
+    .footer {
+      border-top: 1px solid var(--line);
+      border-bottom: none;
+      color: var(--muted);
+      flex-wrap: wrap;
+      padding-top: 12px;
+      padding-bottom: 12px;
+    }
+
+    .header-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      font-weight: 600;
+    }
+
+    .header-title strong,
+    .header-build {
+      white-space: nowrap;
+    }
+
+    .status {
+      padding: 8px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.04);
+      white-space: nowrap;
+    }
+
+    .status.waiting {
+      border-color: rgba(0, 120, 212, 0.24);
+      background: rgba(0, 120, 212, 0.1);
+    }
+
+    .status.live {
+      border-color: rgba(16, 124, 16, 0.24);
+      background: rgba(16, 124, 16, 0.1);
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    .status.reconnecting {
+      border-color: rgba(255, 185, 0, 0.24);
+      background: rgba(255, 185, 0, 0.1);
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    .workspace {
+      position: relative;
+      z-index: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: clamp(64px, 15vw, 110px) minmax(0, 1fr) clamp(64px, 15vw, 110px);
+    }
+
+    .pane {
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .pane + .pane {
+      border-left: 1px solid var(--line);
+    }
+
+    .stream-pane {
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)),
+        rgba(255, 255, 255, 0.015);
+    }
+
+    .stream-pane.left {
+      box-shadow: inset -1px 0 0 rgba(0, 120, 212, 0.14);
+    }
+
+    .stream-pane.right {
+      box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .substrate-pane {
+      background:
+        radial-gradient(circle at 50% 45%, rgba(255,255,255,0.03), transparent 48%),
+        rgba(255, 255, 255, 0.01);
+    }
+
+    .lane-mark {
+      position: absolute;
+      top: 16px;
+      bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.3);
+      font-size: 11px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .left .lane-mark {
+      right: 8px;
+      color: rgba(0, 120, 212, 0.62);
+      transform: rotate(180deg);
+    }
+
+    .right .lane-mark {
+      left: 8px;
+      color: rgba(255, 255, 255, 0.38);
+    }
+
+    .stream-lane {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .stream-item {
+      position: absolute;
+      max-width: calc(100% - 18px);
+      font-size: 9px;
+      line-height: 1.25;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      opacity: 0;
+      text-shadow: 0 0 14px rgba(255, 255, 255, 0.12);
+      will-change: transform, opacity;
+      animation-duration: var(--duration, 9600ms);
+      animation-timing-function: linear;
+      animation-fill-mode: forwards;
+    }
+
+    .stream-item.left {
+      top: -18px;
+      right: 10px;
+      text-align: right;
+      animation-name: drift-down;
+    }
+
+    .stream-item.right {
+      bottom: -18px;
+      left: 10px;
+      text-align: left;
+      animation-name: drift-up;
+    }
+
+    .stream-item .neighbors {
+      display: block;
+      margin-top: 2px;
+      color: rgba(255, 255, 255, 0.28);
+      letter-spacing: 0.1em;
+      font-size: 8px;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    @keyframes drift-down {
+      0% {
+        transform: translate3d(var(--offset-x, 0px), 0, 0);
+        opacity: 0;
+      }
+      10% {
+        opacity: 0.95;
+      }
+      80% {
+        opacity: 0.46;
+      }
+      100% {
+        transform: translate3d(calc(var(--offset-x, 0px) * 0.28), var(--travel-y, 520px), 0);
+        opacity: 0;
+      }
+    }
+
+    @keyframes drift-up {
+      0% {
+        transform: translate3d(var(--offset-x, 0px), 0, 0);
+        opacity: 0;
+      }
+      10% {
+        opacity: 0.95;
+      }
+      80% {
+        opacity: 0.46;
+      }
+      100% {
+        transform: translate3d(calc(var(--offset-x, 0px) * 0.28), var(--travel-y, -520px), 0);
+        opacity: 0;
+      }
+    }
+
+    #substrate {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .empty-note {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0, 0, 0, 0.28);
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      display: none;
+      pointer-events: none;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      align-items: center;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-arrow {
+      font-size: 12px;
+    }
+
+    .legend-writing { color: var(--writing); }
+    .legend-thinking { color: var(--thinking); }
+    .legend-exploring { color: var(--exploring); }
+    .legend-remembering { color: var(--remembering); }
+
+    body.portrait .shell {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      min-height: 100vh;
+      min-height: 100dvh;
+      border-radius: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 50%, transparent 40%, rgba(0,0,0,0.6)),
+        radial-gradient(ellipse 30% 80% at 8% 50%, rgba(0,120,212,0.06), transparent),
+        radial-gradient(ellipse 30% 80% at 92% 50%, rgba(16,124,16,0.04), transparent),
+        var(--panel);
+    }
+
+    body.portrait .shell::before {
+      opacity: 0.06;
+      background-size: 32px 32px;
+    }
+
+    body.portrait .header {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      justify-content: center;
+      gap: 10px;
+      padding: 6px 14px;
+      border: none;
+      border-radius: 999px;
+      background: rgba(10, 10, 14, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.4);
+      width: auto;
+      min-width: 0;
+    }
+
+    body.portrait .header-title {
+      gap: 8px;
+    }
+
+    body.portrait .header-build {
+      display: none;
+    }
+
+    body.portrait .status {
+      padding: 0;
+      border: none;
+      background: transparent;
+      font-size: 8px;
+      letter-spacing: 0.12em;
+      color: rgba(255, 255, 255, 0.74);
+    }
+
+    body.portrait .footer {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      justify-content: center;
+      padding: 6px 16px;
+      border: none;
+      border-radius: 999px;
+      background: rgba(10, 10, 14, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.4);
+      width: auto;
+      max-width: calc(100vw - 24px);
+    }
+
+    body.portrait .legend {
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px 12px;
+    }
+
+    body.portrait .legend-item {
+      gap: 4px;
+    }
+
+    body.portrait .legend-arrow {
+      text-shadow: 0 0 10px currentColor;
+    }
+
+    body.portrait .workspace {
+      display: block;
+      position: absolute;
+      inset: 0;
+      grid-template-columns: unset;
+    }
+
+    body.portrait .pane + .pane {
+      border-left: none;
+    }
+
+    body.portrait .substrate-pane {
+      position: absolute;
+      inset: 0;
+      background: transparent;
+    }
+
+    body.portrait .substrate {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    body.portrait .stream-pane {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 52px;
+      z-index: 5;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      min-width: 0;
+    }
+
+    body.portrait .stream-pane.left {
+      left: 0;
+    }
+
+    body.portrait .stream-pane.right {
+      right: 0;
+    }
+
+    body.portrait .stream-item {
+      font-size: 8px;
+      letter-spacing: 0.1em;
+      max-width: 48px;
+      text-shadow: 0 0 8px currentColor;
+    }
+
+    body.portrait .stream-item .neighbors {
+      display: none;
+    }
+
+    body.portrait .stream-item.left {
+      right: 2px;
+    }
+
+    body.portrait .stream-item.right {
+      left: 2px;
+    }
+
+    body.portrait .lane-mark {
+      font-size: 7px;
+      opacity: 0.3;
+    }
+
+    @media (max-width: 720px) {
+      .header,
+      .footer {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .header {
+        flex-wrap: wrap;
+      }
+
+      .header-title {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .stream-item .neighbors {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="header">
+      <div class="header-title">
+        <strong>ENDOPHASIA_V2</strong>
+        <span class="header-build">[SYS_V2.04]</span>
+      </div>
+      <div id="status" class="status waiting">Waiting for activity...</div>
+    </header>
+
+    <main class="workspace">
+      <section class="pane stream-pane left" aria-label="Inbound concept stream">
+        <div class="lane-mark">Inbound</div>
+        <div id="left-stream" class="stream-lane" aria-hidden="true"></div>
+      </section>
+
+      <section id="substrate-pane" class="pane substrate-pane" aria-label="Community substrate">
+        <svg id="substrate" class="substrate" role="img" aria-label="Community substrate showing Louvain concept clusters"></svg>
+        <div id="empty-note" class="empty-note">No communities detected</div>
+      </section>
+
+      <section class="pane stream-pane right" aria-label="Outbound concept stream">
+        <div class="lane-mark">Outbound</div>
+        <div id="right-stream" class="stream-lane" aria-hidden="true"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="legend" aria-label="Signal legend">
+        <span class="legend-item legend-writing"><span class="legend-arrow">↓</span>writing</span>
+        <span class="legend-item legend-thinking"><span class="legend-arrow">↑</span>thinking</span>
+        <span class="legend-item legend-exploring"><span class="legend-arrow">↑</span>exploring</span>
+        <span class="legend-item legend-remembering"><span class="legend-arrow">↑</span>remembering</span>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const SIGNALS = {
+      writing: { color: "#0078D4", lane: "left" },
+      thinking: { color: "#107C10", lane: "right" },
+      exploring: { color: "#FFB900", lane: "right" },
+      remembering: { color: "#D83B01", lane: "right" }
+    };
+
+    const COMMUNITY_REFRESH_MS = 300000;
+    const SSE_RECONNECT_MS = 1800;
+
+    const statusEl = document.getElementById("status");
+    const leftStream = document.getElementById("left-stream");
+    const rightStream = document.getElementById("right-stream");
+    const substratePane = document.getElementById("substrate-pane");
+    const emptyNote = document.getElementById("empty-note");
+
+    const svg = d3.select("#substrate");
+    const defs = svg.append("defs");
+    const glowFilter = defs.append("filter").attr("id", "concept-glow");
+    glowFilter.append("feGaussianBlur").attr("stdDeviation", 3).attr("result", "blur");
+    glowFilter.append("feMerge")
+      .selectAll("feMergeNode")
+      .data(["blur", "SourceGraphic"])
+      .join("feMergeNode")
+      .attr("in", d => d);
+
+    const root = svg.append("g");
+    const layers = {
+      links: root.append("g"),
+      clusters: root.append("g"),
+      concepts: root.append("g"),
+      labels: root.append("g")
+    };
+
+    const state = {
+      width: 0,
+      height: 0,
+      hasSeenEvent: false,
+      isReconnecting: false,
+      eventSource: null,
+      reconnectTimer: null,
+      connectionGeneration: 0,
+      lagStatusToken: 0,
+      communitiesTimer: null,
+      communityFetchGeneration: 0,
+      communityAbort: null,
+      latestCommunityPayload: null,
+      communityNodes: [],
+      communityById: new Map(),
+      communityLinks: [],
+      conceptNodes: [],
+      conceptIndex: new Map(),
+      conceptCommunities: new Map(),
+      substrateDirty: true,
+      resizeFrame: null
+    };
+
+    window.__closeEndophasia = function() {
+      try {
+        state.eventSource?.close?.();
+      } catch (_) {}
+
+      state.eventSource = null;
+
+      if (state.reconnectTimer !== undefined && state.reconnectTimer !== null) {
+        clearTimeout(state.reconnectTimer);
+      }
+      state.reconnectTimer = null;
+    };
+
+    const normalize = value => String(value || "").trim().toLowerCase();
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+    function isPortrait() {
+      return document.body.classList.contains("portrait");
+    }
+
+    function maxStreamItems() {
+      return isPortrait() ? 16 : 42;
+    }
+
+    function layoutLimits() {
+      return {
+        maxCommunities: isPortrait() ? 6 : 10,
+        maxConceptsPerCommunity: isPortrait() ? 5 : 10
+      };
+    }
+
+    function markSubstrateDirty() {
+      state.substrateDirty = true;
+    }
+
+    function hasActiveGlows() {
+      const now = Date.now();
+      return state.communityNodes.some(node => now < node.glowUntil)
+        || state.conceptNodes.some(node => now < node.glowUntil);
+    }
+
+    function pruneOverflowLanes() {
+      pruneLane(leftStream);
+      pruneLane(rightStream);
+    }
+
+    function updatePortraitMode() {
+      const portrait = new URLSearchParams(window.location.search).has("portrait")
+        || window.innerHeight > window.innerWidth * 1.2;
+      const changed = document.body.classList.contains("portrait") !== portrait;
+      document.documentElement.classList.toggle("portrait", portrait);
+      document.body.classList.toggle("portrait", portrait);
+      if (changed) {
+        pruneOverflowLanes();
+        markSubstrateDirty();
+        if (state.latestCommunityPayload && state.width && state.height) {
+          buildCommunityScene(state.latestCommunityPayload);
+        } else {
+          requestResize();
+        }
+      }
+      return portrait;
+    }
+
+    function setStatus(text, mode) {
+      statusEl.textContent = text;
+      statusEl.className = "status " + mode;
+    }
+
+    function updateStatus() {
+      if (state.isReconnecting) {
+        setStatus("Reconnecting...", "reconnecting");
+        return;
+      }
+      if (!state.hasSeenEvent) {
+        setStatus("Waiting for activity...", "waiting");
+        return;
+      }
+      setStatus("Streaming", "live");
+    }
+
+    function showLaggedStatus(skipped) {
+      const token = ++state.lagStatusToken;
+      setStatus(`Streaming · catching up (${skipped || 0})`, "live");
+      window.setTimeout(() => {
+        if (token !== state.lagStatusToken) return;
+        updateStatus();
+      }, 1800);
+    }
+
+    function pruneLane(laneEl) {
+      while (laneEl.children.length >= maxStreamItems()) {
+        laneEl.removeChild(laneEl.firstElementChild);
+      }
+    }
+
+    function streamText(event) {
+      const concept = String(event.concept || "").trim();
+      if (!concept) return null;
+      const neighbors = Array.isArray(event.neighbors)
+        ? event.neighbors.map(value => String(value || "").trim()).filter(Boolean).slice(0, 3)
+        : [];
+      return {
+        concept: concept.toUpperCase(),
+        neighbors: neighbors.map(value => value.toUpperCase())
+      };
+    }
+
+    function addStreamItem(event, signal) {
+      const lane = SIGNALS[signal].lane;
+      const laneEl = lane === "left" ? leftStream : rightStream;
+      const text = streamText(event);
+      if (!text) return;
+
+      pruneLane(laneEl);
+
+      const item = document.createElement("div");
+      item.className = `stream-item ${lane}`;
+      item.style.color = SIGNALS[signal].color;
+      item.style.setProperty("--offset-x", `${(Math.random() - 0.5) * 14}px`);
+      item.style.setProperty("--travel-y", `${lane === "left" ? laneEl.clientHeight + 42 : -(laneEl.clientHeight + 42)}px`);
+      item.style.setProperty("--duration", `${9000 + Math.random() * 2200}ms`);
+      item.style[lane === "left" ? "right" : "left"] = `${10 + Math.random() * 8}px`;
+
+      const conceptLabel = document.createElement("span");
+      conceptLabel.textContent = text.concept;
+      item.appendChild(conceptLabel);
+
+      if (text.neighbors.length) {
+        const neighborsLabel = document.createElement("span");
+        neighborsLabel.className = "neighbors";
+        neighborsLabel.textContent = text.neighbors.join(" · ");
+        item.appendChild(neighborsLabel);
+      }
+
+      const cleanup = () => {
+        if (item.parentNode) item.parentNode.removeChild(item);
+      };
+
+      item.addEventListener("animationend", cleanup, { once: true });
+      window.setTimeout(cleanup, 12000);
+      laneEl.appendChild(item);
+    }
+
+    function aggregateCommunityLinks(edges, conceptToCommunity) {
+      const grouped = new Map();
+      (edges || []).forEach(edge => {
+        const sourceId = conceptToCommunity.get(normalize(edge.source));
+        const targetId = conceptToCommunity.get(normalize(edge.target));
+        if (sourceId == null || targetId == null || sourceId === targetId) return;
+        const key = sourceId < targetId ? `${sourceId}:${targetId}` : `${targetId}:${sourceId}`;
+        grouped.set(key, (grouped.get(key) || 0) + Number(edge.weight || 0));
+      });
+
+      return [...grouped.entries()].map(([key, weight]) => {
+        const [source, target] = key.split(":").map(Number);
+        return { key, source, target, weight };
+      });
+    }
+
+    function clearCommunities() {
+      state.communityNodes = [];
+      state.communityById = new Map();
+      state.communityLinks = [];
+      state.conceptNodes = [];
+      state.conceptIndex = new Map();
+      state.conceptCommunities = new Map();
+      layers.links.selectAll("*").remove();
+      layers.clusters.selectAll("*").remove();
+      layers.concepts.selectAll("*").remove();
+      layers.labels.selectAll("*").remove();
+      emptyNote.textContent = "No communities detected";
+      emptyNote.style.display = "block";
+      markSubstrateDirty();
+    }
+
+    function buildCommunityScene(payload) {
+      state.latestCommunityPayload = payload;
+      const { maxCommunities, maxConceptsPerCommunity } = layoutLimits();
+      const communities = (payload && Array.isArray(payload.communities) ? payload.communities : []).slice(0, maxCommunities);
+      if (!communities.length || !state.width || !state.height) {
+        clearCommunities();
+        return;
+      }
+
+      emptyNote.style.display = "none";
+
+      const scores = communities.map(item => Number(item.anchor_score) || 1);
+      const minScore = d3.min(scores) || 1;
+      const maxScore = d3.max(scores) || minScore + 1;
+      const radiusScale = d3.scaleSqrt()
+        .domain([minScore, maxScore === minScore ? minScore + 1 : maxScore])
+        .range([28, state.width < 420 ? 42 : 56]);
+
+      const cols = state.width < 540 ? 2 : 3;
+      const rows = Math.ceil(communities.length / cols);
+      const x0 = state.width * 0.22;
+      const x1 = state.width * 0.78;
+      const y0 = state.height * 0.22;
+      const y1 = state.height * 0.8;
+
+      const communityNodes = communities.map((community, index) => {
+        const col = index % cols;
+        const row = Math.floor(index / cols);
+        const tx = d3.interpolateNumber(x0, x1)(cols === 1 ? 0.5 : col / Math.max(1, cols - 1));
+        const ty = d3.interpolateNumber(y0, y1)(rows === 1 ? 0.5 : row / Math.max(1, rows - 1));
+        const allConcepts = Array.isArray(community.concepts) ? community.concepts : [];
+        const concepts = allConcepts.slice(0, maxConceptsPerCommunity);
+        return {
+          id: Number(community.id),
+          key: `community-${community.id}`,
+          allConcepts,
+          concepts,
+          anchor: allConcepts[0] || concepts[0] || `community-${community.id}`,
+          r: radiusScale(Number(community.anchor_score) || 1),
+          tx,
+          ty,
+          x: tx,
+          y: ty,
+          glowUntil: 0,
+          glowColor: null
+        };
+      });
+
+      const communityById = new Map(communityNodes.map(node => [node.id, node]));
+      const conceptToCommunity = new Map();
+      const conceptCommunities = new Map();
+      communityNodes.forEach(community => {
+        community.allConcepts.forEach(concept => {
+          const normalized = normalize(concept);
+          conceptToCommunity.set(normalize(concept), community.id);
+          const communityIds = conceptCommunities.get(normalized) || [];
+          communityIds.push(community.id);
+          conceptCommunities.set(normalized, communityIds);
+        });
+      });
+
+      const links = aggregateCommunityLinks(payload.edges, conceptToCommunity)
+        .filter(link => communityById.has(link.source) && communityById.has(link.target));
+
+      d3.forceSimulation(communityNodes)
+        .force("x", d3.forceX(node => node.tx).strength(0.2))
+        .force("y", d3.forceY(node => node.ty).strength(0.2))
+        .force("charge", d3.forceManyBody().strength(state.width < 540 ? -180 : -250))
+        .force("collide", d3.forceCollide().radius(node => node.r + 22))
+        .force("link", d3.forceLink(links.map(link => ({ ...link })))
+          .id(node => node.id)
+          .distance(link => 112 - Math.min(link.weight || 0, 36))
+          .strength(0.18))
+        .stop()
+        .tick(180);
+
+      const conceptNodes = [];
+      const conceptIndex = new Map();
+
+      communityNodes.forEach((community, communityIndex) => {
+        const total = Math.max(community.concepts.length, 1);
+        community.concepts.forEach((concept, index) => {
+          const ring = Math.floor(index / 5);
+          const inRing = index % 5;
+          const itemsInRing = Math.min(5, total - ring * 5);
+          const angle = ((Math.PI * 2) / Math.max(itemsInRing, 1)) * inRing + communityIndex * 0.42 + ring * 0.18;
+          const radius = 14 + ring * 13 + Math.min(community.r * 0.18, 10);
+          const node = {
+            key: `${community.id}:${concept}`,
+            communityId: community.id,
+            concept,
+            normalized: normalize(concept),
+            localAngle: angle,
+            localRadius: radius,
+            glowUntil: 0,
+            glowColor: null
+          };
+          conceptNodes.push(node);
+          const matches = conceptIndex.get(node.normalized) || [];
+          matches.push(node);
+          conceptIndex.set(node.normalized, matches);
+        });
+      });
+
+      state.communityNodes = communityNodes;
+      state.communityById = communityById;
+      state.communityLinks = links;
+      state.conceptNodes = conceptNodes;
+      state.conceptIndex = conceptIndex;
+      state.conceptCommunities = conceptCommunities;
+      markSubstrateDirty();
+      renderSubstrate();
+    }
+
+    function pulseOpacity(now, until, base, peak) {
+      if (now >= until) return base;
+      const progress = 1 - (until - now) / 1400;
+      const wave = 0.5 + 0.5 * Math.sin(progress * Math.PI * 4);
+      return peak - (peak - base) * (1 - wave);
+    }
+
+    function conceptPosition(node) {
+      const community = state.communityById.get(node.communityId);
+      if (!community) return { x: 0, y: 0 };
+      return {
+        x: clamp(community.x + Math.cos(node.localAngle) * node.localRadius, 12, state.width - 12),
+        y: clamp(community.y + Math.sin(node.localAngle) * node.localRadius, 12, state.height - 12)
+      };
+    }
+
+    function renderSubstrate(now = Date.now()) {
+      if (!state.width || !state.height) return;
+
+      layers.links.selectAll("line")
+        .data(state.communityLinks, d => d.key)
+        .join("line")
+        .attr("x1", d => state.communityById.get(d.source)?.x || 0)
+        .attr("y1", d => state.communityById.get(d.source)?.y || 0)
+        .attr("x2", d => state.communityById.get(d.target)?.x || 0)
+        .attr("y2", d => state.communityById.get(d.target)?.y || 0)
+        .attr("stroke", "rgba(255,255,255,0.08)")
+        .attr("stroke-width", d => clamp((d.weight || 1) / 24, 0.6, 1.8))
+        .attr("opacity", 0.9);
+
+      const clusters = layers.clusters.selectAll("g.cluster")
+        .data(state.communityNodes, d => d.id)
+        .join(enter => {
+          const group = enter.append("g").attr("class", "cluster");
+          group.append("circle").attr("class", "cluster-halo");
+          group.append("circle").attr("class", "cluster-core");
+          group.append("text").attr("class", "cluster-label");
+          return group;
+        });
+
+      clusters
+        .attr("transform", d => `translate(${d.x},${d.y})`);
+
+      clusters.select(".cluster-halo")
+        .attr("r", d => d.r)
+        .attr("fill", "rgba(255,255,255,0.018)")
+        .attr("stroke", d => now < d.glowUntil ? d.glowColor : "rgba(255,255,255,0.12)")
+        .attr("stroke-width", d => now < d.glowUntil ? 1.6 : 1)
+        .attr("opacity", d => pulseOpacity(now, d.glowUntil, 0.7, 1))
+        .attr("filter", d => now < d.glowUntil ? "url(#concept-glow)" : null);
+
+      clusters.select(".cluster-core")
+        .attr("r", 2.8)
+        .attr("fill", "rgba(255,255,255,0.75)");
+
+      clusters.select(".cluster-label")
+        .attr("y", d => -d.r - 10)
+        .attr("text-anchor", "middle")
+        .attr("fill", d => now < d.glowUntil ? d.glowColor : "rgba(255,255,255,0.25)")
+        .attr("font-size", 9)
+        .attr("letter-spacing", "0.14em")
+        .text(d => String(d.anchor || "").toUpperCase());
+
+      layers.concepts.selectAll("circle")
+        .data(state.conceptNodes, d => d.key)
+        .join("circle")
+        .attr("cx", d => conceptPosition(d).x)
+        .attr("cy", d => conceptPosition(d).y)
+        .attr("r", 2.5)
+        .attr("fill", d => now < d.glowUntil ? d.glowColor : "rgba(255,255,255,0.62)")
+        .attr("opacity", d => pulseOpacity(now, d.glowUntil, 0.62, 0.98))
+        .attr("filter", d => now < d.glowUntil ? "url(#concept-glow)" : null);
+
+      layers.labels.selectAll("text")
+        .data(state.conceptNodes, d => d.key)
+        .join("text")
+        .attr("x", d => conceptPosition(d).x + 4)
+        .attr("y", d => conceptPosition(d).y + 2)
+        .attr("fill", d => now < d.glowUntil ? d.glowColor : "rgba(255,255,255,0.25)")
+        .attr("font-size", 8)
+        .attr("letter-spacing", "0.08em")
+        .attr("opacity", d => pulseOpacity(now, d.glowUntil, 0.7, 1))
+        .text(d => String(d.concept || "").toUpperCase());
+
+      state.substrateDirty = false;
+    }
+
+    function glowMatch(rawConcept, signal) {
+      const matches = state.conceptIndex.get(normalize(rawConcept)) || [];
+      const communityIds = state.conceptCommunities.get(normalize(rawConcept)) || [];
+      if (!matches.length && !communityIds.length) return;
+
+      const until = Date.now() + 1400;
+      const color = SIGNALS[signal].color;
+      const touchedCommunities = new Set(communityIds);
+
+      matches.forEach(node => {
+        node.glowUntil = until;
+        node.glowColor = color;
+        touchedCommunities.add(node.communityId);
+      });
+
+      touchedCommunities.forEach(communityId => {
+        const community = state.communityNodes.find(node => node.id === communityId);
+        if (!community) return;
+        community.glowUntil = until;
+        community.glowColor = color;
+      });
+
+      markSubstrateDirty();
+    }
+
+    function handleConceptEvent(event) {
+      const signal = normalize(event.signal);
+      if (!SIGNALS[signal]) return;
+
+      addStreamItem(event, signal);
+
+      state.hasSeenEvent = true;
+      state.isReconnecting = false;
+      state.lagStatusToken += 1;
+      updateStatus();
+
+      glowMatch(event.concept, signal);
+      if (Array.isArray(event.neighbors)) {
+        event.neighbors.forEach(neighbor => glowMatch(neighbor, signal));
+      }
+    }
+
+    async function fetchCommunities() {
+      const generation = ++state.communityFetchGeneration;
+      if (state.communityAbort) state.communityAbort.abort();
+      const controller = new AbortController();
+      state.communityAbort = controller;
+
+      const response = await fetch("/api/endophasia/communities", {
+        headers: { Accept: "application/json" },
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        throw new Error(`communities ${response.status}`);
+      }
+
+      const payload = await response.json();
+      if (generation !== state.communityFetchGeneration) return;
+      buildCommunityScene(payload);
+    }
+
+    function scheduleCommunityRefresh() {
+      if (state.communitiesTimer) clearInterval(state.communitiesTimer);
+      state.communitiesTimer = window.setInterval(() => {
+        fetchCommunities().catch(err => {
+          if (err && err.name === "AbortError") return;
+          console.error("[endophasia] community fetch failed:", err);
+          if (!state.communityNodes.length) {
+            emptyNote.textContent = "Community graph unavailable";
+            emptyNote.style.display = "block";
+          }
+        });
+      }, COMMUNITY_REFRESH_MS);
+    }
+
+    function connectStream(delay = 0) {
+      if (state.reconnectTimer) clearTimeout(state.reconnectTimer);
+      const generation = ++state.connectionGeneration;
+
+      state.reconnectTimer = window.setTimeout(() => {
+        if (generation !== state.connectionGeneration) return;
+
+        if (state.eventSource) {
+          state.eventSource.close();
+          state.eventSource = null;
+        }
+
+        const source = new EventSource("/api/endophasia/stream");
+        state.eventSource = source;
+
+        source.onopen = () => {
+          if (generation !== state.connectionGeneration || state.eventSource !== source) return;
+          state.isReconnecting = false;
+          updateStatus();
+        };
+
+        source.onmessage = event => {
+          if (generation !== state.connectionGeneration || state.eventSource !== source) return;
+          try {
+            handleConceptEvent(JSON.parse(event.data));
+          } catch (err) {
+            console.error("[endophasia] SSE parse error:", err);
+          }
+        };
+
+        source.addEventListener("lagged", event => {
+          if (generation !== state.connectionGeneration || state.eventSource !== source) return;
+          try {
+            const payload = JSON.parse(event.data);
+            showLaggedStatus(payload.skipped);
+          } catch (err) {
+            console.error("[endophasia] SSE lag parse error:", err);
+          }
+        });
+
+        source.onerror = () => {
+          if (generation !== state.connectionGeneration || state.eventSource !== source) return;
+          state.isReconnecting = true;
+          updateStatus();
+          source.close();
+          if (state.eventSource === source) state.eventSource = null;
+          connectStream(SSE_RECONNECT_MS);
+        };
+      }, delay);
+    }
+
+    function resize() {
+      state.resizeFrame = null;
+      const box = substratePane.getBoundingClientRect();
+      const nextWidth = Math.max(240, Math.floor(box.width));
+      const nextHeight = Math.max(240, Math.floor(box.height));
+      if (nextWidth === state.width && nextHeight === state.height) return;
+
+      state.width = nextWidth;
+      state.height = nextHeight;
+      svg.attr("viewBox", `0 0 ${state.width} ${state.height}`);
+      markSubstrateDirty();
+
+      if (state.latestCommunityPayload) {
+        buildCommunityScene(state.latestCommunityPayload);
+      } else {
+        renderSubstrate();
+      }
+    }
+
+    function requestResize() {
+      if (state.resizeFrame != null) cancelAnimationFrame(state.resizeFrame);
+      state.resizeFrame = requestAnimationFrame(resize);
+    }
+
+    async function boot() {
+      updatePortraitMode();
+      updateStatus();
+      resize();
+
+      try {
+        await fetchCommunities();
+      } catch (err) {
+        if (!(err && err.name === "AbortError")) {
+          console.error("[endophasia] community fetch failed:", err);
+          emptyNote.textContent = "Community graph unavailable";
+          emptyNote.style.display = "block";
+        }
+      }
+
+      scheduleCommunityRefresh();
+      connectStream();
+      d3.timer(() => {
+        if (isPortrait() && !state.substrateDirty && !hasActiveGlows()) return;
+        renderSubstrate(Date.now());
+      });
+      window.addEventListener("resize", updatePortraitMode);
+      window.addEventListener("orientationchange", updatePortraitMode);
+      new ResizeObserver(requestResize).observe(substratePane);
+    }
+
+    boot();
+  </script>
+</body>
+</html>

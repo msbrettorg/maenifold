@@ -9,12 +9,16 @@ pub(crate) mod acp_relay_session;
 pub(crate) mod acp_relay_session_load;
 pub(crate) mod config_manager;
 pub(crate) mod config_watch;
+pub(crate) mod endophasia_communities;
+pub(crate) mod endophasia_stream;
 pub mod graph;
 pub(crate) mod graph_queries;
 pub(crate) mod mcp_discovery;
+pub(crate) mod pipeline_stream;
 pub mod routes;
 pub(crate) mod routes_config;
 pub(crate) mod routes_data;
+pub(crate) mod routes_memory;
 pub(crate) mod user_prompt;
 #[cfg(test)]
 mod user_prompt_tests;

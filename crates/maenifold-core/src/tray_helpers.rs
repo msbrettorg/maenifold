@@ -5,6 +5,7 @@
 //! the post-exit restart spawner.
 
 use super::tray::ServerMode;
+use crate::tray_menu::endophasia_url;
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
@@ -52,9 +53,14 @@ pub(super) fn open_url(url: &str) -> crate::Result<()> {
 
 pub(super) fn resolve_open_url(
     event_id: &MenuId,
+    endophasia_id: Option<&MenuId>,
     help_id: Option<&MenuId>,
-    _mode: ServerMode,
+    mode: ServerMode,
 ) -> Option<String> {
+    if endophasia_id.is_some_and(|id| event_id == id) {
+        return Some(endophasia_url(mode.port()));
+    }
+
     if help_id.is_some_and(|id| event_id == id) {
         return Some("https://github.com/ma-collective/maenifold-rs/issues".to_string());
     }

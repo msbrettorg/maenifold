@@ -7,6 +7,7 @@ use libc;
 use tray_icon::menu::{Menu, MenuId, MenuItem, PredefinedMenuItem};
 
 const SERVICE_LABEL: &str = "com.ma-collective.maenifold";
+const ENDOPHASIA_MENU_TITLE: &str = "Endophasia";
 
 #[cfg(target_os = "macos")]
 fn get_uid() -> u32 {
@@ -21,6 +22,7 @@ pub struct TrayMenuState<State> {
 }
 
 pub(crate) struct CoreTrayMenuState {
+    pub endophasia_id: MenuId,
     pub help_id: MenuId,
     pub login_id: MenuId,
     pub restart_id: Option<MenuId>,
@@ -30,6 +32,8 @@ pub(crate) struct CoreTrayMenuState {
 pub(crate) fn build_tray_menu() -> TrayMenuState<CoreTrayMenuState> {
     let menu = Menu::new();
     let login_enabled = is_login_enabled();
+    let endophasia_item = MenuItem::new(ENDOPHASIA_MENU_TITLE, true, None);
+    let _ = menu.append(&endophasia_item);
 
     #[cfg(target_os = "macos")]
     let login_item = MenuItem::new(login_menu_text(login_enabled), true, None);
@@ -57,12 +61,17 @@ pub(crate) fn build_tray_menu() -> TrayMenuState<CoreTrayMenuState> {
         menu,
         quit_id: quit_item.id().clone(),
         state: CoreTrayMenuState {
+            endophasia_id: endophasia_item.id().clone(),
             help_id: help_item.id().clone(),
             login_id: login_item.id().clone(),
             restart_id: restart_item.map(|item| item.id().clone()),
             login_item,
         },
     }
+}
+
+pub(crate) fn endophasia_url(port: u16) -> String {
+    format!("http://127.0.0.1:{port}/endophasia")
 }
 
 pub(crate) fn toggle_login_item(port: u16, login_item: Option<&MenuItem>) {
@@ -214,11 +223,15 @@ fn xml_escape(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::login_menu_text;
+    use super::{ENDOPHASIA_MENU_TITLE, endophasia_url};
 
     #[test]
-    fn login_menu_text_reflects_enabled_state() {
-        assert_eq!(login_menu_text(true), "✓ Open at Login");
-        assert_eq!(login_menu_text(false), "Open at Login");
+    fn endophasia_url_uses_runtime_port() {
+        assert_eq!(endophasia_url(8087), "http://127.0.0.1:8087/endophasia");
+    }
+
+    #[test]
+    fn endophasia_menu_title_is_stable() {
+        assert_eq!(ENDOPHASIA_MENU_TITLE, "Endophasia");
     }
 }

@@ -15,7 +15,6 @@ pub fn sender() -> &'static broadcast::Sender<ConceptEvent> {
 }
 
 /// Returns a new broadcast receiver for subscribing to ConceptEvents.
-#[allow(dead_code)]
 pub fn subscribe() -> broadcast::Receiver<ConceptEvent> {
     CHANNEL.subscribe()
 }

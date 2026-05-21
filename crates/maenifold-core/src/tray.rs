@@ -56,6 +56,7 @@ pub struct TrayApp<Mode, State> {
 
 #[derive(Default)]
 struct CoreTrayState {
+    endophasia_id: Option<MenuId>,
     help_id: Option<MenuId>,
     login_id: Option<MenuId>,
     restart_id: Option<MenuId>,
@@ -67,12 +68,14 @@ impl TrayApp<ServerMode, CoreTrayState> {
     fn initialize_tray(&mut self, event_loop: &ActiveEventLoop) {
         let menu_state = build_tray_menu();
         let CoreTrayMenuState {
+            endophasia_id,
             help_id,
             login_id,
             restart_id,
             login_item,
         } = menu_state.state;
         self.quit_id = Some(menu_state.quit_id);
+        self.state.endophasia_id = Some(endophasia_id);
         self.state.help_id = Some(help_id);
         self.state.login_id = Some(login_id);
         self.state.restart_id = restart_id;
@@ -120,11 +123,22 @@ impl TrayApp<ServerMode, CoreTrayState> {
 
         if let Some(url) = resolve_open_url(
             &event.id,
+            self.state.endophasia_id.as_ref(),
             self.state.help_id.as_ref(),
             self.mode,
         ) {
             if let Err(err) = open_url(&url) {
-                error!(label = "help", error = %err, "failed to open tray URL");
+                let label = if self
+                    .state
+                    .endophasia_id
+                    .as_ref()
+                    .is_some_and(|id| event.id == *id)
+                {
+                    "Endophasia"
+                } else {
+                    "help"
+                };
+                error!(label, error = %err, "failed to open tray URL");
             }
             return;
         }

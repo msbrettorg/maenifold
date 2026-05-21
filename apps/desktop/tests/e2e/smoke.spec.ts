@@ -12,7 +12,7 @@ test('app loads and renders the primary shell', async ({ page, daemonBaseUrl }) 
   await expect(pipelinePanel(page)).toBeVisible();
 
   await expect.poll(async () => {
-    const response = await fetch(new URL('/api/health', daemonBaseUrl).toString());
+    const response = await fetch(new URL('/endophasia', daemonBaseUrl).toString());
     return response.ok;
   }).toBe(true);
 });

@@ -30,7 +30,7 @@ fn test_router(state: ApiState) -> axum::Router {
 
 #[tokio::test]
 #[serial_test::serial]
-async fn router_rejects_endophasia_frontend_route() {
+async fn router_serves_endophasia_frontend() {
     let (_temp, state, _guard) = test_state();
     let response = test_router(state)
         .oneshot(
@@ -42,12 +42,21 @@ async fn router_rejects_endophasia_frontend_route() {
         .await
         .expect("response");
 
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        response.headers()["content-type"],
+        "text/html; charset=utf-8"
+    );
+    let body = to_bytes(response.into_body(), usize::MAX)
+        .await
+        .expect("body");
+    let body = String::from_utf8(body.to_vec()).expect("utf8");
+    assert!(body.contains("Endophasia"));
 }
 
 #[tokio::test]
 #[serial_test::serial]
-async fn router_rejects_endophasia_communities_route() {
+async fn router_serves_endophasia_communities_json() {
     let (_temp, state, _guard) = test_state();
     let response = test_router(state)
         .oneshot(
@@ -59,7 +68,14 @@ async fn router_rejects_endophasia_communities_route() {
         .await
         .expect("response");
 
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.headers()["content-type"], "application/json");
+    let body = to_bytes(response.into_body(), usize::MAX)
+        .await
+        .expect("body");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("json");
+    assert_eq!(json["communities"], serde_json::json!([]));
+    assert_eq!(json["edges"], serde_json::json!([]));
 }
 
 #[tokio::test]

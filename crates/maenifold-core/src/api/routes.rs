@@ -2,26 +2,30 @@ use crate::api::config_manager::ConfigManager;
 use crate::api::config_watch::ConfigWatchState;
 use crate::api::{
     routes_config::{
-        config_watch_handler, get_config_handler, get_config_path_handler,
-        machine_id_handler, reload_config_handler,
+        config_watch_handler, discover_mcp_tools_handler, get_config_handler,
+        get_config_path_handler, machine_id_handler, reload_config_handler,
     },
+    routes_data::{file_text, graph_edges, graph_nodes},
+    routes_memory::{memory_read, memory_recent, memory_search},
 };
 use crate::mcp::PendingRequestRegistry;
 use crate::mcp::stdio_pool::StdioPool;
-use crate::Config;
+use crate::{Config, db};
 use axum::{
     Router,
+    extract::{Query, State},
     http::StatusCode,
     response::{IntoResponse, Json, Response},
     routing::{get, post},
 };
 use parking_lot::RwLock;
 use serde_json::json;
+use std::collections::HashMap;
 use std::fmt::Display;
+use std::str::FromStr;
 use std::sync::Arc;
 
 #[derive(Clone)]
-#[allow(dead_code)]
 pub struct ApiState {
     config: Arc<RwLock<Config>>,
     pub(super) config_manager: ConfigManager,
@@ -62,6 +66,9 @@ impl ApiState {
         }
     }
 
+    pub(crate) fn config(&self) -> Config {
+        self.config.read().clone()
+    }
 }
 
 pub struct ApiStateSharedConfig {
@@ -98,7 +105,6 @@ impl ApiError {
         }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn not_found(message: impl Into<String>) -> Self {
         Self {
             status: StatusCode::NOT_FOUND,
@@ -126,14 +132,43 @@ impl IntoResponse for ApiError {
     }
 }
 
+pub(super) fn parse_optional<T>(params: &HashMap<String, String>, key: &str) -> ApiResult<Option<T>>
+where
+    T: FromStr,
+    T::Err: Display,
+{
+    params
+        .get(key)
+        .map(|value| {
+            value.parse::<T>().map_err(|error| {
+                ApiError::bad_request(format!(
+                    "invalid '{key}' query parameter '{value}': {error}"
+                ))
+            })
+        })
+        .transpose()
+}
+
 pub fn api_routes(state: ApiState) -> Router {
-    Router::new()
+    let _ = &state;
+    let read_routes = Router::new()
         .route("/api/health", get(health_handler))
         .route("/api/config", get(get_config_handler))
         .route("/api/config/path", get(get_config_path_handler))
         .route("/api/config/reload", post(reload_config_handler))
         .route("/api/config/watch", get(config_watch_handler))
-        .route("/api/machine-id", get(machine_id_handler))
+        .route("/api/machine-id", get(machine_id_handler));
+
+    Router::new()
+        .merge(read_routes)
+        .route("/api/files/text", get(file_text))
+        .route("/api/graph/nodes", get(graph_nodes))
+        .route("/api/graph/edges", get(graph_edges))
+        .route("/api/memory/read", get(memory_read))
+        .route("/api/memory/recent", get(memory_recent))
+        .route("/api/memory/search", get(memory_search))
+        .route("/api/discovery/mcp-tools", get(discover_mcp_tools_handler))
+        .route("/api/pipeline/stream", get(pipeline_stream_handler))
         .route(
             "/api/user-prompt/stream",
             get(crate::api::user_prompt::stream_handler),
@@ -147,6 +182,51 @@ pub fn api_routes(state: ApiState) -> Router {
 
 async fn health_handler() -> impl IntoResponse {
     (StatusCode::OK, Json(json!({ "status": "ok" })))
+}
+
+// T-92.7: RTM FR-36 — Endophasia frontend + API routes for /endophasia,
+// /api/endophasia/communities, and /api/endophasia/stream.
+// Kept separate from api_routes so serve_http can mount these without
+// pulling in the full REST surface.
+
+async fn endophasia_frontend() -> axum::response::Response {
+    crate::endophasia::frontend::index_html_response()
+}
+
+async fn endophasia_communities_handler(
+    State(state): State<ApiState>,
+    Query(params): Query<HashMap<String, String>>,
+) -> ApiResult<Json<crate::api::endophasia_communities::EndophasiaCommunitiesResponse>> {
+    let config = state.config();
+    let connection = db::open_connection(&config.database_path).map_err(ApiError::internal)?;
+    let response = crate::api::endophasia_communities::load_response(&connection, &params)
+        .map_err(ApiError::internal)?;
+    Ok(Json(response))
+}
+
+async fn endophasia_stream_handler() -> impl IntoResponse {
+    crate::api::endophasia_stream::endophasia_stream().await
+}
+
+async fn pipeline_stream_handler() -> impl IntoResponse {
+    crate::api::pipeline_stream::pipeline_stream().await
+}
+
+/// Routes for the Endophasia visualization UI and its backing API.
+///
+/// Mounts:
+/// - `GET /endophasia`                         — embedded SPA (`index.html`)
+/// - `GET /api/endophasia/communities`          — concept-community graph JSON
+/// - `GET /api/endophasia/stream`               — SSE stream of `ConceptEvent`s
+pub fn endophasia_routes(state: ApiState) -> Router {
+    Router::new()
+        .route("/endophasia", get(endophasia_frontend))
+        .route(
+            "/api/endophasia/communities",
+            get(endophasia_communities_handler),
+        )
+        .route("/api/endophasia/stream", get(endophasia_stream_handler))
+        .with_state(state)
 }
 
 #[cfg(test)]

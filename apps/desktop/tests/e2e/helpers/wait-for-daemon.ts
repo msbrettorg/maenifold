@@ -1,6 +1,6 @@
 import { setTimeout as delay } from 'node:timers/promises';
 
-const READINESS_PATH = '/endophasia';
+const READINESS_PATH = '/api/health';
 
 export interface WaitForDaemonOptions {
   timeoutMs?: number;

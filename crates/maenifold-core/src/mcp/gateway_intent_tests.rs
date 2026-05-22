@@ -219,6 +219,58 @@ async fn ambiguous_candidates_do_not_auto_execute() {
     assert_eq!(value["candidates"].as_array().unwrap().len(), 2);
 }
 
+/// BUG-1 regression: a read-safe candidate whose `parameters_draft` is missing
+/// a schema-required parameter (e.g. `ReadMemory` without `id`) must NOT
+/// auto-execute; instead we return a candidate annotated with
+/// `missingRequiredParameters` so the caller can fill them and try again.
+#[tokio::test]
+async fn read_safe_missing_required_parameters_returns_candidates() {
+    let state = state(settings(true)).await;
+    // ReadMemory requires `id`. The draft is empty, so auto-execute must be
+    // suppressed even though the candidate is read-safe and high confidence.
+    let result = handle_resolved_intent(
+        &state,
+        output(vec![candidate("ReadMemory", 0.99, SafetyClass::Read)]),
+    )
+    .await
+    .expect("intent result");
+    let value = json_text(&result);
+
+    let status = value["status"].as_str().unwrap_or_default();
+    assert!(
+        status == "candidates" || status == "plan",
+        "expected suppression of auto-execute, got status={status} body={value}"
+    );
+    let candidate_value = if status == "candidates" {
+        &value["candidates"][0]
+    } else {
+        &value["candidates"][0]
+    };
+    let missing = candidate_value["missingRequiredParameters"]
+        .as_array()
+        .expect("missingRequiredParameters present");
+    assert!(
+        missing.iter().any(|item| item == "identifier"),
+        "expected `identifier` to be flagged missing, got {missing:?}"
+    );
+}
+
+#[tokio::test]
+#[serial]
+async fn read_safe_complete_draft_still_auto_executes() {
+    let state = state(settings(true)).await;
+    // GetConfig has no required parameters, so an empty draft is complete.
+    let result = handle_resolved_intent(
+        &state,
+        output(vec![candidate("GetConfig", 0.99, SafetyClass::Read)]),
+    )
+    .await
+    .expect("intent result");
+    let text = resolved_text(&result);
+    assert!(text.contains("maenifoldRoot"), "{text}");
+    assert!(!text.contains("\"status\": \"candidates\""), "{text}");
+}
+
 #[tokio::test]
 async fn gateway_intent_visible_when_enabled_without_agent() {
     let disabled = state(IntentResolverSettings::default()).await;

@@ -61,7 +61,7 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
     assert!(server_description.contains("big-server"));
     assert!(server_description.contains("small-server"));
     assert!(server_description.contains("GatewayIndex"));
-    assert!(instructions.contains("GatewayIndex first"));
+    assert!(instructions.contains("GatewayIndex with includeSchemas=true"));
     assert!(instructions.contains("DiscoverMcpTools only for per-server"));
     assert!(instructions.contains("ReadMcpResource only for concrete resource URIs"));
 
@@ -78,6 +78,7 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
             "GetHelp",
             "GetMcpPrompt",
             "ReadMcpResource",
+            "complete_node",
         ],
     );
     assert!(!names.iter().any(|name| name == "GetConfig"));
@@ -251,7 +252,7 @@ async fn streamable_http_gateway_intent_enabled_lists_current_tools() {
         vec![ok_tool("small_ping", "pong")],
     )]);
     config["agents"] = json!({
-        "resolver": {"command": "/bin/echo", "env": {}, "mcpServers": []}
+        "resolver": {"command": "/bin/echo", "env": {}, "mcpServers": {}}
     });
     config["settings"] = json!({
         "gateway": {"intentResolver": {"enabled": true, "agent": "resolver"}}
@@ -273,6 +274,7 @@ async fn streamable_http_gateway_intent_enabled_lists_current_tools() {
             "GetHelp",
             "GetMcpPrompt",
             "ReadMcpResource",
+            "complete_node",
         ],
     );
 

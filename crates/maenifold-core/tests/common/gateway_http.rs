@@ -174,7 +174,29 @@ pub fn ui_tool(name: &str, text: &str, resource_uri: &str, resource_text: &str) 
 }
 
 pub fn gateway_config(servers: Vec<Value>) -> Value {
-    json!({ "mcpServers": servers, "agents": {} })
+    // `AgentsConfig::mcp_servers` is a `HashMap<String, McpServerEntry>` and
+    // `McpServerEntry::deserialize` uses `deny_unknown_fields`, so the entries
+    // must be a map keyed by server name with only the typed fields. The
+    // `stdio_server*` helpers emit `{name, type, …}` for ergonomic test
+    // composition; here we strip `name` + `type` and pivot into the map shape
+    // the real loader expects. Without this, deserialization fails silently
+    // and the gateway starts in `Disabled` mode (which is what blew up the
+    // `streamable_http_gateway_*` integration tests: empty catalog, all 51
+    // native tools advertised through the fallback path).
+    let mut mcp_servers = serde_json::Map::new();
+    for raw in servers {
+        let mut object = match raw {
+            Value::Object(map) => map,
+            other => panic!("gateway_config expects object entries, got {other:?}"),
+        };
+        let name = object
+            .remove("name")
+            .and_then(|value| value.as_str().map(str::to_string))
+            .expect("server entry must include a `name`");
+        object.remove("type");
+        mcp_servers.insert(name, Value::Object(object));
+    }
+    json!({ "mcpServers": mcp_servers, "agents": {} })
 }
 
 pub fn stdio_server(name: &str, tool_specs: Vec<Value>) -> Value {

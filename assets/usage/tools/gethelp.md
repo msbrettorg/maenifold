@@ -1,10 +1,16 @@
 # GetHelp
 
-Loads complete tool documentation from `~/maenifold/assets/usage/tools/{toolname}.md` for detailed usage guidance.
+Loads complete command or tool documentation from the runtime
+`~/maenifold/assets/usage/tools/{toolname}.md` tree.
+
+`GetHelp` itself is a direct public MCP tool. First-party operations such as
+`ReadMemory`, `SearchMemories`, `Pipeline`, and `GetConfig` are documented by
+their command names but are invoked over MCP through `GatewayExecute`.
 
 ## Parameters
 
-- `toolName` (string, required): Tool name. Example: `"WriteMemory"`, `"SearchMemories"`, `"BuildContext"`
+- `toolName` (string, required): Public tool or gateway command name. Example:
+  `"GatewayIndex"`, `"ReadMemory"`, `"SearchMemories"`, `"BuildContext"`
 
 ## Returns
 
@@ -24,17 +30,25 @@ Loads complete tool documentation from `~/maenifold/assets/usage/tools/{toolname
 }
 ```
 
-## Available Tools
+## Available Help Topics
 
-**Memory**: BuildContext, DeleteMemory, EditMemory, ExtractConceptsFromFile, MoveMemory, ReadMemory, SearchMemories, WriteMemory
+For the **live, authoritative** list of every public MCP tool, gateway domain,
+and command available on this daemon — including upstream MCP servers attached
+through the gateway — call `GatewayIndex` (with no arguments for the domain
+list, or with `domain` + `includeSchemas: true` to inspect a single domain's
+commands and parameter schemas).
 
-**System**: GetConfig, GetHelp, ListMemories, MemoryStatus, RecentActivity, Sync
+The shape served by `GetHelp` is the same regardless of where a command lives:
+pass any public MCP tool name (`GatewayIndex`, `GatewayExecute`, `GatewayBatch`,
+`GatewayIntent`, `GetHelp`, `ReadMcpResource`, `DiscoverMcpTools`,
+`DiscoverMcpPrompts`, `GetMcpPrompt`) **or** any gateway command name surfaced
+by `GatewayIndex` (`SearchMemories`, `BuildContext`, `Workflow`, `Pipeline`,
+`gate_Status`, …) and `GetHelp` will return the corresponding markdown if a
+help file exists.
 
-**Thinking**: SequentialThinking, Workflow
-
-**Resource**: ListAssets, ReadMcpResource
-
-**Visualization**: Visualize
+Help-file presence is not a contract — it is a convenience. The contract is
+the schema attached to the tool or command in `GatewayIndex`. Always treat
+`GatewayIndex` as the source of truth.
 
 ## Integration
 
@@ -45,7 +59,10 @@ Loads complete tool documentation from `~/maenifold/assets/usage/tools/{toolname
 ## Troubleshooting
 
 **Error: "No help file found for tool: [ToolName]"**
-→ Check available tools list above. Tool names are case-sensitive.
+→ The named tool/command may exist (check `GatewayIndex`) but no help asset
+has been written for it. Use `GatewayIndex` with `includeSchemas: true,
+includeExamples: true` for the canonical machine-readable description.
 
 **Missing documentation for new tools**
-→ Create help file in `/src/assets/usage/tools/` (250-line limit, Ma Protocol compliance)
+→ Create help file in `assets/usage/tools/`, then run `UpdateAssets` with
+`dryRun: false` or copy the updated `usage/` tree into the runtime assets root.

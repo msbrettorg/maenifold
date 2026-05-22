@@ -4,7 +4,7 @@ use crate::mcp::localhost_cors;
 use crate::test_util::ConfigResetGuard;
 use crate::{Config, GraphDatabase};
 use axum::{
-    body::{Body, to_bytes},
+    body::Body,
     http::{Request, StatusCode, header},
 };
 use tempfile::TempDir;

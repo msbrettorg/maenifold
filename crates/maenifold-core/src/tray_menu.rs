@@ -6,12 +6,32 @@ use libc;
 
 use tray_icon::menu::{Menu, MenuId, MenuItem, PredefinedMenuItem};
 
-const SERVICE_LABEL: &str = "com.ma-collective.maenifold";
+pub(crate) const SERVICE_LABEL: &str = "com.ma-collective.maenifold";
 
 #[cfg(target_os = "macos")]
 fn get_uid() -> u32 {
     // SAFETY: getuid() is always safe — no arguments, no failure mode.
     unsafe { libc::getuid() }
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn launchd_service_target() -> String {
+    format!("gui/{}/{SERVICE_LABEL}", get_uid())
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn is_launchd_managed() -> bool {
+    // Our process is launchd-managed iff (a) the LaunchAgent plist exists and
+    // (b) our parent PID is 1 (launchd). Without (b) we may be a developer's
+    // `maenifold --http` run from a shell while a separate launchd job also
+    // exists — in that case `launchctl kickstart` would restart a *different*
+    // process and the user-launched one would be silently leaked.
+    if !launch_agent_path().exists() {
+        return false;
+    }
+    // SAFETY: getppid() is always safe.
+    let ppid = unsafe { libc::getppid() };
+    ppid == 1
 }
 
 pub struct TrayMenuState<State> {
@@ -139,6 +159,16 @@ fn launch_agent_path() -> std::path::PathBuf {
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|| std::path::PathBuf::from("."))
         .join(format!("Library/LaunchAgents/{SERVICE_LABEL}.plist"))
+}
+
+#[cfg(not(target_os = "macos"))]
+pub(crate) fn is_launchd_managed() -> bool {
+    false
+}
+
+#[cfg(not(target_os = "macos"))]
+pub(crate) fn launchd_service_target() -> String {
+    String::new()
 }
 
 fn is_login_enabled() -> bool {

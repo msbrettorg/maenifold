@@ -55,21 +55,48 @@ pub(crate) async fn handle_resolved_intent(
             .await;
     }
 
+    let candidates_with_missing: Vec<Value> = candidates
+        .iter()
+        .map(|candidate| {
+            let mut value = serde_json::to_value(candidate)
+                .unwrap_or_else(|_| Value::Object(serde_json::Map::new()));
+            let missing = missing_required(state, candidate);
+            if let Value::Object(ref mut map) = value {
+                map.insert("missingRequiredParameters".to_string(), json!(missing));
+            }
+            value
+        })
+        .collect();
+    let top_missing = candidates
+        .first()
+        .map(|c| missing_required(state, c))
+        .unwrap_or_default();
+
     let body = if candidates.len() == 1
-        && (candidates[0].safety_class != SafetyClass::Read || candidates[0].requires_exact_execute)
+        && (candidates[0].safety_class != SafetyClass::Read
+            || candidates[0].requires_exact_execute
+            || !top_missing.is_empty())
     {
         json!({
             "status": "plan",
             "intentSummary": output.intent_summary,
-            "plan": execute_plan(&candidates[0]),
-            "candidates": candidates,
+            "plan": execute_plan(&candidates[0], &top_missing),
+            "candidates": candidates_with_missing,
         })
     } else {
+        let mut instructions = String::from(
+            "Review candidates, then call GatewayExecute with the exact domain, command, and parameters.",
+        );
+        if !top_missing.is_empty() {
+            instructions.push_str(
+                " Each candidate's `missingRequiredParameters` lists fields you MUST supply in `parameters` before GatewayExecute will succeed.",
+            );
+        }
         json!({
             "status": "candidates",
             "intentSummary": output.intent_summary,
-            "candidates": candidates,
-            "instructions": "Review candidates, then call GatewayExecute with the exact domain, command, and parameters.",
+            "candidates": candidates_with_missing,
+            "instructions": instructions,
         })
     };
     Ok(render(body))
@@ -97,18 +124,47 @@ fn can_auto_execute(
     {
         return false;
     }
+    // BUG-1 guard: do not auto-execute when the LLM draft is missing any
+    // schema-required parameter (e.g. `gate_Status` without `root`).
+    // Without this guard we silently fire off `GatewayExecute` with an
+    // incomplete payload and surface the registry's "missing required string
+    // parameter" error to the caller, who has no way to recover because the
+    // candidate was never shown.
+    if !missing_required(state, top).is_empty() {
+        return false;
+    }
     match candidates.get(1) {
         Some(next) => top.confidence - next.confidence >= DOMINANCE_GAP,
         None => true,
     }
 }
 
-fn execute_plan(candidate: &crate::mcp::gateway_resolver_types::ResolverCandidate) -> Value {
+fn missing_required(
+    state: &GatewayState,
+    candidate: &crate::mcp::gateway_resolver_types::ResolverCandidate,
+) -> Vec<String> {
+    let Ok(required) = state
+        .catalog()
+        .required_parameters(&candidate.domain, &candidate.command)
+    else {
+        return Vec::new();
+    };
+    required
+        .into_iter()
+        .filter(|key| !candidate.parameters_draft.contains_key(key))
+        .collect()
+}
+
+fn execute_plan(
+    candidate: &crate::mcp::gateway_resolver_types::ResolverCandidate,
+    missing_required: &[String],
+) -> Value {
     json!({
         "tool": "GatewayExecute",
         "domain": candidate.domain,
         "command": candidate.command,
         "parameters": candidate.parameters_draft,
+        "missingRequiredParameters": missing_required,
         "reason": candidate.reason,
         "safetyClass": candidate.safety_class,
     })

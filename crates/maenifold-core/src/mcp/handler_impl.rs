@@ -24,24 +24,17 @@ impl ServerHandler for MaenifoldHandler {
                 .enable_tasks_with(TasksCapability::server_default())
                 .build(),
         };
-        let domain_names = self
+        let domains = self
             .gateway
             .as_ref()
-            .map(|gateway| {
-                gateway
-                    .catalog
-                    .domains()
-                    .into_iter()
-                    .map(|domain| domain.name)
-                    .collect::<Vec<_>>()
-            })
+            .map(|gateway| gateway.catalog.domains())
             .unwrap_or_default();
         ServerInfo::new(capabilities)
             .with_server_info(
                 Implementation::new("maenifold", env!("CARGO_PKG_VERSION"))
-                    .with_description(gateway_metadata::server_description(&domain_names)),
+                    .with_description(gateway_metadata::server_description(&domains)),
             )
-            .with_instructions(gateway_metadata::server_instructions(&domain_names))
+            .with_instructions(gateway_metadata::server_instructions(&domains))
     }
     fn list_tools(
         &self,

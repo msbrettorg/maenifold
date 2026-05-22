@@ -152,6 +152,33 @@ impl GatewayCatalog {
         Ok(record.entry.safety_class.clone())
     }
 
+    /// Return the canonical list of required parameter names for
+    /// (domain, command), as declared in the command's JSON schema.
+    /// Used by the intent resolver to refuse auto-execute when the LLM's
+    /// parameter draft is missing any required field, so we never silently
+    /// invoke a command with a partial payload (BUG-1: gate_Status without
+    /// `root`).
+    pub(crate) fn required_parameters(&self, domain: &str, command: &str) -> Result<Vec<String>> {
+        let record = self.command_record(domain, command)?;
+        Ok(required_keys(&record.entry.schema))
+    }
+}
+
+fn required_keys(schema: &Value) -> Vec<String> {
+    schema
+        .get("required")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| item.as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+impl GatewayCatalog {
+
     pub(crate) fn render_index(
         &self,
         domain: Option<&str>,

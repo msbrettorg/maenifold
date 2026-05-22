@@ -97,13 +97,53 @@ pub(super) fn spawn_server_thread(
 
 // ── Restart on exit ───────────────────────────────────────────────────
 
-/// Spawn a replacement process using the current executable and CLI args.
-/// Logs (but does not fail) on errors — caller decides the exit code.
+/// Restart the tray's hosting process.
+///
+/// Two paths, picked at runtime:
+///
+/// 1. **Launchd-managed** (`is_launchd_managed()` is true): hand control to
+///    `launchctl kickstart -k gui/<uid>/com.ma-collective.maenifold`. launchd
+///    will SIGTERM the current process, wait for it to exit, and start a
+///    fresh instance from the LaunchAgent plist. This is the only path that
+///    survives our parent's clean (exit-code 0) shutdown — the
+///    `KeepAlive { SuccessfulExit: false }` plist policy would otherwise leave
+///    the service inactive after the user clicks Restart.
+///
+/// 2. **Standalone** (developer running `maenifold --http` from a shell):
+///    fork an independent grandchild via `setsid` so the new process detaches
+///    from our process group. Without `setsid` macOS sends SIGHUP to the
+///    parent's process group on session shutdown, which kills the orphan and
+///    is exactly what happened to PID 93066 at 15:32:25 today — the spawned
+///    child ran for ~17 seconds, then died silently when the launchd job's
+///    process group was torn down.
 pub(super) fn spawn_restart_process() {
+    if crate::tray_menu::is_launchd_managed() {
+        let target = crate::tray_menu::launchd_service_target();
+        match std::process::Command::new("launchctl")
+            .args(["kickstart", "-k", &target])
+            .spawn()
+        {
+            Ok(child) => {
+                info!(
+                    pid = child.id(),
+                    target,
+                    "launchctl kickstart issued for maenifold tray restart"
+                );
+                return;
+            }
+            Err(err) => {
+                warn!(error = %err, target, "launchctl kickstart failed; falling back to direct respawn");
+            }
+        }
+    }
+
     match std::env::current_exe() {
         Ok(exe) => {
             let args: Vec<String> = std::env::args().skip(1).collect();
-            match std::process::Command::new(exe).args(&args).spawn() {
+            let mut command = std::process::Command::new(&exe);
+            command.args(&args);
+            detach_from_parent_session(&mut command);
+            match command.spawn() {
                 Ok(child) => {
                     info!(
                         pid = child.id(),
@@ -120,4 +160,31 @@ pub(super) fn spawn_restart_process() {
             warn!(error = %err, "failed to resolve executable path for restart");
         }
     }
+}
+
+/// Detach the spawned child from the parent's process group / controlling
+/// session via `setsid(2)`. On macOS this is the safe default: when the
+/// launchd-managed parent exits, the kernel sends signals to the parent's
+/// process group, and any child still in that group dies with it.
+#[cfg(unix)]
+fn detach_from_parent_session(command: &mut std::process::Command) {
+    use std::os::unix::process::CommandExt;
+    // SAFETY: `pre_exec` runs after fork() and before exec() in the child.
+    // setsid() is async-signal-safe and only fails if the caller is already a
+    // process group leader — which we cannot be here because we forked from
+    // the launchd-managed parent. Returning `Ok(())` regardless preserves the
+    // historical "best-effort respawn" behaviour even if the libc call errors.
+    unsafe {
+        command.pre_exec(|| {
+            libc::setsid();
+            Ok(())
+        });
+    }
+}
+
+#[cfg(not(unix))]
+fn detach_from_parent_session(_command: &mut std::process::Command) {
+    // Windows fallback: parent/child process trees are not subject to the
+    // POSIX process-group SIGHUP-on-exit behaviour, so no extra detach work
+    // is needed for the standalone path.
 }

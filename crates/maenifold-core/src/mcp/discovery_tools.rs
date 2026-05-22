@@ -23,8 +23,15 @@ pub(crate) struct DiscoverMcpPromptsParams {}
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub(crate) struct GetMcpPromptParams {
+    /// Name of the configured upstream MCP server that owns the prompt
+    /// (e.g. `"fetch"`, `"calendar"`). See `DiscoverMcpPrompts` for the live
+    /// `{server, prompts}` inventory.
     pub(crate) server: String,
+    /// Prompt name as declared by the upstream server.
     pub(crate) name: String,
+    /// Optional JSON object of named arguments forwarded to the upstream
+    /// prompt. The accepted shape is defined by the prompt itself; check the
+    /// `arguments` array returned by `DiscoverMcpPrompts`.
     pub(crate) arguments: Option<Map<String, Value>>,
 }
 

@@ -50,7 +50,7 @@ const { callTool, connect, connected, discoveryResultsQueue, currentSnapshot } =
         commands: entry.tools.map((t) => ({
           name: t.name,
           description: t.description ?? null,
-          parameters_schema: t.inputSchema,
+          schema: t.inputSchema,
         })),
       });
     }),

@@ -51,7 +51,7 @@ describe('useMcpToolDiscoveryStore', () => {
           commands: [{
             name: 'ListMemories',
             description: 'List memories',
-            parameters_schema: { type: 'object', properties: {} },
+            schema: { type: 'object', properties: {} },
           }],
         });
       }
@@ -61,7 +61,7 @@ describe('useMcpToolDiscoveryStore', () => {
           commands: [{
             name: 'search_repositories',
             description: 'Search repositories',
-            parameters_schema: { type: 'object', properties: { query: { type: 'string' } } },
+            schema: { type: 'object', properties: { query: { type: 'string' } } },
           }],
         });
       }
@@ -113,12 +113,12 @@ describe('useMcpToolDiscoveryStore', () => {
       if (args.domain === 'alpha') {
         return gatewayIndexText({
           domain: 'alpha',
-          commands: [{ name: 'alpha.old', description: 'Alpha old', parameters_schema: { type: 'object' } }],
+          commands: [{ name: 'alpha.old', description: 'Alpha old', schema: { type: 'object' } }],
         });
       }
       return gatewayIndexText({
         domain: 'beta',
-        commands: [{ name: 'beta.old', description: 'Beta old', parameters_schema: { type: 'object' } }],
+        commands: [{ name: 'beta.old', description: 'Beta old', schema: { type: 'object' } }],
       });
     });
 
@@ -135,7 +135,7 @@ describe('useMcpToolDiscoveryStore', () => {
       }
       return gatewayIndexText({
         domain: 'beta',
-        commands: [{ name: 'beta.new', description: 'Beta new', parameters_schema: { type: 'object', required: ['id'] } }],
+        commands: [{ name: 'beta.new', description: 'Beta new', schema: { type: 'object', required: ['id'] } }],
       });
     });
 
@@ -176,7 +176,7 @@ describe('useMcpToolDiscoveryStore', () => {
       .mockImplementationOnce(async () => gatewayIndexText({ domains: [{ name: 'beta' }] }))
       .mockImplementationOnce(async () => gatewayIndexText({
         domain: 'beta',
-        commands: [{ name: 'beta.command', parameters_schema: { type: 'object' } }],
+        commands: [{ name: 'beta.command', schema: { type: 'object' } }],
       }));
 
     const store = useMcpToolDiscoveryStore();

@@ -109,7 +109,7 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
         return [{
           name: command.name,
           description: typeof command.description === 'string' ? command.description : null,
-          inputSchema: command.parameters_schema,
+          inputSchema: command.schema,
           appUi: extractAppUiMetadata(command),
         }];
       }),

@@ -1,5 +1,5 @@
 import type { Ref } from 'vue';
-import { toastSuccess, toastInfo } from '@/composables/useToast';
+import { getNotificationSink } from '@/lib/notification-sink';
 import { usePipelineMcp } from '../composables/usePipelineMcp';
 import type { PipelineEdge, PipelineInputs } from '../lib/pipeline-types-edge';
 import type { PipelineNode } from '../lib/pipeline-types-node';
@@ -98,7 +98,7 @@ export function createPipelineLifecycleActions({
       await refreshList();
       await refreshView();
       setSuccessMessage(`Cancelled pipeline ${sessionId}.`);
-      toastSuccess(`Cancelled pipeline ${sessionId}.`);
+      getNotificationSink().success(`Cancelled pipeline ${sessionId}.`);
     });
   }
 
@@ -133,9 +133,9 @@ export function createPipelineLifecycleActions({
       await refreshList();
       const message = result.message ?? `Deleted pipeline ${sessionId}.`;
       setSuccessMessage(message);
-      toastSuccess(message);
+      getNotificationSink().success(message);
       if (result.defaultedRetention === true) {
-        toastInfo('Using default 30-day quarantine retention.');
+        getNotificationSink().info('Using default 30-day quarantine retention.');
       }
     });
   }

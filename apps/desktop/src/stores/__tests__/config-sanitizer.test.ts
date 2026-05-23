@@ -1,17 +1,32 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
+import type { NotificationSink } from '@/lib/notification-sink';
 
-const { toastError } = vi.hoisted(() => ({ toastError: vi.fn() }));
+const mockSink: NotificationSink = {
+  success: vi.fn(),
+  info: vi.fn(),
+  warning: vi.fn(),
+  error: vi.fn(),
+  critical: vi.fn(),
+};
 
-vi.mock('@/composables/useToast', () => ({ toastError }));
+let resetNotificationSink: (() => void) | null = null;
 
 describe('config store error sanitization', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
     setActivePinia(createPinia());
     Reflect.deleteProperty(window, 'electronAPI');
+    const notificationSink = await import('@/lib/notification-sink');
+    notificationSink.setNotificationSink(mockSink);
+    resetNotificationSink = notificationSink.resetNotificationSink;
+  });
+
+  afterEach(() => {
+    resetNotificationSink?.();
+    resetNotificationSink = null;
   });
 
   it('redacts sensitive paths before surfacing loadConfig errors', async () => {
@@ -33,6 +48,6 @@ describe('config store error sanitization', () => {
     expect(store.error).toContain('<redacted>');
     expect(store.error).not.toContain('/Users/brett/secret/file.txt');
     expect(store.error).not.toContain('a1b2c3d4-e5f6-1234-9abc-def012345678');
-    expect(toastError).toHaveBeenCalledWith(expect.stringContaining('<redacted>'));
+    expect(mockSink.error).toHaveBeenCalledWith(expect.stringContaining('<redacted>'));
   });
 });

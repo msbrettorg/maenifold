@@ -1,4 +1,4 @@
-import { toastError } from '@/composables/useToast';
+import { getNotificationSink } from '@/lib/notification-sink';
 import { AGENT_METHODS } from '@agentclientprotocol/sdk';
 import { defineStore } from 'pinia';
 import { computed, reactive, ref, watch } from 'vue';
@@ -228,7 +228,7 @@ export const useSessionStore = defineStore('session', () => {
   }
 
   function setError(msg: string): void {
-    toastError(msg);
+    getNotificationSink().error(msg);
     if (activeSession.value) {
       activeSession.value.error = msg;
       return;

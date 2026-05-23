@@ -1,4 +1,4 @@
-import { toastError } from '@/composables/useToast';
+import { getNotificationSink } from '@/lib/notification-sink';
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 import { usePipelineMcp } from '../composables/usePipelineMcp';
@@ -66,7 +66,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
     const message = `${tool}: ${err instanceof Error ? err.message : String(err)}`;
     errorMessage.value = message;
     successMessage.value = null;
-    toastError(message);
+    getNotificationSink().error(message);
   }
   async function withError<T>(tool: string, fn: () => Promise<T>): Promise<T | undefined> {
     clearError();

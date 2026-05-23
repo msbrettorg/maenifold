@@ -1,4 +1,4 @@
-import { toastWarning } from '@/composables/useToast';
+import { getNotificationSink } from '@/lib/notification-sink';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { useMcpClient } from '../composables/useMcpClient';
@@ -173,7 +173,7 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
       }
       const message = getErrorMessage(cause);
       error.value = message;
-      toastWarning(message);
+      getNotificationSink().warning(message);
       return serverResults.value;
     } finally {
       if (activeAbortController === controller) {

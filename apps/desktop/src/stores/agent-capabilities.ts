@@ -1,4 +1,4 @@
-import { toastWarning } from '@/composables/useToast';
+import { getNotificationSink } from '@/lib/notification-sink';
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
 import { usePipelineMcp } from '../composables/usePipelineMcp';
@@ -175,7 +175,7 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
       }
       probeResults.value = next;
       probeStatus.value = 'error';
-      toastWarning(message);
+      getNotificationSink().warning(message);
       scheduleRetry();
       return;
     }
@@ -207,7 +207,7 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
       needsRetry = shouldRetryProbe(message);
       const preserveCached = needsRetry;
       warningMessage.value = timedOut ? AGENT_PROBE_FALLBACK_WARNING : null;
-      toastWarning(warningMessage.value ?? message);
+      getNotificationSink().warning(warningMessage.value ?? message);
       for (const agentName of agentNames) {
         const existing = probeResults.value.get(agentName);
         if (preserveCached && existing?.state === 'ready') {

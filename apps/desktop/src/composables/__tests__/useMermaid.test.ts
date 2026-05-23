@@ -2,10 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useMermaid } from '../useMermaid';
 
 const renderMock = vi.hoisted(() => vi.fn());
+const initializeMock = vi.hoisted(() => vi.fn());
 
 vi.mock('mermaid', () => ({
   default: {
-    initialize: vi.fn(),
+    initialize: initializeMock,
     render: renderMock,
   },
 }));
@@ -92,5 +93,45 @@ describe('useMermaid', () => {
 
     expect(container.querySelector('.mermaid-rendered')).toBeNull();
     expect(container.querySelector('pre')).not.toBeNull();
+  });
+
+  describe('renderMermaidBlocks cancellation', () => {
+    it('does NOT call preBlock.replaceWith when shouldContinue returns false after mermaid.render resolves', async () => {
+      const container = document.createElement('div');
+      container.innerHTML = '<pre><code class="language-mermaid">flowchart TD\n  A-->B</code></pre>';
+      document.body.appendChild(container);
+      const pre = container.querySelector('pre')!;
+      const spy = vi.spyOn(pre, 'replaceWith');
+      const deferred = createDeferred<{ svg: string }>();
+      renderMock.mockImplementationOnce(async () => deferred.promise);
+      const { renderMermaidBlocks } = useMermaid();
+      let allow = true;
+      const renderPromise = renderMermaidBlocks(container, () => allow);
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      allow = false;
+      deferred.resolve({ svg: '<svg xmlns="http://www.w3.org/2000/svg"/>' });
+      await renderPromise;
+
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('DOES call preBlock.replaceWith when shouldContinue returns true (falsifiability proof)', async () => {
+      const container = document.createElement('div');
+      container.innerHTML = '<pre><code class="language-mermaid">flowchart TD\n  X-->Y</code></pre>';
+      document.body.appendChild(container);
+      const pre = container.querySelector('pre')!;
+      const spy = vi.spyOn(pre, 'replaceWith');
+      const deferred = createDeferred<{ svg: string }>();
+      renderMock.mockImplementationOnce(async () => deferred.promise);
+      const { renderMermaidBlocks } = useMermaid();
+      const renderPromise = renderMermaidBlocks(container, () => true);
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      deferred.resolve({ svg: '<svg xmlns="http://www.w3.org/2000/svg"/>' });
+      await renderPromise;
+
+      expect(spy).toHaveBeenCalled();
+    });
   });
 });

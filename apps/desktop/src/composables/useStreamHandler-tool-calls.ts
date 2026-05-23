@@ -79,17 +79,6 @@ function applyToolCallSnapshot(target: ToolCallInfo, source: ToolCallInfo, appen
   if (!target.appUi && source.appUi) target.appUi = cloneAppUiMetadata(source.appUi);
 }
 
-function forEachToolCall(
-  session: SessionState,
-  toolCallId: string,
-  apply: (toolCall: ToolCallInfo) => void,
-): void {
-  for (const message of session.messages) {
-    const toolCall = message.toolCalls?.find((entry) => entry.toolCallId === toolCallId);
-    if (toolCall) apply(toolCall);
-  }
-}
-
 export function handleToolCallImpl(
   session: SessionState,
   update: ToolCallUpdateSnapshot,
@@ -97,12 +86,22 @@ export function handleToolCallImpl(
 ): void {
   const toolCallInfo = createToolCallInfo(update, appUi);
   const existing = session.toolCalls.get(update.toolCallId);
+
   if (existing) {
     applyToolCallSnapshot(existing, toolCallInfo);
-    forEachToolCall(session, update.toolCallId, (toolCall) => applyToolCallSnapshot(toolCall, toolCallInfo));
+    for (const msg of session.messages) {
+      const messageToolCall = msg.toolCalls?.find((t) => t.toolCallId === update.toolCallId);
+      if (messageToolCall) {
+        applyToolCallSnapshot(messageToolCall, toolCallInfo);
+        break;
+      }
+    }
     return;
   }
 
+  // Add tool call to the current assistant message, synthesizing a
+  // tool-only assistant turn when the agent emits tool activity before
+  // any assistant text.
   let currentAssistantMsg = session.messages[session.messages.length - 1];
   if (!currentAssistantMsg || currentAssistantMsg.role !== 'assistant') {
     session.messages.push({
@@ -115,8 +114,12 @@ export function handleToolCallImpl(
     currentAssistantMsg = session.messages[session.messages.length - 1];
   }
 
-  currentAssistantMsg.toolCalls ??= [];
+  if (!currentAssistantMsg.toolCalls) {
+    currentAssistantMsg.toolCalls = [];
+  }
   currentAssistantMsg.toolCalls.push({ ...toolCallInfo });
+
+  // Also keep in session's tool call map for updates
   session.toolCalls.set(update.toolCallId, { ...toolCallInfo });
 }
 
@@ -128,16 +131,47 @@ export function handleToolCallUpdateImpl(
   const existing = session.toolCalls.get(update.toolCallId);
   if (!existing) return;
 
-  const snapshot = createToolCallInfo(
-    {
-      ...update,
-      title: update.title ?? existing.title,
-      kind: update.kind ?? existing.kind,
-      status: update.status ?? existing.status,
-    },
-    appUi ?? existing.appUi ?? null,
-  );
+  if (update.status) existing.status = update.status;
+  if (update.title) existing.title = update.title;
+  const nextContent = normalizeToolCallContent(update.content);
+  if (nextContent?.length) {
+    existing.content = [...(existing.content ?? []), ...nextContent];
+  }
+  if (update.locations) {
+    existing.locations = normalizeToolCallLocations(update.locations);
+  }
+  if ('rawOutput' in update) {
+    existing.rawOutput = normalizeToolCallPayload(update.rawOutput);
+  }
+  if (isRecord(update._meta)) {
+    existing._meta = update._meta;
+  }
+  if (!existing.appUi && appUi) {
+    existing.appUi = cloneAppUiMetadata(appUi);
+  }
 
-  applyToolCallSnapshot(existing, snapshot, true);
-  forEachToolCall(session, update.toolCallId, (toolCall) => applyToolCallSnapshot(toolCall, snapshot, true));
+  // Also update in the message's toolCalls array
+  for (const msg of session.messages) {
+    if (!msg.toolCalls) continue;
+    const tc = msg.toolCalls.find((t) => t.toolCallId === update.toolCallId);
+    if (tc) {
+      if (update.status) tc.status = update.status;
+      if (update.title) tc.title = update.title;
+      if (nextContent?.length) {
+        tc.content = [...(tc.content ?? []), ...nextContent];
+      }
+      if (update.locations) {
+        tc.locations = normalizeToolCallLocations(update.locations);
+      }
+      if ('rawOutput' in update) {
+        tc.rawOutput = normalizeToolCallPayload(update.rawOutput);
+      }
+      if (isRecord(update._meta)) {
+        tc._meta = update._meta;
+      }
+      if (!tc.appUi && appUi) {
+        tc.appUi = cloneAppUiMetadata(appUi);
+      }
+    }
+  }
 }

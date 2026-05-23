@@ -2,6 +2,8 @@ import { defineConfig } from 'vitest/config';
 import vue from '@vitejs/plugin-vue';
 import { fileURLToPath } from 'node:url';
 
+const cdpExcludes = process.env.CDP_ELECTRON_URL ? [] : ['**/agents-perf-cdp.test.ts'];
+
 export default defineConfig({
   plugins: [vue()],
   resolve: {
@@ -20,6 +22,7 @@ export default defineConfig({
       'evidence/**',
       'tests/e2e/**',
       'tests/visual/**',
+      ...cdpExcludes,
     ],
   },
 });

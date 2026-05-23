@@ -165,7 +165,12 @@ describe('useAgentCapabilitiesStore', () => {
     await vi.advanceTimersByTimeAsync(AGENT_PROBE_SOFT_TIMEOUT_MS);
     await refreshPromise;
 
-    expect(store.getProbe('architect')).toBeUndefined();
+    expect(store.getProbe('architect')).toEqual(expect.objectContaining({
+      state: 'ready',
+      style: 'modern',
+      degradedMessage: expect.stringContaining('timed out'),
+      modes: ['prompt'],
+    }));
     expect(store.probeStatus).toBe('done');
     expect(store.warningMessage).toContain('timed out');
   });

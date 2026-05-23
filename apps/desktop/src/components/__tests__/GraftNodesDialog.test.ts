@@ -62,6 +62,7 @@ function selectForTrigger(wrapper: ReturnType<typeof mount>, triggerSelector: st
 
 async function makeWorkflowSubmittable(wrapper: ReturnType<typeof mount>) {
   await wrapper.get('#graft-workflow-id').setValue('workflow-to-graft');
+  await wrapper.get('#graft-workflow-agent').setValue('architect');
   await flushPromises();
 }
 

@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { ref } from 'vue';
-import { persistAgentProbeCache } from '../../lib/agent-probe-cache';
+import {
+  __resetAgentProbeCacheForTests,
+  persistAgentProbeCache,
+} from '../../lib/agent-probe-cache';
 import { normalizeAgentProbeResult } from '../../lib/agent-probe-normalizers';
 import { useConfigStore } from '../config';
 import {
@@ -49,6 +52,7 @@ describe('useAgentCapabilitiesStore', () => {
     vi.restoreAllMocks();
     vi.useRealTimers();
     setActivePinia(createPinia());
+    __resetAgentProbeCacheForTests();
     window.localStorage.clear();
     connected.value = true;
     error.value = null;
@@ -165,12 +169,7 @@ describe('useAgentCapabilitiesStore', () => {
     await vi.advanceTimersByTimeAsync(AGENT_PROBE_SOFT_TIMEOUT_MS);
     await refreshPromise;
 
-    expect(store.getProbe('architect')).toEqual(expect.objectContaining({
-      state: 'ready',
-      style: 'modern',
-      degradedMessage: expect.stringContaining('timed out'),
-      modes: ['prompt'],
-    }));
+    expect(store.getProbe('architect')).toBeUndefined();
     expect(store.probeStatus).toBe('done');
     expect(store.warningMessage).toContain('timed out');
   });

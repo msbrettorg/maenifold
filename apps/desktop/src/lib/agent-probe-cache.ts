@@ -95,3 +95,8 @@ export function persistAgentProbeCache(
     probes: cachedProbes,
   } satisfies PersistedAgentProbeCache;
 }
+
+/** Test-only: clears the in-memory cache singleton so storage.clear() takes effect. */
+export function __resetAgentProbeCacheForTests(): void {
+  agentProbeCache.value = null;
+}

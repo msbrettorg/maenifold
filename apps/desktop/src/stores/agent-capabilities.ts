@@ -185,7 +185,7 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
     const next = new Map<string, AgentProbeResult>();
 
     try {
-      const result = await getConfigWithSoftTimeout(mcp.callTool);
+      const result = await getConfigWithSoftTimeout(mcp.gatewayExecute);
       const records = extractAgentRecords(result);
 
       for (const agentName of agentNames) {

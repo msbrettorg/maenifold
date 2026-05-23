@@ -12,7 +12,7 @@ export interface SchedulePreview {
 type SchedulePreviewSource = Ref<string> | string;
 
 export function useSchedulePreview(source: SchedulePreviewSource, delayMs = 300) {
-  const { callTool, connect, connected } = useMcpClient();
+  const { gatewayExecute, connect, connected } = useMcpClient();
   const loading = ref(false);
   const error = ref('');
   const cron = ref('');
@@ -45,7 +45,7 @@ export function useSchedulePreview(source: SchedulePreviewSource, delayMs = 300)
     error.value = '';
     try {
       if (!connected.value) await connect();
-      const result = await callTool<SchedulePreview>('Schedule', {
+      const result = await gatewayExecute<SchedulePreview>('maenifold.system', 'Schedule', {
         action: 'preview',
         schedule: expression,
       });

@@ -187,6 +187,7 @@ export function useMcpClient(baseUrl?: string) {
     reconnectSession,
     callTool: ops.callTool,
     callToolRaw: ops.callToolRaw,
+    gatewayExecute: ops.gatewayExecute,
     listTools: ops.listTools,
     readResource: ops.readResource,
     subscribeResource: ops.subscribeResource,

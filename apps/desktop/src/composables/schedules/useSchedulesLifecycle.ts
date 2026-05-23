@@ -1,7 +1,11 @@
 import type { Ref } from 'vue';
 import type { ScheduleJob } from '@/stores/schedules';
 
-type ScheduleToolCaller = <T = unknown>(tool: string, payload: Record<string, unknown>) => Promise<T>;
+type ScheduleGatewayExecute = <T = unknown>(
+  domain: string,
+  command: string,
+  parameters: Record<string, unknown>,
+) => Promise<T>;
 
 type ConfirmDialogStore = {
   confirm: (title: string, description: string) => Promise<boolean>;
@@ -9,7 +13,7 @@ type ConfirmDialogStore = {
 
 export function createSchedulesLifecycle(args: {
   ensureConnected: () => Promise<void>;
-  callTool: ScheduleToolCaller;
+  gatewayExecute: ScheduleGatewayExecute;
   confirmDialogStore: ConfirmDialogStore;
   actionJobIds: Ref<Set<string>>;
   isSubmitting: Ref<boolean>;
@@ -19,7 +23,7 @@ export function createSchedulesLifecycle(args: {
 }) {
   const {
     ensureConnected,
-    callTool,
+    gatewayExecute,
     confirmDialogStore,
     actionJobIds,
     isSubmitting,
@@ -34,7 +38,7 @@ export function createSchedulesLifecycle(args: {
     statusMessage.value = '';
     try {
       await ensureConnected();
-      const result = await callTool<{ message?: string }>('Schedule', { action: 'pause_all' });
+      const result = await gatewayExecute<{ message?: string }>('maenifold.system', 'Schedule', { action: 'pause_all' });
       statusMessage.value = result?.message ?? 'Schedules paused.';
       await loadSchedules();
     } catch (pauseError) {
@@ -50,7 +54,7 @@ export function createSchedulesLifecycle(args: {
     statusMessage.value = '';
     try {
       await ensureConnected();
-      const result = await callTool<{ message?: string }>('Schedule', { action: 'resume_all' });
+      const result = await gatewayExecute<{ message?: string }>('maenifold.system', 'Schedule', { action: 'resume_all' });
       statusMessage.value = result?.message ?? 'Schedules resumed.';
       await loadSchedules();
     } catch (resumeError) {
@@ -71,7 +75,7 @@ export function createSchedulesLifecycle(args: {
     statusMessage.value = '';
     try {
       await ensureConnected();
-      const result = await callTool<{ message?: string }>('Schedule', { action: 'run_now', id: job.id });
+      const result = await gatewayExecute<{ message?: string }>('maenifold.system', 'Schedule', { action: 'run_now', id: job.id });
       statusMessage.value = result?.message ?? `Scheduled task '${job.id}' executed.`;
       await loadSchedules();
     } catch (runError) {
@@ -87,7 +91,7 @@ export function createSchedulesLifecycle(args: {
     statusMessage.value = '';
     try {
       await ensureConnected();
-      const result = await callTool<{ message?: string }>('Schedule', {
+      const result = await gatewayExecute<{ message?: string }>('maenifold.system', 'Schedule', {
         action: 'update',
         id: job.id,
         schedule: job.schedule,
@@ -119,7 +123,7 @@ export function createSchedulesLifecycle(args: {
     statusMessage.value = '';
     try {
       await ensureConnected();
-      const result = await callTool<{ message?: string }>('Schedule', { action: 'delete', id: job.id });
+      const result = await gatewayExecute<{ message?: string }>('maenifold.system', 'Schedule', { action: 'delete', id: job.id });
       statusMessage.value = result?.message ?? `Scheduled task '${job.id}' deleted.`;
       await loadSchedules();
     } catch (deleteError) {

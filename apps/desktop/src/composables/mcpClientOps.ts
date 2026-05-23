@@ -25,6 +25,12 @@ export interface NotificationRouter {
   onNotification(handler: (notification: JsonRpcNotification) => void): () => void;
 }
 
+export interface GatewayExecuteArgs extends Record<string, unknown> {
+  domain: string;
+  command: string;
+  parameters?: Record<string, unknown>;
+}
+
 function getSanitizedErrorMessage(error: unknown): string {
   const rawError = getErrorMessage(error);
   warnRawResourceErrorInDev(rawError);
@@ -114,6 +120,14 @@ export function createMcpClientOps(options: {
     return withReconnect(async (client) => (await client.callTool({ name, arguments: args })) as ToolCallResult);
   }
 
+  async function gatewayExecute<T = unknown>(
+    domain: string,
+    command: string,
+    parameters: Record<string, unknown> = {},
+  ): Promise<T> {
+    return callTool<T>('GatewayExecute', { domain, command, parameters } satisfies GatewayExecuteArgs);
+  }
+
   async function listTools(): Promise<ToolDefinition[]> {
     options.setError(null);
     const result = await withReconnect((client) => client.listTools());
@@ -165,7 +179,7 @@ export function createMcpClientOps(options: {
   }
 
   return {
-    callTool, callToolRaw, listTools, readResource, subscribeResource, unsubscribeResource, listResources,
+    callTool, callToolRaw, gatewayExecute, listTools, readResource, subscribeResource, unsubscribeResource, listResources,
     listResourceTemplates, listPrompts, getPrompt, complete,
   };
 }

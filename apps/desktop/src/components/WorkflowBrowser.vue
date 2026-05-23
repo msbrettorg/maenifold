@@ -113,7 +113,7 @@ async function importWorkflow(json: string, resolution?: 'overwrite' | 'copy') {
     await pipelineStore.connect()
   }
 
-  await workflowMcp.callTool('SaveWorkflowAsset', {
+  await workflowMcp.gatewayExecute('maenifold.workflow', 'SaveWorkflowAsset', {
     id: prepared.id,
     content: prepared.content,
   })
@@ -171,7 +171,7 @@ async function handleDeleteWorkflow(id: string) {
     if (!workflowMcp.connected.value) {
       await workflowMcp.connect()
     }
-    await workflowMcp.callTool('DeleteWorkflowAsset', { name: id })
+    await workflowMcp.gatewayExecute('maenifold.workflow', 'DeleteWorkflowAsset', { name: id })
     toastSuccess('Workflow deleted.')
     await store.fetchSummaries()
     if (currentId.value === id) {

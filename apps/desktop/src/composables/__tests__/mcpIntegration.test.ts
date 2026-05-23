@@ -255,7 +255,7 @@ describe.skipIf(!RUN_E2E)('MCP live integration', () => {
 
         if (currentClient?.sessionId.value) {
           try {
-            await currentClient.callTool('Pipeline', { sessionId: pipelineId, delete: true });
+            await currentClient.gatewayExecute('maenifold.workflow', 'Pipeline', { sessionId: pipelineId, delete: true });
           } catch {
             // Ignore cleanup failures so tests surface the original assertion.
           }
@@ -336,7 +336,7 @@ describe.skipIf(!RUN_E2E)('MCP live integration', () => {
   it('sends tools/call JSON-RPC and parses SSE tool responses into JSON', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
     const client = await connectClient();
-    const result = await client.callTool<ToolEnvelope<PipelineListResult>>('Pipeline', { list: true });
+    const result = await client.gatewayExecute<ToolEnvelope<PipelineListResult>>('maenifold.workflow', 'Pipeline', { list: true });
 
     expect(result.success).toBe(true);
     expect(result.error).toBeNull();
@@ -349,8 +349,12 @@ describe.skipIf(!RUN_E2E)('MCP live integration', () => {
       jsonrpc: '2.0',
       method: 'tools/call',
       params: {
-        name: 'Pipeline',
-        arguments: { list: true },
+        name: 'GatewayExecute',
+        arguments: {
+          domain: 'maenifold.workflow',
+          command: 'Pipeline',
+          parameters: { list: true },
+        },
       },
     });
   });
@@ -525,7 +529,7 @@ describe.skipIf(!RUN_E2E)('MCP live integration', () => {
 
   it('exposes the raw ListAssets envelope shape through callTool before usePipelineMcp normalizes it', async () => {
     const client = await connectClient();
-    const result = await client.callTool<unknown>('ListAssets', { type: 'workflow' });
+    const result = await client.gatewayExecute<unknown>('maenifold.system', 'ListAssets', { type: 'workflow' });
     const workflows = unwrapToolData<Array<{ id: string }>>(result);
 
     expect(Array.isArray(workflows)).toBe(true);

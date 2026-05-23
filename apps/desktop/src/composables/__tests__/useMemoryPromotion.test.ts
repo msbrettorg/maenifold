@@ -8,21 +8,21 @@ import {
 } from '../useMemoryPromotion';
 
 const mockConnect = vi.fn();
-const mockCallTool = vi.fn();
+const mockGatewayExecute = vi.fn();
 
 vi.mock('../useSharedMcpClient', () => ({
   getSharedMcpClient: vi.fn(() => ({
     connected: ref(true),
     connect: mockConnect,
     error: ref(null),
-    callTool: mockCallTool,
+    gatewayExecute: mockGatewayExecute,
   })),
 }));
 
 describe('useMemoryPromotion', () => {
   beforeEach(() => {
     mockConnect.mockReset();
-    mockCallTool.mockReset();
+    mockGatewayExecute.mockReset();
   });
 
   it('normalizes plain connection input into wiki links', () => {
@@ -48,7 +48,7 @@ describe('useMemoryPromotion', () => {
   });
 
   it('writes new notes through WriteMemory with normalized wiki links', async () => {
-    mockCallTool.mockResolvedValueOnce({
+    mockGatewayExecute.mockResolvedValueOnce({
       success: true,
       data: {
         uri: 'memory://notes/example',
@@ -68,7 +68,7 @@ describe('useMemoryPromotion', () => {
     });
 
     expect(uri).toBe('memory://notes/example');
-    expect(mockCallTool).toHaveBeenCalledWith('WriteMemory', expect.objectContaining({
+    expect(mockGatewayExecute).toHaveBeenCalledWith('maenifold.memory', 'WriteMemory', expect.objectContaining({
       title: 'Example Note',
       folder: 'research',
       tags: ['ui'],
@@ -77,7 +77,7 @@ describe('useMemoryPromotion', () => {
   });
 
   it('appends promotion blocks through EditMemory append', async () => {
-    mockCallTool.mockResolvedValueOnce({
+    mockGatewayExecute.mockResolvedValueOnce({
       success: true,
       data: {
         uri: 'memory://notes/example',
@@ -94,7 +94,7 @@ describe('useMemoryPromotion', () => {
       wikiLinkInput: '[[Pipeline UI]]',
     });
 
-    expect(mockCallTool).toHaveBeenCalledWith('EditMemory', expect.objectContaining({
+    expect(mockGatewayExecute).toHaveBeenCalledWith('maenifold.memory', 'EditMemory', expect.objectContaining({
       identifier: 'memory://notes/example',
       operation: 'append',
       content: expect.stringContaining('Connections: [[pipeline-ui]]'),
@@ -102,7 +102,7 @@ describe('useMemoryPromotion', () => {
   });
 
   it('updates notes through EditMemory replace_section', async () => {
-    mockCallTool.mockResolvedValueOnce({
+    mockGatewayExecute.mockResolvedValueOnce({
       success: true,
       data: {
         uri: 'memory://notes/example',
@@ -120,7 +120,7 @@ describe('useMemoryPromotion', () => {
       checksum: 'checksum-1',
     });
 
-    expect(mockCallTool).toHaveBeenCalledWith('EditMemory', expect.objectContaining({
+    expect(mockGatewayExecute).toHaveBeenCalledWith('maenifold.memory', 'EditMemory', expect.objectContaining({
       identifier: 'memory://notes/example',
       operation: 'replace_section',
       sectionName: 'Promoted Content',

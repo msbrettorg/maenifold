@@ -53,7 +53,7 @@ async function probeMemoryApi(): Promise<ProbeResult> {
 
   try {
     await client.connect();
-    await client.callTool('RecentActivity', { filter: 'thinking', limit: 1 });
+    await client.gatewayExecute('maenifold.system', 'RecentActivity', { filter: 'thinking', limit: 1 });
     return { available: true };
   } catch (error: unknown) {
     return {

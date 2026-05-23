@@ -19,7 +19,7 @@ const workflowSummaries: WorkflowAssetSummary[] = [
 ]
 
 const connected = ref(true)
-const callTool = vi.fn(async () => null)
+const gatewayExecute = vi.fn(async () => null)
 const listWorkflowSummaries = vi.fn(async () => workflowSummaries)
 const readWorkflowDefinition = vi.fn(async (id: string) => makeDefinition(id))
 
@@ -28,7 +28,7 @@ vi.mock('../../composables/usePipelineMcp', () => ({
     connected,
     error: ref(null),
     connect: vi.fn(async () => {}),
-    callTool,
+    gatewayExecute,
     listWorkflowSummaries,
     readWorkflowDefinition,
   }),
@@ -65,7 +65,7 @@ async function createLoadedStore() {
 
 beforeEach(() => {
   connected.value = true
-  callTool.mockClear()
+  gatewayExecute.mockClear()
   listWorkflowSummaries.mockClear()
   readWorkflowDefinition.mockClear()
   toast.error.mockClear()
@@ -99,7 +99,8 @@ describe('duplicateCurrentWorkflow', () => {
 
     await store.duplicateCurrentWorkflow()
 
-    expect(callTool).toHaveBeenCalledWith(
+    expect(gatewayExecute).toHaveBeenCalledWith(
+      'maenifold.workflow',
       'SaveWorkflowAsset',
       expect.objectContaining({ id: 'my-flow-copy-2' }),
     )
@@ -128,7 +129,7 @@ describe('duplicateCurrentWorkflow', () => {
   it('surfaces error and returns null when SaveWorkflowAsset rejects', async () => {
     const store = await createLoadedStore()
     await store.selectWorkflow('my-flow')
-    callTool.mockRejectedValueOnce(new Error('disk full'))
+    gatewayExecute.mockRejectedValueOnce(new Error('disk full'))
     listWorkflowSummaries.mockClear()
 
     const result = await store.duplicateCurrentWorkflow()
@@ -147,18 +148,18 @@ describe('duplicateCurrentWorkflow', () => {
     const result = await store.duplicateCurrentWorkflow()
 
     expect(result).toBe('my-flow-copy-2')
-    expect(callTool).toHaveBeenCalledWith('SaveWorkflowAsset', expect.objectContaining({ id: 'my-flow-copy-2' }))
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.workflow', 'SaveWorkflowAsset', expect.objectContaining({ id: 'my-flow-copy-2' }))
     expect(toast.error).not.toHaveBeenCalled()
   })
 
   it('returns null immediately when currentId is null', async () => {
     setActivePinia(createPinia())
     const store = useWorkflowLibraryStore()
-    callTool.mockClear()
+    gatewayExecute.mockClear()
 
     const result = await store.duplicateCurrentWorkflow()
 
     expect(result).toBeNull()
-    expect(callTool).not.toHaveBeenCalled()
+    expect(gatewayExecute).not.toHaveBeenCalled()
   })
 })

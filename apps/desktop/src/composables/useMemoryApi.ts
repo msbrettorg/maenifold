@@ -73,7 +73,7 @@ export function useMemoryApi() {
   async function readMemory(identifier: string): Promise<MemoryFile> {
     await ensureConnected();
     return normalizeReadMemoryResponse(
-      await mcp.callTool('ReadMemory', { identifier }),
+      await mcp.gatewayExecute('maenifold.memory', 'ReadMemory', { identifier }),
     );
   }
 
@@ -91,7 +91,7 @@ export function useMemoryApi() {
     if (opts.folder) payload.folder = opts.folder;
 
     return normalizeSearchResponse(
-      await mcp.callTool('SearchMemories', payload),
+      await mcp.gatewayExecute('maenifold.memory', 'SearchMemories', payload),
       pageSize,
     );
   }
@@ -108,7 +108,7 @@ export function useMemoryApi() {
     if (opts.includeContent !== undefined) payload.includeContent = opts.includeContent;
 
     return normalizeRecentResponse(
-      await mcp.callTool('RecentActivity', payload),
+      await mcp.gatewayExecute('maenifold.system', 'RecentActivity', payload),
     );
   }
 
@@ -118,7 +118,7 @@ export function useMemoryApi() {
     const payload: Record<string, unknown> = {};
     if (opts.path) payload.path = opts.path;
 
-    return unwrapToolData<string>(await mcp.callTool('ListMemories', payload));
+    return unwrapToolData<string>(await mcp.gatewayExecute('maenifold.memory', 'ListMemories', payload));
   }
 
   async function writeMemory(options: WriteMemoryOptions): Promise<string> {
@@ -128,13 +128,13 @@ export function useMemoryApi() {
       content: options.content,
     };
     if (options.folder?.trim()) payload.folder = options.folder.trim();
-    return normalizeMemoryWriteResponse(await mcp.callTool('WriteMemory', payload));
+    return normalizeMemoryWriteResponse(await mcp.gatewayExecute('maenifold.memory', 'WriteMemory', payload));
   }
 
   async function editMemory(options: EditMemoryOptions): Promise<string> {
     await ensureConnected();
     return normalizeMemoryWriteResponse(
-      await mcp.callTool('EditMemory', {
+      await mcp.gatewayExecute('maenifold.memory', 'EditMemory', {
         identifier: options.identifier,
         operation: 'find_replace',
         findText: options.findText,
@@ -148,12 +148,12 @@ export function useMemoryApi() {
 
   async function deleteMemory(identifier: string): Promise<void> {
     await ensureConnected();
-    await mcp.callTool('DeleteMemory', { identifier, confirm: true });
+    await mcp.gatewayExecute('maenifold.memory', 'DeleteMemory', { identifier, confirm: true });
   }
 
   async function moveMemory(options: MoveMemoryOptions): Promise<string> {
     await ensureConnected();
-    const response = await mcp.callTool('MoveMemory', {
+    const response = await mcp.gatewayExecute('maenifold.memory', 'MoveMemory', {
       source: options.source,
       destination: options.destination,
     });
@@ -176,7 +176,7 @@ export function useMemoryApi() {
     if (opts.includeContent !== undefined) payload.includeContent = opts.includeContent;
 
     return normalizeBuildContextResponse(
-      await mcp.callTool('BuildContext', payload),
+      await mcp.gatewayExecute('maenifold.graph', 'BuildContext', payload),
     );
   }
 
@@ -186,7 +186,7 @@ export function useMemoryApi() {
   ): Promise<SimilarConceptResult> {
     await ensureConnected();
     return normalizeSimilarConceptsResponse(
-      await mcp.callTool('FindSimilarConcepts', { conceptName, maxResults }),
+      await mcp.gatewayExecute('maenifold.graph', 'FindSimilarConcepts', { conceptName, maxResults }),
     );
   }
 

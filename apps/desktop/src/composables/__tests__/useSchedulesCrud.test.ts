@@ -20,7 +20,7 @@ function createForm(): ScheduleForm {
 
 describe('createSchedulesCrud', () => {
   it('saveSchedule creates a schedule with parsed allowlist and mcp parameters', async () => {
-    const callTool = vi.fn((_tool: string, payload: { action: string }) => {
+    const gatewayExecute = vi.fn((_domain: string, _command: string, payload: { action: string }) => {
       if (payload.action === 'create') return Promise.resolve({ message: 'created' });
       if (payload.action === 'list') return Promise.resolve([]);
       if (payload.action === 'verify_installed') return Promise.resolve([]);
@@ -40,7 +40,7 @@ describe('createSchedulesCrud', () => {
       configStore: { loading: false, loadConfig: vi.fn().mockResolvedValue(undefined) },
       agentNames: ref(['swe']),
       ensureConnected: vi.fn().mockResolvedValue(undefined),
-      callTool,
+      gatewayExecute,
       schedulesStore: { setInstallStatuses: vi.fn(), setPauseState: vi.fn() },
       jobs: ref([]),
       isLoading: ref(false),
@@ -58,7 +58,7 @@ describe('createSchedulesCrud', () => {
 
     await crud.saveSchedule();
 
-    expect(callTool).toHaveBeenCalledWith('Schedule', {
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.system', 'Schedule', {
       action: 'create',
       id: 'daily',
       schedule: 'every weekday at 9am',

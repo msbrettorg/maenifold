@@ -6,7 +6,7 @@ import { ref } from 'vue';
 import KnowledgeRowActions from '../KnowledgeRowActions.vue';
 import { useKnowledgeStore, type KnowledgeFileEntry } from '../../stores/knowledge';
 
-const mockCallTool = vi.fn();
+const mockGatewayExecute = vi.fn();
 
 vi.mock('../../composables/useSharedMcpClient', () => ({
   getSharedMcpClient: vi.fn(() => ({
@@ -15,7 +15,7 @@ vi.mock('../../composables/useSharedMcpClient', () => ({
     error: ref(null),
     onNotification: vi.fn(() => vi.fn()),
     onDisconnect: vi.fn(() => vi.fn()),
-    callTool: mockCallTool,
+    gatewayExecute: mockGatewayExecute,
   })),
 }));
 
@@ -61,8 +61,8 @@ function file(): KnowledgeFileEntry {
 describe('KnowledgeRowActions', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    mockCallTool.mockReset();
-    mockCallTool.mockResolvedValue('### Folders\n\n### Files');
+    mockGatewayExecute.mockReset();
+    mockGatewayExecute.mockResolvedValue('### Folders\n\n### Files');
   });
 
   it('confirms delete with the note name and calls DeleteMemory with confirm true', async () => {
@@ -75,7 +75,7 @@ describe('KnowledgeRowActions', () => {
     expect(wrapper.text()).toContain('This will permanently delete editor.md.');
 
     await wrapper.find('[data-testid="confirm-delete-note"]').trigger('click');
-    expect(mockCallTool).toHaveBeenCalledWith('DeleteMemory', {
+    expect(mockGatewayExecute).toHaveBeenCalledWith('maenifold.memory', 'DeleteMemory', {
       identifier: 'memory://research/editor',
       confirm: true,
     });
@@ -91,7 +91,7 @@ describe('KnowledgeRowActions', () => {
     await wrapper.find('[data-testid="rename-note-input"]').setValue('renamed.md');
     await wrapper.find('[data-testid="confirm-rename-note"]').trigger('click');
 
-    expect(mockCallTool).toHaveBeenCalledWith('MoveMemory', {
+    expect(mockGatewayExecute).toHaveBeenCalledWith('maenifold.memory', 'MoveMemory', {
       source: 'memory://research/editor',
       destination: 'research/renamed.md',
     });
@@ -121,7 +121,7 @@ describe('KnowledgeRowActions', () => {
     await wrapper.find('[data-testid="folder-picker-option-archive"]').trigger('click');
     await wrapper.find('[data-testid="confirm-move-note"]').trigger('click');
 
-    expect(mockCallTool).toHaveBeenCalledWith('MoveMemory', {
+    expect(mockGatewayExecute).toHaveBeenCalledWith('maenifold.memory', 'MoveMemory', {
       source: 'memory://research/editor',
       destination: 'archive/editor.md',
     });
@@ -142,8 +142,8 @@ describe('KnowledgeRowActions', () => {
     }];
     store.openTabs = ['memory://research/editor'];
     store.activeTabUri = 'memory://research/editor';
-    mockCallTool.mockReset();
-    mockCallTool
+    mockGatewayExecute.mockReset();
+    mockGatewayExecute
       .mockResolvedValueOnce('Moved memory FILE: memory://research/editor → memory://archive/editor')
       .mockResolvedValueOnce('### Folders\n\n### Files')
       .mockResolvedValueOnce({

@@ -11,7 +11,7 @@ const mcpMock = vi.hoisted(() => {
   const vue = require('vue') as typeof import('vue');
   const notificationHandlers: Array<(notification: { method: string; params?: unknown }) => void> = [];
   return {
-    callTool: vi.fn(),
+    gatewayExecute: vi.fn(),
     connect: vi.fn(),
     connected: vue.ref(true),
     error: vue.ref<string | null>(null),
@@ -38,7 +38,7 @@ function resourcePayload(uri: string) {
 
 vi.mock('../../composables/useSharedMcpClient', () => ({
   getSharedMcpClient: () => ({
-    callTool: mcpMock.callTool,
+    gatewayExecute: mcpMock.gatewayExecute,
     connected: mcpMock.connected,
     connect: mcpMock.connect,
     error: mcpMock.error,
@@ -56,7 +56,7 @@ vi.mock('../../composables/useSharedMcpClient', () => ({
     onDisconnect: vi.fn(() => vi.fn()),
   }),
   usePipelineMcp: () => ({
-    callTool: mcpMock.callTool,
+    gatewayExecute: mcpMock.gatewayExecute,
     connected: mcpMock.connected,
     connect: mcpMock.connect,
     error: mcpMock.error,
@@ -86,8 +86,8 @@ function session(status: string, currentStep: number, stepTimings = {}, currentW
 describe('WorkflowLiveProgress', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    mcpMock.callTool.mockReset();
-    mcpMock.callTool.mockResolvedValue('Cancelled');
+    mcpMock.gatewayExecute.mockReset();
+    mcpMock.gatewayExecute.mockResolvedValue('Cancelled');
     mcpMock.connect.mockReset();
     mcpMock.connect.mockImplementation(() => {
       mcpMock.connected.value = true;
@@ -144,7 +144,7 @@ describe('WorkflowLiveProgress', () => {
 
     await wrapper.get('[data-testid="workflow-stop-button"]').trigger('click');
 
-    expect(mcpMock.callTool).toHaveBeenCalledWith('Workflow', {
+    expect(mcpMock.gatewayExecute).toHaveBeenCalledWith('maenifold.workflow', 'Workflow', {
       sessionId: 'wf-session-1',
       response: 'Cancelled from desktop workflow runner. [[workflow-execution]]',
       status: 'cancelled',

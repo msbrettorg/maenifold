@@ -34,7 +34,7 @@ const emit = defineEmits<{
   backfilled: [result: BackfillResult];
 }>();
 
-const { callTool } = useMcpClient();
+const { gatewayExecute } = useMcpClient();
 const fieldIdBase = `schedule-backfill-${props.scheduleId}`;
 const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 const since = ref(sevenDaysAgo);
@@ -48,7 +48,7 @@ async function runBackfill(): Promise<void> {
   running.value = true;
   error.value = '';
   try {
-    const result = await callTool<BackfillResult>('Schedule', {
+    const result = await gatewayExecute<BackfillResult>('maenifold.system', 'Schedule', {
       action: 'backfill',
       id: props.scheduleId,
       since: since.value,

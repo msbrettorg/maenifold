@@ -41,14 +41,10 @@ function createOps(
 }
 
 describe('createMcpClientOps direct daemon routing', () => {
-  it('passes routed and canonical tool names straight through to the daemon', async () => {
+  it('passes canonical tool names straight through to the daemon', async () => {
     const client = createMockClient(async ({ name, arguments: args = {} }) => toolText({ name, args }));
     const { ops } = createOps(() => client);
 
-    await expect(ops.callTool('SearchMemories', { query: 'memory' })).resolves.toEqual({
-      name: 'SearchMemories',
-      args: { query: 'memory' },
-    });
     await expect(ops.callTool('GatewayIndex', { domain: 'maenifold.memory' })).resolves.toEqual({
       name: 'GatewayIndex',
       args: { domain: 'maenifold.memory' },
@@ -59,10 +55,32 @@ describe('createMcpClientOps direct daemon routing', () => {
     });
 
     expect(client.callTool.mock.calls).toEqual([
-      [{ name: 'SearchMemories', arguments: { query: 'memory' } }],
       [{ name: 'GatewayIndex', arguments: { domain: 'maenifold.memory' } }],
       [{ name: 'GetHelp', arguments: { toolName: 'SearchMemories' } }],
     ]);
+  });
+
+  it('gatewayExecute wraps domain, command, and parameters in the canonical envelope', async () => {
+    const client = createMockClient(async ({ name, arguments: args = {} }) => toolText({ name, args }));
+    const { ops } = createOps(() => client);
+
+    await expect(ops.gatewayExecute('maenifold.memory', 'SearchMemories', { query: 'memory' })).resolves.toEqual({
+      name: 'GatewayExecute',
+      args: {
+        domain: 'maenifold.memory',
+        command: 'SearchMemories',
+        parameters: { query: 'memory' },
+      },
+    });
+
+    expect(client.callTool).toHaveBeenCalledWith({
+      name: 'GatewayExecute',
+      arguments: {
+        domain: 'maenifold.memory',
+        command: 'SearchMemories',
+        parameters: { query: 'memory' },
+      },
+    });
   });
 
   it('lets unknown tool errors come back from the daemon instead of rejecting in the frontend', async () => {
@@ -79,7 +97,7 @@ describe('createMcpClientOps direct daemon routing', () => {
     expect(setError).toHaveBeenLastCalledWith('-32601 Method not found: DiscoverMcpPrompts');
   });
 
-  it('reconnects and retries the same direct call after a session-expired 404', async () => {
+  it('reconnects and retries the same gateway execute after a session-expired 404', async () => {
     const firstClient = createMockClient(async () => {
       throw new StreamableHTTPError(404, 'MCP session expired');
     });
@@ -91,14 +109,22 @@ describe('createMcpClientOps direct daemon routing', () => {
     });
     const { ops } = createOps(() => currentClient, reconnectSession);
 
-    await expect(ops.callTool('SearchMemories', { query: 'after reconnect' })).resolves.toEqual({
-      name: 'SearchMemories',
-      args: { query: 'after reconnect' },
+    await expect(ops.gatewayExecute('maenifold.memory', 'SearchMemories', { query: 'after reconnect' })).resolves.toEqual({
+      name: 'GatewayExecute',
+      args: {
+        domain: 'maenifold.memory',
+        command: 'SearchMemories',
+        parameters: { query: 'after reconnect' },
+      },
     });
     expect(reconnectSession).toHaveBeenCalledTimes(1);
     expect(secondClient.callTool).toHaveBeenCalledWith({
-      name: 'SearchMemories',
-      arguments: { query: 'after reconnect' },
+      name: 'GatewayExecute',
+      arguments: {
+        domain: 'maenifold.memory',
+        command: 'SearchMemories',
+        parameters: { query: 'after reconnect' },
+      },
     });
   });
 
@@ -110,7 +136,7 @@ describe('createMcpClientOps direct daemon routing', () => {
     })));
     const { ops, setError } = createOps(() => client);
 
-    await expect(ops.callTool('ReadMemory', { identifier: 'memory://ConceptX' })).rejects.toMatchObject({
+    await expect(ops.gatewayExecute('maenifold.memory', 'ReadMemory', { identifier: 'memory://ConceptX' })).rejects.toMatchObject({
       name: 'ToolEnvelopeError',
       code: 'NOT_FOUND',
       message: 'Memory file not found: ConceptX',

@@ -43,7 +43,7 @@ export function useSessionModels(): {
     const load = (async () => {
       try {
         if (!mcp.connected.value) await mcp.connect();
-        const response = await mcp.callTool('GetCopilotModels', { refresh: false }) as {
+        const response = await mcp.gatewayExecute('maenifold.system', 'GetCopilotModels', { refresh: false }) as {
           models?: Array<{
             id?: string;
             capabilities?: { supports?: { reasoning_effort?: unknown } };

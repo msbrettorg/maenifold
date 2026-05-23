@@ -132,4 +132,13 @@ describe('HomeDashboard — search affordance (T-243.23)', () => {
 
     expect(appShell.activeTab).not.toBe('knowledge');
   });
+
+  it('hides the connection-status tile when daemon is connected and no session is active', () => {
+    const wrapper = mount(HomeDashboard, {
+      props: defaultProps,
+      global: { stubs },
+    });
+
+    expect(wrapper.find('#home-connection-status').exists()).toBe(false);
+  });
 });

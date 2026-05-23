@@ -6,6 +6,19 @@
 import type { RequestPermissionRequest, RequestPermissionResponse } from '@agentclientprotocol/sdk';
 import { ref, type Ref } from 'vue';
 import { normalizePermissionToolCallPayload } from './acp-meta';
+import {
+  buildPlanModeRejectionMessage,
+  promptForPermission,
+  syncPendingPermissionRequests,
+  type InlinePermissionMessageSink as PromptInlinePermissionMessageSink,
+  type PendingPermissionEntry,
+} from './acp-permission-prompts';
+import {
+  decisionFromResponse,
+  mostRestrictiveResponse,
+  selectedResponse,
+  tryModeSupersede,
+} from './acp-permission-policy';
 import type { PermissionRequest as LocalPermissionRequest } from './types';
 import {
   markAutoPermissionStatus,
@@ -20,19 +33,7 @@ import {
 import { normalizePermissionToolKind } from './permission-ledger/equivalence-key';
 import type { PermissionEvaluateRequestResult } from './permission-ledger/types';
 
-const PLAN_MODE_SAFE_TOOL_KINDS = new Set(['read', 'fetch', 'search', 'think']);
-
-type PermissionResolver = (response: RequestPermissionResponse) => void;
-export type InlinePermissionMessageSink = (message: {
-  toolCallId: string;
-  message: string;
-  severity: 'warning';
-}) => void;
-
-type PendingPermissionEntry = {
-  request: LocalPermissionRequest;
-  resolver: PermissionResolver;
-};
+export type InlinePermissionMessageSink = PromptInlinePermissionMessageSink;
 
 export class PermissionAgentNonCompliantError extends Error {
   constructor(message: string) {
@@ -77,17 +78,28 @@ export class PermissionHandler {
 
   requestPermission(params: RequestPermissionRequest): Promise<RequestPermissionResponse> {
     const request = this.normalizePermissionRequest(params);
-    const modeDecision = this.tryModeSupersede(request);
+    const modeDecision = tryModeSupersede(request, this.context.currentModeId());
     if (modeDecision) {
+      const kind = normalizePermissionToolKind(request.toolCall.kind);
+      const toolName = request.toolCall.title || request.toolCall.kind || 'unknown';
+      this.context.onInlineMessage?.({
+        toolCallId: request.toolCall.toolCallId,
+        message: buildPlanModeRejectionMessage(toolName, kind),
+        severity: 'warning',
+      });
       markAutoPermissionStatus(request.toolCall.toolCallId, modeDecision);
       try {
-        return Promise.resolve(this.selectedResponse(request, modeDecision));
+        return Promise.resolve(
+          selectedResponse(request, modeDecision, (message) => {
+            return new PermissionAgentNonCompliantError(message);
+          })
+        );
       } catch (error) {
         if (error instanceof PermissionAgentNonCompliantError) {
           pushPermissionSafetyNotification(
             `Agent failed to provide ${modeDecision} option for plan-mode protected tool call. Refusing for safety.`
           );
-          return Promise.resolve(this.mostRestrictiveResponse(request));
+          return Promise.resolve(mostRestrictiveResponse(request));
         }
         throw error;
       }
@@ -114,16 +126,21 @@ export class PermissionHandler {
   ): Promise<RequestPermissionResponse> {
     if (typeof ledgerDecision === 'object' && ledgerDecision !== null) {
       if (ledgerDecision.autoDecided) {
-        const decision = this.decisionFromResponse(request, ledgerDecision.response);
+        const decision = decisionFromResponse(request, ledgerDecision.response);
         if (decision) markAutoPermissionStatus(request.toolCall.toolCallId, decision);
         return Promise.resolve(ledgerDecision.response);
       }
-      return this.promptForPermission(params, {
-        ...request,
-        toolCall: ledgerDecision.prompt.toolCall,
-        options: ledgerDecision.prompt.options,
-        decisionToken: ledgerDecision.token,
-      });
+      return promptForPermission(
+        params,
+        {
+          ...request,
+          toolCall: ledgerDecision.prompt.toolCall,
+          options: ledgerDecision.prompt.options,
+          decisionToken: ledgerDecision.token,
+        },
+        this.pendingPermissions,
+        this.pendingPermissionRequests
+      );
     }
 
     if (ledgerDecision) {
@@ -131,33 +148,28 @@ export class PermissionHandler {
       const event = this.permissionLedger.getLastAutoDecision?.();
       if (event) pushPermissionGhostNotification(event);
       try {
-        return Promise.resolve(this.selectedResponse(request, ledgerDecision));
+        return Promise.resolve(
+          selectedResponse(request, ledgerDecision, (message) => {
+            return new PermissionAgentNonCompliantError(message);
+          })
+        );
       } catch (error) {
         if (error instanceof PermissionAgentNonCompliantError) {
           pushPermissionSafetyNotification(
             `Agent failed to provide ${ledgerDecision} option for persisted permission decision. Showing the permission dialog instead.`
           );
-          return this.promptForPermission(params, request);
+          return promptForPermission(
+            params,
+            request,
+            this.pendingPermissions,
+            this.pendingPermissionRequests
+          );
         }
         throw error;
       }
     }
 
-    return this.promptForPermission(params, request);
-  }
-
-  private decisionFromResponse(
-    request: LocalPermissionRequest,
-    response: RequestPermissionResponse
-  ): 'allow' | 'reject' | null {
-    const outcome = response.outcome;
-    if (outcome.outcome !== 'selected') {
-      return null;
-    }
-    const option = request.options.find((candidate) => candidate.optionId === outcome.optionId);
-    if (option?.kind.startsWith('allow')) return 'allow';
-    if (option?.kind.startsWith('reject')) return 'reject';
-    return null;
+    return promptForPermission(params, request, this.pendingPermissions, this.pendingPermissionRequests);
   }
 
   async resolvePermission(requestId: string, optionId: string, scope?: PermissionScope): Promise<void> {
@@ -172,7 +184,7 @@ export class PermissionHandler {
       console.error('[T-244.102] Permission persistence failed:', error);
     } finally {
       this.pendingPermissions.delete(requestId);
-      this.syncPendingPermissionRequests();
+      syncPendingPermissionRequests(this.pendingPermissions, this.pendingPermissionRequests);
       pendingRequest.resolver({
         outcome: { outcome: 'selected', optionId },
         _meta: null,
@@ -187,7 +199,7 @@ export class PermissionHandler {
     }
 
     this.pendingPermissions.delete(requestId);
-    this.syncPendingPermissionRequests();
+    syncPendingPermissionRequests(this.pendingPermissions, this.pendingPermissionRequests);
     pendingRequest.resolver({
       outcome: { outcome: 'cancelled' },
       _meta: null,
@@ -228,81 +240,6 @@ export class PermissionHandler {
       })),
       _meta: params._meta ?? null,
     };
-  }
-
-  private syncPendingPermissionRequests(): void {
-    this.pendingPermissionRequests.value = Array.from(this.pendingPermissions.values()).map(
-      ({ request }) => request
-    );
-  }
-
-  private tryModeSupersede(request: LocalPermissionRequest): 'allow' | 'reject' | null {
-    const modeId = this.context.currentModeId();
-    const kind = normalizePermissionToolKind(request.toolCall.kind);
-    if (modeId !== 'plan' || PLAN_MODE_SAFE_TOOL_KINDS.has(kind)) {
-      return null;
-    }
-
-    // Plan mode allows only side-effect-free normalized kinds: read, fetch, search, think.
-    // Unknown, write-like, executable, mode-switching, and file-mutating kinds fail closed.
-    const toolName = request.toolCall.title || request.toolCall.kind || 'unknown';
-    this.context.onInlineMessage?.({
-      toolCallId: request.toolCall.toolCallId,
-      message: `Plan mode auto-rejected tool '${toolName}' (kind '${kind}' is not in the safe-kind whitelist).`,
-      severity: 'warning',
-    });
-    return 'reject';
-  }
-
-  private selectedResponse(
-    request: LocalPermissionRequest,
-    decision: 'allow' | 'reject'
-  ): RequestPermissionResponse {
-    const option = request.options.find(
-      (candidate) => candidate.kind === `${decision}_once` || candidate.kind === `${decision}_always`
-    );
-    if (!option) {
-      throw new PermissionAgentNonCompliantError(
-        `Agent did not provide a ${decision}_once option for tool call ${request.toolCall.toolCallId}`
-      );
-    }
-    return {
-      outcome: {
-        outcome: 'selected',
-        optionId: option.optionId,
-      },
-      _meta: null,
-    };
-  }
-
-  private mostRestrictiveResponse(request: LocalPermissionRequest): RequestPermissionResponse {
-    const reject = request.options.find(
-      (candidate) => candidate.kind === 'reject_once' || candidate.kind === 'reject_always'
-    );
-    if (reject) {
-      return {
-        outcome: { outcome: 'selected', optionId: reject.optionId },
-        _meta: null,
-      };
-    }
-    return {
-      outcome: { outcome: 'cancelled' },
-      _meta: null,
-    };
-  }
-
-  private promptForPermission(
-    params: RequestPermissionRequest,
-    request: LocalPermissionRequest
-  ): Promise<RequestPermissionResponse> {
-    return new Promise((resolve) => {
-      const key = params.toolCall.toolCallId;
-      this.pendingPermissions.set(key, {
-        request,
-        resolver: resolve,
-      });
-      this.syncPendingPermissionRequests();
-    });
   }
 
   private async recordPersistentDecision(

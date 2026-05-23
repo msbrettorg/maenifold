@@ -7,18 +7,24 @@ import "vue-sonner/style.css";
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import App from "./App.vue";
-import { installCdpPerfHarness } from "./lib/cdp-perf-harness";
 import { usePreferencesStore } from "./stores/preferences";
 
 const app = createApp(App);
 const pinia = createPinia();
 
-app.use(pinia);
+async function bootstrap(): Promise<void> {
+  app.use(pinia);
 
-// Apply saved font density before first render
-const preferencesStore = usePreferencesStore();
-preferencesStore.init();
+  // Apply saved font density before first render
+  const preferencesStore = usePreferencesStore();
+  preferencesStore.init();
 
-app.mount("#app");
+  app.mount("#app");
 
-installCdpPerfHarness();
+  if (import.meta.env.DEV) {
+    const { installCdpPerfHarness } = await import("./lib/cdp-perf-harness");
+    installCdpPerfHarness();
+  }
+}
+
+void bootstrap();

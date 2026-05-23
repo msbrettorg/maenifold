@@ -5,6 +5,7 @@ One product, one monorepo. `crates/` = Rust backend. `apps/desktop/` = Electron 
 ## Key Documents
 
 - **[UAT Plan](docs/UAT-PLAN.md)** — Exhaustive UI acceptance test plan (679 test cases). Required reading before any UI work ships.
+- **[Zed](https://github.com/zed-industries/zed)** — Reference implementation. Whenever we have problems with ACP, Copilot integration, model capabilities, slash commands, or any agent-facing feature, look at how Zed does it first. Zed's Copilot Chat integration works correctly; ours should match.
 
 ---
 

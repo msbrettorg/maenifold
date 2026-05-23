@@ -14,11 +14,34 @@ agent-browser tab
 agent-browser snapshot -i
 ```
 
-`scripts/uat-launch.sh` is the canonical wrapper. It computes a stable task-specific port when one is not supplied, refuses an already-owned CDP port, launches the packaged binary directly with `--remote-debugging-port`, `--remote-allow-origins=*`, a fresh `--user-data-dir`, AND sets `MAENIFOLD_UAT=1` + `MAENIFOLD_UAT_FOLDER_PICKER_PATH=<tmpdir>/uat-fixture-folder`. The env vars are MANDATORY: they bypass the OS-level folder picker so agent-driven runs never hang on a native dialog that CDP cannot dismiss. The wrapper detaches the process, verifies `/json`, and prints the exact connect command.
+`scripts/uat-launch.sh` is the canonical wrapper. It computes a stable task-specific port when one is not supplied, refuses an already-owned CDP port, launches the packaged binary in its OWN session/process group via `setsid` (or a Python double-fork fallback on macOS where `setsid(1)` is not installed), sets `--remote-debugging-port`, `--remote-allow-origins=*`, a fresh `--user-data-dir`, AND `MAENIFOLD_UAT=1` + `MAENIFOLD_UAT_FOLDER_PICKER_PATH=<tmpdir>/uat-fixture-folder`. The env vars are MANDATORY: they bypass the OS-level folder picker so agent-driven runs never hang on a native dialog that CDP cannot dismiss. The wrapper verifies the spawned binary's PGID differs from its own PGID (proving session detach worked), verifies `/json`, and prints the exact connect command.
 
 Always grep the launch log for `[uat] MAENIFOLD_UAT mode active` before invoking any agent-browser command, to confirm the guard is active.
 
 If the wrapper reports a port owner, list the exact owner and kill only the exact numeric PID after confirming it is the right process. Do not use name-based process cleanup. Do not hand-roll an alternate Electron launch unless the wrapper itself is being fixed.
+
+## Why we need `setsid`, not `nohup` (2026-05-22 post-mortem)
+
+The wrapper originally used `nohup ... & disown`. That looked correct, but `nohup` only ignores SIGHUP; it does NOT detach from the launching shell's process group or session. The spawned Electron stayed in the parent shell's PGID, so when that shell exited — every short-lived bash call from an agent — macOS delivered group signals to the Electron helpers and the renderer self-destructed about 5 seconds later with the signature:
+
+```
+[maenifold] Renderer process gone: killed 15
+[maenifold] Child process gone: GPU killed
+[maenifold] Unhandled rejection: Error: ERR_FAILED (-2) loading 'file://...dist/index.html'
+```
+
+This is what made UAT "stop working" for agents that issue independent bash calls. Humans and long-running Python scripts never noticed because they kept ONE shell open for the entire session, so the parent never exited and the group never got signaled.
+
+`setsid` puts the binary in its own session AND its own process group, immune to the parent shell's exit signals. macOS does NOT ship `setsid(1)` by default — the wrapper falls back to a `python3` double-fork that calls `os.setsid()` (POSIX-portable, present on every macOS install). The wrapper then asserts `child PGID != parent PGID` and fails loudly if the detach didn't take, so this class of bug can never regress silently.
+
+Diagnostic if UAT is mysteriously failing again:
+```bash
+pid=$(cat apps/desktop/uat-logs/<task-id>/runtime/mae-cdp-<port>.pid)
+ps -o pid,pgid,sess,command -p "$pid"
+# child PGID must NOT equal the shell's PGID.
+ps -o pid,pgid -p $$
+```
+
 
 ## Backend freshness before CDP UAT (critical — iter-14 lesson)
 
@@ -90,6 +113,7 @@ Do not silently skip UI verification when the renderer isn't in `agent-browser t
 | UI compiles but button/dialog behavior fails | Real product regression | Continue interactive UAT; typecheck is not sufficient |
 | Backend fix shipped + daemon redeployed but UAT still hits old behavior | Stale packaged Electron binary | `cd apps/desktop && npm run package` (Forge embeds a COPY of the backend, not a symlink); then re-launch UAT |
 | Folder picker hangs the run | Native dialog not bypassed | Confirm `MAENIFOLD_UAT=1` in launch env; the wrapper sets it but grep the log for `[uat] MAENIFOLD_UAT mode active` |
+| Renderer dies seconds after launch with `GPU killed` + `Renderer process gone: killed 15` + `ERR_FAILED loading dist/index.html` | Launch wrapper did not detach into its own process group (regression of the `nohup`-only spawn) | Verify `scripts/uat-launch.sh` uses `setsid` / `python3 os.setsid()` and asserts `child PGID != parent PGID`. See "Why we need setsid, not nohup" above. |
 
 ## Modal-handling discoveries (iter-14)
 

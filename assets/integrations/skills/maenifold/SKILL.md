@@ -14,7 +14,7 @@ If you only remember one thing, remember this sequence:
 1. **Discover the live domain surface** with `GatewayIndex` **first**. On cold start, you do **not** know which additional Gateway-backed server domains are currently configured.
 2. **Load usage details** with `GetHelp` for the specific public tool or gateway command.
 3. **Inspect packaged assets/resources** with `ReadMcpResource` when you need `asset://...` content.
-4. **Inspect live downstream MCP servers** with `DiscoverMcpTools` when the question is about configured MCP servers/tool inventories rather than live gateway domains.
+4. **If you need the public surface itself, expect exactly these seven tools:** `GatewayBatch`, `GatewayExecute`, `GatewayIndex`, `GatewayIntent`, `GetHelp`, `ReadMcpResource`, and `complete_node`.
 5. **Run the actual operation** with `GatewayExecute`.
 
 Minimal startup flow:
@@ -40,7 +40,7 @@ These are the only top-level MCP tools you should expect to see:
 | **GatewayExecute** | Run one exact domain+command call. | It does not infer intent. |
 | **GatewayBatch** | Submit several exact gateway calls in order. | It is not discovery. |
 | **GatewayIntent** | Translate natural language into gateway candidates when you do not yet know the exact command. | It is less deterministic than `GatewayIndex`. |
-| **DiscoverMcpTools** | See the live MCP tools exposed by configured downstream servers, grouped by server/tool inventory. | It does **not** replace `GatewayIndex` for live domain discovery. |
+| **complete_node** | Submit the final structured output for a pipeline node when the prompt requests it. | It is not general gateway discovery. |
 | **ReadMcpResource** | Read `asset://...` and other MCP resource URIs. | It does **not** read `memory://` notes. |
 | **GetHelp** | Load canonical help for either a public tool or a gateway command name. | It does not inspect runtime state. |
 
@@ -77,7 +77,7 @@ Agents commonly lose time in the same ways:
 
 1. **They search for `WriteMemory` or `BuildContext` as if those were public MCP tools.** They are usually gateway commands instead.
 2. **They open maenifold on the theory section first.** The practical startup path must come before the abstract model.
-3. **They use `DiscoverMcpTools` when they really need `GatewayIndex`.** `DiscoverMcpTools` inventories tools grouped by configured downstream server; `GatewayIndex` discovers the live gateway domains you can actually call.
+3. **They forget the public surface is only seven tools.** Start from `GatewayIndex`, `GetHelp`, and `ReadMcpResource`; reserve `complete_node` for pipeline-node output only.
 4. **They assume only built-in `maenifold.*` domains matter.** `GatewayIndex` can also surface additional Gateway-backed domains from configured servers, so cold-start discovery must cover the whole live domain set.
 5. **They use `ReadMcpResource` for the wrong data plane.** `ReadMcpResource` is for MCP resources like `asset://catalog`; `memory://` content is handled by memory commands over the gateway. If you try `gateway://...` URIs here, expect a resource-format mismatch rather than domain discovery.
 
@@ -93,7 +93,7 @@ Use this default path unless you have a specific reason not to:
 Only branch from that default when:
 
 - you need packaged asset/resource content → `ReadMcpResource`
-- you need the live list of configured downstream MCP tools → `DiscoverMcpTools`
+- you need to submit a pipeline node's structured output → `complete_node`
 - you only have a natural-language request and need candidates first → `GatewayIntent`
 - you need several exact calls in sequence → `GatewayBatch`
 

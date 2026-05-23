@@ -244,6 +244,79 @@ describe('AcpClientBridgeCore request hardening', () => {
     await expect(connectPromise).resolves.toBeUndefined();
   });
 
+  it('records outbound request traffic entries through the injected sink', async () => {
+    const trafficStore = useTrafficStore();
+    const { bridge, socket } = await connectBridge();
+    const params = { cwd: '/repo', mcpServers: [] };
+    const promise = bridge.request<{ sessionId: string }>('session/new', params);
+    const frame = await readSentFrame(socket, 0);
+
+    expect(trafficStore.entries).toHaveLength(1);
+    expect(trafficStore.entries[0]).toMatchObject({
+      direction: 'out',
+      type: 'request',
+      method: 'session/new',
+      requestId: frame.id,
+      payload: {
+        method: 'session/new',
+        params: expect.objectContaining(params),
+      },
+    });
+
+    respondWithResult(socket, frame, { sessionId: 'sess-1' });
+    await expect(promise).resolves.toEqual({ sessionId: 'sess-1' });
+  });
+
+  it('records inbound response traffic entries with request id and error shape', async () => {
+    const trafficStore = useTrafficStore();
+    const { bridge, socket } = await connectBridge();
+    const promise = bridge.request('initialize', {});
+    const frame = await readSentFrame(socket, 0);
+
+    respondWithError(socket, frame, 'backend failed');
+
+    await expect(promise).rejects.toThrow('backend failed');
+    expect(trafficStore.entries).toHaveLength(2);
+    expect(trafficStore.entries[1]).toMatchObject({
+      direction: 'in',
+      type: 'response',
+      method: 'initialize',
+      requestId: frame.id,
+      error: true,
+      payload: {
+        id: frame.id,
+        error: { code: -32000, message: 'backend failed' },
+      },
+    });
+  });
+
+  it('records inbound notification traffic entries through the injected sink', async () => {
+    const trafficStore = useTrafficStore();
+    const { bridge, socket } = await connectBridge();
+    const notification = {
+      jsonrpc: '2.0',
+      method: 'session/update',
+      params: {
+        sessionId: 'session-1',
+        update: {
+          sessionUpdate: 'available_commands_update',
+          availableCommands: null,
+        },
+      },
+    };
+    bridge.onSessionUpdate = vi.fn();
+
+    socket.triggerMessage(JSON.stringify(notification));
+
+    expect(trafficStore.entries).toHaveLength(1);
+    expect(trafficStore.entries[0]).toMatchObject({
+      direction: 'in',
+      type: 'notification',
+      method: 'session/update',
+      payload: notification,
+    });
+  });
+
   it('clears request timeout handles after a successful response', async () => {
     const { bridge, socket } = await connectBridge();
     const promise = bridge.request<{ ok: boolean }>('initialize', {});

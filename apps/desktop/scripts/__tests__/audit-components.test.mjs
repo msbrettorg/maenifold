@@ -133,3 +133,89 @@ describe('audit-components max-loc enforcement', () => {
     error.mockRestore();
   });
 });
+
+describe('audit-components integration: auditCodeFile end-to-end', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.resetModules();
+    mocks.spawnSync.mockReset();
+    mocks.readFileSync.mockReset();
+    mocks.readdirSync.mockReset();
+  });
+
+  async function runAudit({ relPath, source, loadAudit }) {
+    mocks.spawnSync.mockReturnValue({ status: 0, stdout: `${relPath}\n` });
+    mocks.readdirSync.mockReturnValue([]);
+    mocks.readFileSync.mockImplementation((filePath) => {
+      if (String(filePath).endsWith(relPath)) return source;
+      throw new Error(`Unexpected read: ${filePath}`);
+    });
+
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const exit = vi.spyOn(process, 'exit').mockImplementation((code) => {
+      throw new Error(`process.exit:${code}`);
+    });
+
+    let importError = null;
+    try {
+      await loadAudit();
+    } catch (err) {
+      importError = err;
+    }
+
+    return { log, error, exit, importError };
+  }
+
+  it('emits exactly one violation when a synthetic .ts file is 301 lines', async () => {
+    const result = await runAudit({
+      relPath: 'src/example.ts',
+      source: 'line\n'.repeat(301),
+      loadAudit: () => import('../audit-components.mjs?audit-code-file-over'),
+    });
+
+    expect(result.importError).toBeInstanceOf(Error);
+    expect(result.importError?.message).toBe('process.exit:1');
+    expect(result.exit).toHaveBeenCalledWith(1);
+    expect(result.error.mock.calls).toEqual([
+      ['\n❌ Component audit: 1 violation(s) found:\n'],
+      ['  max-loc (1):'],
+      ['    src/example.ts:301  301 lines exceeds 300 limit — split this file.'],
+      [''],
+      ['Run with --all to scan every component.\n'],
+    ]);
+    expect(result.log).not.toHaveBeenCalled();
+  });
+
+  it('does NOT emit a violation when a synthetic .ts file is 300 lines', async () => {
+    const result = await runAudit({
+      relPath: 'src/example.ts',
+      source: 'line\n'.repeat(300),
+      loadAudit: () => import('../audit-components.mjs?audit-code-file-boundary'),
+    });
+
+    expect(result.importError).toBeNull();
+    expect(result.exit).not.toHaveBeenCalled();
+    expect(result.error).not.toHaveBeenCalled();
+    expect(result.log).toHaveBeenCalledWith('✅ audit:components passed (0 changed components, 1 changed TS files).');
+  });
+
+  it('skips .vue files in the LOC check (their LOC is governed by the existing .vue rule)', async () => {
+    const result = await runAudit({
+      relPath: 'src/Example.vue',
+      source: `<template>\n  <div />\n</template>\n<script setup lang="ts">\n${'const value = 1;\n'.repeat(496)}</script>\n`,
+      loadAudit: () => import('../audit-components.mjs?audit-code-file-vue'),
+    });
+
+    expect(result.importError).toBeInstanceOf(Error);
+    expect(result.importError?.message).toBe('process.exit:1');
+    expect(result.exit).toHaveBeenCalledWith(1);
+    expect(result.error).toHaveBeenCalledWith('  max-loc (1):');
+    expect(result.error).toHaveBeenCalledWith(
+      '    src/Example.vue:501  501 lines exceeds 300 limit — split this component.'
+    );
+    expect(result.error).not.toHaveBeenCalledWith(
+      '    src/Example.vue:501  501 lines exceeds 300 limit — split this file.'
+    );
+  });
+});

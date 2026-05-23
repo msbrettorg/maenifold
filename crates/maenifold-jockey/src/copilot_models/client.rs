@@ -9,8 +9,6 @@ use super::{CopilotModel, CopilotModelsEnvelope};
 
 const DEFAULT_ENDPOINT: &str = "https://api.githubcopilot.com";
 const DEFAULT_OAUTH_DOMAIN: &str = "github.com";
-const MODELS_MAX_AGE_SECONDS: i64 = 21_600;
-
 #[derive(Clone, Debug)]
 pub struct CopilotEndpoint {
     pub api: String,
@@ -18,7 +16,7 @@ pub struct CopilotEndpoint {
 
 pub(super) struct CopilotModelsFetch {
     pub models: Vec<CopilotModel>,
-    pub expires_at: DateTime<Utc>,
+    pub refresh_hint_at: Option<DateTime<Utc>>,
 }
 
 pub struct CopilotEndpointResolver {
@@ -43,8 +41,18 @@ pub enum CopilotEndpointResolverError {
 pub enum CopilotModelsClientError {
     #[error(transparent)]
     Endpoint(#[from] CopilotEndpointResolverError),
+    #[error("Copilot endpoint returned 401")]
+    Unauthorized,
     #[error("Copilot endpoint returned 403")]
     Forbidden,
+    #[error("Copilot endpoint returned 404")]
+    EndpointNotFound,
+    #[error("Copilot endpoint returned 429")]
+    RateLimited,
+    #[error("Copilot endpoint returned server error {status}")]
+    ServerError { status: StatusCode },
+    #[error("Copilot endpoint returned unexpected status {status}")]
+    UnexpectedStatus { status: StatusCode },
     #[error("Copilot models parse failed: {0}")]
     Parse(serde_json::Error),
     #[error("Copilot models network error: {0}")]
@@ -98,26 +106,41 @@ impl CopilotModelsClient {
             .http
             .get(format!("{}/models", endpoint.trim_end_matches('/')))
             .bearer_auth(access_token)
+            .header(
+                "Editor-Plugin-Version",
+                format!("maenifold/{}", env!("CARGO_PKG_VERSION")),
+            )
             .header("X-Github-Api-Version", "2025-04-01")
             .send()
             .await
             .map_err(classify_models_error)?;
-        if response.status() == StatusCode::FORBIDDEN {
+        let status = response.status();
+        if status == StatusCode::FORBIDDEN {
             return Err(CopilotModelsClientError::Forbidden);
         }
-        let expires_at = response
+        if !status.is_success() {
+            return Err(match status {
+                StatusCode::UNAUTHORIZED => CopilotModelsClientError::Unauthorized,
+                StatusCode::NOT_FOUND => CopilotModelsClientError::EndpointNotFound,
+                StatusCode::TOO_MANY_REQUESTS => CopilotModelsClientError::RateLimited,
+                status if status.is_server_error() => CopilotModelsClientError::ServerError {
+                    status,
+                },
+                status => CopilotModelsClientError::UnexpectedStatus { status },
+            });
+        }
+        let refresh_hint_at = response
             .headers()
             .get(reqwest::header::CACHE_CONTROL)
             .and_then(|value| value.to_str().ok())
             .and_then(parse_max_age)
-            .map(|seconds| Utc::now() + chrono::Duration::seconds(seconds))
-            .unwrap_or_else(|| Utc::now() + chrono::Duration::seconds(MODELS_MAX_AGE_SECONDS));
+            .map(|seconds| Utc::now() + chrono::Duration::seconds(seconds));
         let body = response.text().await.map_err(classify_models_error)?;
         let envelope = serde_json::from_str::<CopilotModelsEnvelope>(&body)
             .map_err(CopilotModelsClientError::Parse)?;
         Ok(CopilotModelsFetch {
             models: envelope.data,
-            expires_at,
+            refresh_hint_at,
         })
     }
 }

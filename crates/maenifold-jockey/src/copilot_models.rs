@@ -198,7 +198,7 @@ pub async fn get_copilot_models(
                 endpoint.api.clone(),
                 token.fingerprint,
                 cached_at,
-                fetch.expires_at,
+                fetch.refresh_hint_at,
                 filtered.clone(),
             )
             .await;
@@ -253,7 +253,7 @@ async fn write_cache(
     endpoint: String,
     fingerprint: String,
     cached_at: DateTime<Utc>,
-    expires_at: DateTime<Utc>,
+    _refresh_hint_at: Option<DateTime<Utc>>,
     models: Vec<CopilotModel>,
 ) {
     let mut cache = services.cache.write().await;
@@ -263,7 +263,7 @@ async fn write_cache(
             endpoint,
             fingerprint,
             cached_at,
-            expires_at: expires_at.max(cached_at + Duration::hours(6)),
+            expires_at: cached_at + Duration::hours(6),
             models,
         },
     );

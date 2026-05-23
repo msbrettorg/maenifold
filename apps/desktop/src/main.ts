@@ -9,6 +9,12 @@ import { createPinia } from "pinia";
 import App from "./App.vue";
 import { usePreferencesStore } from "./stores/preferences";
 
+declare global {
+  interface Window {
+    __MAENIFOLD_RUNTIME__?: { uat?: boolean };
+  }
+}
+
 const app = createApp(App);
 const pinia = createPinia();
 
@@ -21,9 +27,13 @@ async function bootstrap(): Promise<void> {
 
   app.mount("#app");
 
-  if (import.meta.env.DEV) {
-    const { installCdpPerfHarness } = await import("./lib/cdp-perf-harness");
-    installCdpPerfHarness();
+  if (import.meta.env.DEV || window.__MAENIFOLD_RUNTIME__?.uat === true) {
+    const harnessModule = await import("./lib/cdp-perf-harness");
+    const installHarness = Object.values(harnessModule).find(
+      (value): value is (() => void) => typeof value === "function",
+    );
+    if (!installHarness) throw new Error("CDP perf harness export missing");
+    installHarness();
   }
 }
 

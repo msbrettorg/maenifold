@@ -15,13 +15,16 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MCP_URL="${MCP_URL:-http://127.0.0.1:8080/mcp}"
 TOKEN_FILE="${MAENIFOLD_TOKEN_FILE:-$HOME/maenifold/auth/localhost.token}"
 
-TOP_LEVEL_TOOLS=(GetHelp ReadMcpResource GatewayIndex GatewayExecute GatewayBatch GatewayIntent)
+TOP_LEVEL_TOOLS=(GatewayBatch GatewayExecute GatewayIndex GatewayIntent GetHelp ReadMcpResource complete_node)
+FORBIDDEN_TOOLS=(DiscoverMcpTools DiscoverMcpPrompts GetMcpPrompt)
 NATIVE_DOMAINS=(maenifold.gate maenifold.graph maenifold.memory maenifold.system maenifold.thinking maenifold.workflow)
 
 # Known acceptable CLI/MCP asymmetries:
 # - Legacy lowercase/underscore aliases may be accepted by CLI dispatch but are
 #   not canonical MCP/Gateway command names and are intentionally ignored here.
-ALLOWLIST=()
+# - complete_node is a top-level MCP workflow callback and is not advertised by
+#   the direct CLI registry; wire-surface presence is verified separately above.
+ALLOWLIST=(complete_node)
 
 AUTH_ARGS=()
 if [[ -r "$TOKEN_FILE" ]]; then
@@ -189,7 +192,7 @@ require_mcp_top_level_learn() {
   local name="$1"
   local payload response
   case "$name" in
-    GatewayIndex|GatewayExecute|GatewayBatch|GatewayIntent)
+    GatewayIndex|GatewayExecute|GatewayBatch|GatewayIntent|complete_node)
       # MCP exposes these as exact-schema tools without a top-level `learn` flag;
       # callers use GetHelp or valid schema-shaped payloads instead.
       return 0
@@ -266,14 +269,21 @@ if jq -e '.error' >/dev/null <<<"$tools_response"; then
   exit 2
 fi
 
-tool_count="$(jq -r '.result.tools | length' <<<"$tools_response")"
-if [[ "$tool_count" != "7" ]]; then
-  fail "MCP tools/list returned $tool_count tools; expected 7"
+actual_top_level_tools="$(jq -r '.result.tools[].name' <<<"$tools_response")"
+expected_top_level_tools="$(printf '%s\n' "${TOP_LEVEL_TOOLS[@]}")"
+sorted_actual_top_level_tools="$(printf '%s\n' "$actual_top_level_tools" | sed '/^$/d' | LC_ALL=C sort)"
+sorted_expected_top_level_tools="$(printf '%s\n' "$expected_top_level_tools" | sed '/^$/d' | LC_ALL=C sort)"
+tool_count="$(printf '%s\n' "$actual_top_level_tools" | sed '/^$/d' | wc -l | tr -d ' ')"
+
+if [[ "$sorted_actual_top_level_tools" != "$sorted_expected_top_level_tools" ]]; then
+  fail "MCP tool surface mismatch"
+  fail "expected: $(printf '%s' "$sorted_expected_top_level_tools" | tr '\n' ' ' | sed 's/ $//')"
+  fail "actual: $(printf '%s' "$sorted_actual_top_level_tools" | tr '\n' ' ' | sed 's/ $//')"
 fi
 
-for expected in "${TOP_LEVEL_TOOLS[@]}"; do
-  if ! jq -e --arg name "$expected" '.result.tools[] | select(.name == $name)' >/dev/null <<<"$tools_response"; then
-    fail "missing top-level MCP tool: $expected"
+for forbidden in "${FORBIDDEN_TOOLS[@]}"; do
+  if contains_name "$forbidden" "$actual_top_level_tools"; then
+    fail "forbidden tool re-surfaced: $forbidden"
   fi
 done
 
@@ -282,7 +292,7 @@ while IFS= read -r bad_tool; do
   fail "$bad_tool: missing non-empty name, description, or inputSchema"
 done < <(jq -r '.result.tools[] | select((.name // "") == "" or (.description // "") == "" or (.inputSchema | type) != "object") | (.name // "<missing-name>")' <<<"$tools_response")
 
-echo "MCP top-level tools: $tool_count (${TOP_LEVEL_TOOLS[*]})"
+echo "MCP top-level tools: $tool_count ($(printf '%s' "$sorted_actual_top_level_tools" | tr '\n' ' ' | sed 's/ $//'))"
 
 index_text="$(mcp_tool_call 2 GatewayIndex '{}' | extract_text)"
 if ! jq -e '.domains' >/dev/null <<<"$index_text"; then

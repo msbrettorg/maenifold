@@ -78,4 +78,58 @@ describe('audit-components max-loc enforcement', () => {
     log.mockRestore();
     error.mockRestore();
   });
+
+  it('does not emit a max-loc violation at the exact 300-line boundary', async () => {
+    mocks.spawnSync.mockReturnValue({ status: 0, stdout: '' });
+    mocks.readdirSync.mockReturnValue([]);
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    const { checkMaxLoc } = await import('../audit-components.mjs?max-loc-boundary');
+    const source = 'line\n'.repeat(300);
+
+    expect(checkMaxLoc(source, 'src/example.ts', false)).toBeNull();
+
+    log.mockRestore();
+    error.mockRestore();
+  });
+
+  it('counts CRLF line endings the same as LF', async () => {
+    mocks.spawnSync.mockReturnValue({ status: 0, stdout: '' });
+    mocks.readdirSync.mockReturnValue([]);
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    const { checkMaxLoc } = await import('../audit-components.mjs?max-loc-crlf');
+    const sourceCrlf = 'line\r\n'.repeat(301);
+    const sourceLf = 'line\n'.repeat(301);
+
+    const crlfResult = checkMaxLoc(sourceCrlf, 'src/example.ts', false);
+    const lfResult = checkMaxLoc(sourceLf, 'src/example.ts', false);
+
+    expect(crlfResult).not.toBeNull();
+    expect(lfResult).not.toBeNull();
+    expect(crlfResult.line).toBe(lfResult.line);
+    expect(crlfResult.message).toBe(lfResult.message);
+
+    log.mockRestore();
+    error.mockRestore();
+  });
+
+  it('uses wc -l newline-count semantics via checkMaxLoc (trailing newline counts; missing trailing newline does not add a line)', async () => {
+    mocks.spawnSync.mockReturnValue({ status: 0, stdout: '' });
+    mocks.readdirSync.mockReturnValue([]);
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    const { checkMaxLoc } = await import('../audit-components.mjs?max-loc-trailing');
+    const withTrailing = 'line\n'.repeat(301);
+    const withoutTrailing = 'line\n'.repeat(300) + 'line';
+
+    expect(checkMaxLoc(withTrailing, 'src/example.ts', false)).not.toBeNull();
+    expect(checkMaxLoc(withoutTrailing, 'src/example.ts', false)).toBeNull();
+
+    log.mockRestore();
+    error.mockRestore();
+  });
 });

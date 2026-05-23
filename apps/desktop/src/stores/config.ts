@@ -1,4 +1,4 @@
-import { toastError } from '@/composables/useToast';
+import { getNotificationSink } from '@/lib/notification-sink';
 // Maenifold config store. Reads/writes ~/maenifold/maenifold.json directly via Electron IPC.
 //
 // Constitutionally `maenifold.json` is desktop-owned (preferences) — going through MCP would
@@ -162,7 +162,7 @@ export const useConfigStore = defineStore('config', () => {
     } catch (e) {
       const message = getErrorMessage(e);
       error.value = message;
-      toastError(`Config load failed: ${message}`);
+      getNotificationSink().error(`Config load failed: ${message}`);
     } finally {
       loading.value = false;
     }
@@ -189,7 +189,7 @@ export const useConfigStore = defineStore('config', () => {
     } catch (e) {
       const message = getErrorMessage(e);
       error.value = message;
-      toastError(`Config save failed: ${message}`);
+      getNotificationSink().error(`Config save failed: ${message}`);
       throw new Error(message);
     } finally {
       loading.value = false;

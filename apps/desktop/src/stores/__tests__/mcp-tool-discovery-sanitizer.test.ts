@@ -1,13 +1,20 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
+import { setNotificationSink, resetNotificationSink } from '@/lib/notification-sink';
 import { useMcpToolDiscoveryStore } from '../mcp-tool-discovery';
 
-const { mcpClientMock, toastWarning } = vi.hoisted(() => ({
+const { mcpClientMock } = vi.hoisted(() => ({
   mcpClientMock: { connected: { value: true }, connect: vi.fn(), callTool: vi.fn() },
-  toastWarning: vi.fn(),
 }));
 
-vi.mock('@/composables/useToast', () => ({ toastWarning }));
+const mockSink = {
+  success: vi.fn(),
+  info: vi.fn(),
+  warning: vi.fn(),
+  error: vi.fn(),
+  critical: vi.fn(),
+};
+
 vi.mock('../../composables/useMcpClient', () => ({ useMcpClient: () => mcpClientMock }));
 
 describe('mcp tool discovery error sanitization', () => {
@@ -15,6 +22,11 @@ describe('mcp tool discovery error sanitization', () => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
     mcpClientMock.connected.value = true;
+    setNotificationSink(mockSink);
+  });
+
+  afterEach(() => {
+    resetNotificationSink();
   });
 
   it('redacts sensitive paths before surfacing discovery errors', async () => {
@@ -27,6 +39,6 @@ describe('mcp tool discovery error sanitization', () => {
     expect(store.error).toContain('<redacted>');
     expect(store.error).not.toContain('/Users/brett/secret/file.txt');
     expect(store.error).not.toContain('a1b2c3d4-e5f6-1234-9abc-def012345678');
-    expect(toastWarning).toHaveBeenCalledWith(expect.stringContaining('<redacted>'));
+    expect(mockSink.warning).toHaveBeenCalledWith(expect.stringContaining('<redacted>'));
   });
 });

@@ -11,12 +11,22 @@ import type {
   SessionConfigOption,
   SessionState,
 } from '../lib/types';
+import {
+  overlayReasoningEffortOptions,
+  type SessionCopilotReasoningEffortMap,
+} from './session-copilot-models';
 
 interface SessionGetterSource {
   activeSession: ComputedRef<SessionState | null>;
+  activeSessionId: ComputedRef<string | null>;
+  copilotModelReasoningEfforts: SessionCopilotReasoningEffortMap;
 }
 
-export function createSessionGetters({ activeSession }: SessionGetterSource) {
+export function createSessionGetters({
+  activeSession,
+  activeSessionId,
+  copilotModelReasoningEfforts,
+}: SessionGetterSource) {
   const currentSession = computed<SavedSession | null>(
     () => activeSession.value?.session ?? null
   );
@@ -54,7 +64,14 @@ export function createSessionGetters({ activeSession }: SessionGetterSource) {
     () => activeSession.value?.pendingAuthAgentName ?? ''
   );
   const configOptions = computed<SessionConfigOption[]>(
-    () => activeSession.value?.configOptions ?? []
+    () => {
+      const configOptions = activeSession.value?.configOptions ?? [];
+      const localId = activeSessionId.value;
+      const reasoningEfforts = localId
+        ? copilotModelReasoningEfforts.value.get(localId)
+        : null;
+      return overlayReasoningEffortOptions(configOptions, reasoningEfforts);
+    }
   );
   const hasConfigOptions = computed<boolean>(
     () => activeSession.value?.hasConfigOptions ?? false

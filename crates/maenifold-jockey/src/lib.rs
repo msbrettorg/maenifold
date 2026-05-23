@@ -1,4 +1,5 @@
 pub mod acp;
+pub mod copilot_models;
 mod db;
 pub mod emitter;
 pub mod types;

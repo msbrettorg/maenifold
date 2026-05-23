@@ -68,6 +68,7 @@ pub(crate) const TOOL_DOMAINS: &[(&str, &str)] = &[
     ("AssumptionLedger", "maenifold.thinking"),
     ("MemoryStatus", "maenifold.system"),
     ("GetConfig", "maenifold.system"),
+    ("GetCopilotModels", "maenifold.system"),
     ("UpdateAssets", "maenifold.system"),
     ("RunFullBenchmark", "maenifold.system"),
     ("Adopt", "maenifold.system"),
@@ -99,6 +100,7 @@ pub(crate) fn tool_safety(tool_name: &str) -> SafetyClass {
         | "AnalyzeConceptCorruption"
         | "MemoryStatus"
         | "GetConfig"
+        | "GetCopilotModels"
         | "RunFullBenchmark"
         | "Adopt"
         | "ListAssets"

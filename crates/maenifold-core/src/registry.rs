@@ -182,6 +182,11 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
         invoke: tools::get_config,
     },
     ToolDescriptor {
+        name: "GetCopilotModels",
+        aliases: &["getcopilotmodels", "get_copilot_models"],
+        invoke: tools::get_copilot_models,
+    },
+    ToolDescriptor {
         name: "GetHelp",
         aliases: &["gethelp"],
         invoke: memory::get_help,

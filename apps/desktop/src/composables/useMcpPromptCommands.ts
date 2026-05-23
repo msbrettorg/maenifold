@@ -3,7 +3,6 @@ import type { GetPromptResult, Prompt, PromptArgument } from '@modelcontextproto
 import type { AvailableCommand } from '../lib/types';
 import { McpCapabilityUnsupportedError } from './useMcpResources';
 import { useMcpPrompts } from './useMcpPrompts';
-import { getSharedMcpClient } from './usePipelineMcp';
 
 /**
  * Maps MCP prompt lists into AvailableCommand[] entries, grouped per server.
@@ -95,46 +94,23 @@ export function isMcpPromptCommand(command: AvailableCommand): boolean {
   return command.name.startsWith('mcp.') && getMcpPromptCommandMeta(command) !== null;
 }
 
-function parseDiscoverMcpPromptsResult(raw: unknown): McpPromptCommandGroup[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map((entry): McpPromptCommandGroup | null => {
-      if (typeof entry !== 'object' || entry === null) return null;
-      const candidate = entry as Record<string, unknown>;
-      if (typeof candidate.server !== 'string' || !Array.isArray(candidate.prompts)) return null;
-      return {
-        serverName: candidate.server,
-        prompts: candidate.prompts as Prompt[],
-      };
-    })
-    .filter((group): group is McpPromptCommandGroup => group !== null);
-}
-
 export function parseGetPromptResult(raw: unknown): GetPromptResult {
   if (typeof raw !== 'object' || raw === null) {
-    throw new Error('GetMcpPrompt returned non-object');
+    throw new Error('MCP getPrompt returned non-object');
   }
   const result = raw as Partial<GetPromptResult>;
   if (!Array.isArray(result.messages)) {
-    throw new Error('GetMcpPrompt returned malformed result (missing messages array)');
+    throw new Error('MCP getPrompt returned malformed result (missing messages array)');
   }
   return result as GetPromptResult;
 }
 
 export function useMcpPromptCommands(options: { baseUrl?: string; serverName?: string } = {}): McpPromptCommandsClient {
   const prompts = useMcpPrompts(options.baseUrl);
-  const mcpClient = getSharedMcpClient(options.baseUrl);
   const commands = ref<AvailableCommand[]>([]);
 
   async function refresh(): Promise<void> {
     try {
-      if (!mcpClient.connected.value) await mcpClient.connect();
-      const raw = await mcpClient.callTool('DiscoverMcpPrompts', {});
-      const groups = parseDiscoverMcpPromptsResult(raw);
-      if (groups.length > 0) {
-        commands.value = toMcpPromptCommands(groups);
-        return;
-      }
       const promptList = await prompts.listPrompts().catch(() => []);
       commands.value = toMcpPromptCommands([{
         serverName: options.serverName ?? 'default',

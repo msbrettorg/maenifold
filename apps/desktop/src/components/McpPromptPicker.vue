@@ -144,12 +144,9 @@ async function submitPrompt(): Promise<void> {
       Object.entries(formValues.value).filter(([, value]) => value !== undefined && value !== '')
     );
     if (!mcpClient.connected.value) await mcpClient.connect();
-    const raw = await mcpClient.callTool('GetMcpPrompt', {
-      server: meta.value.serverName,
-      name: meta.value.promptName,
-      arguments: args,
-    });
-    const result: GetPromptResult = parseGetPromptResult(raw);
+    const result: GetPromptResult = parseGetPromptResult(
+      await mcpClient.getPrompt(meta.value.promptName, args as Record<string, string>),
+    );
     emit('resolved', result.messages);
     emit('update:open', false);
   } catch (error) {

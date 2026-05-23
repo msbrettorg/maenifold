@@ -4,6 +4,12 @@ import { createMcpClientOps, gatewayPassthroughTools, type SdkClient } from '../
 import type { ToolCallResult } from '../mcpTransport';
 import { ToolEnvelopeError } from '../pipeline-mcp-transport';
 
+const retiredPromptTools = [
+  ['Discover', 'McpTools'].join(''),
+  ['Discover', 'McpPrompts'].join(''),
+  ['Get', 'McpPrompt'].join(''),
+];
+
 function toolText(payload: unknown): ToolCallResult {
   return {
     content: [{ type: 'text', text: JSON.stringify(payload) }],
@@ -37,17 +43,17 @@ function createOps(
 }
 
 describe('createMcpClientOps gateway routing', () => {
-  it('allowlist contains all 10 canonical passthrough MCP tools', () => {
+  it('allowlist contains only the 7 canonical passthrough MCP tools', () => {
     expect(gatewayPassthroughTools.has('GatewayIndex')).toBe(true);
     expect(gatewayPassthroughTools.has('GatewayExecute')).toBe(true);
     expect(gatewayPassthroughTools.has('GatewayBatch')).toBe(true);
     expect(gatewayPassthroughTools.has('GatewayIntent')).toBe(true);
-    expect(gatewayPassthroughTools.has('DiscoverMcpTools')).toBe(true);
-    expect(gatewayPassthroughTools.has('DiscoverMcpPrompts')).toBe(true);
-    expect(gatewayPassthroughTools.has('GetMcpPrompt')).toBe(true);
     expect(gatewayPassthroughTools.has('gate_Create')).toBe(true);
     expect(gatewayPassthroughTools.has('ReadMcpResource')).toBe(true);
     expect(gatewayPassthroughTools.has('GetHelp')).toBe(true);
+    expect(gatewayPassthroughTools.has(retiredPromptTools[0]!)).toBe(false);
+    expect(gatewayPassthroughTools.has(retiredPromptTools[1]!)).toBe(false);
+    expect(gatewayPassthroughTools.has(retiredPromptTools[2]!)).toBe(false);
   });
 
   it('builds a tool-to-domain map from GatewayIndex and routes domain tools via GatewayExecute', async () => {
@@ -165,6 +171,29 @@ describe('createMcpClientOps gateway routing', () => {
       arguments: { domain: 'maenifold.system' },
     });
   });
+
+  it.each(retiredPromptTools)(
+    'rejects retired passthrough tool %s without direct-call fallback',
+    async (toolName) => {
+      const client = createMockClient(async ({ name, arguments: args = {} }) => {
+        if (name === 'GatewayIndex' && !('domain' in args)) {
+          return toolText({ domains: [{ name: 'maenifold.system' }] });
+        }
+        if (name === 'GatewayIndex' && args.domain === 'maenifold.system') {
+          return toolText({ commands: [{ name: 'GetConfig' }] });
+        }
+        if (name === toolName) {
+          throw new Error(`${toolName} should not be called directly`);
+        }
+        throw new Error(`Unexpected direct call for ${name}`);
+      });
+
+      const ops = createOps(() => client);
+
+      await expect(ops.callTool(toolName)).rejects.toThrow(/GatewayIndex|route|fallback/i);
+      expect(client.callTool.mock.calls.some(([request]) => request.name === toolName)).toBe(false);
+    },
+  );
 
   it('requires positive direct-tool proof or a public allowlist seam before direct MCP fallback succeeds', async () => {
     const client = createMockClient(async ({ name, arguments: args = {} }) => {

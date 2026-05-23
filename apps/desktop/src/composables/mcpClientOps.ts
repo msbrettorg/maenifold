@@ -8,7 +8,7 @@ import { getHttpFetch } from '../lib/http';
 import { extractAppUiMetadata } from '../stores/agent-capabilities-helpers';
 import type { JsonRpcNotification, ResourceContent, ResourceDescriptor, ResourceTemplateDescriptor, ToolCallResult, ToolDefinition } from './mcpTransport';
 import { getErrorMessage } from './mcpTransport';
-import { ToolEnvelopeError } from './pipeline-mcp-transport';
+import { ToolEnvelopeError } from '../lib/mcp-response';
 
 export type SdkClient = Client;
 export type SdkTransport = StreamableHTTPClientTransport;

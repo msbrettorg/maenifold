@@ -11,7 +11,7 @@ import type {
 } from '../lib/pipeline-types-view';
 import type { WorkflowAssetDefinition, WorkflowAssetSummary } from '../lib/workflow-asset-types';
 import { createPipelinePolling } from './pipeline-mcp-polling';
-import { normalizeWorkflowIds, unwrapEnvelope, unwrapToolData } from './pipeline-mcp-transport';
+import { normalizeWorkflowIds, unwrapEnvelope, unwrapToolData } from '../lib/mcp-response';
 import { diffPipelineViews } from './pipeline-view-diff';
 import { getSharedMcpClient } from './useSharedMcpClient';
 

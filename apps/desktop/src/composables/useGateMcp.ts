@@ -12,7 +12,7 @@ import {
   type GateTask,
   type GateTaskHistoryEntry,
 } from '../lib/gate';
-import { unwrapToolData } from './pipeline-mcp-transport';
+import { unwrapToolData } from '../lib/mcp-response';
 import { getSharedMcpClient } from './useSharedMcpClient';
 
 const GATE_DOMAIN = 'maenifold.gate';

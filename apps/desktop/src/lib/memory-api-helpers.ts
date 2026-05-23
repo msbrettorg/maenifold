@@ -5,7 +5,7 @@ import type {
   MemoryFile,
   SimilarConceptResult,
 } from './workflow-types';
-import { unwrapToolData } from '../composables/pipeline-mcp-transport';
+import { unwrapToolData } from './mcp-response';
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;

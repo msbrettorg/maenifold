@@ -15,7 +15,6 @@ import { fileLabel, mimeType, readFileAsBase64, type AttachmentKind } from '../l
 import { useAppShellStore } from '../stores/app-shell';
 import type { PendingAttachment } from './ChatAttachmentBar.vue';
 import type { AvailableCommand, ContentBlock } from '../lib/types';
-import { mergeWithBuiltInSlashCommands } from '../lib/default-commands';
 
 const props = defineProps<{
   modelValue: string;
@@ -57,9 +56,7 @@ const text = computed({
   get: () => props.modelValue,
   set: (value: string) => emit('update:modelValue', value),
 });
-const effectiveCommands = computed<AvailableCommand[]>(() =>
-  mergeWithBuiltInSlashCommands(props.availableCommands)
-);
+const effectiveCommands = computed<AvailableCommand[]>(() => props.availableCommands);
 const showCommandPalette = computed(() => {
   if (!effectiveCommands.value.length) {
     return false;

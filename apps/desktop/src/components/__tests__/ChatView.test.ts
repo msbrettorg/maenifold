@@ -97,10 +97,6 @@ vi.mock('../../composables/useEscCancelWhileStreaming', () => ({
   useEscCancelWhileStreaming: vi.fn(),
 }));
 
-vi.mock('../../composables/useBuiltInSlashCommands', () => ({
-  useBuiltInSlashCommands: () => ({ tryHandle: vi.fn(async () => false) }),
-}));
-
 vi.mock('../../composables/useChatReconnect', () => ({
   useChatReconnect: () => ({ canReconnect: mocks.refValue(false), reconnect: vi.fn(async () => {}) }),
 }));

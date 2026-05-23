@@ -164,11 +164,6 @@ pub(super) async fn handle_session_load(
     Ok(json!({
         "sessionId": session_id,
         "configOptions": config_options,
-        "availableCommands": jockey::acp::list_available_commands(
-            &app_session_id,
-            &relay.adapter.runtime_key,
-            &relay.agent_name,
-        ),
         "modes": modes,
     }))
 }

@@ -1,17 +1,26 @@
 use super::*;
 use rmcp::model::TasksCapability;
 use rmcp::model::{
-    CancelTaskParams, CancelTaskResult, CreateTaskResult, GetTaskInfoParams, GetTaskPayloadResult,
-    GetTaskResult, GetTaskResultParams, ListTasksResult, PaginatedRequestParams,
+    CancelTaskParams, CancelTaskResult, CreateTaskResult, GetPromptRequestMethod,
+    GetPromptRequestParams, GetPromptResult, GetTaskInfoParams, GetTaskPayloadResult,
+    GetTaskResult, GetTaskResultParams, ListPromptsResult, ListTasksResult, PaginatedRequestParams,
+    Prompt,
 };
 use rmcp::service::RequestContext;
 use rmcp::{ErrorData, RoleServer, ServerHandler};
+
+fn split_namespaced_prompt_name(name: &str) -> std::result::Result<(&str, &str), ErrorData> {
+    name.split_once(':').ok_or_else(|| {
+        ErrorData::invalid_params("Prompt names must be namespaced as <server>:<prompt>", None)
+    })
+}
 
 impl ServerHandler for MaenifoldHandler {
     fn get_info(&self) -> ServerInfo {
         let capabilities = match self.transport {
             TransportKind::Stdio => ServerCapabilities::builder()
                 .enable_tools()
+                .enable_prompts()
                 .enable_resources()
                 .enable_resources_subscribe()
                 .enable_resources_list_changed()
@@ -19,6 +28,7 @@ impl ServerHandler for MaenifoldHandler {
                 .build(),
             TransportKind::Http => ServerCapabilities::builder()
                 .enable_tools()
+                .enable_prompts()
                 .enable_resources()
                 .enable_resources_subscribe()
                 .enable_tasks_with(TasksCapability::server_default())
@@ -52,9 +62,7 @@ impl ServerHandler for MaenifoldHandler {
             let mut tools: Vec<Tool> = self
                 .tools
                 .iter()
-                .filter(|tool| {
-                    tool.name == "GetHelp" || tool.name == "ReadMcpResource"
-                })
+                .filter(|tool| tool.name == "GetHelp" || tool.name == "ReadMcpResource")
                 .cloned()
                 .collect();
             tools.extend(gateway.list_tools());
@@ -68,6 +76,53 @@ impl ServerHandler for MaenifoldHandler {
             next_cursor: None,
             meta: None,
         }))
+    }
+    fn list_prompts(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> impl Future<Output = std::result::Result<ListPromptsResult, ErrorData>> + Send + '_ {
+        let gateway = self.gateway.clone();
+        async move {
+            let prompts = gateway
+                .map(|gateway| {
+                    gateway
+                        .pool()
+                        .all_gateway_prompts()
+                        .into_iter()
+                        .flat_map(|(server_name, prompts)| {
+                            prompts.into_iter().map(move |mut prompt: Prompt| {
+                                prompt.name = format!("{server_name}:{}", prompt.name);
+                                prompt
+                            })
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            Ok(ListPromptsResult {
+                prompts,
+                next_cursor: None,
+                meta: None,
+            })
+        }
+    }
+    fn get_prompt(
+        &self,
+        request: GetPromptRequestParams,
+        _context: RequestContext<RoleServer>,
+    ) -> impl Future<Output = std::result::Result<GetPromptResult, ErrorData>> + Send + '_ {
+        let gateway = self.gateway.clone();
+        async move {
+            let Some(gateway) = gateway else {
+                return Err(ErrorData::method_not_found::<GetPromptRequestMethod>());
+            };
+            let (server_name, name) = split_namespaced_prompt_name(&request.name)?;
+            gateway
+                .pool()
+                .get_prompt(server_name, name, request.arguments)
+                .await
+                .map_err(|error| ErrorData::internal_error(error.to_string(), None))
+        }
     }
     async fn list_resources(
         &self,
@@ -195,5 +250,31 @@ impl ServerHandler for MaenifoldHandler {
         _context: RequestContext<RoleServer>,
     ) -> impl Future<Output = std::result::Result<CancelTaskResult, ErrorData>> + Send + '_ {
         std::future::ready(self::task_hooks::cancel_task(request))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rmcp::model::ErrorCode;
+
+    #[test]
+    fn get_info_advertises_prompts_and_prompt_names_require_namespace() {
+        let stdio = MaenifoldHandler::new(TransportKind::Stdio).expect("stdio handler");
+        let http = MaenifoldHandler::new(TransportKind::Http).expect("http handler");
+
+        assert!(stdio.get_info().capabilities.prompts.is_some());
+        assert!(http.get_info().capabilities.prompts.is_some());
+        assert_eq!(
+            split_namespaced_prompt_name("alpha:summarize").expect("namespaced prompt"),
+            ("alpha", "summarize")
+        );
+
+        let error = split_namespaced_prompt_name("summarize").expect_err("missing namespace");
+        assert_eq!(error.code, ErrorCode::INVALID_PARAMS);
+        assert_eq!(
+            error.message,
+            "Prompt names must be namespaced as <server>:<prompt>"
+        );
     }
 }

@@ -177,11 +177,9 @@ async function handleMcpPromptSelect(command: AvailableCommand): Promise<void> {
   inputText.value = '';
   try {
     if (!mcpClient.connected.value) await mcpClient.connect();
-    const raw = await mcpClient.callTool('GetMcpPrompt', {
-      server: meta.serverName,
-      name: meta.promptName,
-    });
-    const result: GetPromptResult = parseGetPromptResult(raw);
+    const result: GetPromptResult = parseGetPromptResult(
+      await mcpClient.getPrompt(meta.promptName),
+    );
     insertMcpPromptMessages(result.messages);
   } catch (error) {
     setAttachmentError(error instanceof Error ? error.message : 'Failed to resolve MCP prompt.');

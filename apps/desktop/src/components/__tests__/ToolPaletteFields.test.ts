@@ -13,18 +13,51 @@ import { useNodePaletteStore } from '../../stores/node-palette';
 import { usePipelineStore } from '../../stores/pipeline';
 import type { McpServerDiscoveryResult } from '../../lib/types';
 
-const { callTool, connect, connected, discoveryResultsQueue } = vi.hoisted(() => {
+const { callTool, connect, connected, discoveryResultsQueue, currentSnapshot } = vi.hoisted(() => {
   const connected = { value: false, __v_isRef: true };
   const discoveryResultsQueue: unknown[][] = [];
+
+  const currentSnapshot: { value: unknown[] | null } = { value: null };
+
+  function buildGatewayResponse(payload: unknown) {
+    return { content: [{ type: 'text', text: JSON.stringify(payload) }] };
+  }
+
   return {
-    callTool: vi.fn(async (toolName: string) => (
-      toolName === 'DiscoverMcpTools'
-        ? (discoveryResultsQueue.shift() ?? [])
-        : {}
-    )),
+    callTool: vi.fn(async (toolName: string, params?: Record<string, unknown>) => {
+      if (toolName !== 'GatewayIndex') return {};
+      const domain = typeof params?.domain === 'string' ? params.domain : undefined;
+      if (!domain) {
+        const next = discoveryResultsQueue.shift();
+        if (next) currentSnapshot.value = next;
+        const snapshot = currentSnapshot.value ?? [];
+        return buildGatewayResponse({
+          domains: (snapshot as Array<{ server: string }>).map((r) => ({ name: r.server })),
+        });
+      }
+      const snapshot = currentSnapshot.value ?? [];
+      const entry = (
+        snapshot as Array<{
+          server: string;
+          status: string;
+          error?: string;
+          tools: Array<{ name: string; description?: string | null; inputSchema?: unknown }>;
+        }>
+      ).find((r) => r.server === domain);
+      if (!entry) throw new Error(`unknown domain ${domain}`);
+      if (entry.status !== 'ok') throw new Error(entry.error ?? 'server error');
+      return buildGatewayResponse({
+        commands: entry.tools.map((t) => ({
+          name: t.name,
+          description: t.description ?? null,
+          parameters_schema: t.inputSchema,
+        })),
+      });
+    }),
     connect: vi.fn(async () => { connected.value = true; }),
     connected,
     discoveryResultsQueue,
+    currentSnapshot,
   };
 });
 
@@ -148,6 +181,7 @@ function healthyDiscoveryResults(): McpServerDiscoveryResult[] {
 }
 
 function mockDiscoveryFetch(...results: McpServerDiscoveryResult[][]) {
+  currentSnapshot.value = null;
   discoveryResultsQueue.splice(0, discoveryResultsQueue.length, ...results);
   vi.stubGlobal(
     'fetch',

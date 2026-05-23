@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import type { JsonSchema } from '@jsonforms/core';
-import type { PromptArgument, PromptMessage } from '@modelcontextprotocol/sdk/types';
+import type { GetPromptResult, PromptArgument, PromptMessage } from '@modelcontextprotocol/sdk/types';
 import { Button } from './ui/button';
 import {
   Dialog,
@@ -13,7 +13,7 @@ import {
 import SchemaFormRenderer from './SchemaFormRenderer.vue';
 import type { AvailableCommand } from '../lib/types';
 import { useMcpCompletion } from '../composables/useMcpCompletion';
-import { getMcpPromptCommandMeta } from '../composables/useMcpPromptCommands';
+import { getMcpPromptCommandMeta, parseGetPromptResult } from '../composables/useMcpPromptCommands';
 import { getSharedMcpClient } from '../composables/usePipelineMcp';
 
 const props = defineProps<{
@@ -141,12 +141,15 @@ async function submitPrompt(): Promise<void> {
   isSubmitting.value = true;
   try {
     const args = Object.fromEntries(
-      Object.entries(formValues.value)
-        .filter(([, value]) => value !== undefined && value !== '')
-        .map(([name, value]) => [name, String(value)]),
+      Object.entries(formValues.value).filter(([, value]) => value !== undefined && value !== '')
     );
     if (!mcpClient.connected.value) await mcpClient.connect();
-    const result = await mcpClient.getPrompt(meta.value.promptName, args);
+    const raw = await mcpClient.callTool('GetMcpPrompt', {
+      server: meta.value.serverName,
+      name: meta.value.promptName,
+      arguments: args,
+    });
+    const result: GetPromptResult = parseGetPromptResult(raw);
     emit('resolved', result.messages);
     emit('update:open', false);
   } catch (error) {

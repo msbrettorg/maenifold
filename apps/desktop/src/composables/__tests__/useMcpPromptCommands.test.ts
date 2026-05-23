@@ -6,9 +6,9 @@ import {
   toMcpPromptCommands,
   useMcpPromptCommands,
 } from '../useMcpPromptCommands';
-import { McpCapabilityUnsupportedError } from '../useMcpResources';
 
 const mocks = vi.hoisted(() => ({
+  callTool: vi.fn(),
   connect: vi.fn(),
   connected: { value: true },
   listPrompts: vi.fn(),
@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../usePipelineMcp', () => ({
   getSharedMcpClient: () => ({
+    callTool: mocks.callTool,
     connect: mocks.connect,
     connected: mocks.connected,
   }),
@@ -41,6 +42,7 @@ async function flushPromises(): Promise<void> {
 describe('useMcpPromptCommands', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    mocks.callTool.mockReset();
     mocks.connect.mockReset();
     mocks.connected.value = true;
     mocks.listPrompts.mockReset();
@@ -129,41 +131,35 @@ describe('useMcpPromptCommands', () => {
     });
   });
 
-  it('refresh calls listPrompts exactly once and maps returned prompts into commands', async () => {
-    mocks.listPrompts.mockResolvedValue([prompt('summarize', 'from default')]);
-
-    const client = useMcpPromptCommands();
-    await flushPromises();
-    await client.refresh();
-
-    expect(mocks.listPrompts).toHaveBeenCalledTimes(2);
-    expect(client.commands.value.map((command) => command.name)).toEqual(['mcp.default.summarize']);
-  });
-
-  it('refresh keeps commands empty when listPrompts returns an empty array', async () => {
-    mocks.listPrompts.mockResolvedValue([]);
+  it('refresh calls DiscoverMcpPrompts via gateway', async () => {
+    mocks.callTool.mockResolvedValue([
+      { server: 'fixtureA', prompts: [prompt('summarize', 'from A')] },
+      { server: 'fixtureB', prompts: [prompt('summarize', 'from B')] },
+    ]);
 
     const client = useMcpPromptCommands();
     await flushPromises();
 
-    expect(mocks.listPrompts).toHaveBeenCalledTimes(1);
-    expect(client.commands.value).toEqual([]);
+    expect(mocks.callTool).toHaveBeenCalledWith('DiscoverMcpPrompts', {});
+    expect(client.commands.value.map((command) => command.name)).toEqual([
+      'mcp.fixtureA.summarize',
+      'mcp.fixtureB.summarize',
+    ]);
   });
 
-  it('refresh returns an empty command list when prompts capability is unsupported', async () => {
+  it('refresh falls back to listPrompts on empty DiscoverMcpPrompts result', async () => {
+    mocks.callTool.mockResolvedValue([]);
+    mocks.listPrompts.mockResolvedValue([prompt('foo')]);
+
+    const client = useMcpPromptCommands();
+    await flushPromises();
+
+    expect(client.commands.value.map((command) => command.name)).toEqual(['mcp.default.foo']);
+  });
+
+  it('refresh handles DiscoverMcpPrompts errors gracefully', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    mocks.listPrompts.mockRejectedValue(new McpCapabilityUnsupportedError('prompts/list unsupported'));
-
-    const client = useMcpPromptCommands();
-    await flushPromises();
-
-    expect(client.commands.value).toEqual([]);
-    expect(errorSpy).not.toHaveBeenCalled();
-  });
-
-  it('refresh logs other listPrompts errors and clears commands', async () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    mocks.listPrompts.mockRejectedValue(new Error('gateway unavailable'));
+    mocks.callTool.mockRejectedValue(new Error('gateway unavailable'));
 
     const client = useMcpPromptCommands();
     await flushPromises();

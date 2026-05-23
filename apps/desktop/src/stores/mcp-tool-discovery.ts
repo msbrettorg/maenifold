@@ -86,6 +86,33 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
     };
   }
 
+  function normalizeResult(raw: unknown): McpServerDiscoveryResult | null {
+    if (!isRecord(raw)) {
+      return null;
+    }
+
+    const server = raw.server;
+    const type = raw.type;
+    const status = raw.status;
+    const tools = raw.tools;
+    if (
+      typeof server !== 'string' ||
+      typeof type !== 'string' ||
+      (status !== 'ok' && status !== 'error') ||
+      !Array.isArray(tools)
+    ) {
+      return null;
+    }
+
+    return {
+      server,
+      type,
+      status,
+      error: typeof raw.error === 'string' ? raw.error : null,
+      tools: tools.map(normalizeTool).filter((tool): tool is McpDiscoveredTool => tool !== null),
+    };
+  }
+
   function mergeServerResults(results: McpServerDiscoveryResult[]): McpServerDiscoveryResult[] {
     return results.map((result) => {
       if (result.status === 'ok') {
@@ -103,40 +130,6 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
         tools: staleTools.map(cloneTool),
       };
     });
-  }
-
-  function inferServerName(toolName: string): string {
-    const separatorIndex = toolName.indexOf('.');
-    return separatorIndex > 0 ? toolName.slice(0, separatorIndex) : 'default';
-  }
-
-  function buildResultsFromToolList(rawTools: unknown[]): McpServerDiscoveryResult[] {
-    const toolsByServerName = new Map<string, McpDiscoveredTool[]>();
-    for (const rawTool of rawTools) {
-      const tool = normalizeTool(rawTool);
-      if (!tool) continue;
-      const serverName = inferServerName(tool.name);
-      const serverTools = toolsByServerName.get(serverName) ?? [];
-      serverTools.push(tool);
-      toolsByServerName.set(serverName, serverTools);
-    }
-    return Array.from(toolsByServerName.entries()).map(([server, tools]) => ({
-      server,
-      type: 'session',
-      status: 'ok',
-      error: null,
-      tools,
-    }));
-  }
-
-  function buildErrorResults(message: string): McpServerDiscoveryResult[] {
-    return Object.entries(lastKnownTools.value).map(([server, tools]) => ({
-      server,
-      type: 'session',
-      status: 'error',
-      error: message,
-      tools: tools.map(cloneTool),
-    }));
   }
 
   let activeAbortController: AbortController | null = null;
@@ -161,11 +154,15 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
         await mcp.connect();
       }
 
-      const listedTools = await mcp.listTools();
+      const rawResults = await mcp.callTool('DiscoverMcpTools', {}) as unknown;
       if (controller.signal.aborted) {
         return serverResults.value;
       }
-      const results = buildResultsFromToolList(listedTools);
+      const results = Array.isArray(rawResults)
+        ? rawResults
+            .map(normalizeResult)
+            .filter((result): result is McpServerDiscoveryResult => result !== null)
+        : [];
       serverResults.value = mergeServerResults(results);
       hasLoadedCatalog.value = true;
       return serverResults.value;
@@ -177,7 +174,6 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
       const message = getErrorMessage(cause);
       error.value = message;
       getNotificationSink().warning(message);
-      serverResults.value = mergeServerResults(buildErrorResults(message));
       return serverResults.value;
     } finally {
       if (activeAbortController === controller) {

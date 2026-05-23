@@ -13,7 +13,7 @@ import type { WorkflowAssetDefinition, WorkflowAssetSummary } from '../lib/workf
 import { createPipelinePolling } from './pipeline-mcp-polling';
 import { normalizeWorkflowIds, unwrapEnvelope, unwrapToolData } from './pipeline-mcp-transport';
 import { diffPipelineViews } from './pipeline-view-diff';
-import { useMcpClient } from './useMcpClient';
+import { getSharedMcpClient } from './useSharedMcpClient';
 
 interface PipelineListResult {
   pipelines?: PipelineListItem[];
@@ -32,20 +32,6 @@ export interface PipelineAssetSummary {
 export interface PipelineCreateOptions {
   name?: string;
   description?: string;
-}
-
-const sharedMcpClients = new Map<string, ReturnType<typeof useMcpClient>>();
-
-export function getSharedMcpClient(baseUrl?: string) {
-  const key = baseUrl ?? '__default__';
-  const existing = sharedMcpClients.get(key);
-  if (existing) {
-    return existing;
-  }
-
-  const client = useMcpClient(baseUrl);
-  sharedMcpClients.set(key, client);
-  return client;
 }
 
 export function usePipelineMcp(baseUrl?: string) {

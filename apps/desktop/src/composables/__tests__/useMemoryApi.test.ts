@@ -5,7 +5,7 @@ import { useMemoryApi } from '../useMemoryApi';
 
 const mockCallTool = vi.fn();
 
-vi.mock('../usePipelineMcp', () => ({
+vi.mock('../useSharedMcpClient', () => ({
   getSharedMcpClient: vi.fn(() => ({
     connected: ref(true),
     connect: vi.fn(),

@@ -7,15 +7,11 @@ import { useMcpPrompts } from './useMcpPrompts';
 /**
  * Maps MCP prompt lists into AvailableCommand[] entries, grouped per server.
  *
- * Today the renderer talks to a single MCP endpoint (the maenifold daemon at
- * `__default__`) which aggregates upstream MCP servers but does not surface
- * per-source identity in `prompts/list`. Callers therefore pass a single
- * `serverName` that names the visible endpoint (e.g. `'maenifold'`).
- *
- * When per-source enumeration becomes available — by extending `useMcpPrompts`
- * to query `maenifold.json` mcpServers and connect per-server — `useMcpPromptCommands`
- * will accept multiple `McpPromptCommandGroup` rows, one per source, without
- * further changes to its public API. Tracked as T-303.18.3.
+ * The maenifold daemon advertises MCP prompt capability and aggregates gateway
+ * prompts from upstream servers as `<server>:<name>`. The frontend consumes
+ * that canonical surface through the shared MCP client `listPrompts()` /
+ * `getPrompt(name)` calls and groups the aggregated prompt descriptors under
+ * the visible server label supplied by the caller.
  */
 const MCP_PROMPT_META_KEY = 'maenifold.mcpPrompt';
 

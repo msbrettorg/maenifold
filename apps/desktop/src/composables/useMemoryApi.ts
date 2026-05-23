@@ -18,7 +18,7 @@ import {
   normalizeSearchResponse,
 } from '../lib/memory-api-search';
 import { unwrapToolData } from './pipeline-mcp-transport';
-import { getSharedMcpClient } from './usePipelineMcp';
+import { getSharedMcpClient } from './useSharedMcpClient';
 
 interface SearchMemoriesOptions {
   mode?: MemorySearchMode;

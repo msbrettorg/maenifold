@@ -1,5 +1,5 @@
 import type { GetPromptResult, Prompt as PromptDescriptor } from '@modelcontextprotocol/sdk/types';
-import { getSharedMcpClient } from './usePipelineMcp';
+import { getSharedMcpClient } from './useSharedMcpClient';
 import { McpCapabilityUnsupportedError } from './useMcpResources';
 
 export interface McpPromptsClient {

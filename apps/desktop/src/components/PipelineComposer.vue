@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, markRaw, nextTick, provide, ref, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import { VueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,7 @@ import SessionPickerDialog from './sessions/SessionPickerDialog.vue';
 import { useComposerCanvas } from '../composables/useComposerCanvas';
 import { useComposerPalette } from '../composables/useComposerPalette';
 import { useComposerContextMenu } from '../composables/useComposerContextMenu';
-import { useMcpToolDiscovery } from '../composables/useMcpToolDiscovery';
+import { useMcpToolDiscoveryStore } from '../stores/mcp-tool-discovery';
 import type { PipelineDefinition } from '../lib/pipeline-types-edge';
 import type { PipelineNodeType } from '../lib/pipeline-types-node';
 import type { PipelineView } from '../lib/pipeline-types-view';
@@ -62,7 +63,9 @@ const {
 const { composerLayoutStyle, closePalette, paletteAsOverlay, paletteOpen, paletteResize, showPalettePanel, togglePalette } =
   useComposerPalette(() => props.designMode);
 
-const { serverResults, hasLoadedCatalog, refreshTools } = useMcpToolDiscovery();
+const mcpToolDiscoveryStore = useMcpToolDiscoveryStore();
+const { serverResults, hasLoadedCatalog } = storeToRefs(mcpToolDiscoveryStore);
+const { refreshTools } = mcpToolDiscoveryStore;
 
 const firstAgent = computed(() => resolvePreferredAgent(configStore.agentNames));
 const firstWorkflow = computed(() => store.workflows[0] ?? '');

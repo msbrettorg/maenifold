@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import type { AgentProbeResult } from '../lib/agent-probe-types-defs';
-import { useMcpToolDiscovery } from '../composables/useMcpToolDiscovery';
+import { useMcpToolDiscoveryStore } from '../stores/mcp-tool-discovery';
 import type { PipelineNodeAgentConfig } from '../lib/pipeline-types-node';
 import { buildAgentConfigDefaults, formatPipelineAgentOptionLabel, getAgentConfigOptionValue, getAgentModelValue, getAgentThoughtLevelValue, getEditableAgentConfigOptions, getAgentModeValue, isSessionConfigSelectGroup, setAgentConfigOptionValue, setAgentModelValue, setAgentModeValue, setAgentThoughtLevelValue } from '../composables/pipeline-node-form-helpers';
 import { getBareToolName, resolveToolDefinition } from '../lib/tool-categories';
@@ -21,7 +22,9 @@ const props = withDefaults(defineProps<{ active?: boolean; toolName: string; age
 const emit = defineEmits<{ 'update:toolName': [value: string]; 'update:agentName': [value: string]; 'update:agentConfig': [value: PipelineNodeAgentConfig]; 'update:toolArgs': [value: Record<string, unknown>]; validation: [state: { valid: boolean }]; submitRequest: []; }>();
 
 const pipelineStore = usePipelineStore(), configStore = useConfigStore(), capabilitiesStore = useAgentCapabilitiesStore(), nodePaletteStore = useNodePaletteStore();
-const { serverResults, loading, error, hasLoadedCatalog, refreshTools } = useMcpToolDiscovery();
+const mcpToolDiscoveryStore = useMcpToolDiscoveryStore();
+const { serverResults, loading, error, hasLoadedCatalog } = storeToRefs(mcpToolDiscoveryStore);
+const { refreshTools } = mcpToolDiscoveryStore;
 const sections = computed(() => serverResults.value.map((result) => ({ server: result.server, status: result.status, error: result.error, tools: [...result.tools].sort((left, right) => left.name.localeCompare(right.name)).map((tool) => ({ ...tool, server: result.server, status: result.status, error: result.error, namespacedName: tool.name, displayName: tool.name.startsWith(`${result.server}.`) ? tool.name.slice(result.server.length + 1) : getBareToolName(tool.name) })) })));
 const catalogTools = computed<ToolPaletteItem[]>(() => sections.value.flatMap((section) => section.tools));
 const hasCatalog = computed(() => catalogTools.value.length > 0);

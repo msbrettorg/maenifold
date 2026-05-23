@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { AlertCircle } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { useDaemonHealth } from '../composables/useDaemonHealth';
-import { getSharedMcpClient } from '../composables/usePipelineMcp';
+import { getSharedMcpClient } from '../composables/useSharedMcpClient';
 import { useSessionStore } from '../stores/session';
 
 const daemonHealth = useDaemonHealth();

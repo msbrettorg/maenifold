@@ -8,7 +8,7 @@ import { useSessionStore } from '../../stores/session';
 
 const reconnectSession = vi.fn();
 
-vi.mock('../../composables/usePipelineMcp', () => ({
+vi.mock('../../composables/useSharedMcpClient', () => ({
   getSharedMcpClient: () => ({
     reconnectSession,
   }),

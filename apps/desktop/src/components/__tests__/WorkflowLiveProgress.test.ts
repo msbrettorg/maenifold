@@ -36,7 +36,7 @@ function resourcePayload(uri: string) {
   };
 }
 
-vi.mock('../../composables/usePipelineMcp', () => ({
+vi.mock('../../composables/useSharedMcpClient', () => ({
   getSharedMcpClient: () => ({
     callTool: mcpMock.callTool,
     connected: mcpMock.connected,

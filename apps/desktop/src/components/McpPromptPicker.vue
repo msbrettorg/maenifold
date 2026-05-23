@@ -14,7 +14,7 @@ import SchemaFormRenderer from './SchemaFormRenderer.vue';
 import type { AvailableCommand } from '../lib/types';
 import { useMcpCompletion } from '../composables/useMcpCompletion';
 import { getMcpPromptCommandMeta, parseGetPromptResult } from '../composables/useMcpPromptCommands';
-import { getSharedMcpClient } from '../composables/usePipelineMcp';
+import { getSharedMcpClient } from '../composables/useSharedMcpClient';
 
 const props = defineProps<{
   command: AvailableCommand | null;

@@ -3,7 +3,7 @@ import type {
   ResourceDescriptor,
   ResourceTemplateDescriptor,
 } from './mcpTransport';
-import { getSharedMcpClient } from './usePipelineMcp';
+import { getSharedMcpClient } from './useSharedMcpClient';
 
 export class McpCapabilityUnsupportedError extends Error {
   capability: string;

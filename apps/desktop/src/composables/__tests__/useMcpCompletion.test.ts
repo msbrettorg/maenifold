@@ -8,7 +8,7 @@ const mockState = vi.hoisted(() => ({
   current: null as ReturnType<typeof createMcpMock> | null,
 }));
 
-vi.mock('../usePipelineMcp', () => ({
+vi.mock('../useSharedMcpClient', () => ({
   getSharedMcpClient: vi.fn(() => mockState.current),
 }));
 

@@ -16,7 +16,7 @@ vi.mock('../../composables/useMcpResources', () => ({
   }),
 }));
 
-vi.mock('../../composables/usePipelineMcp', () => ({
+vi.mock('../../composables/useSharedMcpClient', () => ({
   getSharedMcpClient: () => ({
     connected: ref(false),
     error: ref(null),

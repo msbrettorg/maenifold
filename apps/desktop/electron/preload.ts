@@ -192,3 +192,6 @@ contextBridge.exposeInMainWorld('api', {
   onUserPromptRequest: electronAPI.onUserPromptRequest,
   resolveUserPrompt: electronAPI.resolveUserPrompt,
 });
+contextBridge.exposeInMainWorld('__MAENIFOLD_RUNTIME__', {
+  uat: process.env.MAENIFOLD_UAT === '1',
+});

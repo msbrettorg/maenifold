@@ -96,7 +96,7 @@ mcp_get_help() {
   local tool_name="$1"
   local timeout="${2:-5}"
   local response
-  response="$(call_daemon "$(jq -nc --arg toolName "$tool_name" '{jsonrpc:"2.0",id:1,method:"tools/call",params:{name:"GetHelp",arguments:{toolName:$toolName,learn:true}}}')" "$timeout")" || return 1
+  response="$(call_daemon "$(jq -nc --arg toolName "$tool_name" '{jsonrpc:"2.0",id:1,method:"tools/call",params:{name:"GetHelp",arguments:{toolName:$toolName}}}')" "$timeout")" || return 1
   printf '%s' "$response" | extract_response_body | mcp_envelope_data
 }
 

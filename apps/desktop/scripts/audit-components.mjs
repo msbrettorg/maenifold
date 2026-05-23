@@ -143,8 +143,18 @@ function findDynamicRawControls(tagText) {
 }
 
 function auditCodeFile(relPath, isVue, existingLines = null) {
-  const lines = existingLines ?? readFileSafe(path.join(APP_ROOT, relPath))?.split(/\r?\n/);
-  if (!lines) return;
+  const source = existingLines?.join('\n') ?? readFileSafe(path.join(APP_ROOT, relPath));
+  if (source == null) return;
+
+  const maxLocViolation = checkMaxLoc(source, relPath, isVue);
+  if (maxLocViolation) addViolation(
+    maxLocViolation.file,
+    maxLocViolation.line,
+    maxLocViolation.rule,
+    maxLocViolation.message
+  );
+
+  const lines = existingLines ?? source.split(/\r?\n/);
 
   const templateRanges = isVue ? findBlockRanges(lines, 'template') : [];
   for (let i = 0; i < lines.length; i++) {
@@ -155,6 +165,18 @@ function auditCodeFile(relPath, isVue, existingLines = null) {
     if (TODO_RE.test(line)) addViolation(relPath, i + 1, 'no-todo', 'TODO/FIXME/HACK — resolve or file a gate task.');
     if (MOCK_RE.test(line)) addViolation(relPath, i + 1, 'no-mock', 'Mock/stub/fake — constitution forbids mocks.');
   }
+}
+
+export function checkMaxLoc(source, relPath, isVue) {
+  if (isVue) return null;
+  const lineCount = countLinesForMaxLoc(source);
+  if (lineCount <= MAX_LOC) return null;
+  return {
+    file: relPath,
+    line: lineCount,
+    rule: 'max-loc',
+    message: `${lineCount} lines exceeds ${MAX_LOC} limit — split this file.`,
+  };
 }
 
 function addViolation(file, line, rule, message) {

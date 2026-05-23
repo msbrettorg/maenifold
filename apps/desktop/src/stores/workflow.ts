@@ -195,7 +195,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
       if (inputs && Object.keys(inputs).length > 0) {
         args.inputs = inputs;
       }
-      const result = await mcp.callTool('Workflow', args);
+      const result = await mcp.gatewayExecute('maenifold.workflow', 'Workflow', args);
       const sessionId = extractSessionId(result);
       activeRunWorkflowId.value = workflowId;
       selectedSessionId.value = sessionId;
@@ -214,7 +214,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
   async function cancelWorkflow(sessionId: string) {
     runError.value = null;
     try {
-      await mcp.callTool('Workflow', {
+      await mcp.gatewayExecute('maenifold.workflow', 'Workflow', {
         sessionId,
         response: 'Cancelled from desktop workflow runner. [[workflow-execution]]',
         status: 'cancelled',

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
 import { useMemoryApi } from '../useMemoryApi';
 
-const mockCallTool = vi.fn();
+const mockGatewayExecute = vi.fn();
 
 vi.mock('../useSharedMcpClient', () => ({
   getSharedMcpClient: vi.fn(() => ({
@@ -12,17 +12,17 @@ vi.mock('../useSharedMcpClient', () => ({
     error: ref(null),
     onNotification: vi.fn(() => vi.fn()),
     onDisconnect: vi.fn(() => vi.fn()),
-    callTool: mockCallTool,
+    gatewayExecute: mockGatewayExecute,
   })),
 }));
 
 describe('useMemoryApi', () => {
   beforeEach(() => {
-    mockCallTool.mockReset();
+    mockGatewayExecute.mockReset();
   });
 
   it('returns the destination URI from MoveMemory arrow responses', async () => {
-    mockCallTool.mockResolvedValue('Moved memory FILE: memory://research/old → memory://research/new');
+    mockGatewayExecute.mockResolvedValue('Moved memory FILE: memory://research/old → memory://research/new');
 
     const result = await useMemoryApi().moveMemory({
       source: 'memory://research/old',
@@ -33,7 +33,7 @@ describe('useMemoryApi', () => {
   });
 
   it('falls back to the caller destination when MoveMemory omits an arrow URI', async () => {
-    mockCallTool.mockResolvedValue('Moved memory FILE');
+    mockGatewayExecute.mockResolvedValue('Moved memory FILE');
 
     const result = await useMemoryApi().moveMemory({
       source: 'memory://research/old',

@@ -6,11 +6,11 @@ import { nextTick } from 'vue';
 import WorkflowRunButton from '../WorkflowRunButton.vue';
 import { useWorkflowStore } from '../../stores/workflow';
 
-const callTool = vi.fn();
+const gatewayExecute = vi.fn();
 
 vi.mock('../../composables/useSharedMcpClient', () => ({
   getSharedMcpClient: () => ({
-    callTool,
+    gatewayExecute,
     connected: { value: true },
     connect: vi.fn(),
     error: { value: null },
@@ -22,7 +22,7 @@ vi.mock('../../composables/useSharedMcpClient', () => ({
     onDisconnect: vi.fn(() => vi.fn()),
   }),
   usePipelineMcp: () => ({
-    callTool,
+    gatewayExecute,
     connected: { value: true },
     connect: vi.fn(),
     error: { value: null },
@@ -65,8 +65,8 @@ function workflow(inputs?: unknown) {
 describe('WorkflowRunButton', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    callTool.mockReset();
-    callTool.mockResolvedValue({
+    gatewayExecute.mockReset();
+    gatewayExecute.mockResolvedValue({
       sessionId: 'wf-session-1',
       message: 'Created session: wf-session-1',
     });
@@ -87,7 +87,7 @@ describe('WorkflowRunButton', () => {
 
     await wrapper.get('[data-testid="workflow-run-button"]').trigger('click');
 
-    expect(callTool).toHaveBeenCalledWith('Workflow', { workflowId: 'demo-workflow' });
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.workflow', 'Workflow', { workflowId: 'demo-workflow' });
     expect(store.selectedSessionId).toBe('wf-session-1');
   });
 
@@ -113,7 +113,7 @@ describe('WorkflowRunButton', () => {
     await nextTick();
     await wrapper.get('[data-testid="workflow-parameter-submit"]').trigger('click');
 
-    expect(callTool).toHaveBeenCalledWith('Workflow', {
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.workflow', 'Workflow', {
       workflowId: 'demo-workflow',
       inputs: {
         topic: 'cost optimization',

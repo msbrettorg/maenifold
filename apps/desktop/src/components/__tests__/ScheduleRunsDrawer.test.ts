@@ -5,7 +5,7 @@ import ScheduleRunsDrawer from '../ScheduleRunsDrawer.vue';
 
 const readResource = vi.fn();
 const subscribeResource = vi.fn();
-const callTool = vi.fn();
+const gatewayExecute = vi.fn();
 const connect = vi.fn();
 const connected = { value: true };
 
@@ -20,7 +20,7 @@ function deferred<T>() {
 }
 
 vi.mock('@/composables/useMcpResources', () => ({ useMcpResources: () => ({ readResource, subscribeResource }) }));
-vi.mock('@/composables/useMcpClient', () => ({ useMcpClient: () => ({ callTool, connect, connected }) }));
+vi.mock('@/composables/useMcpClient', () => ({ useMcpClient: () => ({ gatewayExecute, connect, connected }) }));
 
 function mountDrawer() {
   return mount(ScheduleRunsDrawer, {
@@ -55,11 +55,11 @@ describe('ScheduleRunsDrawer', () => {
     document.body.innerHTML = '';
     readResource.mockReset();
     subscribeResource.mockReset();
-    callTool.mockReset();
+    gatewayExecute.mockReset();
     connect.mockReset();
     connected.value = true;
     subscribeResource.mockResolvedValue(vi.fn());
-    callTool.mockResolvedValue({ message: 'ran' });
+    gatewayExecute.mockResolvedValue({ message: 'ran' });
   });
 
   it('renders empty state', async () => {
@@ -140,7 +140,7 @@ describe('ScheduleRunsDrawer', () => {
 
     expect(document.body.textContent).toContain('failed');
     expect(document.body.textContent).toContain('Retry now');
-    expect(callTool).toHaveBeenCalledWith('Schedule', { action: 'run_now', id: 'daily-summary' });
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.system', 'Schedule', { action: 'run_now', id: 'daily-summary' });
     wrapper.unmount();
   });
 
@@ -150,7 +150,7 @@ describe('ScheduleRunsDrawer', () => {
       uri: 'schedule://logs/daily-summary',
       text: JSON.stringify([{ fileName: '20260429T150000Z.log', content: 'exit code: 1' }]),
     });
-    callTool.mockReturnValue(retry.promise);
+    gatewayExecute.mockReturnValue(retry.promise);
 
     const wrapper = mountDrawer();
     await flushPromises();
@@ -159,7 +159,7 @@ describe('ScheduleRunsDrawer', () => {
     button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await flushPromises();
 
-    expect(callTool).toHaveBeenCalledTimes(1);
+    expect(gatewayExecute).toHaveBeenCalledTimes(1);
     retry.resolve({ message: 'ran' });
     await flushPromises();
     wrapper.unmount();
@@ -304,7 +304,7 @@ describe('ScheduleRunsDrawer', () => {
     confirmButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await flushPromises();
 
-    expect(callTool).toHaveBeenCalledWith('Schedule', { action: 'clear_history', id: 'daily-summary' });
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.system', 'Schedule', { action: 'clear_history', id: 'daily-summary' });
     expect(readResource.mock.calls.length).toBeGreaterThan(callsBefore);
     expect(readResource.mock.calls[readResource.mock.calls.length - 1]?.[0]).toBe('schedule://logs/daily-summary');
     wrapper.unmount();

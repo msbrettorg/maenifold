@@ -4,12 +4,12 @@ import { useSchedulesSettings } from '@/composables/useSchedulesSettings';
 import { useConfigStore } from '@/stores/config';
 import { useSchedulesStore } from '@/stores/schedules';
 
-const callTool = vi.fn();
+const gatewayExecute = vi.fn();
 const connect = vi.fn();
 
 vi.mock('@/composables/useMcpClient', () => ({
   useMcpClient: () => ({
-    callTool,
+    gatewayExecute,
     connect,
     connected: { value: true },
   }),
@@ -23,10 +23,10 @@ function seedAgents(): void {
 describe('useSchedulesSettings pause-all actions', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    callTool.mockReset();
+    gatewayExecute.mockReset();
     connect.mockReset();
     seedAgents();
-    callTool.mockImplementation((_tool: string, payload: { action: string }) => {
+    gatewayExecute.mockImplementation((_domain: string, _command: string, payload: { action: string }) => {
       if (payload.action === 'list') return Promise.resolve([]);
       if (payload.action === 'verify_installed') return Promise.resolve([]);
       if (payload.action === 'pause_status') return Promise.resolve({ paused: false });
@@ -39,9 +39,9 @@ describe('useSchedulesSettings pause-all actions', () => {
 
     await settings.pauseAll();
 
-    expect(callTool).toHaveBeenCalledWith('Schedule', { action: 'pause_all' });
-    expect(callTool).toHaveBeenCalledWith('Schedule', { action: 'list' });
-    expect(callTool).toHaveBeenCalledWith('Schedule', { action: 'pause_status' });
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.system', 'Schedule', { action: 'pause_all' });
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.system', 'Schedule', { action: 'list' });
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.system', 'Schedule', { action: 'pause_status' });
   });
 
   it('resumeAll calls Schedule with action=resume_all and refreshes', async () => {
@@ -49,13 +49,13 @@ describe('useSchedulesSettings pause-all actions', () => {
 
     await settings.resumeAll();
 
-    expect(callTool).toHaveBeenCalledWith('Schedule', { action: 'resume_all' });
-    expect(callTool).toHaveBeenCalledWith('Schedule', { action: 'list' });
-    expect(callTool).toHaveBeenCalledWith('Schedule', { action: 'pause_status' });
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.system', 'Schedule', { action: 'resume_all' });
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.system', 'Schedule', { action: 'list' });
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.system', 'Schedule', { action: 'pause_status' });
   });
 
   it('loadSchedules dispatches pause_status and writes to schedulesStore', async () => {
-    callTool.mockImplementation((_tool: string, payload: { action: string }) => {
+    gatewayExecute.mockImplementation((_domain: string, _command: string, payload: { action: string }) => {
       if (payload.action === 'pause_status') {
         return Promise.resolve({ paused: true, pausedAt: '2026-05-14T00:00:00Z', schedulesPaused: 2 });
       }
@@ -66,7 +66,7 @@ describe('useSchedulesSettings pause-all actions', () => {
 
     await settings.loadSchedules();
 
-    expect(callTool).toHaveBeenCalledWith('Schedule', { action: 'pause_status' });
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.system', 'Schedule', { action: 'pause_status' });
     expect(store.pauseState).toEqual({
       paused: true,
       pausedAt: '2026-05-14T00:00:00Z',
@@ -87,7 +87,7 @@ describe('useSchedulesSettings pause-all actions', () => {
       allowed_tools: [],
     }];
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    callTool.mockImplementation((_tool: string, payload: { action: string }) => {
+    gatewayExecute.mockImplementation((_domain: string, _command: string, payload: { action: string }) => {
       if (payload.action === 'list') return Promise.resolve(jobs);
       if (payload.action === 'verify_installed') return Promise.reject(new Error('launchctl denied'));
       if (payload.action === 'pause_status') return Promise.resolve({ paused: false });
@@ -108,7 +108,7 @@ describe('useSchedulesSettings pause-all actions', () => {
         expect.any(Error),
       );
 
-      callTool.mockImplementation((_tool: string, payload: { action: string }) => {
+      gatewayExecute.mockImplementation((_domain: string, _command: string, payload: { action: string }) => {
         if (payload.action === 'list') return Promise.reject(new Error('list unavailable'));
         return Promise.resolve({});
       });
@@ -126,18 +126,18 @@ describe('useSchedulesSettings pause-all actions', () => {
     await settings.setPauseAll(true);
     await settings.setPauseAll(false);
 
-    expect(callTool).toHaveBeenCalledWith('Schedule', { action: 'pause_all' });
-    expect(callTool).toHaveBeenCalledWith('Schedule', { action: 'resume_all' });
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.system', 'Schedule', { action: 'pause_all' });
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.system', 'Schedule', { action: 'resume_all' });
   });
 });
 
 describe('useSchedulesSettings mcp action form', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    callTool.mockReset();
+    gatewayExecute.mockReset();
     connect.mockReset();
     seedAgents();
-    callTool.mockImplementation((_tool: string, payload: { action: string }) => {
+    gatewayExecute.mockImplementation((_domain: string, _command: string, payload: { action: string }) => {
       if (payload.action === 'list') return Promise.resolve([]);
       if (payload.action === 'verify_installed') return Promise.resolve([]);
       if (payload.action === 'pause_status') return Promise.resolve({ paused: false });
@@ -179,7 +179,7 @@ describe('useSchedulesSettings mcp action form', () => {
     await settings.saveSchedule();
 
     expect(settings.error.value).toBe('Parameters must be a JSON object.');
-    expect(callTool).not.toHaveBeenCalledWith('Schedule', expect.objectContaining({ action: 'create' }));
+    expect(gatewayExecute).not.toHaveBeenCalledWith('maenifold.system', 'Schedule', expect.objectContaining({ action: 'create' }));
   });
 
   it('composable rejects save when mcpParameters parses to non-object', async () => {
@@ -196,7 +196,7 @@ describe('useSchedulesSettings mcp action form', () => {
     await settings.saveSchedule();
 
     expect(settings.error.value).toBe('Parameters must be a JSON object.');
-    expect(callTool).not.toHaveBeenCalledWith('Schedule', expect.objectContaining({ action: 'create' }));
+    expect(gatewayExecute).not.toHaveBeenCalledWith('maenifold.system', 'Schedule', expect.objectContaining({ action: 'create' }));
   });
 
   it('composable allows save when mcpAction set and parameters parse OK', async () => {
@@ -212,7 +212,7 @@ describe('useSchedulesSettings mcp action form', () => {
 
     await settings.saveSchedule();
 
-    expect(callTool).toHaveBeenCalledWith('Schedule', expect.objectContaining({
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.system', 'Schedule', expect.objectContaining({
       action: 'create',
       mcp_action: 'maenifold.gate.gate_Status',
       mcp_parameters: { root: '/workspace' },

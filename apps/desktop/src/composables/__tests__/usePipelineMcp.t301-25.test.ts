@@ -7,7 +7,7 @@ import type { PipelineDefinition } from '../../lib/pipeline-types-edge';
 const mcpState = vi.hoisted(() => {
   const vue = require('vue') as typeof import('vue');
   return {
-    callTool: vi.fn(async () => ({ success: true, data: { pipelineId: 'created' } })),
+    gatewayExecute: vi.fn(async () => ({ success: true, data: { pipelineId: 'created' } })),
     connected: vue.ref(true),
     error: vue.ref<string | null>(null),
     reconnecting: vue.ref(false),
@@ -16,7 +16,7 @@ const mcpState = vi.hoisted(() => {
 
 vi.mock('../useMcpClient', () => ({
   useMcpClient: () => ({
-    callTool: mcpState.callTool,
+    gatewayExecute: mcpState.gatewayExecute,
     connected: mcpState.connected,
     error: mcpState.error,
     reconnecting: mcpState.reconnecting,
@@ -30,7 +30,7 @@ const definition: PipelineDefinition = {
 
 describe('usePipelineMcp createPipeline T-301.25 metadata payload', () => {
   beforeEach(() => {
-    mcpState.callTool.mockClear();
+    mcpState.gatewayExecute.mockClear();
   });
 
   it('createPipeline_t301_25_includes_name_and_description_in_payload', async () => {
@@ -42,7 +42,7 @@ describe('usePipelineMcp createPipeline T-301.25 metadata payload', () => {
 
     await mcp.createPipeline(definition, 3, options);
 
-    expect(mcpState.callTool).toHaveBeenCalledWith('Pipeline', {
+    expect(mcpState.gatewayExecute).toHaveBeenCalledWith('maenifold.workflow', 'Pipeline', {
       definition,
       maxConcurrency: 3,
       name: 'user-pipeline',
@@ -59,7 +59,7 @@ describe('usePipelineMcp createPipeline T-301.25 metadata payload', () => {
 
     await mcp.createPipeline(definition, 2, options);
 
-    expect(mcpState.callTool).toHaveBeenCalledWith('Pipeline', {
+    expect(mcpState.gatewayExecute).toHaveBeenCalledWith('maenifold.workflow', 'Pipeline', {
       definition,
       maxConcurrency: 2,
       name: 'user-pipeline',

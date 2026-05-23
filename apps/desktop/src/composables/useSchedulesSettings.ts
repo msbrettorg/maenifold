@@ -41,7 +41,7 @@ export function useSchedulesSettings() {
   const schedulesStore = useSchedulesStore();
   const { agentNames } = storeToRefs(configStore);
   const { pauseState, isPausedAll } = storeToRefs(schedulesStore);
-  const { callTool, connect, connected } = useMcpClient();
+  const { gatewayExecute, connect, connected } = useMcpClient();
   const jobs = ref<ScheduleJob[]>([]);
   const isLoading = ref(true);
   const isSubmitting = ref(false);
@@ -94,7 +94,7 @@ export function useSchedulesSettings() {
     configStore,
     agentNames,
     ensureConnected,
-    callTool,
+    gatewayExecute,
     schedulesStore,
     jobs,
     isLoading,
@@ -111,7 +111,7 @@ export function useSchedulesSettings() {
   });
   const { pauseAll, resumeAll, setPauseAll, runSchedule, repairSchedule, deleteSchedule } = createSchedulesLifecycle({
     ensureConnected,
-    callTool,
+    gatewayExecute,
     confirmDialogStore,
     actionJobIds,
     isSubmitting,

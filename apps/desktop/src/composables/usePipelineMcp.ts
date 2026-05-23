@@ -46,7 +46,7 @@ export function usePipelineMcp(baseUrl?: string) {
   const diffViews = diffPipelineViews;
 
   function callPipeline<T = unknown>(payload: Record<string, unknown>): Promise<T> {
-    return mcp.callTool('Pipeline', payload).then((result) => {
+    return mcp.gatewayExecute('maenifold.workflow', 'Pipeline', payload).then((result) => {
       return unwrapEnvelope<T>(result);
     });
   }
@@ -157,11 +157,11 @@ export function usePipelineMcp(baseUrl?: string) {
   }
 
   function listWorkflows(): Promise<string[]> {
-    return mcp.callTool('ListAssets', { type: 'workflow' }).then((result) => normalizeWorkflowIds(result));
+    return mcp.gatewayExecute('maenifold.system', 'ListAssets', { type: 'workflow' }).then((result) => normalizeWorkflowIds(result));
   }
 
   function listWorkflowSummaries(): Promise<WorkflowAssetSummary[]> {
-    return mcp.callTool('ListAssets', { type: 'workflow' }).then((result) => {
+    return mcp.gatewayExecute('maenifold.system', 'ListAssets', { type: 'workflow' }).then((result) => {
       return unwrapToolData<WorkflowAssetSummary[]>(result);
     });
   }
@@ -179,7 +179,7 @@ export function usePipelineMcp(baseUrl?: string) {
   }
 
   function listAssets(type: PipelineAssetType): Promise<PipelineAssetSummary[]> {
-    return mcp.callTool('ListAssets', { type }).then((result) => {
+    return mcp.gatewayExecute('maenifold.system', 'ListAssets', { type }).then((result) => {
       return unwrapToolData<PipelineAssetSummary[]>(result);
     });
   }
@@ -191,6 +191,7 @@ export function usePipelineMcp(baseUrl?: string) {
     reconnecting: mcp.reconnecting,
     error,
     callTool: mcp.callTool,
+    gatewayExecute: mcp.gatewayExecute,
     callPipeline,
     listPipelines,
     createPipeline,

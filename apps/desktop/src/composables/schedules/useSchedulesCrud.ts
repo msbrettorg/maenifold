@@ -8,7 +8,11 @@ type SchedulePlatform = {
   supportsEnabledSchedules: boolean;
 };
 
-type ScheduleToolCaller = <T = unknown>(tool: string, payload: Record<string, unknown>) => Promise<T>;
+type ScheduleGatewayExecute = <T = unknown>(
+  domain: string,
+  command: string,
+  parameters: Record<string, unknown>,
+) => Promise<T>;
 
 type SchedulesConfigStore = {
   loading: boolean;
@@ -24,7 +28,7 @@ export function createSchedulesCrud(args: {
   configStore: SchedulesConfigStore;
   agentNames: Ref<string[]>;
   ensureConnected: () => Promise<void>;
-  callTool: ScheduleToolCaller;
+  gatewayExecute: ScheduleGatewayExecute;
   schedulesStore: SchedulesStore;
   jobs: Ref<ScheduleJob[]>;
   isLoading: Ref<boolean>;
@@ -43,7 +47,7 @@ export function createSchedulesCrud(args: {
     configStore,
     agentNames,
     ensureConnected,
-    callTool,
+    gatewayExecute,
     schedulesStore,
     jobs,
     isLoading,
@@ -87,14 +91,14 @@ export function createSchedulesCrud(args: {
     try {
       if (!configStore.loading && agentNames.value.length === 0) await configStore.loadConfig();
       await ensureConnected();
-      jobs.value = normalizeJobs(await callTool('Schedule', { action: 'list' }));
+      jobs.value = normalizeJobs(await gatewayExecute('maenifold.system', 'Schedule', { action: 'list' }));
       try {
-        schedulesStore.setInstallStatuses(await callTool('Schedule', { action: 'verify_installed' }));
+        schedulesStore.setInstallStatuses(await gatewayExecute('maenifold.system', 'Schedule', { action: 'verify_installed' }));
       } catch (probeError) {
         console.error('Schedule verify_installed probe failed', probeError);
         schedulesStore.setInstallStatuses([]);
       }
-      schedulesStore.setPauseState(await callTool('Schedule', { action: 'pause_status' }));
+      schedulesStore.setPauseState(await gatewayExecute('maenifold.system', 'Schedule', { action: 'pause_status' }));
       ensureDialogAgent();
     } catch (loadError) {
       error.value = loadError instanceof Error ? loadError.message : String(loadError);
@@ -157,7 +161,7 @@ export function createSchedulesCrud(args: {
         payload.mcp_action = mcpAction;
         payload.mcp_parameters = parsedMcpParameters.ok ? parsedMcpParameters.value : {};
       }
-      const result = await callTool<{ message?: string }>('Schedule', payload);
+      const result = await gatewayExecute<{ message?: string }>('maenifold.system', 'Schedule', payload);
       statusMessage.value = result?.message ?? `Schedule ${dialogMode.value === 'create' ? 'created' : 'updated'}.`;
       dialogOpen.value = false;
       await loadSchedules();

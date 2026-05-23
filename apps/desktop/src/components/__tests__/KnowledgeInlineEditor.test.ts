@@ -6,7 +6,7 @@ import { ref } from 'vue';
 import KnowledgeInlineEditor from '../KnowledgeInlineEditor.vue';
 import type { MemoryFile } from '../../lib/workflow-types';
 
-const mockCallTool = vi.fn();
+const mockGatewayExecute = vi.fn();
 const guard = vi.hoisted(() => ({
   markDirty: vi.fn(),
   markClean: vi.fn(),
@@ -21,7 +21,7 @@ vi.mock('../../composables/useSharedMcpClient', () => ({
     error: ref(null),
     onNotification: vi.fn(() => vi.fn()),
     onDisconnect: vi.fn(() => vi.fn()),
-    callTool: mockCallTool,
+    gatewayExecute: mockGatewayExecute,
   })),
 }));
 
@@ -58,7 +58,7 @@ function note(): MemoryFile {
 describe('KnowledgeInlineEditor', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    mockCallTool.mockReset();
+    mockGatewayExecute.mockReset();
     guard.markDirty.mockClear();
     guard.markClean.mockClear();
     guard.confirmIfDirty.mockClear();
@@ -67,7 +67,7 @@ describe('KnowledgeInlineEditor', () => {
   });
 
   it('saves markdown through EditMemory with the last-read checksum', async () => {
-    mockCallTool
+    mockGatewayExecute
       .mockResolvedValueOnce({ success: true, data: { uri: 'memory://research/editor' } })
       .mockResolvedValueOnce({
         success: true,
@@ -86,7 +86,7 @@ describe('KnowledgeInlineEditor', () => {
     await wrapper.find('[data-testid="inline-editor-content"]').setValue('Updated [[knowledge-crud]] content.');
     await wrapper.find('[data-testid="inline-editor-save"]').trigger('click');
 
-    expect(mockCallTool).toHaveBeenCalledWith('EditMemory', {
+    expect(mockGatewayExecute).toHaveBeenCalledWith('maenifold.memory', 'EditMemory', {
       identifier: 'memory://research/editor',
       operation: 'find_replace',
       findText: 'Original [[knowledge-crud]] content.',
@@ -97,7 +97,7 @@ describe('KnowledgeInlineEditor', () => {
   });
 
   it('shows a conflict dialog when the checksum is stale', async () => {
-    mockCallTool.mockResolvedValueOnce('ERROR: Checksum mismatch. Expected: checksum-1, Actual: checksum-2');
+    mockGatewayExecute.mockResolvedValueOnce('ERROR: Checksum mismatch. Expected: checksum-1, Actual: checksum-2');
 
     const wrapper = mount(KnowledgeInlineEditor, {
       props: { note: note() },
@@ -114,7 +114,7 @@ describe('KnowledgeInlineEditor', () => {
   });
 
   it('uses the shared unsaved changes guard for edit, save, and cancel', async () => {
-    mockCallTool
+    mockGatewayExecute
       .mockResolvedValueOnce({ success: true, data: { uri: 'memory://research/editor' } })
       .mockResolvedValueOnce({
         success: true,

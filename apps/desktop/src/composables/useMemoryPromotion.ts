@@ -72,7 +72,7 @@ export function useMemoryPromotion(baseUrl?: string) {
 
     try {
       await ensureConnected();
-      const result = await mcp.callTool<SearchMemoriesPayload>('SearchMemories', {
+      const result = await mcp.gatewayExecute<SearchMemoriesPayload>('maenifold.memory', 'SearchMemories', {
         query,
         mode: 'Hybrid',
         pageSize: SEARCH_PAGE_SIZE,
@@ -91,7 +91,7 @@ export function useMemoryPromotion(baseUrl?: string) {
 
     try {
       await ensureConnected();
-      const result = await mcp.callTool('ReadMemory', { identifier, includeChecksum });
+      const result = await mcp.gatewayExecute('maenifold.memory', 'ReadMemory', { identifier, includeChecksum });
       return normalizeMemoryDocument(result);
     } catch (errorValue) {
       error.value = errorValue instanceof Error ? errorValue.message : String(errorValue);
@@ -125,7 +125,7 @@ export function useMemoryPromotion(baseUrl?: string) {
         payload.tags = options.tags;
       }
 
-      const result = await mcp.callTool('WriteMemory', payload);
+      const result = await mcp.gatewayExecute('maenifold.memory', 'WriteMemory', payload);
       const uri = normalizeWriteResult(result);
       writtenUri.value = uri;
       return uri;
@@ -153,7 +153,7 @@ export function useMemoryPromotion(baseUrl?: string) {
         operation: 'append',
         content: `\n\n${block}`,
       };
-      const result = await mcp.callTool('EditMemory', payload);
+      const result = await mcp.gatewayExecute('maenifold.memory', 'EditMemory', payload);
       const uri = normalizeWriteResult(result, options.identifier);
       writtenUri.value = uri;
       return uri;
@@ -189,7 +189,7 @@ export function useMemoryPromotion(baseUrl?: string) {
         content,
         checksum,
       };
-      const result = await mcp.callTool('EditMemory', payload);
+      const result = await mcp.gatewayExecute('maenifold.memory', 'EditMemory', payload);
       const uri = normalizeWriteResult(result, options.identifier);
       writtenUri.value = uri;
       return uri;

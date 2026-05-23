@@ -107,7 +107,7 @@ export function createWorkflowLibrarySaveActions(context: SaveActionContext) {
       if (!workflowMcp.connected.value) {
         await workflowMcp.connect()
       }
-      await workflowMcp.callTool('SaveWorkflowAsset', {
+      await workflowMcp.gatewayExecute('maenifold.workflow', 'SaveWorkflowAsset', {
         id: nextDraft.id,
         content: `${JSON.stringify(merged, null, 2)}\n`,
       })
@@ -166,7 +166,7 @@ export function createWorkflowLibrarySaveActions(context: SaveActionContext) {
     const content = `${JSON.stringify(raw, null, 2)}\n`
     try {
       if (!workflowMcp.connected.value) await workflowMcp.connect()
-      await workflowMcp.callTool('SaveWorkflowAsset', { id: copyId, content })
+      await workflowMcp.gatewayExecute('maenifold.workflow', 'SaveWorkflowAsset', { id: copyId, content })
     } catch (err) {
       getNotificationSink().error(err instanceof Error ? err.message : String(err))
       return null
@@ -190,7 +190,7 @@ export function createWorkflowLibrarySaveActions(context: SaveActionContext) {
       raw.id = copyId
       raw.name = typeof raw.name === 'string' && raw.name.trim() ? `${raw.name} Copy` : copyId
       const content = `${JSON.stringify(raw, null, 2)}\n`
-      await workflowMcp.callTool('SaveWorkflowAsset', { id: copyId, content })
+      await workflowMcp.gatewayExecute('maenifold.workflow', 'SaveWorkflowAsset', { id: copyId, content })
     } catch (err) {
       getNotificationSink().error(err instanceof Error ? err.message : String(err))
       return null

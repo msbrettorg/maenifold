@@ -18,7 +18,7 @@ const props = defineProps<{ scheduleId: string; open: boolean; onUpdateOpen?: (v
 const emit = defineEmits<{ 'update:open': [open: boolean]; }>();
 
 const resources = useMcpResources();
-const { callTool, connect, connected } = useMcpClient();
+const { gatewayExecute, connect, connected } = useMcpClient();
 const runs = ref<ScheduleRunRow[]>([]);
 const expandedRunId = ref('');
 const loading = ref(false);
@@ -142,7 +142,7 @@ async function retryRun(run: ScheduleRunRow): Promise<void> {
   error.value = '';
   try {
     if (!connected.value) await connect();
-    await callTool('Schedule', { action: 'run_now', id: props.scheduleId });
+    await gatewayExecute('maenifold.system', 'Schedule', { action: 'run_now', id: props.scheduleId });
     await loadRuns();
   } catch (retryError) {
     error.value = retryError instanceof Error ? retryError.message : String(retryError);
@@ -157,7 +157,7 @@ async function confirmClearHistory(): Promise<void> {
   clearError.value = '';
   try {
     if (!connected.value) await connect();
-    await callTool('Schedule', { action: 'clear_history', id: props.scheduleId });
+    await gatewayExecute('maenifold.system', 'Schedule', { action: 'clear_history', id: props.scheduleId });
     await loadRuns();
   } catch (clearHistoryError) {
     clearError.value = clearHistoryError instanceof Error ? clearHistoryError.message : String(clearHistoryError);

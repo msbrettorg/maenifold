@@ -29,7 +29,7 @@ interface UseOnboardingModelDownloadOptions {
 }
 
 export function useOnboardingModelDownload(options: UseOnboardingModelDownloadOptions) {
-  const { callTool, connect, connected } = useMcpClient();
+  const { gatewayExecute, connect, connected } = useMcpClient();
 
   const loading = ref(true);
   const loadError = ref<string | null>(null);
@@ -83,7 +83,7 @@ export function useOnboardingModelDownload(options: UseOnboardingModelDownloadOp
         await connect();
       }
       if (disposed) return;
-      const result = await callTool<ModelListResponse>('EmbeddingModels', { action: 'list' });
+      const result = await gatewayExecute<ModelListResponse>('maenifold.system', 'EmbeddingModels', { action: 'list' });
       if (disposed) return;
       models.value = result?.models ?? [];
       if (selectedId.value === null && models.value.length > 0) {
@@ -144,7 +144,7 @@ export function useOnboardingModelDownload(options: UseOnboardingModelDownloadOp
         await connect();
       }
       if (disposed) return;
-      await callTool('EmbeddingModels', {
+      await gatewayExecute('maenifold.system', 'EmbeddingModels', {
         action: 'download',
         modelId: model.id,
       });

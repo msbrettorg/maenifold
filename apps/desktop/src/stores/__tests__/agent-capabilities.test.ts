@@ -26,14 +26,14 @@ const error = ref<string | null>(null);
 const connect = vi.fn(async () => {
   connected.value = true;
 });
-const callTool = vi.fn();
+const gatewayExecute = vi.fn();
 
 vi.mock('../../composables/usePipelineMcp', () => ({
   usePipelineMcp: () => ({
     connected,
     error,
     connect,
-    callTool,
+    gatewayExecute,
   }),
 }));
 
@@ -57,7 +57,7 @@ describe('useAgentCapabilitiesStore', () => {
     connected.value = true;
     error.value = null;
     connect.mockClear();
-    callTool.mockReset();
+    gatewayExecute.mockReset();
     toast.warning.mockClear();
     seedConfig();
   });
@@ -70,7 +70,7 @@ describe('useAgentCapabilitiesStore', () => {
 
     await store.probeAll();
 
-    expect(callTool).not.toHaveBeenCalled();
+    expect(gatewayExecute).not.toHaveBeenCalled();
     expect(store.probeStatus).toBe('done');
   });
 
@@ -79,7 +79,7 @@ describe('useAgentCapabilitiesStore', () => {
     store.probeResults = new Map([
       ['architect', normalizeAgentProbeResult({ configOptions: [] }, { probedAt: Date.now() })],
     ]);
-    callTool.mockResolvedValue({
+    gatewayExecute.mockResolvedValue({
       agents: {
         architect: { command: 'architect', capabilities: { configOptions: [] } },
       },
@@ -90,7 +90,7 @@ describe('useAgentCapabilitiesStore', () => {
 
     await store.refreshAll();
 
-    expect(callTool).toHaveBeenCalledWith('GetConfig', {});
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.system', 'GetConfig', {});
     expect(store.getProbe('architect')?.state).toBe('ready');
     expect(store.getProbe('architect')?.degradedMessage).toBeUndefined();
   });
@@ -140,7 +140,7 @@ describe('useAgentCapabilitiesStore', () => {
         { probedAt: cachedProbedAt },
       )],
     ]);
-    callTool.mockImplementation(() => new Promise(() => {}));
+    gatewayExecute.mockImplementation(() => new Promise(() => {}));
 
     const refreshPromise = store.refreshAll();
 
@@ -162,7 +162,7 @@ describe('useAgentCapabilitiesStore', () => {
     vi.useFakeTimers();
 
     const store = useAgentCapabilitiesStore();
-    callTool.mockImplementation(() => new Promise(() => {}));
+    gatewayExecute.mockImplementation(() => new Promise(() => {}));
 
     const refreshPromise = store.refreshAll();
 
@@ -176,7 +176,7 @@ describe('useAgentCapabilitiesStore', () => {
 
   it('does not surface legacy style from probe results', async () => {
     const store = useAgentCapabilitiesStore();
-    callTool.mockResolvedValue({
+    gatewayExecute.mockResolvedValue({
       agents: {
         architect: {
           command: 'architect',
@@ -195,7 +195,7 @@ describe('useAgentCapabilitiesStore', () => {
 
   it('sanitizes probe errors before surfacing toast and probe state', async () => {
     const store = useAgentCapabilitiesStore();
-    callTool.mockRejectedValue(new Error(
+    gatewayExecute.mockRejectedValue(new Error(
       'HTTP 500: Internal Server Error from /etc/secret/path for /Users/brett/private/token.txt tenantId=tenant-12345',
     ));
 

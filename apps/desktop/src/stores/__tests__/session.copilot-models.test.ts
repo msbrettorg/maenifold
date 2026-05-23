@@ -6,7 +6,7 @@ import { createEmptySessionState } from '../../lib/types';
 
 const connected = ref(true);
 const connect = vi.fn(async () => undefined);
-const callTool = vi.fn(async () => ({
+const gatewayExecute = vi.fn(async () => ({
   models: [
     {
       id: 'gpt-5.5',
@@ -23,7 +23,7 @@ vi.mock('../../composables/useMcpClient', () => ({
   useMcpClient: () => ({
     connected,
     connect,
-    callTool,
+    gatewayExecute,
   }),
 }));
 
@@ -32,7 +32,7 @@ describe('useSessionStore Copilot models overlay', () => {
     setActivePinia(createPinia());
     connected.value = true;
     connect.mockClear();
-    callTool.mockClear();
+    gatewayExecute.mockClear();
   });
 
   it('overlays reasoning effort for exact Copilot model ids only', async () => {
@@ -100,6 +100,6 @@ describe('useSessionStore Copilot models overlay', () => {
       { value: 'medium', name: 'Medium' },
       { value: 'high', name: 'High' },
     ]);
-    expect(callTool).toHaveBeenCalledWith('GetCopilotModels', { refresh: false });
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.system', 'GetCopilotModels', { refresh: false });
   });
 });

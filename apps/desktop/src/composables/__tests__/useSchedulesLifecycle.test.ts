@@ -4,11 +4,11 @@ import { createSchedulesLifecycle } from '@/composables/schedules/useSchedulesLi
 
 describe('createSchedulesLifecycle', () => {
   it('deleteSchedule confirms, deletes, and refreshes schedules', async () => {
-    const callTool = vi.fn().mockResolvedValue({ message: 'deleted' });
+    const gatewayExecute = vi.fn().mockResolvedValue({ message: 'deleted' });
     const loadSchedules = vi.fn().mockResolvedValue(undefined);
     const lifecycle = createSchedulesLifecycle({
       ensureConnected: vi.fn().mockResolvedValue(undefined),
-      callTool,
+      gatewayExecute,
       confirmDialogStore: { confirm: vi.fn().mockResolvedValue(true) },
       actionJobIds: ref(new Set<string>()),
       isSubmitting: ref(false),
@@ -28,7 +28,7 @@ describe('createSchedulesLifecycle', () => {
       allowed_tools: [],
     });
 
-    expect(callTool).toHaveBeenCalledWith('Schedule', { action: 'delete', id: 'daily' });
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.system', 'Schedule', { action: 'delete', id: 'daily' });
     expect(loadSchedules).toHaveBeenCalled();
   });
 });

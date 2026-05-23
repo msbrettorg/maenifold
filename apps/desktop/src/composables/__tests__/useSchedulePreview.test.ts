@@ -3,13 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
 import { useSchedulePreview } from '../useSchedulePreview';
 
-const callTool = vi.fn();
+const gatewayExecute = vi.fn();
 const connect = vi.fn();
 const connected = { value: true };
 
 vi.mock('@/composables/useMcpClient', () => ({
   useMcpClient: () => ({
-    callTool,
+    gatewayExecute,
     connect,
     connected,
   }),
@@ -18,10 +18,10 @@ vi.mock('@/composables/useMcpClient', () => ({
 describe('useSchedulePreview', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    callTool.mockReset();
+    gatewayExecute.mockReset();
     connect.mockReset();
     connected.value = true;
-    callTool.mockResolvedValue({
+    gatewayExecute.mockResolvedValue({
       action: 'preview',
       cron: '0 9 * * 1-5',
       description: 'At 09:00 AM, Monday through Friday',
@@ -39,11 +39,11 @@ describe('useSchedulePreview', () => {
     const preview = useSchedulePreview(expression);
 
     await vi.advanceTimersByTimeAsync(299);
-    expect(callTool).not.toHaveBeenCalled();
+    expect(gatewayExecute).not.toHaveBeenCalled();
 
     await vi.advanceTimersByTimeAsync(1);
 
-    expect(callTool).toHaveBeenCalledWith('Schedule', {
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.system', 'Schedule', {
       action: 'preview',
       schedule: 'every weekday at 9am',
     });
@@ -58,15 +58,15 @@ describe('useSchedulePreview', () => {
 
     await vi.advanceTimersByTimeAsync(300);
 
-    expect(callTool).toHaveBeenCalledTimes(1);
-    expect(callTool).toHaveBeenCalledWith('Schedule', {
+    expect(gatewayExecute).toHaveBeenCalledTimes(1);
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.system', 'Schedule', {
       action: 'preview',
       schedule: 'daily at 10am',
     });
   });
 
   it('surfaces preview errors', async () => {
-    callTool.mockRejectedValue(new Error('invalid cron'));
+    gatewayExecute.mockRejectedValue(new Error('invalid cron'));
     const expression = ref('bad schedule');
     const preview = useSchedulePreview(expression);
 

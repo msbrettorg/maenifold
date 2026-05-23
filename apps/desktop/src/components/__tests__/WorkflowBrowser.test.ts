@@ -10,6 +10,7 @@ import type { WorkflowAssetDefinition, WorkflowAssetSummary } from '../../lib/wo
 
 const mocks = vi.hoisted(() => ({
   callTool: vi.fn(),
+  gatewayExecute: vi.fn(),
   connect: vi.fn(),
   readWorkflowDefinition: vi.fn(),
   listWorkflowSummaries: vi.fn(),
@@ -20,6 +21,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../composables/usePipelineMcp', () => ({
   usePipelineMcp: () => ({
     callTool: mocks.callTool,
+    gatewayExecute: mocks.gatewayExecute,
     connect: mocks.connect,
     connected: ref(true),
     error: ref(null),
@@ -100,6 +102,7 @@ describe('WorkflowBrowser actions', () => {
   beforeEach(() => {
     document.body.innerHTML = ''
     mocks.callTool.mockReset()
+    mocks.gatewayExecute.mockReset()
     mocks.connect.mockReset()
     mocks.readWorkflowDefinition.mockReset()
     mocks.listWorkflowSummaries.mockReset()
@@ -108,6 +111,7 @@ describe('WorkflowBrowser actions', () => {
     mocks.listWorkflowSummaries.mockResolvedValue(summaries)
     mocks.readWorkflowDefinition.mockImplementation((id: string) => Promise.resolve(definition(id)))
     mocks.callTool.mockResolvedValue({ data: true })
+    mocks.gatewayExecute.mockResolvedValue({ data: true })
     mocks.connect.mockResolvedValue(undefined)
   })
 
@@ -125,13 +129,6 @@ describe('WorkflowBrowser actions', () => {
   })
 
   it('clicking duplicate on a different workflow does not lose unsaved edits in the current one', async () => {
-    mocks.callTool.mockImplementation((tool: string, payload: { uri?: string }) => {
-      if (tool === 'ReadMcpResource') {
-        const id = payload.uri?.replace('asset://workflows/', '') ?? ''
-        return Promise.resolve(definition(id))
-      }
-      return Promise.resolve({ data: true })
-    })
     const { wrapper, store } = await mountBrowser()
     await store.selectWorkflow('reasoning-loop')
     store.updateWorkflowName('Unsaved Reasoning Loop')
@@ -141,7 +138,8 @@ describe('WorkflowBrowser actions', () => {
     await flushPromises()
 
     expect(store.currentId).toBe('reasoning-loop')
-    expect(mocks.callTool).toHaveBeenCalledWith(
+    expect(mocks.gatewayExecute).toHaveBeenCalledWith(
+      'maenifold.workflow',
       'SaveWorkflowAsset',
       expect.objectContaining({ id: 'agent-review-copy' }),
     )
@@ -159,7 +157,8 @@ describe('WorkflowBrowser actions', () => {
     await flushPromises()
 
     expect(mocks.toastError).toHaveBeenCalled()
-    expect(mocks.callTool).not.toHaveBeenCalledWith(
+    expect(mocks.gatewayExecute).not.toHaveBeenCalledWith(
+      'maenifold.workflow',
       'SaveWorkflowAsset',
       expect.objectContaining({ id: 'agent-review-copy' }),
     )
@@ -174,7 +173,7 @@ describe('WorkflowBrowser actions', () => {
     dialogButton('Delete').click()
     await flushPromises()
 
-    expect(mocks.callTool).toHaveBeenCalledWith('DeleteWorkflowAsset', { name: 'agent-review' })
+    expect(mocks.gatewayExecute).toHaveBeenCalledWith('maenifold.workflow', 'DeleteWorkflowAsset', { name: 'agent-review' })
     expect(mocks.toastSuccess).toHaveBeenCalledWith('Workflow deleted.', { duration: 3000 })
     wrapper.unmount()
   })
@@ -193,7 +192,7 @@ describe('WorkflowBrowser actions', () => {
 
   it('delete refused-by-references shows error toast', async () => {
     const error = new Error('Workflow is referenced by running pipeline(s): pipeline-1')
-    mocks.callTool.mockRejectedValue(error)
+    mocks.gatewayExecute.mockRejectedValue(error)
     const { wrapper } = await mountBrowser()
 
     await wrapper.get('button[aria-label="Delete Reasoning Loop"]').trigger('click')

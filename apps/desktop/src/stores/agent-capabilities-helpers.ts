@@ -154,13 +154,13 @@ export function cachedFailureMessage(probedAt: number, error: string): string {
 }
 
 export async function getConfigWithSoftTimeout(
-  callTool: ReturnType<typeof usePipelineMcp>['callTool'],
+  gatewayExecute: ReturnType<typeof usePipelineMcp>['gatewayExecute'],
 ): Promise<unknown> {
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
 
   try {
     return await Promise.race([
-      callTool<unknown>('GetConfig', {}),
+      gatewayExecute<unknown>('maenifold.system', 'GetConfig', {}),
       new Promise<never>((_, reject) => {
         timeoutHandle = setTimeout(() => {
           reject(new Error(AGENT_PROBE_TIMEOUT_MESSAGE));

@@ -4,11 +4,11 @@ import { createPinia, setActivePinia } from 'pinia';
 import SchedulesTab from '@/components/SchedulesTab.vue';
 import { useConfigStore } from '@/stores/config';
 
-const callTool = vi.fn();
+const gatewayExecute = vi.fn();
 
 vi.mock('@/composables/useMcpClient', () => ({
   useMcpClient: () => ({
-    callTool,
+    gatewayExecute,
     connect: vi.fn(),
     connected: { value: true },
     onNotification: vi.fn(),
@@ -35,7 +35,7 @@ function job(id = 'daily') {
 }
 
 async function mountTab(paused = false, jobs = [job()]) {
-  callTool.mockImplementation((_tool: string, payload: { action: string }) => {
+  gatewayExecute.mockImplementation((_domain: string, _command: string, payload: { action: string }) => {
     if (payload.action === 'list') return Promise.resolve(jobs);
     if (payload.action === 'verify_installed') return Promise.resolve([]);
     if (payload.action === 'pause_status') {
@@ -60,7 +60,7 @@ async function mountTab(paused = false, jobs = [job()]) {
 describe('SchedulesTab pause-all row', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    callTool.mockReset();
+    gatewayExecute.mockReset();
     seedAgents();
   });
 
@@ -108,7 +108,7 @@ describe('SchedulesTab column sort', () => {
 
   beforeEach(() => {
     setActivePinia(createPinia());
-    callTool.mockReset();
+    gatewayExecute.mockReset();
     seedAgents();
   });
 

@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import ScheduleRowActions from '@/components/ScheduleRowActions.vue';
 
-const callTool = vi.fn();
+const gatewayExecute = vi.fn();
 
 vi.mock('@/composables/useMcpClient', () => ({
   useMcpClient: () => ({
-    callTool,
+    gatewayExecute,
   }),
 }));
 
@@ -19,8 +19,8 @@ function mountActions() {
 
 describe('ScheduleRowActions', () => {
   beforeEach(() => {
-    callTool.mockReset();
-    callTool.mockResolvedValue({
+    gatewayExecute.mockReset();
+    gatewayExecute.mockResolvedValue({
       action: 'backfill',
       scheduleId: 'daily-summary',
       plannedCount: 1,
@@ -70,7 +70,7 @@ describe('ScheduleRowActions', () => {
     confirm?.click();
     await flushPromises();
 
-    expect(callTool).toHaveBeenCalledWith('Schedule', {
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.system', 'Schedule', {
       action: 'backfill',
       id: 'daily-summary',
       since: '2026-05-10T00:00:00Z',

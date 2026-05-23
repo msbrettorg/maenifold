@@ -2,11 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePipelineMcp } from '../usePipelineMcp';
 import type { PipelineDefinition } from '../../lib/pipeline-types-edge';
 
-const callTool = vi.fn(async () => ({ data: { pipelineId: 'pipeline-existing' } }));
+const gatewayExecute = vi.fn(async () => ({ data: { pipelineId: 'pipeline-existing' } }));
 
 vi.mock('../useMcpClient', () => ({
   useMcpClient: () => ({
-    callTool,
+    gatewayExecute,
     connect: vi.fn(),
     connected: { value: true },
     disconnect: vi.fn(),
@@ -18,7 +18,7 @@ vi.mock('../useMcpClient', () => ({
 
 describe('usePipelineMcp T-301.26 update dispatch', () => {
   beforeEach(() => {
-    callTool.mockClear();
+    gatewayExecute.mockClear();
   });
 
   it('usePipelineMcp_t301_26_updatePipeline_dispatches_sessionId_definition_to_pipeline_tool', async () => {
@@ -39,7 +39,7 @@ describe('usePipelineMcp T-301.26 update dispatch', () => {
       description: 'Updated',
     });
 
-    expect(callTool).toHaveBeenCalledWith('Pipeline', {
+    expect(gatewayExecute).toHaveBeenCalledWith('maenifold.workflow', 'Pipeline', {
       sessionId: 'pipeline-existing',
       definition,
       name: 'Renamed',

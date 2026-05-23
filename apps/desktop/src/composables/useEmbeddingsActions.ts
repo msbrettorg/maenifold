@@ -52,7 +52,7 @@ interface EmbeddingActionResponse {
 export type PendingAction = 'downloading' | 'activating' | 'deleting';
 
 export function useEmbeddingsActions() {
-  const { callTool, connect, connected } = useMcpClient();
+  const { gatewayExecute, connect, connected } = useMcpClient();
 
   const loading = ref(true);
   const error = ref('');
@@ -81,8 +81,8 @@ export function useEmbeddingsActions() {
         await connect();
       }
       const [statusResult, listResult] = await Promise.all([
-        callTool<ModelStatus>('EmbeddingModels', { action: 'status' }),
-        callTool<ModelListResponse>('EmbeddingModels', { action: 'list' }),
+        gatewayExecute<ModelStatus>('maenifold.system', 'EmbeddingModels', { action: 'status' }),
+        gatewayExecute<ModelListResponse>('maenifold.system', 'EmbeddingModels', { action: 'list' }),
       ]);
       status.value = statusResult ?? null;
       models.value = listResult?.models ?? [];
@@ -127,7 +127,7 @@ export function useEmbeddingsActions() {
     pending[model.id] = 'downloading';
     error.value = '';
     try {
-      const response = await callTool<EmbeddingActionResponse>('EmbeddingModels', {
+      const response = await gatewayExecute<EmbeddingActionResponse>('maenifold.system', 'EmbeddingModels', {
         action: 'download',
         modelId: model.id,
       });
@@ -147,7 +147,7 @@ export function useEmbeddingsActions() {
     pending[model.id] = 'activating';
     error.value = '';
     try {
-      const response = await callTool<EmbeddingActionResponse>('EmbeddingModels', {
+      const response = await gatewayExecute<EmbeddingActionResponse>('maenifold.system', 'EmbeddingModels', {
         action: 'activate',
         modelId: model.id,
       });
@@ -175,7 +175,7 @@ export function useEmbeddingsActions() {
     pending[model.id] = 'deleting';
     error.value = '';
     try {
-      const response = await callTool<EmbeddingActionResponse>('EmbeddingModels', {
+      const response = await gatewayExecute<EmbeddingActionResponse>('maenifold.system', 'EmbeddingModels', {
         action: 'delete',
         modelId: model.id,
       });
@@ -195,7 +195,7 @@ export function useEmbeddingsActions() {
     regenerating.value = true;
     error.value = '';
     try {
-      const response = await callTool<EmbeddingActionResponse>('EmbeddingModels', {
+      const response = await gatewayExecute<EmbeddingActionResponse>('maenifold.system', 'EmbeddingModels', {
         action: 'regenerate',
       });
       toastSuccess(response.message ?? 'Embeddings cleared. Run sync to rebuild.');

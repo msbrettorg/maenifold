@@ -6,7 +6,7 @@ import { ref } from 'vue';
 import KnowledgeNewNoteDialog from '../KnowledgeNewNoteDialog.vue';
 import { useKnowledgeStore } from '../../stores/knowledge';
 
-const mockCallTool = vi.fn();
+const mockGatewayExecute = vi.fn();
 
 vi.mock('../../composables/useSharedMcpClient', () => ({
   getSharedMcpClient: vi.fn(() => ({
@@ -15,7 +15,7 @@ vi.mock('../../composables/useSharedMcpClient', () => ({
     error: ref(null),
     onNotification: vi.fn(() => vi.fn()),
     onDisconnect: vi.fn(() => vi.fn()),
-    callTool: mockCallTool,
+    gatewayExecute: mockGatewayExecute,
   })),
 }));
 
@@ -47,7 +47,7 @@ const selectStubs = {
 describe('KnowledgeNewNoteDialog', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    mockCallTool.mockReset();
+    mockGatewayExecute.mockReset();
   });
 
   it('blocks submit until title and WikiLink content are present', async () => {
@@ -67,7 +67,7 @@ describe('KnowledgeNewNoteDialog', () => {
   });
 
   it('submits valid notes through WriteMemory and opens the returned note', async () => {
-    mockCallTool
+    mockGatewayExecute
       .mockResolvedValueOnce({ success: true, data: { uri: 'memory://research/Research note' } })
       .mockResolvedValueOnce('### Folders\n\n### Files')
       .mockResolvedValueOnce({
@@ -104,7 +104,7 @@ describe('KnowledgeNewNoteDialog', () => {
     await wrapper.find('[data-testid="new-note-content"]').setValue('Connected to [[knowledge-crud]].');
     await wrapper.find('[data-testid="new-note-form"]').trigger('submit');
 
-    expect(mockCallTool).toHaveBeenCalledWith('WriteMemory', {
+    expect(mockGatewayExecute).toHaveBeenCalledWith('maenifold.memory', 'WriteMemory', {
       title: 'Research note',
       folder: 'research',
       content: 'Connected to [[knowledge-crud]].',

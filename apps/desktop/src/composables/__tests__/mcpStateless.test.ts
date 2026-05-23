@@ -88,11 +88,11 @@ describe('useMcpClient stateless MCP support', () => {
     expect(toolsListRequest?.headers['mcp-session-id']).toBeUndefined();
   });
 
-  it('callTool() routes through GatewayExecute with the real SDK transport in stateless mode', async () => {
+  it('gatewayExecute() routes through GatewayExecute with the real SDK transport in stateless mode', async () => {
     const { client, server } = await startClient();
     await client.connect();
 
-    await expect(client.callTool('Pipeline', { list: true })).resolves.toEqual({
+    await expect(client.gatewayExecute('maenifold.workflow', 'Pipeline', { list: true })).resolves.toEqual({
       success: true,
       data: { pipelines: [] },
     });
@@ -100,11 +100,7 @@ describe('useMcpClient stateless MCP support', () => {
     const toolNames = server.requests
       .filter((request) => bodyMethod(request.body) === 'tools/call')
       .map((request) => callToolName(request.body));
-    expect(toolNames).toEqual([
-      'GatewayIndex',
-      'GatewayIndex',
-      'GatewayExecute',
-    ]);
+    expect(toolNames).toEqual(['GatewayExecute']);
     expect(server.requests.every((request) => request.headers['mcp-session-id'] === undefined)).toBe(true);
   });
 
@@ -120,7 +116,7 @@ describe('useMcpClient stateless MCP support', () => {
 
     await currentClient.connect();
 
-    await expect(currentClient.callTool('Pipeline', { list: true })).resolves.toEqual({
+    await expect(currentClient.gatewayExecute('maenifold.workflow', 'Pipeline', { list: true })).resolves.toEqual({
       success: true,
       data: { pipelines: [] },
     });
@@ -129,14 +125,7 @@ describe('useMcpClient stateless MCP support', () => {
       currentServer.requests
         .filter((request) => bodyMethod(request.body) === 'tools/call')
         .map((request) => callToolName(request.body)),
-    ).toEqual([
-      'GatewayIndex',
-      'GatewayIndex',
-      'GatewayExecute',
-      'GatewayIndex',
-      'GatewayIndex',
-      'GatewayExecute',
-    ]);
+    ).toEqual(['GatewayExecute', 'GatewayExecute']);
   });
 
   it('disconnect() skips DELETE when there is no session id', async () => {

@@ -6,7 +6,6 @@ mod config_tools;
 #[cfg(test)]
 mod config_tools_tests;
 mod cors;
-pub(crate) mod discovery_tools;
 pub(crate) mod domain_mapping;
 mod elicitation_validation;
 pub(crate) mod gateway_batch;

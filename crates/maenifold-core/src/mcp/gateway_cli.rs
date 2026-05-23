@@ -1,4 +1,4 @@
-use super::{McpToolDefinition, discovery_tools, gateway_gate, gateway_startup, schema};
+use super::{McpToolDefinition, gateway_gate, gateway_startup, schema};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 use rmcp::model::{CallToolResult, Content};
@@ -23,17 +23,11 @@ pub(crate) async fn invoke_gateway_cli_tool(
         }
     };
 
-    let result = if discovery_tools::is_discovery_tool(tool_name) {
-        discovery_tools::handle_tool_call(Some(gateway), tool_name, arguments)
-            .await
-            .map_err(map_cli_gateway_error)?
-    } else {
-        gateway
-            .handle_tool_call(tool_name, arguments, None)
-            .await
-            .map_err(map_cli_gateway_error)?
-            .ok_or_else(|| MaenifoldError::UnknownTool(tool_name.to_string()))?
-    };
+    let result = gateway
+        .handle_tool_call(tool_name, arguments, None)
+        .await
+        .map_err(map_cli_gateway_error)?
+        .ok_or_else(|| MaenifoldError::UnknownTool(tool_name.to_string()))?;
     render_call_tool_result(result)
 }
 
@@ -59,9 +53,6 @@ fn gateway_tool_definition(tool_name: &str) -> Option<McpToolDefinition> {
         "GatewayExecute" => Some(schema::gateway_tools::gateway_execute_tool()),
         "GatewayBatch" => Some(schema::gateway_tools::gateway_batch_tool()),
         "GatewayIntent" => Some(schema::gateway_tools::gateway_intent_tool()),
-        "DiscoverMcpTools" => Some(schema::discovery_tools::discover_mcp_tools_tool()),
-        "DiscoverMcpPrompts" => Some(schema::discovery_tools::discover_mcp_prompts_tool()),
-        "GetMcpPrompt" => Some(schema::discovery_tools::get_mcp_prompt_tool()),
         _ => None,
     }
 }

@@ -30,21 +30,6 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
         invoke: gateway_intent,
     },
     ToolDescriptor {
-        name: "DiscoverMcpTools",
-        aliases: &["discovermcptools"],
-        invoke: discover_mcp_tools,
-    },
-    ToolDescriptor {
-        name: "DiscoverMcpPrompts",
-        aliases: &["discovermcpprompts"],
-        invoke: discover_mcp_prompts,
-    },
-    ToolDescriptor {
-        name: "GetMcpPrompt",
-        aliases: &["getmcpprompt"],
-        invoke: get_mcp_prompt,
-    },
-    ToolDescriptor {
         name: "gate_Create",
         aliases: &["gate_create"],
         invoke: gate_create,
@@ -103,9 +88,6 @@ gateway_tool!(gateway_index, "GatewayIndex");
 gateway_tool!(gateway_execute, "GatewayExecute");
 gateway_tool!(gateway_batch, "GatewayBatch");
 gateway_tool!(gateway_intent, "GatewayIntent");
-gateway_tool!(discover_mcp_tools, "DiscoverMcpTools");
-gateway_tool!(discover_mcp_prompts, "DiscoverMcpPrompts");
-gateway_tool!(get_mcp_prompt, "GetMcpPrompt");
 gateway_tool!(gate_create, "gate_Create");
 gateway_tool!(gate_status, "gate_Status");
 gateway_tool!(gate_sync, "gate_Sync");

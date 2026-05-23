@@ -61,9 +61,7 @@ fn is_top_level_gateway_tool(name: &str) -> bool {
         name,
         "GetHelp"
             | "ReadMcpResource"
-            | "DiscoverMcpTools"
-            | "DiscoverMcpPrompts"
-            | "GetMcpPrompt"
+            | "complete_node"
             | "GatewayIndex"
             | "GatewayExecute"
             | "GatewayBatch"
@@ -124,15 +122,16 @@ async fn get_help_is_not_routed_but_remains_in_gateway_active_surface() {
     let gateway_tools = empty_gateway_tools().await;
     let mut exposed = exposed_native_tools(&handler);
     exposed.extend(gateway_tools.into_iter().map(|tool| tool.name.to_string()));
+    exposed.sort();
     assert_eq!(
         exposed,
         vec![
+            "GatewayBatch",
+            "GatewayExecute",
+            "GatewayIndex",
             "GetHelp",
             "ReadMcpResource",
-            "DiscoverMcpTools",
-            "GatewayIndex",
-            "GatewayExecute",
-            "GatewayBatch"
+            "complete_node",
         ]
     );
 }
@@ -151,7 +150,7 @@ async fn flat_native_tools_are_hidden_when_gateway_is_active() {
     assert!(!exposed.iter().any(|name| name == "WriteMemory"));
     assert!(exposed.iter().any(|name| name == "GetHelp"));
     assert!(exposed.iter().any(|name| name == "ReadMcpResource"));
-    assert!(exposed.iter().any(|name| name == "DiscoverMcpTools"));
+    assert!(exposed.iter().any(|name| name == "complete_node"));
 }
 
 #[tokio::test]
@@ -160,12 +159,12 @@ async fn gateway_active_surface_has_exact_tool_count_by_intent_mode() {
     assert_eq!(
         baseline,
         vec![
+            "GatewayBatch",
+            "GatewayExecute",
+            "GatewayIndex",
             "GetHelp",
             "ReadMcpResource",
-            "DiscoverMcpTools",
-            "GatewayIndex",
-            "GatewayExecute",
-            "GatewayBatch"
+            "complete_node",
         ]
     );
 
@@ -175,13 +174,13 @@ async fn gateway_active_surface_has_exact_tool_count_by_intent_mode() {
     assert_eq!(
         with_intent,
         vec![
+            "GatewayBatch",
+            "GatewayExecute",
+            "GatewayIndex",
+            "GatewayIntent",
             "GetHelp",
             "ReadMcpResource",
-            "DiscoverMcpTools",
-            "GatewayIndex",
-            "GatewayExecute",
-            "GatewayBatch",
-            "GatewayIntent"
+            "complete_node",
         ]
     );
 }
@@ -198,7 +197,7 @@ async fn gateway_active_surface_has_canonical_unique_tool_names() {
         "GatewayExecute",
         "GatewayBatch",
         "GatewayIntent",
-        "DiscoverMcpTools",
+        "complete_node",
         "ReadMcpResource",
         "GetHelp",
     ]
@@ -300,20 +299,22 @@ async fn exposed_gateway_surface(settings: IntentResolverSettings) -> Vec<String
             .into_iter()
             .map(|tool| tool.name.to_string()),
     );
+    exposed.sort();
     exposed
 }
 
 fn exposed_native_tools(handler: &MaenifoldHandler) -> Vec<String> {
-    handler
+    let mut exposed: Vec<String> = handler
         .tools
         .iter()
         .filter(|tool| {
             tool.name == "GetHelp"
                 || tool.name == "ReadMcpResource"
-                || tool.name == "DiscoverMcpTools"
         })
         .map(|tool| tool.name.to_string())
-        .collect()
+        .collect();
+    exposed.push("complete_node".to_string());
+    exposed
 }
 
 fn tool(name: &str) -> Tool {

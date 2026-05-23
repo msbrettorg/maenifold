@@ -2,7 +2,6 @@
 name = "maenifold-core"
 version = "0.1.0"
 edition = "2024"
-autotests = false
 
 [features]
 default = ["app"]
@@ -82,42 +81,5 @@ serial_test = "3"
 tempfile.workspace = true
 tower = "0.5"
 tracing-test = "0.2"
-
-[[test]]
-name = "gateway_integration"
-path = "tests/gateway_integration.rs"
-
-[[test]]
-name = "gateway_streamable_http"
-path = "tests/gateway_streamable_http.rs"
-
-[[test]]
-name = "gateway_streamable_http_cors"
-path = "tests/gateway_streamable_http_cors.rs"
-
-[[test]]
-name = "gateway_config_rediscovery"
-path = "tests/gateway_config_rediscovery.rs"
-
-[[test]]
-name = "list_memories_dataless"
-path = "tests/list_memories_dataless.rs"
-
-[[test]]
-name = "save_workflow_asset_dispatch"
-path = "tests/save_workflow_asset_dispatch.rs"
-
-[[test]]
-name = "prompt_aggregation_contract"
-path = "tests/prompt_aggregation_contract.rs"
-
-
-
-
-
-
-
-
-
 [lints]
 workspace = true

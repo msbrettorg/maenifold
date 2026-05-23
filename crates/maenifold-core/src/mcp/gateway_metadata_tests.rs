@@ -102,7 +102,6 @@ async fn initialize_metadata_advertises_live_gateway_domains() {
     assert!(description.contains("Maenifold memory file read/write commands"));
     // Cold-start guidance points clients at GatewayIndex for schemas.
     assert!(instructions.contains("GatewayIndex with includeSchemas=true"));
-    assert!(instructions.contains("DiscoverMcpTools only for per-server"));
     assert!(instructions.contains("ReadMcpResource only for concrete resource URIs"));
 }
 

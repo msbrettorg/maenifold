@@ -150,7 +150,10 @@ describe('PromotionDialog unsaved changes guard', () => {
     await continueButton!.trigger('click');
     await flushPromises();
 
-    expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/connection/i), { duration: 8000 });
+    expect(toast.error).toHaveBeenCalledWith('Add at least one connection before saving', {
+      closeButton: true,
+      duration: Infinity,
+    });
     expect(document.activeElement).toBe(connectionsField.element);
     const connectionError = wrapper
       .findAll('[role="alert"]')

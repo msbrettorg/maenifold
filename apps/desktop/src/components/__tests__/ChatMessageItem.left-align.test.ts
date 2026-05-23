@@ -63,7 +63,7 @@ function outerRow(wrapper: VueWrapper) {
 }
 
 function bubble(wrapper: VueWrapper) {
-  return outerRow(wrapper).get('[class~="max-w-[80%]"]');
+  return outerRow(wrapper).get('[class~="max-w-[95%]"]');
 }
 
 function avatarContainers(wrapper: VueWrapper) {

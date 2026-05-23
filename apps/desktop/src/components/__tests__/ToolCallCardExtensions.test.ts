@@ -15,6 +15,15 @@ const base64 = 'aGVsbG8=';
 
 vi.mock('vue-sonner', () => ({ toast: { error: vi.fn() } }));
 
+if (typeof globalThis.TextTrack === 'undefined') {
+  class TextTrackPolyfill {}
+  Object.defineProperty(globalThis, 'TextTrack', {
+    value: TextTrackPolyfill,
+    configurable: true,
+    writable: true,
+  });
+}
+
 type TerminalState = {
   terminalId: string;
   output: string;

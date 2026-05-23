@@ -201,7 +201,10 @@ describe('WorkflowBrowser actions', () => {
     dialogButton('Delete').click()
     await flushPromises()
 
-    expect(mocks.toastError).toHaveBeenCalledWith(error.message, { duration: 8000 })
+    expect(mocks.toastError).toHaveBeenCalledWith(error.message, {
+      closeButton: true,
+      duration: Infinity,
+    })
     wrapper.unmount()
   })
 })

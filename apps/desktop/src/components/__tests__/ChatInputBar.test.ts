@@ -213,7 +213,10 @@ describe('ChatInputBar', () => {
   });
 
   it('opens the command palette on window Meta+K when input is empty', async () => {
-    const wrapper = mountInput({ modelValue: '   ' });
+    const wrapper = mountInput({
+      modelValue: '   ',
+      availableCommands: [{ name: 'acp-cmd', description: 'mock ACP command' }],
+    });
     const { event, preventDefault } = keyEvent('k', { metaKey: true });
 
     window.dispatchEvent(event);
@@ -228,7 +231,10 @@ describe('ChatInputBar', () => {
 
   it('opens the command palette on window Meta+K without replacing non-empty input', async () => {
     const draft = 'first paragraph\n\nsecond paragraph';
-    const wrapper = mountInput({ modelValue: draft });
+    const wrapper = mountInput({
+      modelValue: draft,
+      availableCommands: [{ name: 'acp-cmd', description: 'mock ACP command' }],
+    });
     const { event, preventDefault } = keyEvent('k', { metaKey: true });
 
     expect(wrapper.find('[data-stub="command-palette"]').exists()).toBe(false);

@@ -12,6 +12,7 @@ import VoiceInputButton from './VoiceInputButton.vue';
 import { useChatShortcuts } from '../composables/useChatShortcuts';
 import { useFileDrop } from '../composables/useFileDrop';
 import { fileLabel, mimeType, readFileAsBase64, type AttachmentKind } from '../lib/attachment-helpers';
+import type { SlashCommandNotice } from '../lib/slash-command-notice';
 import { useAppShellStore } from '../stores/app-shell';
 import type { PendingAttachment } from './ChatAttachmentBar.vue';
 import type { AvailableCommand, ContentBlock } from '../lib/types';
@@ -21,6 +22,7 @@ const props = defineProps<{
   placeholder: string;
   disabled: boolean;
   availableCommands: AvailableCommand[];
+  commandPaletteNotice?: SlashCommandNotice | null;
   supportsImageAttachments: boolean;
   supportsAudioAttachments: boolean;
   supportsEmbeddedContext: boolean;
@@ -58,7 +60,7 @@ const text = computed({
 });
 const effectiveCommands = computed<AvailableCommand[]>(() => props.availableCommands);
 const showCommandPalette = computed(() => {
-  if (!effectiveCommands.value.length) {
+  if (!effectiveCommands.value.length && !props.commandPaletteNotice) {
     return false;
   }
   if (commandPaletteForcedOpen.value) return true;
@@ -208,6 +210,7 @@ function handleClose(): void { commandPaletteForcedOpen.value = false; }
       ref="commandPaletteRef"
       :commands="effectiveCommands"
       :filter="commandFilter"
+      :notice="commandPaletteNotice"
       :visible="showCommandPalette"
       @select="handleCommandSelect"
       @close="handleClose"

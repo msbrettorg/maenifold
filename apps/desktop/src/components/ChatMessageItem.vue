@@ -83,7 +83,7 @@ const isAssistant = computed(() => props.message.role === 'assistant');
     </Avatar>
 
     <Card
-      class="min-w-0 max-w-[80%] gap-0 border-border-subtle py-0 shadow-none"
+      class="min-w-0 max-w-[95%] gap-0 border-border-subtle py-0 shadow-none"
       :class="[
         isUser ? 'bg-surface-high' : 'bg-surface-container',
         isToolOnlyAssistantMessage ? 'px-3 py-1.5' : 'px-3 py-3',

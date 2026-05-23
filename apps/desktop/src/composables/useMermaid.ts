@@ -59,7 +59,8 @@ function resolveContainer(
 
 export function useMermaid() {
   async function renderMermaidBlocks(
-    containerOrRef: HTMLElement | Ref<HTMLElement | null>
+    containerOrRef: HTMLElement | Ref<HTMLElement | null>,
+    shouldContinue: () => boolean = () => true
   ): Promise<void> {
     const container = resolveContainer(containerOrRef);
     if (!container) {
@@ -74,8 +75,14 @@ export function useMermaid() {
     }
 
     const mermaid = await getMermaid();
+    if (!shouldContinue()) {
+      return;
+    }
 
     for (const codeBlock of mermaidBlocks) {
+      if (!shouldContinue()) {
+        return;
+      }
       const preBlock = codeBlock.closest('pre');
       if (!preBlock || preBlock.dataset.mermaidProcessed === 'true') {
         continue;
@@ -93,12 +100,21 @@ export function useMermaid() {
       try {
         const renderId = `mermaid-diagram-${mermaidRenderSequence++}`;
         const { svg } = await mermaid.render(renderId, definition);
+        if (!shouldContinue()) {
+          return;
+        }
         const sanitizedSvg = sanitizeMermaidSvg(svg);
         const renderedContainer = document.createElement('div');
         renderedContainer.className = 'mermaid-rendered';
         renderedContainer.innerHTML = sanitizedSvg;
+        if (!shouldContinue()) {
+          return;
+        }
         preBlock.replaceWith(renderedContainer);
       } catch (error) {
+        if (!shouldContinue()) {
+          return;
+        }
         preBlock.classList.add('mermaid-error');
         appendMermaidErrorMessage(preBlock, error);
       }

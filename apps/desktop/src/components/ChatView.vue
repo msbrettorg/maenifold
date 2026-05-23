@@ -81,9 +81,10 @@ function sessionScopeInactive(sessionId: string | null): boolean {
   return isUnmounted.value || sessionId !== (currentSession.value?.sessionId ?? null);
 }
 async function rerenderExpandedMarkdown(): Promise<void> {
+  const sessionId = currentSession.value?.sessionId ?? null;
   await nextTick();
-  if (isUnmounted.value) return;
-  if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
+  if (sessionScopeInactive(sessionId)) return;
+  if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value, () => !sessionScopeInactive(sessionId));
 }
 async function toggleThought(messageId: string): Promise<void> {
   if (expandedThoughts.value.has(messageId)) {
@@ -111,13 +112,13 @@ watch(messages, async () => {
   if (sessionScopeInactive(sessionId)) return;
   const viewport = resolveScrollViewport();
   if (viewport) viewport.scrollTop = viewport.scrollHeight;
-  if (!isLoading.value && messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
+  if (!isLoading.value && messagesContainer.value) await renderMermaidBlocks(messagesContainer.value, () => !sessionScopeInactive(sessionId));
 }, { deep: true });
 onMounted(async () => {
   const sessionId = currentSession.value?.sessionId ?? null;
   await nextTick();
   if (sessionScopeInactive(sessionId)) return;
-  if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
+  if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value, () => !sessionScopeInactive(sessionId));
   if (sessionScopeInactive(sessionId)) return;
   void agentStore.start();
 });

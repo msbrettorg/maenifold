@@ -1,15 +1,16 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { defineComponent, nextTick } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
-import { nextTick } from 'vue';
 import ChatView from '../ChatView.vue';
 
+const initializeMock = vi.hoisted(() => vi.fn());
+const renderMock = vi.hoisted(() => vi.fn());
 const mocks = vi.hoisted(() => ({
-  renderMermaidBlocks: vi.fn(async () => {}),
   sessionStore: null as unknown as {
     activeSession: Record<string, unknown>;
     currentSession: Record<string, unknown>;
-    messageList: unknown[];
+    messageList: Array<{ id: string; content: string }>;
     isLoading: boolean;
     configOptions: unknown[];
     availableCommands: unknown[];
@@ -27,6 +28,13 @@ const mocks = vi.hoisted(() => ({
     start: vi.fn(async () => {}),
     stop: vi.fn(async () => {}),
     refreshSelectedSession: vi.fn(async () => {}),
+  },
+}));
+
+vi.mock('mermaid', () => ({
+  default: {
+    initialize: initializeMock,
+    render: renderMock,
   },
 }));
 
@@ -85,10 +93,6 @@ vi.mock('../../stores/app-shell', () => ({
   useAppShellStore: () => ({}),
 }));
 
-vi.mock('../../composables/useMermaid', () => ({
-  useMermaid: () => ({ renderMermaidBlocks: mocks.renderMermaidBlocks }),
-}));
-
 vi.mock('../../composables/useMcpClient', () => ({
   useMcpClient: () => ({
     connected: { value: false },
@@ -116,8 +120,45 @@ vi.mock('../../composables/useMcpPromptCommands', async () => {
   return { ...actual, useMcpPromptCommands: () => ({ commands: { value: [] } }) };
 });
 
+const ChatMessageListStub = defineComponent({
+  props: {
+    messages: {
+      type: Array,
+      default: () => [],
+    },
+  },
+  methods: {
+    mermaidSource(message: { content?: string }): string {
+      return message.content?.match(/```mermaid\s+([\s\S]*?)```/m)?.[1]?.trim() ?? '';
+    },
+  },
+  template: '<div><pre v-for="message in messages" :key="message.id"><code class="language-mermaid">{{ mermaidSource(message) }}</code></pre></div>',
+});
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((fulfill) => { resolve = fulfill; });
+  return { promise, resolve };
+}
+
+function primeMermaidRender() {
+  const started = createDeferred<void>();
+  const rendered = createDeferred<{ svg: string }>();
+  renderMock.mockImplementationOnce(async () => {
+    started.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return rendered.promise;
+  });
+  return { started: started.promise, resolve: rendered.resolve };
+}
+
 function makeMessage(id: string) {
-  return { id, role: 'assistant' as const, content: 'hello', timestamp: Number(id) };
+  return {
+    id,
+    role: 'assistant' as const,
+    content: ['```mermaid', 'flowchart TD', '  A[Ready] --> B[Done]', '```'].join('\n'),
+    timestamp: Number(id),
+  };
 }
 
 function mountChatView() {
@@ -128,7 +169,7 @@ function mountChatView() {
         Card: { template: '<section><slot /></section>' },
         ScrollArea: { template: '<div><slot /></div>' },
         ChatInputBar: { template: '<div />' },
-        ChatMessageList: { template: '<div />' },
+        ChatMessageList: ChatMessageListStub,
         ConfigOptionPicker: true,
         McpPromptPicker: true,
         ModePicker: true,
@@ -141,7 +182,8 @@ function mountChatView() {
 }
 
 afterEach(() => {
-  mocks.renderMermaidBlocks.mockClear();
+  renderMock.mockReset();
+  initializeMock.mockReset();
   mocks.agentStore.start.mockClear();
   mocks.agentStore.stop.mockClear();
   mocks.agentStore.refreshSelectedSession.mockClear();
@@ -153,23 +195,28 @@ afterEach(() => {
 });
 
 describe('ChatView teardown guards', () => {
-  it('skips the async message rerender after unmount', async () => {
+  it('does not mutate detached mermaid blocks when async rendering resumes after unmount', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const renderControl = primeMermaidRender();
     const wrapper = mountChatView();
 
     await nextTick();
-    await flushPromises();
-    mocks.renderMermaidBlocks.mockClear();
-
     mocks.sessionStore.messageList = [makeMessage('1')];
     await nextTick();
+    await renderControl.started;
+
+    const detachedPre = wrapper.find('pre').element as HTMLPreElement;
+    const replaceWithSpy = vi.spyOn(detachedPre, 'replaceWith');
+
     wrapper.unmount();
     await nextTick();
+    expect(detachedPre.isConnected).toBe(false);
+
+    renderControl.resolve({ svg: '<svg xmlns="http://www.w3.org/2000/svg"><text>Rendered</text></svg>' });
     await flushPromises();
 
-    expect(mocks.renderMermaidBlocks).not.toHaveBeenCalled();
+    expect(replaceWithSpy).not.toHaveBeenCalled();
+    expect(document.body.querySelector('.mermaid-rendered')).toBeNull();
     expect(errorSpy).not.toHaveBeenCalled();
-    expect(warnSpy).not.toHaveBeenCalled();
   });
 });

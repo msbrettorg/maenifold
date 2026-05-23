@@ -43,9 +43,10 @@ function panelScopeInactive(sessionId: string): boolean {
 }
 
 async function rerenderExpandedMarkdown(): Promise<void> {
+  const sessionId = props.sessionId;
   await nextTick();
-  if (isUnmounted.value) return;
-  if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
+  if (panelScopeInactive(sessionId)) return;
+  if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value, () => !panelScopeInactive(sessionId));
 }
 
 async function toggleThought(messageId: string): Promise<void> {
@@ -82,14 +83,14 @@ watch(messages, async () => {
   if (panelScopeInactive(sessionId)) return;
   const viewport = resolveScrollViewport();
   if (viewport) viewport.scrollTop = viewport.scrollHeight;
-  if (!isLoading.value && messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
+  if (!isLoading.value && messagesContainer.value) await renderMermaidBlocks(messagesContainer.value, () => !panelScopeInactive(sessionId));
 }, { deep: true });
 
 onMounted(async () => {
   const sessionId = props.sessionId;
   await nextTick();
   if (panelScopeInactive(sessionId)) return;
-  if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
+  if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value, () => !panelScopeInactive(sessionId));
 });
 onBeforeUnmount(() => { isUnmounted.value = true; });
 </script>

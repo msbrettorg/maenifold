@@ -17,6 +17,12 @@ function mountMermaidSource(source: string): HTMLElement {
   return container;
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((fulfill) => { resolve = fulfill; });
+  return { promise, resolve };
+}
+
 describe('useMermaid', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
@@ -56,5 +62,35 @@ describe('useMermaid', () => {
     await useMermaid().renderMermaidBlocks(container);
 
     expect(container.querySelector('script')).toBeNull();
+  });
+
+  it('returns before rendering when continuation is already inactive', async () => {
+    const container = mountMermaidSource('flowchart TD\n  A --> B');
+
+    await useMermaid().renderMermaidBlocks(container, () => false);
+
+    expect(renderMock).not.toHaveBeenCalled();
+    expect(container.querySelector('pre')).not.toBeNull();
+  });
+
+  it('skips DOM replacement when continuation flips false after mermaid.render resolves', async () => {
+    const container = mountMermaidSource('flowchart TD\n  A --> B');
+    const started = createDeferred<void>();
+    const rendered = createDeferred<{ svg: string }>();
+    renderMock.mockImplementationOnce(async () => {
+      started.resolve();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      return rendered.promise;
+    });
+    let active = true;
+    const renderPromise = useMermaid().renderMermaidBlocks(container, () => active);
+
+    await started.promise;
+    active = false;
+    rendered.resolve({ svg: '<svg xmlns="http://www.w3.org/2000/svg"><text>Rendered</text></svg>' });
+    await renderPromise;
+
+    expect(container.querySelector('.mermaid-rendered')).toBeNull();
+    expect(container.querySelector('pre')).not.toBeNull();
   });
 });

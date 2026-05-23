@@ -107,7 +107,7 @@ impl CopilotModelsClient {
             .get(format!("{}/models", endpoint.trim_end_matches('/')))
             .bearer_auth(access_token)
             .header(
-                "Editor-Plugin-Version",
+                "Editor-Version",
                 format!("maenifold/{}", env!("CARGO_PKG_VERSION")),
             )
             .header("X-Github-Api-Version", "2025-04-01")

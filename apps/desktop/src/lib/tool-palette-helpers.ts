@@ -3,6 +3,21 @@ import type { Component } from 'vue';
 import type { ServerHealthStatus } from './types';
 import type { ToolPaletteEntry } from './tool-palette-catalog';
 
+const TOOL_SYNONYMS: Record<string, string[]> = {
+  account: ['get_account_overview', 'get_account_team', 'get_pipeline_summary', 'get_my_deals'],
+  email: ['ask_work_iq'],
+  meeting: ['ask_work_iq'],
+  calendar: ['ask_work_iq'],
+  docs: ['microsoft_docs_search', 'microsoft_docs_fetch', 'microsoft_code_sample_search'],
+  documentation: ['microsoft_docs_search', 'microsoft_docs_fetch'],
+  memory: ['WriteMemory', 'ReadMemory', 'SearchMemories', 'EditMemory', 'BuildContext'],
+  knowledge: ['BuildContext', 'FindSimilarConcepts', 'SearchMemories', 'Visualize'],
+  task: ['status', 'pass', 'fail', 'append'],
+  pipeline: ['Pipeline', 'Workflow'],
+  search: ['SearchMemories', 'microsoft_docs_search', 'search_opportunities'],
+  deal: ['get_my_deals', 'search_opportunities', 'get_opportunity_details', 'suggest_top_opportunities'],
+};
+
 export const AGENT_DEFAULT_OPTION = '__default__';
 
 export const TOOL_PALETTE_CLASSES = {
@@ -72,4 +87,47 @@ export function syntheticChangeEvent(value: unknown): Event {
   const raw = String(value ?? '');
   const normalized = raw === AGENT_DEFAULT_OPTION ? '' : raw;
   return { target: { value: normalized } } as unknown as Event;
+}
+
+export function normalizeSearchValue(value: string): string {
+  return value.trim().toLowerCase().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ');
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export function scoreField(field: string, query: string): number {
+  const normalizedField = normalizeSearchValue(field);
+  const normalizedQuery = normalizeSearchValue(query);
+  if (!normalizedField || !normalizedQuery) return 0;
+  if (normalizedField === normalizedQuery) return 100;
+  if (normalizedField.startsWith(normalizedQuery)) return 80;
+  if (new RegExp(`(?:^|\\s)${escapeRegExp(normalizedQuery)}(?:\\s|$)`).test(normalizedField)) return 60;
+  return normalizedField.includes(normalizedQuery) ? 40 : 0;
+}
+
+export function matchesSynonymTarget(field: string, target: string): boolean {
+  const normalizedField = normalizeSearchValue(field);
+  const normalizedTarget = normalizeSearchValue(target);
+  return normalizedField === normalizedTarget || normalizedField.endsWith(` ${normalizedTarget}`);
+}
+
+export function getSynonymTargets(query: string): string[] {
+  const normalizedQuery = normalizeSearchValue(query);
+  if (!normalizedQuery) return [];
+
+  const tokens = normalizedQuery
+    .split(' ')
+    .map((token) => token.trim())
+    .filter((token) => token.length > 1);
+  const targets = new Set<string>(TOOL_SYNONYMS[normalizedQuery] ?? []);
+
+  for (const token of tokens) {
+    for (const target of TOOL_SYNONYMS[token] ?? []) {
+      targets.add(target);
+    }
+  }
+
+  return [...targets];
 }

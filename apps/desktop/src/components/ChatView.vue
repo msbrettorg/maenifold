@@ -7,7 +7,7 @@ import { useMcpClient } from '../composables/useMcpClient';
 import { useChatDraft } from '../composables/useChatDraft';
 import { useEscCancelWhileStreaming } from '../composables/useEscCancelWhileStreaming';
 import { useChatReconnect } from '../composables/useChatReconnect';
-import { getMcpPromptCommandMeta, hasMcpPromptArguments, parseGetPromptResult, useMcpPromptCommands } from '../composables/useMcpPromptCommands';
+import { getMcpPromptCommandMeta, hasMcpPromptArguments, useMcpPromptCommands } from '../composables/useMcpPromptCommands';
 import { isAbsolutePath } from '../lib/acp-meta';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
 import ModePicker from './ModePicker.vue';
@@ -22,7 +22,7 @@ import { Card } from './ui/card';
 import { Settings } from 'lucide-vue-next';
 import type { PendingAttachment } from './ChatAttachmentBar.vue';
 import type { AvailableCommand, ContentBlock, SessionMode } from '../lib/types';
-import type { GetPromptResult, PromptMessage } from '@modelcontextprotocol/sdk/types';
+import type { PromptMessage } from '@modelcontextprotocol/sdk/types';
 type FileTextResponse = { path: string; content: string };
 const EMBEDDED_CONTEXT_MENTION = /(^|[\s(])@(?:"([^"\n]+)"|([^\s@]+))/g;
 const sessionStore = useSessionStore();
@@ -177,11 +177,7 @@ async function handleMcpPromptSelect(command: AvailableCommand): Promise<void> {
   inputText.value = '';
   try {
     if (!mcpClient.connected.value) await mcpClient.connect();
-    const raw = await mcpClient.callTool('GetMcpPrompt', {
-      server: meta.serverName,
-      name: meta.promptName,
-    });
-    const result: GetPromptResult = parseGetPromptResult(raw);
+    const result = await mcpClient.getPrompt(meta.promptName);
     insertMcpPromptMessages(result.messages);
   } catch (error) {
     setAttachmentError(error instanceof Error ? error.message : 'Failed to resolve MCP prompt.');

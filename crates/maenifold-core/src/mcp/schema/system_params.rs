@@ -24,6 +24,17 @@ pub struct GetConfigParams {
 
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GetCopilotModelsParams {
+    /// Force a live refresh instead of using the cached 6h response
+    #[serde(default)]
+    pub refresh: bool,
+    /// Return help documentation instead of executing
+    #[serde(default)]
+    pub learn: bool,
+}
+
+#[derive(Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GetHelpParams {
     /// Tool name to load help for
     pub tool_name: String,

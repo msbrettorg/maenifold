@@ -1,0 +1,101 @@
+{
+  "data": [
+    {
+      "id": "gpt-5.5",
+      "name": "GPT-5.5",
+      "vendor": "OpenAI",
+      "billing": {},
+      "capabilities": {
+        "family": "gpt-5.5",
+        "limits": {
+          "max_context_window_tokens": 400000,
+          "max_output_tokens": 128000,
+          "max_prompt_tokens": 272000,
+          "max_non_streaming_output_tokens": 32000
+        },
+        "supports": {
+          "streaming": true,
+          "tool_calls": true,
+          "parallel_tool_calls": true,
+          "vision": true,
+          "thinking": true,
+          "adaptive_thinking": true,
+          "max_thinking_budget": null,
+          "min_thinking_budget": null,
+          "reasoning_effort": ["low", "medium", "high", "xhigh"],
+          "structured_outputs": true
+        },
+        "type": "chat",
+        "tokenizer": "o200k_base"
+      },
+      "policy": { "state": "enabled" },
+      "is_chat_default": true,
+      "is_chat_fallback": false,
+      "model_picker_enabled": true,
+      "supported_endpoints": ["/chat/completions"]
+    },
+    {
+      "id": "claude-opus-4.7",
+      "name": "Claude Opus 4.7",
+      "vendor": "Anthropic",
+      "billing": {},
+      "capabilities": {
+        "family": "claude-opus-4.7",
+        "limits": {
+          "max_context_window_tokens": 200000,
+          "max_output_tokens": 32000,
+          "max_prompt_tokens": 160000
+        },
+        "supports": {
+          "streaming": true,
+          "tool_calls": true,
+          "parallel_tool_calls": true,
+          "vision": true,
+          "thinking": true,
+          "adaptive_thinking": false,
+          "max_thinking_budget": null,
+          "min_thinking_budget": null,
+          "reasoning_effort": ["medium"]
+        },
+        "type": "chat"
+      },
+      "policy": { "state": "enabled" },
+      "is_chat_default": false,
+      "is_chat_fallback": false,
+      "model_picker_enabled": true,
+      "supported_endpoints": ["/chat/completions"]
+    },
+    {
+      "id": "claude-opus-4.7-xhigh",
+      "name": "Claude Opus 4.7 XHigh",
+      "vendor": "Anthropic",
+      "billing": {},
+      "capabilities": {
+        "family": "claude-opus-4.7",
+        "limits": {
+          "max_context_window_tokens": 200000,
+          "max_output_tokens": 32000,
+          "max_prompt_tokens": 160000
+        },
+        "supports": {
+          "streaming": true,
+          "tool_calls": true,
+          "parallel_tool_calls": true,
+          "vision": true,
+          "thinking": true,
+          "adaptive_thinking": true,
+          "max_thinking_budget": null,
+          "min_thinking_budget": null,
+          "reasoning_effort": ["medium", "high", "xhigh"],
+          "structured_outputs": false
+        },
+        "type": "chat"
+      },
+      "policy": { "state": "enabled" },
+      "is_chat_default": false,
+      "is_chat_fallback": false,
+      "model_picker_enabled": true,
+      "supported_endpoints": ["/chat/completions"]
+    }
+  ]
+}

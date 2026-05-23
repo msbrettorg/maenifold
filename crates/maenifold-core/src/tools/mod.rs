@@ -3,6 +3,7 @@ mod acp_exec_context;
 mod acp_exec_payload;
 mod acp_exec_resolve;
 mod catalog;
+mod copilot_models;
 mod context;
 mod diagnostics;
 mod embedding_catalog;
@@ -27,6 +28,7 @@ mod sessions_query;
 
 pub use acp_exec::acp_exec;
 pub use catalog::{list_assets, read_mcp_resource};
+pub use copilot_models::get_copilot_models;
 pub(crate) use context::{RequestCancelOnDrop, with_cancellation_scope};
 pub use context::{ToolContext, not_yet_implemented, render};
 pub use diagnostics::{get_config, memory_status};

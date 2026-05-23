@@ -3,11 +3,13 @@ import { toastError } from '@/composables/useToast';
 // while preserving the full external API contract unchanged.
 import { AGENT_METHODS } from '@agentclientprotocol/sdk';
 import { defineStore } from 'pinia';
-import { ref, computed, reactive } from 'vue';
+import { ref, computed, reactive, watch } from 'vue';
 import type { SavedSession, SessionState } from '../lib/types';
 import { generateSessionId, createEmptySessionState } from '../lib/types';
 import type { AcpClientBridge } from '../lib/acp-client';
 import { createSessionGetters } from './session-getters';
+import { useMcpClient } from '../composables/useMcpClient';
+import { warnRawResourceErrorInDev } from '../lib/error-sanitizer';
 import {
   applyConfigOptionsUpdate,
   requireActiveSessionContext,
@@ -21,17 +23,25 @@ import { useMessageHandler } from '../composables/useMessageHandler';
 import { useSessionLifecycle } from '../composables/useSessionLifecycle';
 import { useMcpToolDiscoveryStore } from './mcp-tool-discovery';
 import type { McpAppUiMetadata } from '../lib/types';
+import {
+  buildCopilotReasoningEffortMap,
+  isCopilotSession,
+} from './session-copilot-models';
 
 // `_meta.traceparent`, `_meta.tracestate`, and `_meta.baggage` are reserved
 // for W3C trace context and must not be repurposed for custom ACP metadata.
 
 export const useSessionStore = defineStore('session', () => {
+  const mcp = useMcpClient();
   const mcpToolDiscoveryStore = useMcpToolDiscoveryStore();
   // ── Core multi-session state (owned by orchestrator) ──────────────
   const sessions = ref<Map<string, SessionState>>(new Map());
   const activeSessionId = ref<string | null>(null);
   const connectionError = ref<string | null>(null);
+  const copilotModelReasoningEfforts = ref<Map<string, Map<string, string[]>>>(new Map());
   const bridges = new Map<string, AcpClientBridge>();
+  const copilotModelsLoads = new Map<string, Promise<void>>();
+  const copilotModelsWarnings = new Set<string>();
 
   // ── Active session helper ─────────────────────────────────────────
   const activeSession = computed<SessionState | null>(() => {
@@ -125,7 +135,64 @@ export const useSessionStore = defineStore('session', () => {
     pushSystemMessage: _pushSystemMessage,
   });
 
-  const sessionGetters = createSessionGetters({ activeSession });
+  const sessionGetters = createSessionGetters({
+    activeSession,
+    activeSessionId: computed(() => activeSessionId.value),
+    copilotModelReasoningEfforts,
+  });
+
+  function warnCopilotModelsOnce(key: string, message: string): void {
+    if (copilotModelsWarnings.has(key)) return;
+    copilotModelsWarnings.add(key);
+    warnRawResourceErrorInDev(message);
+  }
+
+  function setCopilotReasoningEfforts(localId: string, reasoningEfforts: Map<string, string[]>): void {
+    const next = new Map(copilotModelReasoningEfforts.value);
+    next.set(localId, reasoningEfforts);
+    copilotModelReasoningEfforts.value = next;
+  }
+
+  async function ensureCopilotModelsForSession(localId: string, session: SessionState): Promise<void> {
+    if (!session.isConnected || !isCopilotSession(session)) return;
+    if (copilotModelReasoningEfforts.value.has(localId) || copilotModelsLoads.has(localId)) return;
+    const load = (async () => {
+      try {
+        if (!mcp.connected.value) {
+          await mcp.connect();
+        }
+        const response = await mcp.callTool('GetCopilotModels', { refresh: false }) as {
+          models?: Array<{
+            id?: string;
+            capabilities?: { supports?: { reasoning_effort?: unknown } };
+          }>;
+        };
+        setCopilotReasoningEfforts(localId, buildCopilotReasoningEffortMap(response));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        warnCopilotModelsOnce(`copilot-models:${localId}`, `[GetCopilotModels] ${message}`);
+      } finally {
+        copilotModelsLoads.delete(localId);
+      }
+    })();
+    copilotModelsLoads.set(localId, load);
+    await load;
+  }
+
+  watch(
+    () => [
+      activeSessionId.value,
+      activeSession.value?.agentName ?? '',
+      activeSession.value?.isConnected ?? false,
+      activeSession.value?.session?.sessionId ?? '',
+    ] as const,
+    ([localId]) => {
+      const session = activeSession.value;
+      if (!localId || !session) return;
+      void ensureCopilotModelsForSession(localId, session);
+    },
+    { immediate: true },
+  );
 
   // ── Actions that remain in the orchestrator ───────────────────────
 

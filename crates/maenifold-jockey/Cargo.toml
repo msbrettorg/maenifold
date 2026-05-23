@@ -12,13 +12,19 @@ path = "src/lib.rs"
 
 [dependencies]
 agent-client-protocol.workspace = true
+anyhow.workspace = true
 async-trait = "0.1"
+chrono.workspace = true
 dashmap = "6"
 libc = "0.2"
+once_cell.workspace = true
+reqwest.workspace = true
 rusqlite = { version = "0.38", features = ["bundled"] }
 rmcp.workspace = true
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
 tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "process", "sync", "time", "rt"] }
 tokio-util = { version = "0.7", features = ["compat"] }
 tracing.workspace = true

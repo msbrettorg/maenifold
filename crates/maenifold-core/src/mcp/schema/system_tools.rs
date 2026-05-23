@@ -1,6 +1,7 @@
 use super::params::{
-    AcpExecParams, AdoptParams, GetConfigParams, GetHelpParams, ListAssetsParams,
-    ListSessionsParams, MemoryStatusParams, ReadMcpResourceParams, RunFullBenchmarkParams,
+    AcpExecParams, AdoptParams, GetConfigParams, GetCopilotModelsParams, GetHelpParams,
+    ListAssetsParams, ListSessionsParams, MemoryStatusParams, ReadMcpResourceParams,
+    RunFullBenchmarkParams,
     UpdateAssetsParams,
 };
 use super::support::derived_tool_definition;
@@ -15,6 +16,10 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
         "GetConfig" => derived_tool_definition::<GetConfigParams>(
             registry_name,
             "Displays maenifold configuration settings and resolved paths.",
+        ),
+        "GetCopilotModels" => derived_tool_definition::<GetCopilotModelsParams>(
+            registry_name,
+            "Fetches Copilot /models capabilities through the daemon cache and returns exact per-model reasoning-effort options.",
         ),
         "GetHelp" => derived_tool_definition::<GetHelpParams>(
             registry_name,

@@ -70,14 +70,14 @@ const isAssistant = computed(() => props.message.role === 'assistant');
 
 <template>
   <div
-    class="group mb-4 flex w-full gap-3"
-    :class="isUser ? 'justify-end' : 'justify-start'"
+    class="group mb-4 flex w-full gap-3 justify-start"
     role="article"
     :aria-label="messageAriaLabel"
   >
-    <Avatar v-if="!isUser" class="mt-1 shrink-0">
+    <Avatar class="mt-1 shrink-0">
       <AvatarFallback class="bg-surface-high text-text-primary">
         <Bot v-if="isAssistant" class="size-4" aria-hidden="true" />
+        <User v-else-if="isUser" class="size-4" aria-hidden="true" />
         <Cog v-else class="size-4" aria-hidden="true" />
       </AvatarFallback>
     </Avatar>
@@ -140,11 +140,5 @@ const isAssistant = computed(() => props.message.role === 'assistant');
         />
       </CardContent>
     </Card>
-
-    <Avatar v-if="isUser" class="mt-1 shrink-0">
-      <AvatarFallback class="bg-surface-high text-text-primary">
-        <User class="size-4" aria-hidden="true" />
-      </AvatarFallback>
-    </Avatar>
   </div>
 </template>

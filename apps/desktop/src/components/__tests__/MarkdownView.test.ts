@@ -6,7 +6,7 @@ import MarkdownView from '../MarkdownView.vue';
 import { useAppShellStore } from '../../stores/app-shell';
 import { useKnowledgeStore } from '../../stores/knowledge';
 import { getMarkdownIt } from '../../composables/useMarkdownIt';
-import { ToolEnvelopeError } from '../../composables/pipeline-mcp-transport';
+import { ToolEnvelopeError } from '../../lib/mcp-response';
 
 interface MarkdownViewExposed {
   markUnresolvedWikilinks: () => Promise<void>;

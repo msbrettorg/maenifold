@@ -1,7 +1,7 @@
 // Search/recent normalizers for memory API. Extracted from useMemoryApi.ts
 // to keep modules under 300 LOC.
 import type { RecentResult, SearchResult } from './workflow-types';
-import { unwrapToolData } from '../composables/pipeline-mcp-transport';
+import { unwrapToolData } from './mcp-response';
 import { extractUri, isRecord, toNonEmptyString } from './memory-api-helpers';
 
 function normalizeSearchItem(value: unknown): SearchResult['results'][number] | null {

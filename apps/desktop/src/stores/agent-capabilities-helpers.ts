@@ -1,6 +1,6 @@
 // Pure helpers for agent capability probing. Extracted from agent-capabilities.ts.
 
-import { unwrapToolData } from '../composables/pipeline-mcp-transport';
+import { unwrapToolData } from '../lib/mcp-response';
 import {
   isOfflineProbeError,
   normalizeAgentProbeResult,

@@ -2,7 +2,7 @@ import { StreamableHTTPError } from '@modelcontextprotocol/sdk/client/streamable
 import { describe, expect, it, vi } from 'vitest';
 import { createMcpClientOps, type SdkClient } from '../mcpClientOps';
 import type { ToolCallResult } from '../mcpTransport';
-import { ToolEnvelopeError } from '../pipeline-mcp-transport';
+import { ToolEnvelopeError } from '../../lib/mcp-response';
 
 function toolText(payload: unknown): ToolCallResult {
   return {

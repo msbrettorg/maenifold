@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { MemoryFile } from '../lib/workflow-types'
-import { nextTick, ref, useTemplateRef, watch } from 'vue'
+import { nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from 'vue'
 import { getMarkdownIt } from '../composables/useMarkdownIt'
 import { useMemoryApi } from '../composables/useMemoryApi'
 import { useMermaid } from '../composables/useMermaid'
@@ -20,6 +20,7 @@ interface HoveredMemoryTarget { cacheKey: string; identifier: string; element: H
 const containerRef = useTemplateRef<HTMLElement>('containerRef')
 const previewPanelRef = useTemplateRef<HTMLElement>('previewPanelRef')
 const rendered = ref('')
+const isUnmounted = ref(false)
 const createDialogOpen = ref(false), unresolvedConcept = ref('')
 const hoverCardOpen = ref(false), hoveredPreview = ref<MemoryPreview | null>(null), hoveredPreviewKey = ref<string | null>(null), hoverAnchor = ref<HTMLElement>()
 const appShellStore = useAppShellStore()
@@ -169,7 +170,7 @@ async function updateRendered(): Promise<void> {
   }
   await nextTick()
   if (thisVersion !== renderVersion || !containerRef.value) return
-  await renderMermaidBlocks(containerRef.value)
+  await renderMermaidBlocks(containerRef.value, () => !isUnmounted.value)
   scheduleUnresolvedCheck()
 }
 
@@ -240,6 +241,7 @@ function handleCreated(): void {
 }
 
 watch(() => props.content, updateRendered, { immediate: true })
+onBeforeUnmount(() => { isUnmounted.value = true })
 
 defineExpose({ markUnresolvedWikilinks, wikilinkExistsCache, memoryPreviewCache })
 </script>

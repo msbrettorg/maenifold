@@ -77,14 +77,27 @@ mcp_read_resource() {
   printf '%s' "$response" | extract_response_body
 }
 
-mcp_call_tool() {
-  local name="$1"
-  local args_json="${2:-}"
-  local timeout="${3:-5}"
+mcp_gateway_execute() {
+  local domain="$1"
+  local command="$2"
+  local args_json="${3:-}"
+  local timeout="${4:-5}"
   local response
   [[ -n "$args_json" ]] || args_json='{}'
-  response="$(call_daemon "$(jq -nc --arg name "$name" --argjson arguments "$args_json" '{jsonrpc:"2.0",id:1,method:"tools/call",params:{name:$name,arguments:$arguments}}')" "$timeout")" || return 1
+  response="$(call_daemon "$(jq -nc --arg domain "$domain" --arg command "$command" --argjson parameters "$args_json" '{jsonrpc:"2.0",id:1,method:"tools/call",params:{name:"GatewayExecute",arguments:{domain:$domain,command:$command,parameters:$parameters}}}')" "$timeout")" || return 1
   printf '%s' "$response" | extract_response_body
+}
+
+mcp_envelope_data() {
+  jq -er 'if .success then .data else (.error // "envelope error" | error) end' 2>/dev/null
+}
+
+mcp_get_help() {
+  local tool_name="$1"
+  local timeout="${2:-5}"
+  local response
+  response="$(call_daemon "$(jq -nc --arg toolName "$tool_name" '{jsonrpc:"2.0",id:1,method:"tools/call",params:{name:"GetHelp",arguments:{toolName:$toolName,learn:true}}}')" "$timeout")" || return 1
+  printf '%s' "$response" | extract_response_body | mcp_envelope_data
 }
 
 extract_wikilinks() {
@@ -171,10 +184,7 @@ session_start() {
     graph_summary=""
   fi
 
-  recent_activity="$(mcp_call_tool 'RecentActivity' '{"limit":5}' 2 || true)"
-  if printf '%s' "$recent_activity" | jq -e 'type == "object" and .files? | type == "array"' >/dev/null 2>&1; then
-    recent_activity="$(printf '%s' "$recent_activity" | jq -r '.files[:5] | join(", ")')"
-  fi
+  recent_activity="$(mcp_gateway_execute 'maenifold.system' 'RecentActivity' '{"limit":5}' 2 | mcp_envelope_data || true)"
 
   [[ -n "$graph_summary$recent_activity" ]] || return 0
   context=$'# maenifold\n\nTag important concepts as [[WikiLinks]]. Use lowercase-hyphenated concepts and skip trivial words.\n'
@@ -249,7 +259,7 @@ tool_failure() {
   tool_name="$(printf '%s' "$input" | jq -r '.toolName // empty' 2>/dev/null)"
   [[ -n "$tool_name" ]] || return 0
   known_tool "$tool_name" || return 0
-  help_text="$(mcp_call_tool "$tool_name" '{"learn":true}' 5 || true)"
+  help_text="$(mcp_get_help "$tool_name" 5 || true)"
   [[ -n "$help_text" ]] || return 0
   emit_context "$help_text"
 }

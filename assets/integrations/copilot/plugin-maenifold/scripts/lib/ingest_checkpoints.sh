@@ -3,16 +3,10 @@
 checkpoint_exists() {
   local title="$1"
   local response
-  response="$(mcp_call_tool 'SearchMemories' "$(jq -nc --arg query "$title" '{query:$query,pageSize:5}')" 5 || true)"
+  response="$(mcp_gateway_execute 'maenifold.memory' 'SearchMemories' "$(jq -nc --arg query "$title" '{query:$query,pageSize:5}')" 5 | mcp_envelope_data || true)"
   [[ -n "$response" ]] || return 1
   printf '%s' "$response" | jq -e --arg title "$title" '
-    (
-      if (.data.results? | type) == "array" then
-        [.data.results[]?.title?]
-      else
-        [.results[]? | .payload? | fromjson? | .params?.arguments?.title?]
-      end
-    )
+    [.results[]?.title?]
     | index($title) != null
   ' >/dev/null 2>&1
 }
@@ -34,6 +28,6 @@ ingest_checkpoints() {
     slug="$(basename "$file" .md)"
     title="checkpoint-$session_id-$slug"
     checkpoint_exists "$title" && continue
-    mcp_call_tool 'WriteMemory' "$(jq -nc --arg title "$title" --arg folder "$folder" --arg content "$content" '{title:$title,folder:$folder,content:$content}')" 5 >/dev/null || true
+    mcp_gateway_execute 'maenifold.memory' 'WriteMemory' "$(jq -nc --arg title "$title" --arg folder "$folder" --arg content "$content" '{title:$title,folder:$folder,content:$content}')" 5 >/dev/null || true
   done
 }

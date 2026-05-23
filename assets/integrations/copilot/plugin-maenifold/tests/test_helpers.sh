@@ -165,9 +165,11 @@ for line in path.read_text().splitlines():
         continue
     payload = json.loads(line)
     params = payload.get("params", {})
-    if params.get("name") != "WriteMemory":
-        continue
-    title = params.get("arguments", {}).get("title")
+    title = None
+    if params.get("name") == "WriteMemory":
+        title = params.get("arguments", {}).get("title")
+    elif params.get("name") == "GatewayExecute" and params.get("arguments", {}).get("command") == "WriteMemory":
+        title = params.get("arguments", {}).get("parameters", {}).get("title")
     if title is not None:
         print(title)
 ' "$1"

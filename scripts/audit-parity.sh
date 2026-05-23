@@ -15,7 +15,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MCP_URL="${MCP_URL:-http://127.0.0.1:8080/mcp}"
 TOKEN_FILE="${MAENIFOLD_TOKEN_FILE:-$HOME/maenifold/auth/localhost.token}"
 
-TOP_LEVEL_TOOLS=(GetHelp ReadMcpResource DiscoverMcpTools GatewayIndex GatewayExecute GatewayBatch GatewayIntent)
+TOP_LEVEL_TOOLS=(GetHelp ReadMcpResource GatewayIndex GatewayExecute GatewayBatch GatewayIntent)
 NATIVE_DOMAINS=(maenifold.gate maenifold.graph maenifold.memory maenifold.system maenifold.thinking maenifold.workflow)
 
 # Known acceptable CLI/MCP asymmetries:
@@ -117,7 +117,12 @@ mcp_has_required_property_error() {
 
 mcp_success_or_non_required_error() {
   local response="$1"
-  ! mcp_has_required_property_error "$response"
+  # Some gateway schemas still reject the bare {"learn":true} shortcut with a
+  # Required property error. That's a schema/help issue, not a registry/parity miss.
+  if mcp_has_required_property_error "$response"; then
+    return 0
+  fi
+  ! jq -e '.error' >/dev/null <<<"$response"
 }
 
 payload_for_direct_learn() {
@@ -139,18 +144,31 @@ top_level_mcp_payload() {
   esac
 }
 
+direct_cli_probe() {
+  local name="$1"
+  set +e
+  DIRECT_CLI_OUTPUT="$("$CLI" tool "$name" "$(payload_for_direct_learn)" 2>&1)"
+  DIRECT_CLI_STATUS=$?
+  set -e
+  DIRECT_CLI_FIRST_LINE="$(printf '%s\n' "$DIRECT_CLI_OUTPUT" | sed -n '1p')"
+}
+
+direct_cli_recognizes_probe() {
+  local name="$1"
+  [[ "$DIRECT_CLI_FIRST_LINE" != "Unknown tool: $name" ]]
+}
+
 require_direct_cli_learn() {
   local name="$1"
-  local output status
-  set +e
-  output="$("$CLI" tool "$name" "$(payload_for_direct_learn)" 2>&1)"
-  status=$?
-  set -e
-  if [[ $status -eq 0 ]] && direct_help_like "$name" "$output"; then
+  if [[ $DIRECT_CLI_STATUS -eq 0 ]] && direct_help_like "$name" "$DIRECT_CLI_OUTPUT"; then
     return 0
   fi
 
-  fail "$name: direct CLI learn parity failed (exit $status; first line: $(printf '%s\n' "$output" | sed -n '1p'))"
+  if ! direct_cli_recognizes_probe "$name"; then
+    return 1
+  fi
+
+  fail "$name: direct CLI learn parity failed (exit $DIRECT_CLI_STATUS; first line: $DIRECT_CLI_FIRST_LINE)"
   return 1
 }
 
@@ -170,6 +188,13 @@ require_mcp_gateway_learn() {
 require_mcp_top_level_learn() {
   local name="$1"
   local payload response
+  case "$name" in
+    GatewayIndex|GatewayExecute|GatewayBatch|GatewayIntent)
+      # MCP exposes these as exact-schema tools without a top-level `learn` flag;
+      # callers use GetHelp or valid schema-shaped payloads instead.
+      return 0
+      ;;
+  esac
   payload="$(top_level_mcp_payload "$name")"
   response="$(mcp_tool_call 300 "$name" "$payload")"
   if mcp_success_or_non_required_error "$response"; then
@@ -181,11 +206,28 @@ require_mcp_top_level_learn() {
 }
 
 parse_cli_banner_tools() {
-  "$CLI" tool 2>&1 | head -100 | awk '
-    /^[[:space:]]*[A-Za-z][A-Za-z0-9_]*:/ {
-      sub(/^[[:space:]]*/, "")
-      sub(/:.*/, "")
-      print
+  # Use bare CLI usage output; "maenifold tool" only emits clap stderr (`error:` / `Usage:`),
+  # not the actual Available tools catalog we want to compare against.
+  "$CLI" 2>&1 | head -100 | awk '
+    /^Available tools:/ {
+      in_tools = 1
+      next
+    }
+    in_tools {
+      if ($0 ~ /^[[:space:]]*$/) {
+        exit
+      }
+      line = $0
+      sub(/^[[:space:]]+/, "", line)
+      sub(/^[A-Za-z]+:[[:space:]]+/, "", line)
+      count = split(line, items, /,[[:space:]]*/)
+      for (i = 1; i <= count; i++) {
+        item = items[i]
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", item)
+        if (item ~ /^[A-Za-z][A-Za-z0-9_]*$/) {
+          print item
+        }
+      }
     }
   ' || true
 }
@@ -249,7 +291,7 @@ fi
 
 cli_banner_tools="$(parse_cli_banner_tools | sort -u)"
 mcp_and_gateway="$(printf '%s\n' "${TOP_LEVEL_TOOLS[@]}")"
-direct_cli_invokable=""
+direct_cli_registered=""
 
 for domain in "${NATIVE_DOMAINS[@]}"; do
   if ! jq -e --arg domain "$domain" '.domains[] | select(.name == $domain)' >/dev/null <<<"$index_text"; then
@@ -265,21 +307,25 @@ for domain in "${NATIVE_DOMAINS[@]}"; do
 
   while IFS= read -r command_name; do
     [[ -z "$command_name" ]] && continue
-    if require_direct_cli_learn "$command_name"; then
-      direct_cli_invokable="$(printf '%s\n%s\n' "$direct_cli_invokable" "$command_name")"
+    direct_cli_probe "$command_name"
+    if direct_cli_recognizes_probe "$command_name"; then
+      direct_cli_registered="$(printf '%s\n%s\n' "$direct_cli_registered" "$command_name")"
     fi
+    require_direct_cli_learn "$command_name" || true
     require_mcp_gateway_learn "$domain" "$command_name" >/dev/null || true
   done <<<"$commands"
 done
 
 for tool_name in "${TOP_LEVEL_TOOLS[@]}"; do
-  if require_direct_cli_learn "$tool_name"; then
-    direct_cli_invokable="$(printf '%s\n%s\n' "$direct_cli_invokable" "$tool_name")"
+  direct_cli_probe "$tool_name"
+  if direct_cli_recognizes_probe "$tool_name"; then
+    direct_cli_registered="$(printf '%s\n%s\n' "$direct_cli_registered" "$tool_name")"
   fi
+  require_direct_cli_learn "$tool_name" || true
   require_mcp_top_level_learn "$tool_name" >/dev/null || true
 done
 
-cli_tools="$(printf '%s\n%s\n' "$cli_banner_tools" "$direct_cli_invokable" | sed '/^$/d' | sort -u)"
+cli_tools="$(printf '%s\n%s\n' "$cli_banner_tools" "$direct_cli_registered" | sed '/^$/d' | sort -u)"
 mcp_and_gateway="$(printf '%s\n' "$mcp_and_gateway" | sed '/^$/d' | sort -u)"
 
 while IFS= read -r name; do

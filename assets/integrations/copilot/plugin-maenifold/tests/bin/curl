@@ -49,10 +49,59 @@ def emit(obj):
     sys.stdout.write(json.dumps(obj))
 
 
+def emit_gateway(data):
+    emit(
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": json.dumps(
+                            {"success": True, "data": data, "error": None}
+                        ),
+                    }
+                ]
+            },
+        }
+    )
+
+
+def emit_top_level_help(text):
+    emit(
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": json.dumps(
+                            {"success": True, "data": text, "error": None}
+                        ),
+                    }
+                ]
+            },
+        }
+    )
+
+
 lower_payload = payload.lower()
+payload_obj = {}
+try:
+    payload_obj = json.loads(payload)
+except Exception:
+    payload_obj = {}
+
+params = payload_obj.get("params", {})
+tool_name = params.get("name", "")
+arguments = params.get("arguments", {})
+gateway_command = arguments.get("command", "")
+gateway_parameters = arguments.get("parameters", {})
 request_uri = ""
 try:
-    request_uri = json.loads(payload).get("params", {}).get("uri", "")
+    request_uri = payload_obj.get("params", {}).get("uri", "")
 except Exception:
     request_uri = ""
 
@@ -63,11 +112,64 @@ if request_uri and override_map_path:
         emit(override)
         sys.exit(0)
 
-if "writememory" in lower_payload:
+if "gatewayexecute" in lower_payload:
+    command_lower = str(gateway_command).lower()
+    if command_lower == "writememory":
+        title = gateway_parameters.get("title")
+        record = {
+            "payload": payload,
+            "uri": f"memory://stub/{len(state['writes']) + 1}",
+            "title": title,
+        }
+        state["writes"].append(record)
+        if state_path:
+            save_state(state_path, state)
+        emit_gateway({"uri": record["uri"]})
+    elif command_lower in ("searchmemories", "readmemory"):
+        override_path = os.environ.get("CURL_STUB_SEARCH_TEXT_FILE", "")
+        if command_lower == "searchmemories" and override_path:
+            text = pathlib.Path(override_path).read_text()
+            emit(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": {"content": [{"type": "text", "text": text}]},
+                }
+            )
+        else:
+            query = gateway_parameters.get("query", "")
+            page_size = gateway_parameters.get("pageSize", 10)
+            results = [
+                {
+                    "title": item.get("title"),
+                    "path": item["uri"],
+                    "snippet": "",
+                    "score": 1.0,
+                    "decayWeight": 1.0,
+                }
+                for item in state["writes"]
+            ]
+            emit_gateway(
+                {
+                    "mode": "hybrid",
+                    "query": query,
+                    "totalCount": len(results),
+                    "page": 1,
+                    "pageSize": page_size,
+                    "results": results,
+                }
+            )
+    elif command_lower == "recentactivity":
+        emit_gateway("# Recent Activity\n\n- memory://projects/minima/example")
+    elif "\"learn\":true" in lower_payload or "\"learn\": true" in lower_payload:
+        emit_gateway("BuildContext help from stub")
+    else:
+        emit_gateway({"text": "stub response"})
+elif "writememory" in lower_payload:
     record = {"payload": payload, "uri": f"memory://stub/{len(state['writes']) + 1}"}
     state["writes"].append(record)
     if state_path:
-      save_state(state_path, state)
+        save_state(state_path, state)
     emit({"jsonrpc": "2.0", "id": 1, "result": {"uri": record["uri"]}})
 elif "searchmemories" in lower_payload or "readmemory" in lower_payload:
     override_path = os.environ.get("CURL_STUB_SEARCH_TEXT_FILE", "")
@@ -85,6 +187,8 @@ elif "recentactivity" in lower_payload:
     emit({"jsonrpc": "2.0", "id": 1, "result": {"files": ["memory://projects/minima/example"]}})
 elif "graph://stats" in lower_payload:
     emit({"jsonrpc": "2.0", "id": 1, "result": {"node_count": 15651, "edge_count": 727556, "community_count": 486}})
+elif tool_name == "GetHelp":
+    emit_top_level_help("BuildContext help from stub")
 elif "buildcontext" in lower_payload or "\"learn\":true" in lower_payload or "\"learn\": true" in lower_payload:
     emit({"jsonrpc": "2.0", "id": 1, "result": {"text": "BuildContext help from stub"}})
 else:

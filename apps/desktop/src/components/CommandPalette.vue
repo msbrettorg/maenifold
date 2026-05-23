@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { AvailableCommand } from '../lib/types';
+import type { SlashCommandNotice } from '../lib/slash-command-notice';
 
 const props = defineProps<{
   commands: AvailableCommand[];
   filter: string;
+  notice?: SlashCommandNotice | null;
   visible: boolean;
 }>();
 
@@ -34,6 +36,7 @@ const selectedCommand = computed(() =>
 );
 
 const commandFilterValue = computed(() => (props.filter ? `/${props.filter}` : '/'));
+const showEmptyState = computed(() => filteredCommands.value.length === 0 && !props.notice);
 
 function commandOptionId(commandName: string): string {
   return `command-palette-option-${commandName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
@@ -136,7 +139,14 @@ function handleSelectionChange(value: unknown) {
 
       <div :id="commandListId" class="max-h-none overflow-visible px-2 pb-2" role="listbox" :aria-labelledby="commandInputId">
         <ScrollArea class="max-h-80">
-          <div v-if="filteredCommands.length === 0" class="p-4 text-center text-body-sm text-text-secondary">
+          <div v-if="notice" class="mx-1 mt-1 rounded-sm border border-border-subtle bg-surface-high px-3 py-2 text-left">
+            <div class="text-body-sm font-semibold text-text-text-primary">{{ notice.heading }}</div>
+            <div class="mt-1 text-body-sm text-text-secondary">
+              {{ notice.body }}
+              <a v-if="notice.upstreamIssueUrl" :href="notice.upstreamIssueUrl" class="ml-1 text-brand underline" target="_blank" rel="noopener noreferrer">Track upstream issue</a>
+            </div>
+          </div>
+          <div v-if="showEmptyState" class="p-4 text-center text-body-sm text-text-secondary">
             No matching commands.
           </div>
           <Button

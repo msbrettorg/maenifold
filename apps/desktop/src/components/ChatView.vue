@@ -9,6 +9,7 @@ import { useEscCancelWhileStreaming } from '../composables/useEscCancelWhileStre
 import { useChatReconnect } from '../composables/useChatReconnect';
 import { getMcpPromptCommandMeta, hasMcpPromptArguments, parseGetPromptResult, useMcpPromptCommands } from '../composables/useMcpPromptCommands';
 import { isAbsolutePath } from '../lib/acp-meta';
+import { getSlashCommandNotice } from '../lib/slash-command-notice';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
 import ModePicker from './ModePicker.vue';
 import SessionConfigPanel from './SessionConfigPanel.vue';
@@ -48,6 +49,7 @@ const isPlanMode = computed(() => sessionStore.activeSession?.currentModeId === 
 const configOptions = computed(() => sessionStore.configOptions);
 const agentCommands = computed(() => sessionStore.availableCommands);
 const availableCommands = computed(() => [...agentCommands.value, ...mcpPromptCommands.commands.value]);
+const commandPaletteNotice = computed(() => getSlashCommandNotice(sessionStore.activeSession, agentCommands.value));
 const currentPlan = computed(() => sessionStore.currentPlan);
 const sessionModes = computed(() => (sessionStore.activeSession as ({ modes?: SessionMode[] } | null))?.modes ?? []);
 const pendingPermissionCount = computed(() => sessionStore.pendingPermissionCount);
@@ -274,7 +276,7 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
         <ChatMessageList :messages="messages" :current-plan="currentPlan" :expanded-thought-ids="expandedThoughtIds" :expanded-tool-call-ids="expandedToolCallIds" :pending-permission-count="pendingPermissionCount" :is-loading="isLoading" :can-reconnect="canReconnect" @toggle-thought="toggleThought" @toggle-tool-call="toggleToolCall" @cancel="handleCancel" @prefill="setInputText" @regenerate="handleRegenerate" @edit="handleEdit" @reconnect="handleReconnect" />
       </div>
     </ScrollArea>
-    <ChatInputBar :model-value="inputText" :placeholder="inputPlaceholder" :disabled="isLoading" :available-commands="availableCommands" :supports-image-attachments="supportsImageAttachments" :supports-audio-attachments="supportsAudioAttachments" :supports-embedded-context="supportsEmbeddedContext" :image-attachment-tooltip="imageAttachmentTooltip" :audio-attachment-tooltip="audioAttachmentTooltip" :embedded-context-tooltip="embeddedContextTooltip" :pending-attachments="pendingAttachments" :attachment-error="attachmentError" :accent="isPlanMode ? 'plan' : 'normal'" :is-streaming="isLoading" :agent-connected="sessionStore.isConnected" @update:model-value="setInputText" @send="handleSend" @recall-last="recallLastMessage" @cancel-turn="handleCancel" @clear-chat="sessionStore.clearMessages" @select-command="handleCommandSelect" @select-mcp-prompt="handleMcpPromptSelect" @add-attachments="addPendingAttachments" @attachment-error="setAttachmentError" @remove-attachment="removePendingAttachment" @insert-embedded-context-hint="insertEmbeddedContextHint" />
+    <ChatInputBar :model-value="inputText" :placeholder="inputPlaceholder" :disabled="isLoading" :available-commands="availableCommands" :command-palette-notice="commandPaletteNotice" :supports-image-attachments="supportsImageAttachments" :supports-audio-attachments="supportsAudioAttachments" :supports-embedded-context="supportsEmbeddedContext" :image-attachment-tooltip="imageAttachmentTooltip" :audio-attachment-tooltip="audioAttachmentTooltip" :embedded-context-tooltip="embeddedContextTooltip" :pending-attachments="pendingAttachments" :attachment-error="attachmentError" :accent="isPlanMode ? 'plan' : 'normal'" :is-streaming="isLoading" :agent-connected="sessionStore.isConnected" @update:model-value="setInputText" @send="handleSend" @recall-last="recallLastMessage" @cancel-turn="handleCancel" @clear-chat="sessionStore.clearMessages" @select-command="handleCommandSelect" @select-mcp-prompt="handleMcpPromptSelect" @add-attachments="addPendingAttachments" @attachment-error="setAttachmentError" @remove-attachment="removePendingAttachment" @insert-embedded-context-hint="insertEmbeddedContextHint" />
     <ModePicker v-if="sessionModes.length > 0" :modes="sessionModes" :current-mode-id="sessionStore.activeSession?.currentModeId ?? null" @select-mode="handleModeSelect" />
     <McpPromptPicker :command="selectedMcpPromptCommand" :open="selectedMcpPromptCommand !== null" @update:open="(open: boolean) => { if (!open) selectedMcpPromptCommand = null; }" @resolved="insertMcpPromptMessages" @error="setAttachmentError" />
   </Card>

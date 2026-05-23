@@ -1,6 +1,7 @@
 import { computed, ref, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import type { AgentProbeResult } from '../lib/agent-probe-types-defs';
-import { useMcpToolDiscovery } from './useMcpToolDiscovery';
+import { useMcpToolDiscoveryStore } from '../stores/mcp-tool-discovery';
 import { usePipelineMcp } from './usePipelineMcp';
 import { useReadyAgentProbe } from './useReadyAgentProbe';
 import {
@@ -45,7 +46,9 @@ export function useToolPaletteFields(props: ToolPaletteProps, emit: ToolPaletteE
   const configStore = useConfigStore();
   const capabilitiesStore = useAgentCapabilitiesStore();
   const nodePaletteStore = useNodePaletteStore();
-  const { serverResults, loading, error, hasLoadedCatalog, refreshTools, hasStaleCacheByServer } = useMcpToolDiscovery();
+  const mcpToolDiscoveryStore = useMcpToolDiscoveryStore();
+  const { serverResults, loading, error, hasLoadedCatalog, hasStaleCacheByServer } = storeToRefs(mcpToolDiscoveryStore);
+  const { refreshTools } = mcpToolDiscoveryStore;
   const activeOptionName = ref<string | null>(props.toolName || null);
   const schemaValid = ref(true);
   const authDialogTool = ref<ToolPaletteEntry | null>(null);

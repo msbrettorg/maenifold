@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   complete: vi.fn(),
 }));
 
-vi.mock('../../composables/usePipelineMcp', () => ({
+vi.mock('../../composables/useSharedMcpClient', () => ({
   getSharedMcpClient: () => ({
     getPrompt: mocks.getPrompt,
     connect: mocks.connect,

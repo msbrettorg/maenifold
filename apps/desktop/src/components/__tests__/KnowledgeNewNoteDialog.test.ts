@@ -8,7 +8,7 @@ import { useKnowledgeStore } from '../../stores/knowledge';
 
 const mockCallTool = vi.fn();
 
-vi.mock('../../composables/usePipelineMcp', () => ({
+vi.mock('../../composables/useSharedMcpClient', () => ({
   getSharedMcpClient: vi.fn(() => ({
     connected: ref(true),
     connect: vi.fn(),

@@ -9,7 +9,7 @@ import type { MemoryFile } from '../../lib/workflow-types';
 
 const mockCallTool = vi.fn();
 
-vi.mock('../../composables/usePipelineMcp', () => ({
+vi.mock('../../composables/useSharedMcpClient', () => ({
   getSharedMcpClient: vi.fn(() => ({
     connected: ref(true),
     connect: vi.fn(),

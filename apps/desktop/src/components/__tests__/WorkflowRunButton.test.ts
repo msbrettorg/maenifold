@@ -8,7 +8,7 @@ import { useWorkflowStore } from '../../stores/workflow';
 
 const callTool = vi.fn();
 
-vi.mock('../../composables/usePipelineMcp', () => ({
+vi.mock('../../composables/useSharedMcpClient', () => ({
   getSharedMcpClient: () => ({
     callTool,
     connected: { value: true },

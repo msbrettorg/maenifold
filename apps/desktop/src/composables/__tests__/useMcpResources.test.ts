@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { startMcpLoopbackServer } from '../../__tests__/helpers/mcp-loopback';
-import { getSharedMcpClient } from '../usePipelineMcp';
+import { getSharedMcpClient } from '../useSharedMcpClient';
 import { McpCapabilityUnsupportedError, useMcpResources } from '../useMcpResources';
 
 let currentServer: Awaited<ReturnType<typeof startMcpLoopbackServer>> | null = null;

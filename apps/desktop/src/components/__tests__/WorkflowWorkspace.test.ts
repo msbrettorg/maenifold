@@ -15,7 +15,7 @@ const guard = vi.hoisted(() => ({
 }));
 let pinia: ReturnType<typeof createPinia>;
 
-vi.mock('../../composables/usePipelineMcp', () => ({
+vi.mock('../../composables/useSharedMcpClient', () => ({
   getSharedMcpClient: () => ({
     connected: ref(true),
     connect: vi.fn(),

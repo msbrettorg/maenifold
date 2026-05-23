@@ -10,7 +10,7 @@ import {
 const mockConnect = vi.fn();
 const mockCallTool = vi.fn();
 
-vi.mock('../usePipelineMcp', () => ({
+vi.mock('../useSharedMcpClient', () => ({
   getSharedMcpClient: vi.fn(() => ({
     connected: ref(true),
     connect: mockConnect,

@@ -35,7 +35,7 @@ vi.mock('elkjs/lib/elk-worker.min.js?url', () => ({
   default: 'mock-elk-worker.js',
 }));
 
-vi.mock('../../composables/usePipelineMcp', () => ({
+vi.mock('../../composables/useSharedMcpClient', () => ({
   getSharedMcpClient: () => ({
     callTool: vi.fn(),
     connect: vi.fn(),

@@ -4,7 +4,7 @@ import type {
   PromptReference,
   ResourceTemplateReference,
 } from '@modelcontextprotocol/sdk/types';
-import { getSharedMcpClient } from './usePipelineMcp';
+import { getSharedMcpClient } from './useSharedMcpClient';
 import { McpCapabilityUnsupportedError } from './useMcpResources';
 
 export type CompletionReference = PromptReference | ResourceTemplateReference;

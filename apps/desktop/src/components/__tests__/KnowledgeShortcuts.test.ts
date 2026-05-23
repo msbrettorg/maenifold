@@ -21,7 +21,7 @@ const mcpClient = () => ({
   supportsResourceSubscribe: vi.fn(() => false),
 });
 
-vi.mock('../../composables/usePipelineMcp', () => ({
+vi.mock('../../composables/useSharedMcpClient', () => ({
   getSharedMcpClient: vi.fn(() => ({
     ...mcpClient(),
     readResource: vi.fn(),

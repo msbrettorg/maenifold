@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue';
-import { getSharedMcpClient } from './usePipelineMcp';
+import { getSharedMcpClient } from './useSharedMcpClient';
 import {
   SEARCH_PAGE_SIZE,
   buildPromotedContentBlock,

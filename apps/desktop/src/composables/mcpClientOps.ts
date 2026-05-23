@@ -62,11 +62,6 @@ export function toServerCapabilities(client: SdkClient): McpServerCapabilities |
   return (client.getServerCapabilities() ?? null) as McpServerCapabilities | null;
 }
 
-export const gatewayPassthroughTools = new Set([
-  'GatewayIndex', 'GatewayExecute', 'GatewayBatch', 'GatewayIntent',
-  'gate_Create', 'ReadMcpResource', 'GetHelp',
-]);
-
 function isSessionExpiredError(err: unknown): boolean {
   return err instanceof StreamableHTTPError && err.code === 404;
 }
@@ -76,44 +71,6 @@ export function createMcpClientOps(options: {
   reconnectSession(): Promise<void>;
   setError(message: string | null): void;
 }) {
-  const domainMap = new Map<string, string>();
-  const directMcpFallbackTools = new Set(['status']);
-  let domainMapBuilt = false;
-  let domainMapBuildPromise: Promise<void> | null = null;
-  type GatewayIndexErrorKind = 'call' | 'content' | 'json' | 'schema';
-
-  function createGatewayIndexError(message: string, kind: GatewayIndexErrorKind, cause?: unknown): Error {
-    const causeMessage = cause ? `: ${getSanitizedErrorMessage(cause)}` : '';
-    const err = new Error(`${message}${causeMessage}`) as Error & { cause?: unknown; gatewayIndexErrorKind?: GatewayIndexErrorKind };
-    err.gatewayIndexErrorKind = kind;
-    if (cause) err.cause = cause;
-    return err;
-  }
-
-  function getGatewayIndexErrorKind(err: unknown): GatewayIndexErrorKind | null {
-    if (typeof err !== 'object' || err === null || !('gatewayIndexErrorKind' in err)) return null;
-    const kind = (err as { gatewayIndexErrorKind?: unknown }).gatewayIndexErrorKind;
-    return kind === 'call' || kind === 'content' || kind === 'json' || kind === 'schema' ? kind : null;
-  }
-
-  function getErrorCause(err: unknown): unknown {
-    return typeof err === 'object' && err !== null && 'cause' in err ? (err as { cause?: unknown }).cause : undefined;
-  }
-
-  function isSessionExpiredErrorOrCause(err: unknown): boolean {
-    return isSessionExpiredError(err) || isSessionExpiredError(getErrorCause(err));
-  }
-
-  function formatToolCallResultContent(result: ToolCallResult): string {
-    const contentText = result.content?.map((item) => {
-      if (typeof item.text === 'string') return item.text;
-      try { return JSON.stringify(item); } catch { return String(item); }
-    }).filter((item) => item.length > 0).join('; ');
-    if (contentText) return contentText;
-    if (!result.structuredContent) return 'Unknown GatewayIndex tool error';
-    try { return JSON.stringify(result.structuredContent); } catch { return String(result.structuredContent); }
-  }
-
   function parseToolEnvelopeError(rawText: string | undefined): ToolEnvelopeError | null {
     if (!rawText) return null;
     try {
@@ -128,73 +85,12 @@ export function createMcpClientOps(options: {
     return null;
   }
 
-  async function readGatewayIndex(client: SdkClient, args: Record<string, unknown>, context: string): Promise<unknown> {
-    let indexResult: ToolCallResult;
-    try { indexResult = (await client.callTool({ name: 'GatewayIndex', arguments: args })) as ToolCallResult; }
-    catch (err: unknown) { throw createGatewayIndexError(`GatewayIndex failed while loading ${context}`, 'call', err); }
-    if (indexResult.isError) {
-      throw createGatewayIndexError(`GatewayIndex returned MCP tool error while loading ${context}: ${formatToolCallResultContent(indexResult)}`, 'call');
-    }
-    const indexContent = indexResult.content?.[0]?.text;
-    if (typeof indexContent !== 'string' || indexContent.length === 0) {
-      throw createGatewayIndexError(`GatewayIndex returned no JSON content while loading ${context}`, 'content');
-    }
-    try { return JSON.parse(indexContent) as unknown; }
-    catch (err: unknown) { throw createGatewayIndexError(`GatewayIndex returned malformed JSON while loading ${context}`, 'json', err); }
-  }
-
-  function namedItems(value: unknown, fieldName: string, context: string): Array<{ name: string }> {
-    if (!Array.isArray(value)) throw createGatewayIndexError(`GatewayIndex ${context} must include a ${fieldName} array`, 'schema');
-    return value.map((item, index) => {
-      if (typeof item === 'object' && item !== null && 'name' in item && typeof item.name === 'string' && item.name.length > 0) {
-        return { name: item.name };
-      }
-      throw createGatewayIndexError(`GatewayIndex ${context} has malformed ${fieldName} entry at index ${index}`, 'schema');
-    });
-  }
-
-  async function buildDomainMap(): Promise<void> {
-    const client = await options.ensureConnectedSession();
-    const indexData = await readGatewayIndex(client, {}, 'gateway domain index');
-    const domains = namedItems((indexData as { domains?: unknown }).domains, 'domains', 'domain index');
-    const nextMap = new Map<string, string>();
-    await Promise.all(domains.map(async (domain) => {
-      const context = `domain ${domain.name}`;
-      const domainData = await readGatewayIndex(client, { domain: domain.name }, `gateway ${context}`);
-      const commands = namedItems((domainData as { commands?: unknown }).commands, 'commands', context);
-      for (const command of commands) if (!gatewayPassthroughTools.has(command.name)) nextMap.set(command.name, domain.name);
-    }));
-    domainMap.clear();
-    for (const [toolName, domainName] of nextMap) domainMap.set(toolName, domainName);
-    domainMapBuilt = true;
-  }
-
-  async function ensureDomainMap(): Promise<void> {
-    if (domainMapBuilt) return;
-    if (!domainMapBuildPromise) domainMapBuildPromise = buildDomainMap().finally(() => { domainMapBuildPromise = null; });
-    await domainMapBuildPromise;
-  }
-
-  async function ensureDomainMapWithReconnect(): Promise<void> {
-    try { await ensureDomainMap(); }
-    catch (err: unknown) {
-      if (!isSessionExpiredErrorOrCause(err)) throw err;
-      options.setError('MCP session expired: HTTP 404');
-      await options.reconnectSession();
-      domainMapBuilt = false;
-      domainMapBuildPromise = null;
-      await ensureDomainMap();
-    }
-  }
-
   async function withReconnect<T>(operation: (client: SdkClient) => Promise<T>): Promise<T> {
     try { return await operation(await options.ensureConnectedSession()); }
     catch (err: unknown) {
       if (!isSessionExpiredError(err)) { options.setError(getSanitizedErrorMessage(err)); throw err; }
       options.setError('MCP session expired: HTTP 404');
       await options.reconnectSession();
-      domainMapBuilt = false;
-      await buildDomainMap();
       try { return await operation(await options.ensureConnectedSession()); }
       catch (retryErr: unknown) { options.setError(getSanitizedErrorMessage(retryErr)); throw retryErr; }
     }
@@ -215,24 +111,7 @@ export function createMcpClientOps(options: {
 
   async function callToolRaw(name: string, args: Record<string, unknown> = {}): Promise<ToolCallResult> {
     options.setError(null);
-    if (!gatewayPassthroughTools.has(name)) {
-      try { await ensureDomainMapWithReconnect(); }
-      catch (err: unknown) {
-        if (getGatewayIndexErrorKind(err) === 'call' && directMcpFallbackTools.has(name)) {
-          return withReconnect(async (client) => (await client.callTool({ name, arguments: args })) as ToolCallResult);
-        }
-        options.setError(getSanitizedErrorMessage(err));
-        throw err;
-      }
-    }
-    return withReconnect(async (client) => {
-      const domain = gatewayPassthroughTools.has(name) ? undefined : domainMap.get(name);
-      if (domain) return (await client.callTool({ name: 'GatewayExecute', arguments: { domain, command: name, parameters: args } })) as ToolCallResult;
-      if (!gatewayPassthroughTools.has(name) && !directMcpFallbackTools.has(name)) {
-        throw createGatewayIndexError(`GatewayIndex domain map does not include a route for ${name}; refusing direct MCP fallback without allowlist proof`, 'schema');
-      }
-      return (await client.callTool({ name, arguments: args })) as ToolCallResult;
-    });
+    return withReconnect(async (client) => (await client.callTool({ name, arguments: args })) as ToolCallResult);
   }
 
   async function listTools(): Promise<ToolDefinition[]> {

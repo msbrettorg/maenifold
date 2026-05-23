@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { mount } from '@vue/test-utils';
-import { describe, expect, it, vi } from 'vitest';
 import { createPinia } from 'pinia';
+import { describe, expect, it, vi } from 'vitest';
 
 import ChatInputBar from '../ChatInputBar.vue';
 import type { AvailableCommand } from '../../lib/types';
@@ -66,27 +66,15 @@ function renderedCommandNames(availableCommands: AvailableCommand[]): string[] {
   return names;
 }
 
-describe('ChatInputBar command merging', () => {
-  it('shows all built-in commands when the command palette is triggered with slash and no agent commands', () => {
-    expect(renderedCommandNames([])).toEqual([
-      'help',
-      'clear',
-      'sessions',
-      'new',
-      'quit',
-    ]);
+describe('ChatInputBar ACP-advertised slash commands', () => {
+  it('renders no slash command entries when ACP advertises none', () => {
+    expect(renderedCommandNames([])).toEqual([]);
   });
 
-  it('shows both built-in commands and an agent-advertised command', () => {
+  it('renders only ACP-advertised slash commands in order', () => {
     expect(renderedCommandNames([
-      { name: 'agent-cmd', description: 'agent command' },
-    ])).toEqual([
-      'help',
-      'clear',
-      'sessions',
-      'new',
-      'quit',
-      'agent-cmd',
-    ]);
+      { name: 'foo', description: 'Foo command' },
+      { name: 'bar', description: 'Bar command' },
+    ])).toEqual(['foo', 'bar']);
   });
 });

@@ -6,11 +6,8 @@ import { useMermaid } from '../composables/useMermaid';
 import { useMcpClient } from '../composables/useMcpClient';
 import { useChatDraft } from '../composables/useChatDraft';
 import { useEscCancelWhileStreaming } from '../composables/useEscCancelWhileStreaming';
-import { useBuiltInSlashCommands } from '../composables/useBuiltInSlashCommands';
 import { useChatReconnect } from '../composables/useChatReconnect';
 import { getMcpPromptCommandMeta, hasMcpPromptArguments, parseGetPromptResult, useMcpPromptCommands } from '../composables/useMcpPromptCommands';
-import { useConfirmDialogStore } from '../stores/confirm-dialog';
-import { useAppShellStore } from '../stores/app-shell';
 import { isAbsolutePath } from '../lib/acp-meta';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
 import ModePicker from './ModePicker.vue';
@@ -30,8 +27,6 @@ type FileTextResponse = { path: string; content: string };
 const EMBEDDED_CONTEXT_MENTION = /(^|[\s(])@(?:"([^"\n]+)"|([^\s@]+))/g;
 const sessionStore = useSessionStore();
 const agentStore = useAgentStore();
-const appShellStore = useAppShellStore();
-const confirmDialogStore = useConfirmDialogStore();
 const { renderMermaidBlocks } = useMermaid();
 const mcpClient = useMcpClient();
 const mcpPromptCommands = useMcpPromptCommands({ serverName: 'maenifold' });
@@ -64,7 +59,6 @@ const imageAttachmentTooltip = computed(() => supportsImageAttachments.value ? '
 const audioAttachmentTooltip = computed(() => supportsAudioAttachments.value ? 'Attach audio' : 'This agent does not support audio attachments.');
 const embeddedContextTooltip = computed(() => supportsEmbeddedContext.value ? 'Type @README.md or @"notes/file name.md" to embed a file.' : 'This agent does not support embedded file context.');
 const inputPlaceholder = computed(() => activeCommandHint.value ?? (isPlanMode.value ? 'Ask a question (read-only)...' : 'Type your message...'));
-const builtInSlash = useBuiltInSlashCommands({ sessionStore, appShellStore, confirmDialogStore, currentAgentName: computed(() => currentSession.value?.agentName), currentCwd: sessionCwd });
 const { canReconnect, reconnect } = useChatReconnect();
 const agentSessionStatus = computed(() =>
   currentSession.value?.sessionId && currentSession.value.sessionId === agentStore.selectedSession?.sessionId
@@ -153,8 +147,6 @@ async function handleSend(): Promise<void> {
   }
 }
 async function handleCommandSelect(command: AvailableCommand): Promise<void> {
-  const handled = await builtInSlash.tryHandle(command, agentCommands.value);
-  if (handled) return;
   inputText.value = `/${command.name} `;
   activeCommandHint.value = command.input?.hint ?? null;
 }

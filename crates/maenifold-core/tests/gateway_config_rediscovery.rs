@@ -1,7 +1,7 @@
 mod common;
 
 use common::gateway_http::{
-    TestServer, gateway_config, initialize, result_text, rpc, stdio_server,
+    TestServer, gateway_config, initialize, result_text, rpc, stdio_server, tool_names,
 };
 use maenifold_core::Config;
 use serde_json::{Value, json};
@@ -9,7 +9,7 @@ use serial_test::serial;
 
 #[tokio::test]
 #[serial]
-async fn discover_mcp_tools_includes_gateway_servers_added_after_startup() {
+async fn gateway_index_includes_gateway_servers_added_after_startup() {
     let server = TestServer::start(gateway_config(vec![stdio_server(
         "alpha",
         vec![json!({"name": "alpha_ping", "description": "alpha ping", "text": "alpha"})],
@@ -18,13 +18,9 @@ async fn discover_mcp_tools_includes_gateway_servers_added_after_startup() {
 
     initialize(&server).await;
 
-    let initial = discover_mcp_tools(&server).await;
-    assert!(
-        server_tools(&initial, "alpha")
-            .iter()
-            .any(|tool| tool["name"] == "alpha.alpha_ping")
-    );
-    assert!(find_server(&initial, "beta").is_none());
+    let initial = gateway_index(&server).await;
+    assert!(initial.contains("\"name\": \"alpha\""));
+    assert!(!initial.contains("\"name\": \"beta\""));
 
     let updated = gateway_config(vec![
         stdio_server(
@@ -42,40 +38,32 @@ async fn discover_mcp_tools_includes_gateway_servers_added_after_startup() {
     )
     .expect("updated config should write");
 
-    let rediscovered = discover_mcp_tools(&server).await;
-    assert!(
-        server_tools(&rediscovered, "beta")
-            .iter()
-            .any(|tool| tool["name"] == "beta.beta_ping"),
-        "DiscoverMcpTools should include tools from gateway servers added after startup"
+    let rediscovered = gateway_index(&server).await;
+    assert!(rediscovered.contains("\"name\": \"beta\""));
+
+    let names = tool_names(&rpc(&server, "tools/list", Value::Null, None).await);
+    assert_eq!(
+        names,
+        vec![
+            "GatewayBatch",
+            "GatewayExecute",
+            "GatewayIndex",
+            "GetHelp",
+            "ReadMcpResource",
+            "complete_node",
+        ]
     );
 
     server.stop().await;
 }
 
-async fn discover_mcp_tools(server: &TestServer) -> Value {
+async fn gateway_index(server: &TestServer) -> String {
     let response = rpc(
         server,
         "tools/call",
-        json!({"name":"DiscoverMcpTools","arguments":{}}),
+        json!({"name":"GatewayIndex","arguments":{}}),
         None,
     )
     .await;
-    serde_json::from_str(result_text(&response)).expect("DiscoverMcpTools should return JSON")
-}
-
-fn find_server<'a>(results: &'a Value, server_name: &str) -> Option<&'a Value> {
-    results
-        .as_array()
-        .expect("discovery results should be an array")
-        .iter()
-        .find(|entry| entry["server"] == server_name)
-}
-
-fn server_tools<'a>(results: &'a Value, server_name: &str) -> &'a [Value] {
-    find_server(results, server_name)
-        .unwrap_or_else(|| panic!("expected discovery results for server {server_name}"))
-        .get("tools")
-        .and_then(Value::as_array)
-        .expect("server tools should be an array")
+    result_text(&response).to_string()
 }

@@ -76,8 +76,7 @@ pub(crate) fn server_instructions(domains: &[DomainEntry]) -> String {
     format!(
         "Cold-start flow: the gateway exposes the following live domains, each shown with its name, command count, and the description that the upstream MCP server itself advertised at initialize:\n\n{}\n\n\
          Use GatewayIndex with includeSchemas=true on the selected domain for exact parameters, then call GatewayExecute with the domain, command, and parameters. \
-         Use DiscoverMcpTools only for per-server downstream MCP tool inventory; \
-         use ReadMcpResource only for concrete resource URIs; \
+         Use ReadMcpResource only for concrete resource URIs; \
          use GetHelp for detailed help on a named public tool or gateway command.",
         render_domain_bullets(domains, DOMAIN_DESCRIPTION_CAP_INSTRUCTIONS)
     )

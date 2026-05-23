@@ -53,9 +53,7 @@ impl ServerHandler for MaenifoldHandler {
                 .tools
                 .iter()
                 .filter(|tool| {
-                    tool.name == "GetHelp"
-                        || tool.name == "ReadMcpResource"
-                        || self::discovery_tools::is_discovery_tool(tool.name.as_ref())
+                    tool.name == "GetHelp" || tool.name == "ReadMcpResource"
                 })
                 .cloned()
                 .collect();

@@ -64,7 +64,7 @@ One product, one monorepo. `crates/` = Rust backend. `apps/desktop/` = Electron 
 
 **Direct access OK:** `maenifold.json` (preferences only), ACP host filesystem/terminal per protocol spec.
 
-**MCP tools are the primary interface.** Agents use `GatewayExecute`, `GatewayIndex`, `GatewayBatch`, `GatewayIntent`, `DiscoverMcpTools`, `ReadMcpResource`, and `GetHelp` as their first choice. The `mae_mcp` curl helper and direct `curl` to `/mcp` are **last-resort fallbacks** only when MCP tools are unavailable or timing out. Never default to curl when MCP tools work.
+**MCP tools are the primary interface.** Agents use `GatewayExecute`, `GatewayIndex`, `GatewayBatch`, `GatewayIntent`, `complete_node`, `ReadMcpResource`, and `GetHelp` as their first choice. The `mae_mcp` curl helper and direct `curl` to `/mcp` are **last-resort fallbacks** only when MCP tools are unavailable or timing out. Never default to curl when MCP tools work.
 
 **No REST data APIs.** The daemon exposes `/mcp` for MCP JSON-RPC. The only non-MCP HTTP endpoints are infrastructure: `/api/health`, `/api/machine-id`, `/api/config/*` (file I/O), `/api/user-prompt/*` (MCP sampling bridge), `/api/acp/session` (ACP WebSocket transport). All domain data flows through MCP.
 

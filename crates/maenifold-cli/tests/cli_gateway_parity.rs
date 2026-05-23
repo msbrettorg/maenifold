@@ -12,7 +12,6 @@ const GATEWAY_META_TOOLS: &[(&str, &str)] = &[
         "GatewayBatch",
         r#"{"operation":"submit","continueOnError":true,"items":[{"domain":"maenifold.system","command":"GetConfig","parameters":{"learn":true}}]}"#,
     ),
-    ("DiscoverMcpTools", "{}"),
 ];
 
 const LEARN_ONLY_TOOLS: &[&str] = &[
@@ -20,7 +19,6 @@ const LEARN_ONLY_TOOLS: &[&str] = &[
     "GatewayExecute",
     "GatewayBatch",
     "GatewayIntent",
-    "DiscoverMcpTools",
     "gate_Status",
     "gate_Sync",
     "gate_Append",

@@ -1,5 +1,5 @@
 use crate::error::{JSONRPC_METHOD_NOT_FOUND, MaenifoldError};
-use crate::mcp::{discovery_tools, gateway_handler::GatewayState};
+use crate::mcp::gateway_handler::GatewayState;
 use crate::registry::ToolRegistry;
 use crate::tools::{RequestCancelOnDrop, with_cancellation_scope};
 use crate::util::json::OutputFormat;
@@ -20,9 +20,6 @@ pub(crate) async fn handle_tool_call(
         return Ok(CallToolResult::success(vec![Content::text(format!(
             "complete_node accepted structured output: {arguments}"
         ))]));
-    }
-    if discovery_tools::is_discovery_tool(&tool_name) {
-        return discovery_tools::handle_tool_call(gateway.clone(), &tool_name, arguments).await;
     }
     if let Some(gateway) = gateway
         && tool_name != "GetHelp"

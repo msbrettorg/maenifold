@@ -62,7 +62,6 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
     assert!(server_description.contains("small-server"));
     assert!(server_description.contains("GatewayIndex"));
     assert!(instructions.contains("GatewayIndex with includeSchemas=true"));
-    assert!(instructions.contains("DiscoverMcpTools only for per-server"));
     assert!(instructions.contains("ReadMcpResource only for concrete resource URIs"));
 
     let list = rpc(&server, "tools/list", Value::Null, None).await;
@@ -70,13 +69,10 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
     assert_tool_names(
         &names,
         &[
-            "DiscoverMcpPrompts",
-            "DiscoverMcpTools",
             "GatewayBatch",
             "GatewayExecute",
             "GatewayIndex",
             "GetHelp",
-            "GetMcpPrompt",
             "ReadMcpResource",
             "complete_node",
         ],
@@ -92,11 +88,6 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
         tools,
         "GatewayIndex",
         "Start here on cold start. Lists the live gateway domains",
-    );
-    assert_tool_description(
-        tools,
-        "DiscoverMcpTools",
-        "Do not use it as the first-call gateway domain lister",
     );
     assert_tool_description(
         tools,
@@ -134,11 +125,7 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
     )
     .await;
     let config_index_text = result_text(&config_index);
-    // DiscoverMcpTools is a top-level MCP tool (asserted above in tools/list),
-    // not a maenifold.system domain command. The maenifold.system catalog
-    // must NOT contain it — verifying we did not regress to the pre-T-246.5
-    // duplicate-registration shape where it appeared in both surfaces.
-    assert!(!config_index_text.contains("\"DiscoverMcpTools\""));
+    assert!(!config_index_text.contains("\"complete_node\""));
     assert!(config_index_text.contains("\"GetConfig\""));
 
     let native = rpc(
@@ -265,14 +252,11 @@ async fn streamable_http_gateway_intent_enabled_lists_current_tools() {
     assert_tool_names(
         &names,
         &[
-            "DiscoverMcpPrompts",
-            "DiscoverMcpTools",
             "GatewayBatch",
             "GatewayExecute",
             "GatewayIndex",
             "GatewayIntent",
             "GetHelp",
-            "GetMcpPrompt",
             "ReadMcpResource",
             "complete_node",
         ],

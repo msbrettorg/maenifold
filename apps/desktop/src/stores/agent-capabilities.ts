@@ -39,6 +39,7 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
   const probeResults = ref<Map<string, AgentProbeResult>>(loadAgentProbeCache());
   const probeStatus = ref<ProbeStatus>('idle');
   const warningMessage = ref<string | null>(null);
+  const connectErrorMessage = ref<string | null>(null);
   let currentRunId = 0;
   let retryHandle: ReturnType<typeof setTimeout> | null = null;
   let retryPending = false;
@@ -117,13 +118,16 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
   }
 
   async function ensureConnected(): Promise<boolean> {
+    connectErrorMessage.value = null;
     if (mcp.connected.value) {
       return true;
     }
 
     try {
       await mcp.connect();
-    } catch {
+    } catch (error) {
+      const raw = error instanceof Error ? error.message : String(error);
+      connectErrorMessage.value = sanitizeResourceErrorMessage(raw);
       return false;
     }
 
@@ -155,7 +159,7 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
     markRefreshPending(agentNames);
 
     if (!(await ensureConnected())) {
-      const message = mcp.error.value ?? 'MCP client is not connected';
+      const message = connectErrorMessage.value ?? mcp.error.value ?? 'MCP client is not connected';
       const next = new Map<string, AgentProbeResult>();
       const preserveCached = shouldRetryProbe(message);
       for (const agentName of agentNames) {

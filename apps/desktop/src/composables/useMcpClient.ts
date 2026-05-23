@@ -90,7 +90,7 @@ export function useMcpClient(baseUrl?: string) {
     resetState();
 
     try {
-      await client?.close().catch(() => undefined);
+      await client?.close();
       const created = createSdkMcpClient({
         mcpUrl,
         notificationRouter,

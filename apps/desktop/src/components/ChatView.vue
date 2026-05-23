@@ -41,6 +41,7 @@ const expandedThoughts = ref<Set<string>>(new Set());
 const expandedToolCalls = ref<Set<string>>(new Set());
 const selectedMcpPromptCommand = ref<AvailableCommand | null>(null);
 const showConfig = ref(false);
+const isUnmounted = ref(false);
 const messages = computed(() => sessionStore.messageList);
 const isLoading = computed(() => sessionStore.isLoading);
 const sessionCwd = computed(() => currentSession.value?.cwd ?? '/');
@@ -76,9 +77,14 @@ function resolveScrollViewport(): HTMLElement | null {
   const viewport = root.querySelector('[data-reka-scroll-area-viewport]') as HTMLElement | null;
   return viewport ?? root;
 }
+function sessionScopeInactive(sessionId: string | null): boolean {
+  return isUnmounted.value || sessionId !== (currentSession.value?.sessionId ?? null);
+}
 async function rerenderExpandedMarkdown(): Promise<void> {
+  const sessionId = currentSession.value?.sessionId ?? null;
   await nextTick();
-  if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
+  if (sessionScopeInactive(sessionId)) return;
+  if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value, () => !sessionScopeInactive(sessionId));
 }
 async function toggleThought(messageId: string): Promise<void> {
   if (expandedThoughts.value.has(messageId)) {
@@ -101,13 +107,23 @@ function handleCancel(): void { void sessionStore.cancelOperation(); }
 function recallLastMessage(): void { inputText.value = [...messages.value].reverse().find((message) => message.role === 'user')?.content ?? inputText.value; }
 useEscCancelWhileStreaming(isLoading, handleCancel);
 watch(messages, async () => {
+  const sessionId = currentSession.value?.sessionId ?? null;
   await nextTick();
+  if (sessionScopeInactive(sessionId)) return;
   const viewport = resolveScrollViewport();
   if (viewport) viewport.scrollTop = viewport.scrollHeight;
-  if (!isLoading.value && messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
+  if (!isLoading.value && messagesContainer.value) await renderMermaidBlocks(messagesContainer.value, () => !sessionScopeInactive(sessionId));
 }, { deep: true });
-onMounted(async () => { await nextTick(); if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value); void agentStore.start(); });
+onMounted(async () => {
+  const sessionId = currentSession.value?.sessionId ?? null;
+  await nextTick();
+  if (sessionScopeInactive(sessionId)) return;
+  if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value, () => !sessionScopeInactive(sessionId));
+  if (sessionScopeInactive(sessionId)) return;
+  void agentStore.start();
+});
 onBeforeUnmount(() => {
+  isUnmounted.value = true;
   void mcpClient.disconnect();
   void agentStore.stop();
 });

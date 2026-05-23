@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import ChatMessageList from '@/components/ChatMessageList.vue';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -22,6 +22,7 @@ const scrollAreaRef = ref<InstanceType<typeof ScrollArea> | null>(null);
 const messagesContainer = ref<HTMLElement | null>(null);
 const expandedThoughts = ref<Set<string>>(new Set());
 const expandedToolCalls = ref<Set<string>>(new Set());
+const isUnmounted = ref(false);
 
 const inspectedSession = computed(() => sessions.value.get(props.sessionId) ?? null);
 const messages = computed(() => inspectedSession.value?.messages ?? []);
@@ -37,10 +38,15 @@ function resolveScrollViewport(): HTMLElement | null {
   const viewport = root.querySelector('[data-reka-scroll-area-viewport]') as HTMLElement | null;
   return viewport ?? root;
 }
+function panelScopeInactive(sessionId: string): boolean {
+  return isUnmounted.value || sessionId !== props.sessionId;
+}
 
 async function rerenderExpandedMarkdown(): Promise<void> {
+  const sessionId = props.sessionId;
   await nextTick();
-  if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
+  if (panelScopeInactive(sessionId)) return;
+  if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value, () => !panelScopeInactive(sessionId));
 }
 
 async function toggleThought(messageId: string): Promise<void> {
@@ -72,16 +78,21 @@ async function cancelSession(): Promise<void> {
 }
 
 watch(messages, async () => {
+  const sessionId = props.sessionId;
   await nextTick();
+  if (panelScopeInactive(sessionId)) return;
   const viewport = resolveScrollViewport();
   if (viewport) viewport.scrollTop = viewport.scrollHeight;
-  if (!isLoading.value && messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
+  if (!isLoading.value && messagesContainer.value) await renderMermaidBlocks(messagesContainer.value, () => !panelScopeInactive(sessionId));
 }, { deep: true });
 
 onMounted(async () => {
+  const sessionId = props.sessionId;
   await nextTick();
-  if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
+  if (panelScopeInactive(sessionId)) return;
+  if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value, () => !panelScopeInactive(sessionId));
 });
+onBeforeUnmount(() => { isUnmounted.value = true; });
 </script>
 
 <template>

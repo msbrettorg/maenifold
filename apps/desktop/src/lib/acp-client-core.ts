@@ -23,8 +23,6 @@ import {
   type WriteTextFileRequest,
   type WriteTextFileResponse,
 } from '@agentclientprotocol/sdk';
-import { useTrafficStore } from '../stores/traffic';
-import { useTerminalsStore } from '../stores/useTerminalsStore';
 import {
   handleReadTextFileRequest,
   handleWriteTextFileRequest,
@@ -33,6 +31,7 @@ import {
 import { withAcpMeta } from './acp-meta';
 import { PermissionHandler } from './acp-permissions';
 import { DAEMON_BASE_URL } from './daemon-url';
+import type { AcpClientSinks } from './acp-sinks';
 import {
   asJsonRpcRecord,
   isJsonRpcNotification,
@@ -40,8 +39,6 @@ import {
   isJsonRpcResponse,
   type JsonRpcId,
 } from './acp-rpc';
-
-let trafficStore: ReturnType<typeof useTrafficStore> | null = null;
 
 type CreateTerminalResponseWithLimit = CreateTerminalResponse & {
   outputByteLimit?: number;
@@ -52,13 +49,6 @@ function createRejectAllWritesPolicy(): WritePermissionPolicy {
     currentModeId: () => null,
     notifyPlanModeBlocked: () => {},
   };
-}
-
-function getTrafficStore() {
-  if (!trafficStore) {
-    trafficStore = useTrafficStore();
-  }
-  return trafficStore;
 }
 
 function requireNonBlank(value: string, fieldName: string): void {
@@ -125,6 +115,7 @@ export class AcpClientBridgeCore implements Client {
     agentId: string,
     agentName: string,
     permissionHandler: PermissionHandler,
+    private readonly sinks: AcpClientSinks,
     private readonly writePolicy: WritePermissionPolicy = createRejectAllWritesPolicy()
   ) {
     this.agentId = agentId;
@@ -268,7 +259,7 @@ export class AcpClientBridgeCore implements Client {
     const api = window.electronAPI?.terminal?.create;
     if (!api) throw new Error('Terminal API is unavailable');
     const response = await api(params);
-    useTerminalsStore().setTerminal(response.terminalId, {
+    this.sinks.terminals.setTerminal(response.terminalId, {
       terminalId: response.terminalId,
       output: '',
       truncated: false,
@@ -282,11 +273,10 @@ export class AcpClientBridgeCore implements Client {
   async terminalOutput(params: TerminalOutputRequest): Promise<TerminalOutputResponse> {
     requireNonBlank(params.sessionId, 'sessionId');
     requireNonBlank(params.terminalId, 'terminalId');
-    const store = useTerminalsStore();
     const response = validateTerminalOutput(
       await this.sendRequest<TerminalOutputResponse>('terminal/output', params)
     );
-    store.setTerminal(params.terminalId, {
+    this.sinks.terminals.setTerminal(params.terminalId, {
       terminalId: params.terminalId,
       output: response.output,
       truncated: response.truncated,
@@ -302,7 +292,7 @@ export class AcpClientBridgeCore implements Client {
     const api = window.electronAPI?.terminal?.waitForExit;
     if (!api) throw new Error('Terminal API is unavailable');
     const response = validateExitStatus(await api(params));
-    useTerminalsStore().markExited(params.terminalId, response);
+    this.sinks.terminals.markExited(params.terminalId, response);
     return response;
   }
 
@@ -320,16 +310,15 @@ export class AcpClientBridgeCore implements Client {
     const api = window.electronAPI?.terminal?.release;
     if (!api) throw new Error('Terminal API is unavailable');
     const response = await api(params);
-    useTerminalsStore().markReleased(params.terminalId);
+    this.sinks.terminals.markReleased(params.terminalId);
     return response;
   }
 
   async terminalCreate(params: CreateTerminalRequest): Promise<CreateTerminalResponse> {
     requireNonBlank(params.sessionId, 'sessionId');
     requireNonBlank(params.command, 'command');
-    const store = useTerminalsStore();
     const response = await this.sendRequest<CreateTerminalResponseWithLimit>('terminal/create', params);
-    store.setTerminal(response.terminalId, {
+    this.sinks.terminals.setTerminal(response.terminalId, {
       terminalId: response.terminalId,
       output: '',
       truncated: false,
@@ -343,11 +332,10 @@ export class AcpClientBridgeCore implements Client {
   async terminalWaitForExit(params: WaitForTerminalExitRequest): Promise<WaitForTerminalExitResponse> {
     requireNonBlank(params.sessionId, 'sessionId');
     requireNonBlank(params.terminalId, 'terminalId');
-    const store = useTerminalsStore();
     const response = validateExitStatus(
       await this.sendRequest<WaitForTerminalExitResponse>('terminal/wait_for_exit', params)
     );
-    store.markExited(params.terminalId, response);
+    this.sinks.terminals.markExited(params.terminalId, response);
     return response;
   }
 
@@ -360,9 +348,8 @@ export class AcpClientBridgeCore implements Client {
   async terminalRelease(params: ReleaseTerminalRequest): Promise<ReleaseTerminalResponse> {
     requireNonBlank(params.sessionId, 'sessionId');
     requireNonBlank(params.terminalId, 'terminalId');
-    const store = useTerminalsStore();
     const response = await this.sendRequest<ReleaseTerminalResponse>('terminal/release', params);
-    store.markReleased(params.terminalId);
+    this.sinks.terminals.markReleased(params.terminalId);
     return response;
   }
 
@@ -464,13 +451,12 @@ export class AcpClientBridgeCore implements Client {
 
   private recordTraffic(direction: 'in' | 'out', message: AnyMessage): void {
     const parsed = asJsonRpcRecord(message);
-    const store = getTrafficStore();
 
     if (isJsonRpcResponse(parsed)) {
       const id = parsed.id as JsonRpcId;
       const method = this.pendingMethods.get(id) || 'unknown';
       this.pendingMethods.delete(id);
-      store.addEntry({
+      this.sinks.traffic.addEntry({
         direction,
         type: 'response',
         method,
@@ -486,7 +472,7 @@ export class AcpClientBridgeCore implements Client {
       if (direction === 'out') {
         this.pendingMethods.set(id, parsed.method);
       }
-      store.addEntry({
+      this.sinks.traffic.addEntry({
         direction,
         type: 'request',
         method: parsed.method,
@@ -497,7 +483,12 @@ export class AcpClientBridgeCore implements Client {
     }
 
     if (isJsonRpcNotification(parsed)) {
-      store.addEntry({ direction, type: 'notification', method: parsed.method, payload: message });
+      this.sinks.traffic.addEntry({
+        direction,
+        type: 'notification',
+        method: parsed.method,
+        payload: message,
+      });
     }
   }
 

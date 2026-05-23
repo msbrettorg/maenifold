@@ -19,6 +19,7 @@ import {
   withAcpMeta,
   withExtensionCapabilities,
 } from './acp-meta';
+import { createAcpStoreSinks } from '../composables/useAcpStoreSink';
 import { AcpClientBridgeCore } from './acp-client-core';
 import { PermissionHandler, type InlinePermissionMessageSink } from './acp-permissions';
 import type { WritePermissionPolicy } from './acp-file-system';
@@ -110,6 +111,7 @@ export async function createAcpClient(
       agent: agentInstance.name,
       onInlineMessage: options.onInlineMessage,
     }),
+    createAcpStoreSinks(),
     options.writePolicy
   );
   if (options.onStderr) {

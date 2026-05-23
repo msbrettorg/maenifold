@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { nextTick, type ComputedRef } from 'vue';
+import { createAcpStoreSinks } from '../../composables/useAcpStoreSink';
 import { AcpClientBridgeCore } from '../acp-client-core';
 import { AcpClientBridge } from '../acp-client';
 import { PermissionHandler } from '../acp-permissions';
@@ -144,6 +145,10 @@ async function loadUseTerminalsStoreModule(): Promise<UseTerminalsStoreModule> {
   return vi.importActual<UseTerminalsStoreModule>('../../stores/useTerminalsStore');
 }
 
+function createTestSinks() {
+  return createAcpStoreSinks();
+}
+
 describe('AcpClientBridgeCore request hardening', () => {
   const originalWebSocket = globalThis.WebSocket;
 
@@ -152,7 +157,12 @@ describe('AcpClientBridgeCore request hardening', () => {
   }
 
   async function connectBridge(agentId = 'agent-1') {
-    const bridge = new TestAcpClientBridgeCore(agentId, agentId, new PermissionHandler());
+    const bridge = new TestAcpClientBridgeCore(
+      agentId,
+      agentId,
+      new PermissionHandler(),
+      createTestSinks()
+    );
     const connectPromise = bridge.connect();
     const socket = getLatestSocket();
     if (!socket) {
@@ -164,7 +174,7 @@ describe('AcpClientBridgeCore request hardening', () => {
   }
 
   async function connectAcpBridge(agentId = 'agent-1') {
-    const bridge = new AcpClientBridge(agentId, agentId, new PermissionHandler());
+    const bridge = new AcpClientBridge(agentId, agentId, new PermissionHandler(), createTestSinks());
     const connectPromise = bridge.connect();
     const socket = getLatestSocket();
     if (!socket) {
@@ -218,7 +228,12 @@ describe('AcpClientBridgeCore request hardening', () => {
   });
 
   it('connects over the ACP relay websocket path', async () => {
-    const connectPromise = new TestAcpClientBridgeCore('agent-1', 'agent-1', new PermissionHandler()).connect();
+    const connectPromise = new TestAcpClientBridgeCore(
+      'agent-1',
+      'agent-1',
+      new PermissionHandler(),
+      createTestSinks()
+    ).connect();
     const socket = getLatestSocket();
 
     expect(socket?.url).toBe(
@@ -507,13 +522,23 @@ describe('AcpClientBridgeCore request hardening', () => {
   });
 
   it('uses long-lived timeouts for ACP control mutations', () => {
-    const bridge = new TestAcpClientBridgeCore('agent-1', 'agent-1', new PermissionHandler());
+    const bridge = new TestAcpClientBridgeCore(
+      'agent-1',
+      'agent-1',
+      new PermissionHandler(),
+      createTestSinks()
+    );
 
     expect(bridge.timeoutFor('session/set_config_option')).toBe(30 * 60 * 1000);
   });
 
   it('uses a 30 minute timeout for terminal/wait_for_exit', () => {
-    const bridge = new TestAcpClientBridgeCore('agent-1', 'agent-1', new PermissionHandler());
+    const bridge = new TestAcpClientBridgeCore(
+      'agent-1',
+      'agent-1',
+      new PermissionHandler(),
+      createTestSinks()
+    );
 
     expect(bridge.timeoutFor('terminal/wait_for_exit')).toBe(30 * 60 * 1000);
   });

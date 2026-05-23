@@ -4,7 +4,7 @@ import { setNotificationSink, resetNotificationSink } from '@/lib/notification-s
 import { useMcpToolDiscoveryStore } from '../mcp-tool-discovery';
 
 const { mcpClientMock } = vi.hoisted(() => ({
-  mcpClientMock: { connected: { value: true }, connect: vi.fn(), callTool: vi.fn() },
+  mcpClientMock: { connected: { value: true }, connect: vi.fn(), listTools: vi.fn() },
 }));
 
 const mockSink = {
@@ -31,7 +31,7 @@ describe('mcp tool discovery error sanitization', () => {
 
   it('redacts sensitive paths before surfacing discovery errors', async () => {
     const raw = 'failed reading /Users/brett/secret/file.txt tenantId: a1b2c3d4-e5f6-1234-9abc-def012345678';
-    mcpClientMock.callTool.mockRejectedValueOnce(new Error(raw));
+    mcpClientMock.listTools.mockRejectedValueOnce(new Error(raw));
 
     const store = useMcpToolDiscoveryStore();
     await store.refreshTools();

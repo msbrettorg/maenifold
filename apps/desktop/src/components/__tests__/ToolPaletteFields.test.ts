@@ -17,11 +17,7 @@ const { callTool, connect, connected, discoveryResultsQueue } = vi.hoisted(() =>
   const connected = { value: false, __v_isRef: true };
   const discoveryResultsQueue: unknown[][] = [];
   return {
-    callTool: vi.fn(async (toolName: string) => (
-      toolName === 'DiscoverMcpTools'
-        ? (discoveryResultsQueue.shift() ?? [])
-        : {}
-    )),
+    callTool: vi.fn(async () => (discoveryResultsQueue.shift() ?? [])),
     connect: vi.fn(async () => { connected.value = true; }),
     connected,
     discoveryResultsQueue,
@@ -48,7 +44,7 @@ vi.mock('../../composables/useMcpClient', () => ({
     error: ref<string | null>(null),
     connect,
     disconnect: vi.fn(async () => { connected.value = false; }),
-    callTool,
+    listTools: vi.fn(async () => discoveryResultsQueue.shift() ?? []),
   }),
 }));
 

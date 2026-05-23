@@ -64,7 +64,6 @@ export function toServerCapabilities(client: SdkClient): McpServerCapabilities |
 
 export const gatewayPassthroughTools = new Set([
   'GatewayIndex', 'GatewayExecute', 'GatewayBatch', 'GatewayIntent',
-  'DiscoverMcpTools', 'DiscoverMcpPrompts', 'GetMcpPrompt',
   'gate_Create', 'ReadMcpResource', 'GetHelp',
 ]);
 

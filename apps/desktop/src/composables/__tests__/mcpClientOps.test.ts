@@ -37,17 +37,15 @@ function createOps(
 }
 
 describe('createMcpClientOps gateway routing', () => {
-  it('allowlist contains all 10 canonical passthrough MCP tools', () => {
+  it('allowlist contains only the 7 canonical passthrough MCP tools', () => {
     expect(gatewayPassthroughTools.has('GatewayIndex')).toBe(true);
     expect(gatewayPassthroughTools.has('GatewayExecute')).toBe(true);
     expect(gatewayPassthroughTools.has('GatewayBatch')).toBe(true);
     expect(gatewayPassthroughTools.has('GatewayIntent')).toBe(true);
-    expect(gatewayPassthroughTools.has('DiscoverMcpTools')).toBe(true);
-    expect(gatewayPassthroughTools.has('DiscoverMcpPrompts')).toBe(true);
-    expect(gatewayPassthroughTools.has('GetMcpPrompt')).toBe(true);
     expect(gatewayPassthroughTools.has('gate_Create')).toBe(true);
     expect(gatewayPassthroughTools.has('ReadMcpResource')).toBe(true);
     expect(gatewayPassthroughTools.has('GetHelp')).toBe(true);
+    expect(gatewayPassthroughTools.size).toBe(7);
   });
 
   it('builds a tool-to-domain map from GatewayIndex and routes domain tools via GatewayExecute', async () => {
@@ -256,6 +254,34 @@ describe('createMcpClientOps gateway routing', () => {
 
     await expect(ops.callTool('SearchMemories', { query: 'gateway bypass' })).rejects.toThrow(/GatewayIndex|gateway/i);
     expect(client.callTool.mock.calls.some(([request]) => request.name === 'SearchMemories')).toBe(false);
+  });
+
+  it('throws the canonical no-route error for unrouted tool names', async () => {
+    const client = createMockClient(async ({ name, arguments: args = {} }) => {
+      if (name === 'GatewayIndex' && !('domain' in args)) {
+        return toolText({ domains: [] });
+      }
+      throw new Error(`Unexpected direct call for ${name}`);
+    });
+
+    const ops = createOps(() => client);
+    const unroutedNames = ['UnknownToolAlpha', 'UnknownToolBeta', 'UnknownToolGamma'];
+
+    await expect(ops.callTool(unroutedNames[0]!)).rejects.toThrow(
+      `GatewayIndex domain map does not include a route for ${unroutedNames[0]}; refusing direct MCP fallback without allowlist proof`,
+    );
+    await expect(ops.callTool(unroutedNames[1]!)).rejects.toThrow(
+      `GatewayIndex domain map does not include a route for ${unroutedNames[1]}; refusing direct MCP fallback without allowlist proof`,
+    );
+    await expect(ops.callTool(unroutedNames[2]!, { name: 'summarize' })).rejects.toThrow(
+      `GatewayIndex domain map does not include a route for ${unroutedNames[2]}; refusing direct MCP fallback without allowlist proof`,
+    );
+    expect(client.callTool.mock.calls.filter(([request]) => request.name === 'GatewayIndex')).toEqual([
+      [{ name: 'GatewayIndex', arguments: {} }],
+    ]);
+    expect(
+      client.callTool.mock.calls.some(([request]) => unroutedNames.includes(request.name)),
+    ).toBe(false);
   });
 
   it.each([

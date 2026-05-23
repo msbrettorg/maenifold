@@ -15,6 +15,15 @@ import type { SavedSession } from '../lib/types';
 import type { AppShellTab } from '../stores/app-shell';
 import pkg from '../../package.json';
 
+type ConnectionStatus = {
+  label: string;
+  description: string;
+  toneClass: string;
+  dotClass: string;
+  actionLabel: string;
+  action: string;
+};
+
 const appName = (pkg as { productName?: string; name: string }).productName ?? pkg.name;
 const appVersion = pkg.version;
 
@@ -52,7 +61,7 @@ function handleSearchSubmit(): void {
   searchInput.value = '';
 }
 
-const connectionStatus = computed(() => {
+const connectionStatus = computed<ConnectionStatus | null>(() => {
   if (!daemonOnline.value) {
     return {
       label: 'Daemon stopped',
@@ -83,17 +92,13 @@ const connectionStatus = computed(() => {
       action: '',
     };
   }
-  return {
-    label: 'Agent stopped',
-    description: props.hasAgents ? 'Start a session before sending work.' : 'No agents are available yet.',
-    toneClass: 'border-border-card bg-bg-surface text-text-secondary',
-    dotClass: 'bg-text-muted',
-    actionLabel: props.hasAgents ? 'Start session' : '',
-    action: props.hasAgents ? 'start-session' : '',
-  };
+  return null;
 });
 
 async function handleStatusAction(): Promise<void> {
+  if (!connectionStatus.value) {
+    return;
+  }
   if (connectionStatus.value.action === 'retry-daemon') {
     await daemonHealth.forceCheck();
     return;

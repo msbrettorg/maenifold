@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
+import { createAcpStoreSinks } from '../../composables/useAcpStoreSink';
 import { AcpClientBridgeCore } from '../acp-client-core';
 import { AcpClientBridge } from '../acp-client';
 import { PermissionHandler } from '../acp-permissions';
@@ -81,7 +82,12 @@ describe('AcpClientBridgeCore terminal outputByteLimit propagation', () => {
   });
 
   it('createTerminal stores the IPC-returned default outputByteLimit when ACP omits it', async () => {
-    const bridge = new AcpClientBridgeCore('agent-1', 'agent-1', new PermissionHandler());
+    const bridge = new AcpClientBridgeCore(
+      'agent-1',
+      'agent-1',
+      new PermissionHandler(),
+      createAcpStoreSinks()
+    );
     vi.stubGlobal('electronAPI', {
       terminal: {
         create: vi.fn().mockResolvedValue({
@@ -97,7 +103,12 @@ describe('AcpClientBridgeCore terminal outputByteLimit propagation', () => {
   });
 
   it('terminalCreate stores the ACP-returned default outputByteLimit when params omit it', async () => {
-    const bridge = new AcpClientBridge('agent-1', 'agent-1', new PermissionHandler());
+    const bridge = new AcpClientBridge(
+      'agent-1',
+      'agent-1',
+      new PermissionHandler(),
+      createAcpStoreSinks()
+    );
     const connectPromise = bridge.connect();
     const socket = MockWebSocket.instances[0];
     socket.triggerOpen();
@@ -119,7 +130,12 @@ describe('AcpClientBridgeCore terminal outputByteLimit propagation', () => {
   });
 
   it('terminalCreate stores the ACP-returned explicit outputByteLimit', async () => {
-    const bridge = new AcpClientBridge('agent-1', 'agent-1', new PermissionHandler());
+    const bridge = new AcpClientBridge(
+      'agent-1',
+      'agent-1',
+      new PermissionHandler(),
+      createAcpStoreSinks()
+    );
     const connectPromise = bridge.connect();
     const socket = MockWebSocket.instances[0];
     socket.triggerOpen();

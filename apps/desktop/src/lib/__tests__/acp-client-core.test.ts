@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { nextTick, type ComputedRef } from 'vue';
+import { createAcpStoreSinks } from '../../composables/useAcpStoreSink';
 import { AcpClientBridgeCore } from '../acp-client-core';
 import { AcpClientBridge } from '../acp-client';
 import { PermissionHandler } from '../acp-permissions';
@@ -144,6 +145,10 @@ async function loadUseTerminalsStoreModule(): Promise<UseTerminalsStoreModule> {
   return vi.importActual<UseTerminalsStoreModule>('../../stores/useTerminalsStore');
 }
 
+function createTestSinks() {
+  return createAcpStoreSinks();
+}
+
 describe('AcpClientBridgeCore request hardening', () => {
   const originalWebSocket = globalThis.WebSocket;
 
@@ -152,7 +157,12 @@ describe('AcpClientBridgeCore request hardening', () => {
   }
 
   async function connectBridge(agentId = 'agent-1') {
-    const bridge = new TestAcpClientBridgeCore(agentId, agentId, new PermissionHandler());
+    const bridge = new TestAcpClientBridgeCore(
+      agentId,
+      agentId,
+      new PermissionHandler(),
+      createTestSinks()
+    );
     const connectPromise = bridge.connect();
     const socket = getLatestSocket();
     if (!socket) {
@@ -164,7 +174,7 @@ describe('AcpClientBridgeCore request hardening', () => {
   }
 
   async function connectAcpBridge(agentId = 'agent-1') {
-    const bridge = new AcpClientBridge(agentId, agentId, new PermissionHandler());
+    const bridge = new AcpClientBridge(agentId, agentId, new PermissionHandler(), createTestSinks());
     const connectPromise = bridge.connect();
     const socket = getLatestSocket();
     if (!socket) {
@@ -218,7 +228,12 @@ describe('AcpClientBridgeCore request hardening', () => {
   });
 
   it('connects over the ACP relay websocket path', async () => {
-    const connectPromise = new TestAcpClientBridgeCore('agent-1', 'agent-1', new PermissionHandler()).connect();
+    const connectPromise = new TestAcpClientBridgeCore(
+      'agent-1',
+      'agent-1',
+      new PermissionHandler(),
+      createTestSinks()
+    ).connect();
     const socket = getLatestSocket();
 
     expect(socket?.url).toBe(
@@ -227,6 +242,79 @@ describe('AcpClientBridgeCore request hardening', () => {
 
     socket?.triggerOpen();
     await expect(connectPromise).resolves.toBeUndefined();
+  });
+
+  it('records outbound request traffic entries through the injected sink', async () => {
+    const trafficStore = useTrafficStore();
+    const { bridge, socket } = await connectBridge();
+    const params = { cwd: '/repo', mcpServers: [] };
+    const promise = bridge.request<{ sessionId: string }>('session/new', params);
+    const frame = await readSentFrame(socket, 0);
+
+    expect(trafficStore.entries).toHaveLength(1);
+    expect(trafficStore.entries[0]).toMatchObject({
+      direction: 'out',
+      type: 'request',
+      method: 'session/new',
+      requestId: frame.id,
+      payload: {
+        method: 'session/new',
+        params: expect.objectContaining(params),
+      },
+    });
+
+    respondWithResult(socket, frame, { sessionId: 'sess-1' });
+    await expect(promise).resolves.toEqual({ sessionId: 'sess-1' });
+  });
+
+  it('records inbound response traffic entries with request id and error shape', async () => {
+    const trafficStore = useTrafficStore();
+    const { bridge, socket } = await connectBridge();
+    const promise = bridge.request('initialize', {});
+    const frame = await readSentFrame(socket, 0);
+
+    respondWithError(socket, frame, 'backend failed');
+
+    await expect(promise).rejects.toThrow('backend failed');
+    expect(trafficStore.entries).toHaveLength(2);
+    expect(trafficStore.entries[1]).toMatchObject({
+      direction: 'in',
+      type: 'response',
+      method: 'initialize',
+      requestId: frame.id,
+      error: true,
+      payload: {
+        id: frame.id,
+        error: { code: -32000, message: 'backend failed' },
+      },
+    });
+  });
+
+  it('records inbound notification traffic entries through the injected sink', async () => {
+    const trafficStore = useTrafficStore();
+    const { bridge, socket } = await connectBridge();
+    const notification = {
+      jsonrpc: '2.0',
+      method: 'session/update',
+      params: {
+        sessionId: 'session-1',
+        update: {
+          sessionUpdate: 'available_commands_update',
+          availableCommands: null,
+        },
+      },
+    };
+    bridge.onSessionUpdate = vi.fn();
+
+    socket.triggerMessage(JSON.stringify(notification));
+
+    expect(trafficStore.entries).toHaveLength(1);
+    expect(trafficStore.entries[0]).toMatchObject({
+      direction: 'in',
+      type: 'notification',
+      method: 'session/update',
+      payload: notification,
+    });
   });
 
   it('clears request timeout handles after a successful response', async () => {
@@ -507,13 +595,23 @@ describe('AcpClientBridgeCore request hardening', () => {
   });
 
   it('uses long-lived timeouts for ACP control mutations', () => {
-    const bridge = new TestAcpClientBridgeCore('agent-1', 'agent-1', new PermissionHandler());
+    const bridge = new TestAcpClientBridgeCore(
+      'agent-1',
+      'agent-1',
+      new PermissionHandler(),
+      createTestSinks()
+    );
 
     expect(bridge.timeoutFor('session/set_config_option')).toBe(30 * 60 * 1000);
   });
 
   it('uses a 30 minute timeout for terminal/wait_for_exit', () => {
-    const bridge = new TestAcpClientBridgeCore('agent-1', 'agent-1', new PermissionHandler());
+    const bridge = new TestAcpClientBridgeCore(
+      'agent-1',
+      'agent-1',
+      new PermissionHandler(),
+      createTestSinks()
+    );
 
     expect(bridge.timeoutFor('terminal/wait_for_exit')).toBe(30 * 60 * 1000);
   });

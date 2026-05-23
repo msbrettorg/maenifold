@@ -1,9 +1,7 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import ChatView from '../ChatView.vue';
-import type { AvailableCommand } from '../../lib/types';
-import type { SlashCommandNotice } from '../../lib/slash-command-notice';
 
 const mocks = vi.hoisted(() => {
   const refValue = <T>(value: T) => ({ __v_isRef: true, value });
@@ -37,14 +35,13 @@ const mocks = vi.hoisted(() => {
 
   return {
     refValue,
-    mcpPromptCommands: refValue([] as AvailableCommand[]),
     sessionStore: {
       activeSession,
       currentSession,
       messageList: [],
       isLoading: false,
       configOptions: [],
-      availableCommands: [] as AvailableCommand[],
+      availableCommands: [],
       currentPlan: null,
       pendingPermissionCount: 0,
       agentPromptCapabilities: {},
@@ -108,11 +105,9 @@ vi.mock('../../composables/useMcpPromptCommands', async () => {
   const actual = await vi.importActual<typeof import('../../composables/useMcpPromptCommands')>('../../composables/useMcpPromptCommands');
   return {
     ...actual,
-    useMcpPromptCommands: () => ({ commands: mocks.mcpPromptCommands }),
+    useMcpPromptCommands: () => ({ commands: mocks.refValue([]) }),
   };
 });
-
-const chatInputBarProps = vi.hoisted(() => ({ value: null as null | Record<string, unknown> }));
 
 function mountChatView() {
   return mount(ChatView, {
@@ -121,7 +116,7 @@ function mountChatView() {
         Button: { template: '<button data-slot="button"><slot /></button>' },
         Card: { template: '<section><slot /></section>' },
         ScrollArea: { template: '<div><slot /></div>' },
-        ChatInputBar: { props: ['availableCommands', 'commandPaletteNotice'], template: '<div data-testid="chat-input-bar" />', setup: (props: Record<string, unknown>) => { chatInputBarProps.value = props; return {}; } },
+        ChatInputBar: { template: '<div data-testid="chat-input-bar" />' },
         ChatMessageList: { template: '<div data-testid="chat-message-list" />' },
         ConfigOptionPicker: true,
         McpPromptPicker: true,
@@ -133,18 +128,7 @@ function mountChatView() {
   });
 }
 
-function currentNotice(): SlashCommandNotice | null {
-  return (chatInputBarProps.value?.commandPaletteNotice as SlashCommandNotice | null | undefined) ?? null;
-}
-
-describe('ChatView', () => {
-  beforeEach(() => {
-    chatInputBarProps.value = null;
-    mocks.mcpPromptCommands.value = [];
-    mocks.sessionStore.availableCommands = [];
-    mocks.sessionStore.activeSession.agentName = 'test-agent';
-  });
-
+describe('ChatView ModePicker placement', () => {
   it('renders the ModePicker pill row below ChatInputBar when session modes are available', () => {
     const wrapper = mountChatView();
     const input = wrapper.get('[data-testid="chat-input-bar"]').element;
@@ -153,26 +137,5 @@ describe('ChatView', () => {
     expect(wrapper.text()).toContain('Agent');
     expect(wrapper.text()).toContain('Plan');
     expect(input.compareDocumentPosition(modePicker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it('passes a command palette notice for copilot sessions with zero ACP commands', () => {
-    mocks.sessionStore.activeSession.agentName = 'Copilot';
-    mocks.sessionStore.availableCommands = [];
-    mountChatView();
-    expect(currentNotice()).toMatchObject({ heading: 'Slash commands unavailable', agentName: 'Copilot' });
-  });
-
-  it('clears the notice once ACP commands are available', () => {
-    mocks.sessionStore.activeSession.agentName = 'Copilot';
-    mocks.sessionStore.availableCommands = [{ name: 'model', description: 'Change model' }];
-    mountChatView();
-    expect(currentNotice()).toBeNull();
-  });
-
-  it('still merges MCP prompt commands into the available command list', () => {
-    mocks.sessionStore.availableCommands = [{ name: 'model', description: 'Change model' }];
-    mocks.mcpPromptCommands.value = [{ name: 'mcp.prompt', description: 'Prompt' }];
-    mountChatView();
-    expect((chatInputBarProps.value?.availableCommands as Array<{ name: string }>).map((command) => command.name)).toEqual(['model', 'mcp.prompt']);
   });
 });

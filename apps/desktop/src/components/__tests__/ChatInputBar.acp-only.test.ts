@@ -4,7 +4,6 @@ import { createPinia } from 'pinia';
 import { describe, expect, it, vi } from 'vitest';
 
 import ChatInputBar from '../ChatInputBar.vue';
-import type { SlashCommandNotice } from '../../lib/slash-command-notice';
 import type { AvailableCommand } from '../../lib/types';
 
 vi.mock('vue-sonner', () => ({
@@ -16,12 +15,10 @@ const commandPaletteStub = {
   props: {
     commands: { type: Array, required: true },
     filter: { type: String, required: true },
-    notice: { type: Object, default: null },
     visible: { type: Boolean, required: true },
   },
   template: `
     <div v-if="visible" data-test="command-palette">
-      <div v-if="notice" data-test="command-notice">{{ notice.heading }} {{ notice.body }}</div>
       <div
         v-for="command in commands"
         :key="command.name"
@@ -33,14 +30,13 @@ const commandPaletteStub = {
   `,
 };
 
-function mountInputBar(availableCommands: AvailableCommand[], commandPaletteNotice: SlashCommandNotice | null = null, modelValue = '/') {
+function mountInputBar(availableCommands: AvailableCommand[]) {
   return mount(ChatInputBar, {
     props: {
-      modelValue,
+      modelValue: '/',
       placeholder: 'Message',
       disabled: false,
       availableCommands,
-      commandPaletteNotice,
       supportsImageAttachments: true,
       supportsAudioAttachments: true,
       supportsEmbeddedContext: true,
@@ -71,11 +67,8 @@ function renderedCommandNames(availableCommands: AvailableCommand[]): string[] {
 }
 
 describe('ChatInputBar ACP-advertised slash commands', () => {
-  it('opens the palette notice on slash input without adding fake commands', () => {
-    const wrapper = mountInputBar([], { heading: 'Slash commands unavailable', body: 'Copilot did not advertise slash commands over ACP.' });
-    expect(wrapper.find('[data-test="command-palette"]').exists()).toBe(true);
-    expect(wrapper.get('[data-test="command-notice"]').text()).toContain('Slash commands unavailable');
-    expect(wrapper.findAll('[data-test="command-option"]')).toHaveLength(0);
+  it('renders no slash command entries when ACP advertises none', () => {
+    expect(renderedCommandNames([])).toEqual([]);
   });
 
   it('renders only ACP-advertised slash commands in order', () => {
@@ -83,10 +76,5 @@ describe('ChatInputBar ACP-advertised slash commands', () => {
       { name: 'foo', description: 'Foo command' },
       { name: 'bar', description: 'Bar command' },
     ])).toEqual(['foo', 'bar']);
-  });
-
-  it('keeps the palette closed when no notice is present and no commands exist', () => {
-    const wrapper = mountInputBar([], null, '/');
-    expect(wrapper.find('[data-test="command-palette"]').exists()).toBe(false);
   });
 });

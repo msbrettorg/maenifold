@@ -1,4 +1,4 @@
-#![allow(dead_code)] // Schema-only types — fields are read by schemars, not by application code
+#![allow(dead_code, unused_imports)] // Schema-only types — fields are read by schemars, not by application code
 
 pub(super) fn default_true() -> bool {
     true

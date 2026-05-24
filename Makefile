@@ -1,4 +1,4 @@
-.PHONY: release audit audit-parity audit-crates audit-runaway-procs audit-disk-budget quality-lint quality-tools quality-coverage quality-coverage-html quality-metrics quality-dead-code quality-unused-deps quality-duplicates quality-report
+.PHONY: release manifest audit audit-parity audit-crates audit-runaway-procs audit-disk-budget quality-lint quality-tools quality-coverage quality-coverage-html quality-metrics quality-dead-code quality-unused-deps quality-duplicates quality-report
 
 QUALITY_DIR := target/quality
 QUALITY_COVERAGE_DIR := $(QUALITY_DIR)/coverage
@@ -11,6 +11,9 @@ QUALITY_REPORT_DIR := $(QUALITY_DIR)/reports
 release:
 	cargo build --release -p maenifold-cli
 	cargo build --release -p maenifold-pipeline-driver
+
+manifest:
+	cargo run --quiet --bin generate-tools-manifest
 
 audit: audit-parity audit-crates audit-runaway-procs audit-disk-budget
 

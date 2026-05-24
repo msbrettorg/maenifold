@@ -83,3 +83,7 @@ tower = "0.5"
 tracing-test = "0.2"
 [lints]
 workspace = true
+
+[[bin]]
+name = "generate-tools-manifest"
+path = "src/bin/generate-tools-manifest.rs"

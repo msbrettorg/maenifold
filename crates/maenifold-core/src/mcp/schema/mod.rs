@@ -1,8 +1,6 @@
 mod assumption_params;
-mod assumption_tools;
 mod embedding_models_params;
-mod embedding_models_tools;
-mod files_tools;
+mod files_params;
 pub(crate) mod gateway_tools;
 #[cfg(test)]
 mod gateway_tools_schema_tests;
@@ -11,9 +9,7 @@ mod generic_tool_tests;
 mod graph_params;
 #[cfg(test)]
 mod graph_params_tests;
-mod graph_tools;
 mod memory_params;
-mod memory_tools;
 mod params;
 mod pipeline_node_schema;
 mod pipeline_node_schema_data_variants;
@@ -22,16 +18,16 @@ mod pipeline_node_types;
 mod pipeline_params;
 #[cfg(test)]
 mod pipeline_params_tests;
-mod pipeline_tools;
 mod support;
 mod system_params;
-mod system_tools;
-mod thinking_tools;
 mod thinking_workflow_params;
-mod workflow_tools;
+
+use std::collections::HashMap;
+use std::sync::OnceLock;
 
 use crate::error::Result;
 use crate::mcp::McpToolDefinition;
+use serde::Deserialize;
 use serde_json::json;
 
 pub(crate) use params::{
@@ -40,15 +36,9 @@ pub(crate) use params::{
 };
 
 pub(crate) fn mcp_tool_from_registry_name(registry_name: &str) -> Result<McpToolDefinition> {
-    Ok(memory_tools::tool(registry_name)
-        .or_else(|| graph_tools::tool(registry_name))
-        .or_else(|| thinking_tools::tool(registry_name))
-        .or_else(|| pipeline_tools::tool(registry_name))
-        .or_else(|| workflow_tools::tool(registry_name))
-        .or_else(|| assumption_tools::tool(registry_name))
-        .or_else(|| files_tools::tool(registry_name))
-        .or_else(|| system_tools::tool(registry_name))
-        .or_else(|| embedding_models_tools::tool(registry_name))
+    Ok(manifest_tools()
+        .get(registry_name)
+        .cloned()
         .unwrap_or_else(|| {
             tracing::warn!("No schema mapping for tool {registry_name}, using generic schema");
             McpToolDefinition {
@@ -58,4 +48,121 @@ pub(crate) fn mcp_tool_from_registry_name(registry_name: &str) -> Result<McpTool
                 execution: None,
             }
         }))
+}
+
+fn manifest_tools() -> &'static HashMap<String, McpToolDefinition> {
+    static TOOLS: OnceLock<HashMap<String, McpToolDefinition>> = OnceLock::new();
+    TOOLS.get_or_init(|| {
+        let manifest: ToolManifest =
+            serde_json::from_str(include_str!("../../../assets/tools_manifest.json"))
+                .expect("tools_manifest.json should be valid");
+        manifest
+            .tools
+            .into_iter()
+            .map(|tool| (tool.name.clone(), tool.into_definition()))
+            .collect()
+    })
+}
+
+#[derive(Deserialize)]
+struct ToolManifest {
+    tools: Vec<ToolManifestEntry>,
+}
+
+#[derive(Deserialize)]
+struct ToolManifestEntry {
+    name: String,
+    description: String,
+    input_schema: serde_json::Value,
+    #[serde(default)]
+    execution: Option<rmcp::model::ToolExecution>,
+}
+
+impl ToolManifestEntry {
+    fn into_definition(self) -> McpToolDefinition {
+        McpToolDefinition {
+            name: self.name,
+            description: self.description,
+            input_schema: self.input_schema,
+            execution: self.execution,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rmcp::model::{TaskSupport, ToolExecution};
+    use std::collections::BTreeMap;
+
+    fn parsed_manifest() -> ToolManifest {
+        serde_json::from_str(include_str!("../../../assets/tools_manifest.json"))
+            .expect("tools_manifest.json fixture should parse")
+    }
+
+    fn expected_descriptions() -> BTreeMap<String, String> {
+        serde_json::from_str(include_str!(
+            "../../../tests/fixtures/expected_tool_descriptions.json"
+        ))
+        .expect("expected tool descriptions fixture should parse")
+    }
+
+    #[test]
+    fn tools_manifest_loads_successfully() {
+        let tools = manifest_tools();
+        assert!(!tools.is_empty(), "manifest registry should not be empty");
+        assert_eq!(tools.len(), 34, "manifest registry should contain 34 tools");
+    }
+
+    #[test]
+    fn every_manifest_tool_resolves_via_registry_lookup() {
+        for entry in parsed_manifest().tools {
+            let resolved =
+                mcp_tool_from_registry_name(&entry.name).expect("manifest tool lookup should work");
+            assert_eq!(resolved.name, entry.name);
+            assert_eq!(resolved.description, entry.description);
+            assert_eq!(resolved.input_schema, entry.input_schema);
+            assert_eq!(resolved.execution, entry.execution);
+        }
+    }
+
+    #[test]
+    fn pipeline_tool_has_execution_task_support_optional() {
+        let pipeline = mcp_tool_from_registry_name("Pipeline").expect("Pipeline tool should load");
+        assert_eq!(
+            pipeline.execution.as_ref(),
+            Some(&ToolExecution::new().with_task_support(TaskSupport::Optional))
+        );
+    }
+
+    #[test]
+    fn recent_activity_tool_has_timespan_regex_pattern() {
+        let recent_activity =
+            mcp_tool_from_registry_name("RecentActivity").expect("RecentActivity should load");
+        let pattern = recent_activity
+            .input_schema
+            .get("properties")
+            .and_then(|properties| properties.get("timespan"))
+            .and_then(|timespan| timespan.get("pattern"))
+            .and_then(serde_json::Value::as_str);
+
+        assert_eq!(
+            pattern,
+            Some(r"^(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$")
+        );
+    }
+
+    #[test]
+    fn manifest_parity_vs_deleted_shims() {
+        let expected = expected_descriptions();
+        let actual = parsed_manifest()
+            .tools
+            .into_iter()
+            .map(|tool| (tool.name, tool.description))
+            .collect::<BTreeMap<_, _>>();
+
+        assert_eq!(expected.len(), 34, "fixture should contain 34 tool descriptions");
+        assert_eq!(actual.len(), 34, "manifest should contain 34 tool descriptions");
+        assert_eq!(actual, expected);
+    }
 }

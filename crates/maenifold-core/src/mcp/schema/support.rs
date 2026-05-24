@@ -35,6 +35,7 @@ pub(super) fn schema_value<T: JsonSchema>() -> Value {
 /// mandatory fields rather than `null` entries in a type union.  Removing the null
 /// wrapper also makes nested struct schemas directly accessible at their property key,
 /// which simplifies both schema inspection and function-call schema validation.
+#[allow(dead_code)]
 pub(super) fn schema_value_no_null_options<T: JsonSchema>() -> Value {
     let mut settings = schemars::r#gen::SchemaSettings::draft07();
     settings.option_add_null_type = false;

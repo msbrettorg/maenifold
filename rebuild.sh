@@ -28,6 +28,7 @@ launchctl_kickstart_with_timeout() {
 }
 
 echo "═══ Release build: all crates ═══"
+make manifest
 cargo build --release -p maenifold-jockey -p maenifold-core -p maenifold-pipeline-driver -p maenifold-cli
 
 echo ""

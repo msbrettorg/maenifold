@@ -19,12 +19,7 @@ impl GatewayCatalog {
 
     pub(super) fn domain(&self, domain: &str) -> Result<&CatalogDomain> {
         self.domains.get(domain).ok_or_else(|| {
-            let mut available = self.domains.keys().map(String::as_str).collect::<Vec<_>>();
-            available.sort_unstable();
-            MaenifoldError::GatewayInvalidParams(format!(
-                "Unknown gateway domain '{domain}'. Available domains: {}.",
-                available.join(", ")
-            ))
+            MaenifoldError::GatewayInvalidParams(format!("Unknown gateway domain '{domain}'."))
         })
     }
 

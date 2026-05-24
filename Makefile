@@ -1,4 +1,4 @@
-.PHONY: release audit audit-parity audit-crates audit-runaway-procs audit-disk-budget quality-lint quality-tools quality-coverage quality-coverage-html quality-metrics quality-dead-code quality-unused-deps quality-duplicates quality-report
+.PHONY: release audit audit-parity audit-crates audit-runaway-procs audit-disk-budget quality-lint quality-tools quality-coverage quality-coverage-html quality-metrics quality-dead-code quality-unused-deps quality-duplicates quality-report rebuild-with-quality
 
 QUALITY_DIR := target/quality
 QUALITY_COVERAGE_DIR := $(QUALITY_DIR)/coverage
@@ -66,3 +66,27 @@ quality-duplicates:
 quality-report: quality-coverage quality-metrics quality-dead-code quality-unused-deps quality-duplicates
 	mkdir -p $(QUALITY_REPORT_DIR)
 	python3 scripts/quality_report.py --repo-root . --lcov $(QUALITY_COVERAGE_DIR)/lcov.info --metrics-dir $(QUALITY_METRICS_DIR) --clippy $(QUALITY_CLIPPY_FILE) --machete $(QUALITY_MACHETE_FILE) --jscpd $(QUALITY_JSCPD_FILE) --output-dir $(QUALITY_REPORT_DIR)
+
+# Canonical "rebuild + quality" combo. ./rebuild.sh redeploys the daemon (fast,
+# ~2-3 min). Then make quality-report runs the full quality pipeline including
+# cargo llvm-cov --workspace under instrumentation (slow, +10-15 min). Quality
+# failures are warn-only: a non-zero quality exit will NOT fail this target,
+# but the warning + exit code are printed to stdout so it stays visible.
+# CRAP hotspot table lands at $(QUALITY_REPORT_DIR)/summary.md.
+rebuild-with-quality:
+	./rebuild.sh
+	@echo ""
+	@echo "═══ Quality report (warn-only) ═══"
+	@$(MAKE) quality-report; \
+		status=$$?; \
+		if [ $$status -ne 0 ]; then \
+			echo ""; \
+			echo "  ⚠ make quality-report exited $$status (non-fatal; daemon is up)"; \
+		fi
+	@echo ""
+	@if [ -f $(QUALITY_REPORT_DIR)/summary.md ]; then \
+		echo "═══ Quality summary ═══"; \
+		cat $(QUALITY_REPORT_DIR)/summary.md; \
+	else \
+		echo "  ⚠ no summary at $(QUALITY_REPORT_DIR)/summary.md"; \
+	fi

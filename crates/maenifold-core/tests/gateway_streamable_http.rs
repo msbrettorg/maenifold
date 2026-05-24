@@ -9,34 +9,6 @@ use serde_json::{Value, json};
 use serial_test::serial;
 
 #[tokio::test]
-async fn gateway_execute_reports_wrong_type_for_native_param() {
-    let server = TestServer::start(gateway_config(vec![])).await;
-    let response = rpc(
-        &server,
-        "tools/call",
-        json!({
-            "name": "GatewayExecute",
-            "arguments": {
-                "domain": "maenifold.memory",
-                "command": "SearchMemories",
-                "parameters": {"query": 42}
-            }
-        }),
-        None,
-    )
-    .await;
-    let text = result_text(&response);
-
-    assert_eq!(
-        response["result"]["isError"], true,
-        "validation failure must be CallToolResult.isError=true, not JSON-RPC error envelope"
-    );
-    assert!(text.contains("wrong type"));
-    assert!(text.contains("expected string"));
-    assert!(!text.contains("is missing from payload"));
-}
-
-#[tokio::test]
 #[serial]
 async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_resources() {
     let server = TestServer::start(gateway_config(vec![

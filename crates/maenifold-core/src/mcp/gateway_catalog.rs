@@ -4,7 +4,6 @@ use crate::mcp::gateway_catalog_render::{command_entry, strip_schemas};
 use crate::mcp::gateway_consolidation::ConsolidatedServerTool;
 use crate::mcp::gateway_gate;
 use crate::mcp::gateway_metadata;
-use crate::mcp::gateway_schema_validation::{compile_validator, validate_with_validator};
 use crate::mcp::gateway_tasks;
 use crate::mcp::list_mcp_tools;
 use crate::mcp::tool_routing::ToolRoutingRegistry;
@@ -13,7 +12,6 @@ use rmcp::model::Tool;
 use serde::Serialize;
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
-use std::sync::Arc;
 
 #[path = "gateway_catalog_helpers.rs"]
 mod helpers;
@@ -36,7 +34,6 @@ pub(crate) struct CommandEntry {
 #[derive(Debug, Clone)]
 pub(crate) struct GatewayCatalog {
     domains: BTreeMap<String, CatalogDomain>,
-    schema_validators: BTreeMap<(String, String), Option<Arc<jsonschema::Validator>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -85,7 +82,6 @@ impl GatewayCatalog {
     ) -> Result<Self> {
         let mut catalog = Self {
             domains: BTreeMap::new(),
-            schema_validators: BTreeMap::new(),
         };
         catalog.add_native_tools()?;
         catalog.add_gate_tools()?;
@@ -109,7 +105,6 @@ impl GatewayCatalog {
                 catalog.add_upstream_tool(server_name, tool, &description)?;
             }
         }
-        catalog.schema_validators = catalog.compile_schema_validators();
         Ok(catalog)
     }
 
@@ -166,40 +161,6 @@ impl GatewayCatalog {
     pub(crate) fn required_parameters(&self, domain: &str, command: &str) -> Result<Vec<String>> {
         let record = self.command_record(domain, command)?;
         Ok(required_keys(&record.entry.schema))
-    }
-
-    pub(crate) fn validate_parameters(
-        &self,
-        domain: &str,
-        command: &str,
-        parameters: &Value,
-    ) -> Result<()> {
-        let record = self.command_record(domain, command)?;
-        let Some(validator) = self
-            .schema_validators
-            .get(&(domain.to_string(), command.to_string()))
-            .and_then(Option::as_deref)
-        else {
-            return Ok(());
-        };
-        validate_with_validator(command, parameters, validator, &record.entry.schema)
-            .map_err(|error| MaenifoldError::GatewayInvalidParams(error.to_string()))
-    }
-
-    fn compile_schema_validators(
-        &self,
-    ) -> BTreeMap<(String, String), Option<Arc<jsonschema::Validator>>> {
-        self.domains
-            .iter()
-            .flat_map(|(domain_name, domain)| {
-                domain.commands.iter().map(move |(command_name, command)| {
-                    (
-                        (domain_name.clone(), command_name.clone()),
-                        compile_validator(&command.entry.schema),
-                    )
-                })
-            })
-            .collect()
     }
 }
 

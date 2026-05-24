@@ -2,7 +2,7 @@
   "path": [
     "crates/maenifold-core/src",
     "crates/maenifold-cli/src",
-    "crates/maenifold-gate/src"
+    "crates/maenifold-gate-core/src"
   ],
   "pattern": "**/*.rs",
   "formats": ["rust"],

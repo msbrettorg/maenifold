@@ -1,1 +1,0 @@
-{"jsonrpc":"2.0","id":3,"result":{"content":[{"type":"text","text":"Error invoking Pipeline: ERROR: Node 'dispatch-workflow' must be active to transition to completed; current status is Pending"}],"isError":true}}

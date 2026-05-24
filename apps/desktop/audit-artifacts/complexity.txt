@@ -1,2 +1,0 @@
-npm error could not determine executable to run
-npm error A complete log of this run can be found in: /Users/brett/.npm/_logs/2026-04-05T22_21_25_571Z-debug-0.log

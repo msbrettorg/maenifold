@@ -4,15 +4,6 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 
-DESKTOP_BIN="$ROOT/apps/desktop/node_modules/.bin"
-# Interrupted npm installs can leave .bin present but empty, breaking package binaries.
-if [ ! -d "$DESKTOP_BIN" ] || [ -z "$(find "$DESKTOP_BIN" -mindepth 1 -maxdepth 1 -print -quit)" ]; then
-  echo "═══ Desktop dependencies ═══"
-  echo "  .bin missing or empty after an interrupted install — running npm install"
-  (cd "$ROOT/apps/desktop" && npm install)
-  echo ""
-fi
-
 UID_NUM=$(id -u)
 
 launchctl_kickstart_with_timeout() {
@@ -65,10 +56,7 @@ done
 
 echo ""
 echo "═══ Desktop app ═══"
-cd apps/desktop
-npm run package
-echo "  ✓ packaged"
-cd "$ROOT"
+echo "  — front-end was rip'd; vanilla MCP server only. Skipping packaging."
 
 echo ""
 echo "═══ Restart launchd services ═══"
@@ -96,13 +84,7 @@ done
 
 echo ""
 echo "═══ Launch desktop app ═══"
-cd apps/desktop
-if pgrep -f 'maenifold.app' &>/dev/null; then
-  osascript -e 'tell application "maenifold" to quit' 2>/dev/null || true
-  sleep 2
-fi
-open out/maenifold-darwin-arm64/maenifold.app
-echo "  ✓ launched"
+echo "  — front-end was rip'd; nothing to launch."
 
 echo ""
 echo "═══ Verify ═══"

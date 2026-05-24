@@ -1,3 +1,0 @@
-Need to install the following packages:
-complexity-report@2.0.0-alpha
-Ok to proceed? (y) Fatal error [readFiles]: ENOENT: no such file or directory, stat 'src/**/*.ts'

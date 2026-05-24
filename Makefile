@@ -1,4 +1,4 @@
-.PHONY: release audit audit-parity audit-crates audit-frontend test-electron-launch audit-runaway-procs audit-disk-budget quality-lint quality-tools quality-coverage quality-coverage-html quality-metrics quality-dead-code quality-unused-deps quality-duplicates quality-report
+.PHONY: release audit audit-parity audit-crates audit-runaway-procs audit-disk-budget quality-lint quality-tools quality-coverage quality-coverage-html quality-metrics quality-dead-code quality-unused-deps quality-duplicates quality-report
 
 QUALITY_DIR := target/quality
 QUALITY_COVERAGE_DIR := $(QUALITY_DIR)/coverage
@@ -12,19 +12,13 @@ release:
 	cargo build --release -p maenifold-cli
 	cargo build --release -p maenifold-pipeline-driver
 
-audit: audit-parity audit-crates audit-frontend test-electron-launch audit-runaway-procs audit-disk-budget
+audit: audit-parity audit-crates audit-runaway-procs audit-disk-budget
 
 audit-parity:
 	@./scripts/audit-parity.sh
 
 audit-crates:
 	@./scripts/audit-crates.sh
-
-audit-frontend:
-	@cd apps/desktop && node scripts/lint-design.mjs --all && node scripts/audit-components.mjs --all
-
-test-electron-launch:
-	@cd apps/desktop && npm run test:electron-launch
 
 audit-runaway-procs:
 	@bash scripts/audit-runaway-procs.sh

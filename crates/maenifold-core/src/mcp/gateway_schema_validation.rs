@@ -33,7 +33,7 @@ pub(crate) fn validate_parameters(
     let Some(validator) = compile_validator(schema) else {
         return Ok(());
     };
-    validate_with_validator(command_name, parameters, &validator)
+    validate_with_validator(command_name, parameters, &validator, schema)
 }
 
 pub(crate) fn compile_validator(schema: &Value) -> Option<Arc<jsonschema::Validator>> {
@@ -47,12 +47,13 @@ pub(crate) fn validate_with_validator(
     command_name: &str,
     parameters: &Value,
     validator: &jsonschema::Validator,
+    schema: &Value,
 ) -> Result<(), GatewayValidationError> {
     if let Some(error) = validator.iter_errors(parameters).next() {
-        let path = validation_path(&error);
-        let keyword = validation_keyword(&error);
-        return Err(GatewayValidationError::new(format!(
-            "gateway validation failed for '{command_name}': {path}: {keyword}"
+        return Err(GatewayValidationError::new(validation_message(
+            command_name,
+            schema,
+            &error,
         )));
     }
     Ok(())
@@ -102,6 +103,83 @@ fn validation_keyword(error: &jsonschema::ValidationError<'_>) -> String {
         .filter(|keyword| !keyword.is_empty())
         .map(unescape_json_pointer_segment)
         .unwrap_or_else(|| "schema".to_string())
+}
+
+fn validation_message(
+    command_name: &str,
+    schema: &Value,
+    error: &jsonschema::ValidationError<'_>,
+) -> String {
+    match &error.kind {
+        jsonschema::error::ValidationErrorKind::Required { property } => {
+            let field = property.as_str().unwrap_or("required");
+            format!("Required property '{field}' is missing from payload for '{command_name}'.")
+        }
+        jsonschema::error::ValidationErrorKind::Type { kind } => {
+            let field = path_leaf(error).unwrap_or_else(|| "payload".to_string());
+            let expected_type = expected_type(kind);
+            let actual_type = actual_type(&error.instance);
+            format!(
+                "Property '{field}' for '{command_name}' has wrong type: expected {expected_type}, got {actual_type}."
+            )
+        }
+        jsonschema::error::ValidationErrorKind::AdditionalProperties { unexpected }
+        | jsonschema::error::ValidationErrorKind::UnevaluatedProperties { unexpected } => {
+            let mut unexpected = unexpected.clone();
+            unexpected.sort_unstable();
+            let key = unexpected.first().map(String::as_str).unwrap_or("unknown");
+            let valid = valid_parameters(schema).join(", ");
+            format!("Unknown parameter '{key}' for '{command_name}'. Valid parameters: {valid}.")
+        }
+        _ => {
+            let path = validation_path(error);
+            let keyword = validation_keyword(error);
+            format!("gateway validation failed for '{command_name}': {path}: {keyword}")
+        }
+    }
+}
+
+fn expected_type(kind: &jsonschema::error::TypeKind) -> String {
+    match kind {
+        jsonschema::error::TypeKind::Single(kind) => kind.to_string(),
+        jsonschema::error::TypeKind::Multiple(kinds) => kinds
+            .into_iter()
+            .map(|kind| kind.to_string())
+            .collect::<Vec<_>>()
+            .join(" or "),
+    }
+}
+
+fn actual_type(value: &Value) -> &'static str {
+    match value {
+        Value::Null => "null",
+        Value::Bool(_) => "boolean",
+        Value::Number(number) if number.is_i64() || number.is_u64() => "integer",
+        Value::Number(_) => "number",
+        Value::String(_) => "string",
+        Value::Array(_) => "array",
+        Value::Object(_) => "object",
+    }
+}
+
+fn path_leaf(error: &jsonschema::ValidationError<'_>) -> Option<String> {
+    error
+        .instance_path
+        .to_string()
+        .rsplit('/')
+        .next()
+        .filter(|field| !field.is_empty())
+        .map(unescape_json_pointer_segment)
+}
+
+fn valid_parameters(schema: &Value) -> Vec<String> {
+    let mut names = schema
+        .get("properties")
+        .and_then(Value::as_object)
+        .map(|properties| properties.keys().cloned().collect::<Vec<_>>())
+        .unwrap_or_default();
+    names.sort_unstable();
+    names
 }
 
 fn escape_json_pointer_segment(segment: &str) -> String {

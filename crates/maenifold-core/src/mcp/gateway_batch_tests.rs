@@ -82,7 +82,10 @@ async fn gateway_batch_rejects_invalid_native_params_before_execution() {
         .expect_err("native schema validation should reject missing conceptName");
 
     let message = err.to_string();
-    assert!(message.contains("gateway validation failed"), "{message}");
+    assert!(
+        message.contains("Required property 'conceptName'"),
+        "{message}"
+    );
     assert!(message.contains("BuildContext"), "{message}");
 }
 

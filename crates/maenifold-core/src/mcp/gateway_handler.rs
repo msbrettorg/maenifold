@@ -189,11 +189,19 @@ impl GatewayState {
         let args: GatewayExecuteParams = serde_json::from_value(arguments)
             .map_err(|err| map_gateway_error("GatewayExecute", invalid_params(err)))?;
         let parameters = Value::Object(args.parameters);
-        match self
-            .catalog
-            .resolve(&args.domain, &args.command)
-            .map_err(|err| map_gateway_error("GatewayExecute", err))?
+        let target = match self.catalog.resolve(&args.domain, &args.command) {
+            Ok(target) => target,
+            Err(err) => {
+                return Ok(CallToolResult::error(vec![Content::text(err.to_string())]));
+            }
+        };
+        if let Err(err) =
+            self.catalog
+                .validate_parameters(&args.domain, &args.command, &parameters)
         {
+            return Ok(CallToolResult::error(vec![Content::text(err.to_string())]));
+        }
+        match target {
             CommandTarget::Native { tool_name } => invoke_native(tool_name, parameters).await,
             CommandTarget::Gate { command } => invoke_gate(command, parameters).await,
             CommandTarget::Tasks { command } => invoke_tasks(command, parameters).await,
@@ -202,8 +210,9 @@ impl GatewayState {
                 tool_name,
             } => {
                 let server = self.consolidated_server(&server_name)?;
-                validate_dispatch_parameters(server, &tool_name, &parameters)
-                    .map_err(|err| map_gateway_error(&tool_name, err))?;
+                if let Err(err) = validate_dispatch_parameters(server, &tool_name, &parameters) {
+                    return Ok(CallToolResult::error(vec![Content::text(err.to_string())]));
+                }
                 match self
                     .pool
                     .call_tool(&server_name, &tool_name, parameters)

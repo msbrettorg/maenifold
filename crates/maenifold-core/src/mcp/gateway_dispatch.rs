@@ -93,7 +93,9 @@ pub(crate) fn validate_dispatch_parameters(
     else {
         return Ok(());
     };
-    validate_with_validator(tool_name, parameters, validator)
+    let tool = find_tool(server, tool_name).ok_or_else(|| unknown_command(server, tool_name))?;
+    let schema = Value::Object((*tool.input_schema).clone());
+    validate_with_validator(tool_name, parameters, validator, &schema)
         .map_err(|error| MaenifoldError::GatewayInvalidParams(error.to_string()))
 }
 

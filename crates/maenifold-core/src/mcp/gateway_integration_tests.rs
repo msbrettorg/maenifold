@@ -146,7 +146,7 @@ fn invalid_parameters_fail_local_validation_without_values() {
     let text = error.to_string();
     assert_eq!(
         text,
-        "gateway validation failed for 'budget_set': /amount: required"
+        "Required property 'amount' is missing from payload for 'budget_set'."
     );
     assert!(!text.contains("secret-account-token"));
 }

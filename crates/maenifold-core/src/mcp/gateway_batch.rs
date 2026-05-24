@@ -3,7 +3,11 @@ use crate::mcp::gateway_batch_types::{BatchItem, BatchItemResult, BatchResult, B
 use crate::mcp::gateway_catalog::CommandTarget;
 use crate::mcp::gateway_dispatch::validate_dispatch_parameters;
 use crate::mcp::gateway_handler::GatewayState;
-use crate::mcp::schema::gateway_tools::{BatchItemParams, GatewayBatchParams};
+use crate::mcp::gateway_schema_validation::validate_parameters;
+use crate::mcp::schema::{
+    gateway_tools::{BatchItemParams, GatewayBatchParams},
+    mcp_tool_from_registry_name,
+};
 use rmcp::model::{CallToolResult, Content, ErrorCode};
 use serde_json::{Map, Value, json};
 const MAX_BATCH_ITEMS: usize = 100;
@@ -120,20 +124,12 @@ fn validate_item(state: &GatewayState, item: &BatchItem) -> Result<(), rmcp::Err
             item.domain, item.command
         )));
     }
-    state
-        .catalog
-        .validate_parameters(
-            &item.domain,
-            &item.command,
-            &Value::Object(item.parameters.clone()),
-        )
-        .map_err(|err| invalid_params(err.to_string()))?;
     match state
         .catalog
         .resolve(&item.domain, &item.command)
         .map_err(|err| invalid_params(err.to_string()))?
     {
-        CommandTarget::Native { .. } => Ok(()),
+        CommandTarget::Native { tool_name } => validate_native(&tool_name, &item.parameters),
         CommandTarget::Gate { .. } => Ok(()),
         CommandTarget::Tasks { .. } => Ok(()),
         CommandTarget::Upstream {
@@ -149,6 +145,20 @@ fn validate_item(state: &GatewayState, item: &BatchItem) -> Result<(), rmcp::Err
             .map_err(|err| invalid_params(err.to_string()))
         }
     }
+}
+
+fn validate_native(
+    tool_name: &str,
+    parameters: &Map<String, Value>,
+) -> Result<(), rmcp::ErrorData> {
+    let definition =
+        mcp_tool_from_registry_name(tool_name).map_err(|err| invalid_params(err.to_string()))?;
+    validate_parameters(
+        tool_name,
+        &Value::Object(parameters.clone()),
+        &definition.input_schema,
+    )
+    .map_err(|err| invalid_params(err.to_string()))
 }
 
 async fn execute_item(

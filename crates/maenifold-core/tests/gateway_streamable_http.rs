@@ -38,54 +38,6 @@ async fn gateway_execute_reports_wrong_type_for_native_param() {
 
 #[tokio::test]
 #[serial]
-async fn gateway_batch_rejects_malformed_gate_item_before_execution() {
-    let server = TestServer::start(gateway_config(vec![])).await;
-    let response = rpc(
-        &server,
-        "tools/call",
-        json!({
-            "name": "GatewayBatch",
-            "arguments": {
-                "operation": "submit",
-                "continueOnError": true,
-                "items": [
-                    {
-                        "domain": "maenifold.memory",
-                        "command": "SearchMemories",
-                        "parameters": {"query": "x"}
-                    },
-                    {
-                        "domain": "maenifold.gate",
-                        "command": "gate_Status",
-                        "parameters": {}
-                    }
-                ]
-            }
-        }),
-        None,
-    )
-    .await;
-
-    assert!(
-        response.get("error").is_some(),
-        "batch pre-validation failure must be a JSON-RPC error envelope, not CallToolResult::error"
-    );
-    assert!(
-        response.get("result").is_none() || response["result"].is_null(),
-        "batch pre-validation failure must not return a result envelope: {response}"
-    );
-    assert_eq!(response["error"]["code"], -32602);
-    let error_text = response["error"]["data"]
-        .as_str()
-        .or_else(|| response["error"]["message"].as_str())
-        .expect("batch invalid params text");
-    assert!(error_text.contains("Required property 'root'"), "{response}");
-
-    server.stop().await;
-}
-
-#[tokio::test]
-#[serial]
 async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_resources() {
     let server = TestServer::start(gateway_config(vec![
         stdio_server_with_metadata(

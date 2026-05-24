@@ -1,5 +1,4 @@
 use super::*;
-use rmcp::model::ErrorCode;
 use crate::acp_config::IntentResolverSettings;
 use crate::mcp::gateway_catalog::GatewayCatalog;
 use crate::mcp::resource_routing::ResourceRoutingRegistry;
@@ -105,101 +104,6 @@ fn batch_state_eviction_removes_oldest_after_cap() {
     assert!(state.get("batch-0").is_none());
     assert!(state.get("batch-1").is_some());
     assert!(state.get("batch-1000").is_some());
-}
-
-#[tokio::test]
-async fn batch_rejects_gate_item_missing_required_root() {
-    let state = state().await;
-    let valid_native = item(
-        "maenifold.memory",
-        "SearchMemories",
-        json!({ "query": "x" }),
-    );
-    let invalid_gate = item("maenifold.gate", "gate_Status", json!({}));
-
-    let err = handle_gateway_batch(
-        &state,
-        &BatchState::new(),
-        params(vec![valid_native, invalid_gate], true),
-    )
-    .await
-    .expect_err("gate item missing root should reject the whole batch before execution");
-
-    assert_eq!(
-        err.code,
-        ErrorCode::INVALID_PARAMS,
-        "batch should reject with INVALID_PARAMS / -32602; got {:?}",
-        err.code,
-    );
-    let message = err.to_string();
-    assert!(message.contains("Required property 'root'"), "{message}");
-    assert!(message.contains("gate_Status"), "{message}");
-}
-
-#[tokio::test]
-async fn batch_rejects_tasks_item_with_wrong_type() {
-    let state = state().await;
-    let valid_native = item(
-        "maenifold.memory",
-        "SearchMemories",
-        json!({ "query": "x" }),
-    );
-    let invalid_task = item("maenifold.tasks", "TaskGet", json!({ "taskId": 42 }));
-
-    let err = handle_gateway_batch(
-        &state,
-        &BatchState::new(),
-        params(vec![valid_native, invalid_task], true),
-    )
-    .await
-    .expect_err("tasks wrong-type taskId should reject the whole batch before execution");
-
-    assert_eq!(
-        err.code,
-        ErrorCode::INVALID_PARAMS,
-        "batch should reject with INVALID_PARAMS / -32602; got {:?}",
-        err.code,
-    );
-    let message = err.to_string();
-    assert!(
-        message.contains("wrong type") && message.contains("expected string, got integer"),
-        "{message}"
-    );
-    assert!(message.contains("TaskGet"), "{message}");
-}
-
-#[tokio::test]
-async fn batch_rejects_gate_item_with_unknown_property() {
-    let state = state().await;
-    let valid_native = item(
-        "maenifold.memory",
-        "SearchMemories",
-        json!({ "query": "x" }),
-    );
-    let invalid_gate = item(
-        "maenifold.gate",
-        "gate_Status",
-        json!({ "root": "/tmp", "bogus": true }),
-    );
-
-    let err = handle_gateway_batch(
-        &state,
-        &BatchState::new(),
-        params(vec![valid_native, invalid_gate], true),
-    )
-    .await
-    .expect_err("gate item with unknown property should reject the whole batch before execution");
-
-    assert_eq!(
-        err.code,
-        ErrorCode::INVALID_PARAMS,
-        "batch should reject with INVALID_PARAMS / -32602; got {:?}",
-        err.code,
-    );
-    let message = err.to_string();
-    assert!(message.contains("Unknown parameter 'bogus'"), "{message}");
-    assert!(message.contains("Valid parameters:"), "{message}");
-    assert!(message.contains("gate_Status"), "{message}");
 }
 
 #[tokio::test]

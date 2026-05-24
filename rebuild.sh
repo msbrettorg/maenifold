@@ -89,19 +89,21 @@ echo "  — front-end was rip'd; nothing to launch."
 
 echo ""
 echo "═══ Verify ═══"
+verify_failed=0
 sleep 2
 for port in 8080 8081; do
-  code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${port}/mcp" 2>/dev/null || echo "000")
+  code=$(curl --connect-timeout 2 --max-time 10 -s -o /dev/null -w "%{http_code}" "http://localhost:${port}/mcp" 2>/dev/null || echo "000")
   if [ "$code" = "405" ] || [ "$code" = "406" ]; then
     echo "  ✓ localhost:${port} responding (HTTP ${code})"
   else
     echo "  ✗ localhost:${port} not responding (HTTP ${code})"
+    verify_failed=1
   fi
 done
 
 echo ""
 echo "═══ Verify maenifold.gate domain registration ═══"
-gate_check=$(curl -s -X POST http://127.0.0.1:8080/mcp \
+gate_check=$(curl --connect-timeout 2 --max-time 10 -s -X POST http://127.0.0.1:8080/mcp \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"GatewayIndex","arguments":{}}}' \
@@ -110,7 +112,9 @@ if [ "${gate_check:-0}" -gt 0 ]; then
   echo "  ✓ maenifold.gate domain registered"
 else
   echo "  ✗ maenifold.gate domain MISSING from GatewayIndex — daemon may be running a stale binary"
+  verify_failed=1
 fi
 
 echo ""
 echo "Done."
+exit "$verify_failed"

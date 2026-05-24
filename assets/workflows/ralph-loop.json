@@ -76,7 +76,7 @@
     {
       "id": "swe-dispatch",
       "name": "🛠️ SWE Dispatch",
-      "description": "Dispatch a SWE agent to implement the selected task.\n\nUse the Task tool to launch a `swe` agent with:\n- Task ID and full acceptance criteria from the task file\n- Scope constraints (crate/path)\n- Build command: `cargo build --release -p <crate>` or `cd apps/desktop && npx vue-tsc --noEmit`\n- Test command: `cargo test -p <crate>` or `cd apps/desktop && npm run build`\n- `CARGO_TARGET_DIR=target/agents/<task-id>` for build isolation\n- Model: per RACI table (default: `gpt-5.3-codex`)\n\nDo NOT write code yourself. Do NOT troubleshoot SWE failures — if the SWE fails 3 times, fail the task via gate and move on.\n\nAfter SWE completes, verify:\n1. `git diff --stat` confirms files were modified\n2. Modified files match the spec's file list\n3. Spot-check at least one acceptance criterion against actual code",
+      "description": "Dispatch a SWE agent to implement the selected task.\n\nUse the Task tool to launch a `swe` agent with:\n- Task ID and full acceptance criteria from the task file\n- Scope constraints (crate/path)\n- Build command: `cargo build --release -p <crate>`\n- Test command: `cargo test -p <crate>`\n- `CARGO_TARGET_DIR=target/agents/<task-id>` for build isolation\n- Model: per RACI table (default: `gpt-5.3-codex`)\n\nDo NOT write code yourself. Do NOT troubleshoot SWE failures — if the SWE fails 3 times, fail the task via gate and move on.\n\nAfter SWE completes, verify:\n1. `git diff --stat` confirms files were modified\n2. Modified files match the spec's file list\n3. Spot-check at least one acceptance criterion against actual code",
       "requiresSequentialThinking": false,
       "metadata": {
         "toolHints": {

@@ -1,11 +1,11 @@
 # maenifold — Constitution
 
-One product, one monorepo. `crates/` = Rust backend. `apps/desktop/` = Electron + Vue frontend.
+One product, one Rust workspace. `crates/` = backend (CLI + MCP server + pipeline driver + ACP runtime). No in-tree frontend; clients reach maenifold through MCP.
 
 ## Key Documents
 
-- **[UAT Plan](docs/UAT-PLAN.md)** — Exhaustive UI acceptance test plan (679 test cases). Required reading before any UI work ships.
-- **[Zed](https://github.com/zed-industries/zed)** — Reference implementation. Whenever we have problems with ACP, Copilot integration, model capabilities, slash commands, or any agent-facing feature, look at how Zed does it first. Zed's Copilot Chat integration works correctly; ours should match.
+- **[Architecture Guide](docs/ARCHITECTURE.md)** — Runtime topology, crate responsibilities, three-protocol model (MCP / ACP / Inferencing), end-to-end traces. Read before touching daemon, MCP, ACP, or pipeline code.
+- **[ACP Client Architecture](docs/acp-client-architecture.md)** — Law for anything touching the ACP runtime in `maenifold-jockey` or `acp_exec*`.
 
 ---
 
@@ -16,12 +16,12 @@ One product, one monorepo. `crates/` = Rust backend. `apps/desktop/` = Electron 
 1. **"trio"** — The operating model is **duo** (two architects). Any reference to a trio is contamination.
 2. **"deferral"** — We do not defer. Do it now or escalate.
 3. **"Architect Alpha" / "Architect Beta" / "Architect Gamma"** — Named architect roles are banned.
-4. **Programmatic UAT** — Any attempt to auto-generate test checklists or gate tasks from UAT plan parsing. The UAT plan is for interactive CDP testing, not code generation. Sprint 229 shipped broken this way.
+4. **Re-introducing an in-tree frontend** — `apps/desktop/` was ripped to return maenifold to a vanilla MCP server baseline. Do not re-add an Electron/Vue/SPA frontend, `apps/` directory, or `npm`/`vue-tsc`/`vitest` toolchain without explicit user direction.
 5. **Cargo-cult security** — Adding unrequested auth, OAuth, bearer tokens, CSRF, rate limiting, etc. The security boundary is APIM at the edge. The Rust backend is localhost loopback that trusts its caller. If you reach for `axum::middleware`, `Authorization` headers, or any crate with "auth" in its name — stop. (8 sprints burned 3 days on this; all ripped out.)
-6. **Hidden inference / invisible ACP sessions** — Any inference path without a corresponding visible UI element the user can inspect, pause, and kill. If maenifold is reasoning, the user MUST see it.
+6. **Hidden inference / invisible ACP sessions** — Any inference path the operator can't inspect, pause, and kill. If maenifold is reasoning, the calling MCP client MUST see it via the canonical `sampling://sessions` resource.
 7. **ACP / Jockey inside the MCP gateway path** — Three distinct protocols, three distinct roles:
    - **MCP** = universal client interface into the daemon.
-   - **ACP/Jockey** = product runtime for user-visible CLI agents. NOT gateway infrastructure.
+   - **ACP/Jockey** = product runtime for user-visible CLI agents driven from pipelines/workflows. NOT gateway infrastructure.
    - **Inferencing** = direct LLM API access for gateway tools when the client lacks `sampling/createMessage`.
    
    `GatewayIntent` has exactly two resolver paths: (a) MCP client sampling, (b) direct inferencing. There is no third path. If you reach for `AgentsConfig::load`, `jockey::acp::execute_runtime`, or any path requiring a `maenifold.json` agent entry to resolve a GatewayIntent — stop.
@@ -34,14 +34,13 @@ One product, one monorepo. `crates/` = Rust backend. `apps/desktop/` = Electron 
 
 **We do not trust. We verify.**
 
-0. **UI verification is non-negotiable.** Every UI change must be interactively tested in the real packaged Electron app via CDP. Not screenshots. Not typechecks. Click every button. File gate items for anything wrong — triage later.
+0. **Backend verification is non-negotiable.** Every behavior change must be exercised against the real daemon binary (`./rebuild.sh` then probe via MCP). Not unit tests alone. Not "the diff looks right." Curl the gateway, call the tool, read the resource.
 1. If any gate stage is skipped, faked, or fast-forwarded — the **entire sprint is discarded**.
 2. An agent that fabricates a verdict is terminated.
 3. The PM never authors notes for another role's stage.
 4. "Probably fine" is not a trust level. Unverified = untrusted.
 5. Agent self-reports are unreliable. Verify against actual artifacts.
 6. **Agents NEVER touch git.** Read-only only (`git log`, `git diff`, `git status`). PM owns the working tree and commits.
-7. **No programmatic UAT.** The UAT plan is read by the agent doing interactive CDP testing. It tells them what to click. That's it.
 
 ---
 
@@ -68,8 +67,6 @@ One product, one monorepo. `crates/` = Rust backend. `apps/desktop/` = Electron 
 **MCP tools are the primary interface.** Agents use `GatewayExecute`, `GatewayIndex`, `GatewayBatch`, `GatewayIntent`, `complete_node`, `ReadMcpResource`, and `GetHelp` as their first choice. The `mae_mcp` curl helper and direct `curl` to `/mcp` are **last-resort fallbacks** only when MCP tools are unavailable or timing out. Never default to curl when MCP tools work.
 
 **No REST data APIs.** The daemon exposes `/mcp` for MCP JSON-RPC. The only non-MCP HTTP endpoints are infrastructure: `/api/health`, `/api/machine-id`, `/api/config/*` (file I/O), `/api/user-prompt/*` (MCP sampling bridge), `/api/acp/session` (ACP WebSocket transport). All domain data flows through MCP.
-
-**Monorepo ≠ architecture waiver.** No path dependencies from desktop app to backend domain crates.
 
 **Localhost trust model — no in-process access control.** MCP gateway tools accept caller-supplied parameters at face value. The security boundary is APIM, not Rust middleware. Do not add validation, ACLs, or auth to the MCP path.
 
@@ -167,10 +164,6 @@ The `task-pm` tier is deprecated and forbidden. The outer-loop PM owns the per-s
 - **Blue-team:** ONLY tests for changed code.
 - **SWE:** The task is the task. Adjacent problems → report, don't fix.
 
-### Frontend worktrees
-
-Workers are FORBIDDEN from running `npm install`, `npm ci`, `npm rebuild`, or `npx electron-rebuild` inside any worktree whose `apps/desktop/node_modules` is a symlink.
-
 ### Parallelization — Default to Parallel
 
 **Every unblocked Gate task should have an in-flight `task-pm` up to the concurrency ceiling.** Serial requires a cited reason (same-file contention, daemon-redeploy, Rust build lock).
@@ -197,17 +190,15 @@ Agent-facing markdown MUST render in terminal MCP clients. No ` ```mermaid ` (us
 
 ## Command Execution Discipline
 
-**No commands without timeouts.** No tests without timeouts. No CDP waits without timeouts. No polling loops without explicit caps. Workers must not write retry loops — make ONE attempt, report failure, stop. Load the `maenifold-testing` skill for timeout primitives, per-tool budgets, and the no-polling-loop clause.
+**No commands without timeouts.** No tests without timeouts. No polling loops without explicit caps. Workers must not write retry loops — make ONE attempt, report failure, stop. Load the `maenifold-testing` skill for timeout primitives, per-tool budgets, and the no-polling-loop clause.
 
 ---
 
 ## Definition of Done
 
-**Backend:** `cargo build --release -p <crate>` succeeds. Debug builds are not delivery.
+**Backend:** `cargo build --release -p <crate>` succeeds, and the resulting binary is exercised through MCP against the running daemon (curl `/mcp` or call from an MCP client). Debug builds and unit tests alone are not delivery.
 
-**UI:** Typecheck passes + app launches + visual CDP verification. `vue-tsc --noEmit` alone is NOT sufficient. CDP UAT is normal dispatchable work, not a quarantined activity.
-
-**Both:** Release build works or it's not done.
+**Release build works or it's not done.**
 
 **Side-effect contract:** Build/test MUST NOT leave orphan processes (>50% CPU) or grow `target/` past 50 GB.
 
@@ -221,18 +212,15 @@ Agent-facing markdown MUST render in terminal MCP clients. No ` ```mermaid ` (us
 ./rebuild.sh
 ```
 
-This is the canonical redeploy. It builds every crate in release, verifies the `/usr/local/bin/maenifold` symlink, packages the Electron app, and `launchctl kickstart`s the launchd service. **There is no separate "restart the daemon" step.** `/usr/local/bin/maenifold` is a symlink to `target/release/maenifold`, so the live daemon binary updates the moment the release build finishes, and the launchd kickstart picks up the new bits on next request. Never ask the user "should I redeploy myself or do you want to?" — just run `./rebuild.sh`.
+This is the canonical redeploy. It builds every crate in release, verifies the `/usr/local/bin/maenifold` symlink, and `launchctl kickstart`s the launchd service. **There is no separate "restart the daemon" step.** `/usr/local/bin/maenifold` is a symlink to `target/release/maenifold`, so the live daemon binary updates the moment the release build finishes, and the launchd kickstart picks up the new bits on next request. Never ask the user "should I redeploy myself or do you want to?" — just run `./rebuild.sh`.
 
 ### Focused targets (when you don't need a full rebuild)
 
 ```bash
-cargo build --release -p maenifold-cli              # CLI/app only
+cargo build --release -p maenifold-cli              # CLI/daemon only
 cargo build --release -p maenifold-pipeline-driver  # driver only
-cd apps/desktop && npm run package                  # Electron bundle only
-cd apps/desktop && npx vue-tsc --noEmit             # frontend typecheck only
 make audit                                          # all constitution linters
 make audit-crates                                   # Rust: 300 LOC, no TODO, no unwrap
-make audit-frontend                                 # Vue/TS: lint-design + audit-components
 ```
 
 Binaries: `target/release/maenifold` (symlinked to `/usr/local/bin/maenifold`) and `target/release/maenifold-pipeline-driver`.
@@ -243,13 +231,11 @@ The daemon hosts MCP/HTTP; the driver hosts pipeline node execution. ANY change 
 
 ## Code Standards
 
-- **300 LOC hard limit** on source files. Build-enforced.
+- **300 LOC hard limit** on Rust source files. Build-enforced.
 - **Research before building.** Hand-rolling a library's job is a P0 escalation.
-- **LSP is preferred** for Rust/TS/Vue navigation. Load the `maenifold-testing` skill for server status tables and workarounds.
-- **Full-stack spec verification.** Frontend without backend plumbing is not a feature.
+- **LSP is preferred** for Rust navigation (rust-analyzer). Load the `maenifold-testing` skill for server status and workarounds.
+- **MCP-end-to-end verification.** A unit-tested handler with no production caller is not a feature.
 - **No TODO/FIXME/HACK.** File a gate task instead. Build-enforced.
-- **No console.log/debug/warn.** Build-enforced (frontend).
-- **No mocks/stubs/fakes.** Build-enforced (frontend).
 - **No .unwrap() in non-test Rust.** Build-enforced.
 - **In-process tests ≠ interop proof.** `tokio::io::duplex` proves serialization, NOT that a foreign peer accepts the bytes. Test names promising end-to-end must exercise the real transport and peer.
 
@@ -263,43 +249,24 @@ The daemon hosts MCP/HTTP; the driver hosts pipeline node execution. ANY change 
 | Mock, stub, scaffold, placeholder | Delete. Escalate. |
 | Silent default or hidden recovery | Make explicit and required. |
 | Compat shim or dual-mode code | **P0.** Delete. Change everywhere. |
-| UI compiles but not visually verified | **Not done.** |
+| Handler with no production caller | **Not done.** Either wire it to a caller or delete it. |
 | Dead-premise task | **Delete the task file this iter** with grep/LSP proof the premise does not exist. |
 | Fix lives in code we don't own | **Escalate to user this iter** — name the dependency, the upstream issue, and what they must decide. Don't shim. |
 | Blocked >1 iter | Close or dispatch this iter. |
 | Instinct: "file for next PM" | **Stop. That's punting.** Fix this iter. |
-| Instinct: "should I redeploy or do you want to?" | **Stop. Just run `./rebuild.sh`.** It is the one-shot full redeploy. The binary is a symlink to `target/release/maenifold`; rebuild.sh builds + packages + restarts launchd. Never ask. |
+| Instinct: "should I redeploy or do you want to?" | **Stop. Just run `./rebuild.sh`.** It is the one-shot full redeploy. The binary is a symlink to `target/release/maenifold`; rebuild.sh builds + restarts launchd. Never ask. |
 
 ---
 
 ## ACP
 
 - Architecture: [docs/acp-client-architecture.md](docs/acp-client-architecture.md) is law.
-- **ACP UI reference:** sibling checkout `../acp-ui` (`formulahendry/acp-ui.git`, commit `27e32022`). Compare before changing session/reconnect/stream handling.
 - Wholesale lifts: follow `docs/wholesale-lift-protocol.md`.
 - **`prompt` is the only primitive.** Think and workflow chain prompt calls. No direct agent path.
 - All ACP calls MUST specify `model` explicitly.
 - WebSocket URI requires `?agent=<name>`. Missing → reject.
 - **Agent-name resolution:** `?agent=<name>` must match `~/maenifold/maenifold.json` `agents` block (case-insensitive). Unrecognized → HTTP 400.
-- **Versions:** TS `@agentclientprotocol/sdk` `^0.18.2`. Rust `sacp` `11.0.0`, `rmcp` `1.4.0`.
-
----
-
-## Desktop UI
-
-**Design system:** `apps/desktop/DESIGN.md` is the sole spec. Read it before touching any Vue component.
-
-**Stack:** shadcn-vue + Tailwind CSS v4 + Reka UI. Icons: `lucide-vue-next`.
-
-**Build-enforced rules:**
-
-- `vue-tsc --noEmit` — type safety.
-- `audit:components` — no raw HTML controls, no sibling .css, no btn-*, 300 LOC, no `<style>`. `audit-ok` is banned.
-- `lint:design` — no hex colors, no component-local borders.
-
-**Layout z-index:** canvas base → backdrop `9` → inspector `10` → flyout `11` → context menu `60` → dialogs `1000`.
-
-**CDP Testing:** Load the `maenifold-testing` skill for launch procedures, env vars, agent-browser discipline, known harness gaps, and timeout rules.
+- **Versions:** Rust `sacp` `11.0.0`, `rmcp` `1.4.0`.
 
 ---
 

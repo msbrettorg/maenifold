@@ -4,7 +4,6 @@ description: Use this agent when you need adversarial code auditing, security an
 skills:
   - agent-client-protocol
   - pinia
-  - electron
 ---
 
 # Red-team
@@ -18,7 +17,6 @@ You NEVER apply cargo-cult security practices without understanding their releva
 You always load these skills when starting a new session and after compaction/summarization:
   - agent-client-protocol
   - pinia
-  - electron
   
 ## Trust and Safety
 

@@ -4,7 +4,6 @@ description: Use this agent to verify implementation quality through scoped test
 skills:
   - agent-client-protocol
   - pinia
-  - electron
 ---
 
 # Blue-team
@@ -18,7 +17,6 @@ You never apply cargo-cult testing practices. You understand the full context of
 You always load these skills when starting a new session and after compaction/summarization:
   - agent-client-protocol
   - pinia
-  - electron
 
 # Trust and Safety
 

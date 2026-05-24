@@ -5,7 +5,7 @@ This guide documents the runtime architecture as implemented in this repository,
 ## Runtime topology
 
 ```
-[Desktop app] <-----> [Maenifold daemon :8080]  (HTTP /mcp + /api/*)
+[MCP client] <-----> [Maenifold daemon :8080]  (HTTP /mcp + /api/*)
                               ^
                               |
 [CLI: maenifold (stdio)] <--> [maenifold-core] <--> [Daemon]
@@ -16,13 +16,13 @@ This guide documents the runtime architecture as implemented in this repository,
                               +--> [maenifold.gate Gateway domain] <--> [todo/ + done/ task files]
 ```
 
-The `maenifold --http` daemon on port 8080 hosts MCP, `/api/*`, and native Gateway domains including `maenifold.gate`. The pipeline driver dispatches ACP runtimes through `maenifold-jockey`.
+The `maenifold --http` daemon on port 8080 hosts MCP, `/api/*`, and native Gateway domains including `maenifold.gate`. The pipeline driver dispatches ACP runtimes through `maenifold-jockey`. MCP clients (VS Code, Copilot CLI, Copilot extension) reach the daemon over `/mcp`.
 
 <details><summary>Same diagram in Mermaid (graphical viewers only)</summary>
 
 ```mermaid
 flowchart LR
-    Desktop["Desktop app"] <--> Daemon["Maenifold daemon :8080 (/mcp + /api/*)"]
+    Client["MCP client"] <--> Daemon["Maenifold daemon :8080 (/mcp + /api/*)"]
     CLI["maenifold CLI (stdio MCP / tool)"] <--> Core["maenifold-core"]
     Daemon <--> Core
     Driver["maenifold-pipeline-driver"] <--> Core
@@ -58,7 +58,7 @@ maenifold uses three distinct protocols. Mixing them is a P0 (see
 | Protocol | Direction | Role | Where it lives |
 |----------|-----------|------|----------------|
 | **MCP** | external client → maenifold daemon | The universal inbound interface for AI callers (VS Code, Copilot CLI, Copilot extension, etc.). Every tool the AI can call is exposed through MCP. | `crates/maenifold-core/src/mcp/` |
-| **ACP / Jockey** | maenifold UI → user-visible CLI agent | The product runtime that lets a human in the Maenifold desktop app load and chat with a CLI agent (Codex, Claude CLI, Copilot CLI as a chat partner). It is a UX feature, not gateway infrastructure. | `crates/maenifold-jockey/` |
+| **ACP / Jockey** | maenifold CLI agent host → user-visible CLI agent | The product runtime that lets a CLI agent (Codex, Claude CLI, Copilot CLI as a chat partner) be loaded and driven from inside maenifold pipelines and workflows. It is a runtime feature, not gateway infrastructure. | `crates/maenifold-jockey/` |
 | **Inferencing** | maenifold daemon → LLM API | Direct LLM API access (Azure OpenAI, OpenAI, Anthropic, etc.) used when an MCP gateway tool needs to do its own model call and the calling MCP client does not advertise `sampling/createMessage`. | inference backends configured in `maenifold.json` |
 
 **`GatewayIntent` resolver paths.** `GatewayIntent` has exactly two resolver
@@ -158,11 +158,8 @@ Related persistence:
   `crates/maenifold-core/src/workflow/pipeline/executor_run.rs`  
   `crates/maenifold-core/src/workflow/agent_session.rs`  
   `crates/maenifold-core/src/workflow/runner.rs`
-- Daemon and desktop endpoints:  
-  `crates/maenifold-core/src/mcp/http.rs`  
-  `apps/desktop/electron/main.ts`  
-  `apps/desktop/src/lib/daemon-url.ts`  
-  `apps/desktop/src/lib/constants.ts`
+- Daemon endpoints:
+  `crates/maenifold-core/src/mcp/http.rs`
 - Gate progression/data model:
   - `crates/maenifold-gate-core/src/lifecycle.rs`
   - `crates/maenifold-gate-core/src/task_repository.rs`

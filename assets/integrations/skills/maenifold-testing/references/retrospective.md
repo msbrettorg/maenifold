@@ -1,11 +1,11 @@
 # Maenifold Testing Retrospective
 
-Run this at the end of every maenifold testing, UAT, or debugging cycle.
+Run this at the end of every maenifold testing or debugging cycle.
 
 ## Questions
 
 1. What behavior was being proven?
-2. What exact commands, app paths, or UI interactions were used?
+2. What exact commands or MCP calls were used?
 3. What failed, if anything, and what was the exact error text?
 4. Was the failure caused by the product, the test harness, environment/setup, stale binaries, or incorrect assumptions?
 5. Which canonical source resolved the issue?

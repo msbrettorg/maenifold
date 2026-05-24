@@ -29,7 +29,7 @@ You may also do PM-direct work for **trivial single-file changes** that would co
 
 ## Worker scope (per-task, set in spec + dispatch prompt)
 
-There is **no single fixed scope** for the PM. The PM may orchestrate work anywhere in the repo by dispatching workers whose scope is set by the spec and the dispatch prompt. Cross-stack work (Rust + `apps/desktop/**` in the same task) is normal and expected.
+There is **no single fixed scope** for the PM. The PM may orchestrate work anywhere in the repo by dispatching workers whose scope is set by the spec and the dispatch prompt. Cross-crate work (e.g. `maenifold-core` + `maenifold-pipeline-driver` in the same task) is normal and expected.
 
 What the PM does NOT do:
 
@@ -50,8 +50,8 @@ What the PM MAY do directly (non-exhaustive):
 ## Forbidden — absolutely
 
 - **Cargo-cult security.** Per repo-root `AGENTS.md` P0 trigger #5, do not add unrequested auth, authn, authz, OAuth, bearer tokens, signed cookies, CSRF tokens, rate limiting, request signing, encryption-at-rest, or any other "security feature" the user did not explicitly request. The security boundary is APIM at the edge. Tasks whose acceptance is gated on user-authorized security work (e.g., the renderer-trust hardening tracked under T-309.3) are NOT to be dispatched without explicit user authorization. They stay in `pending` as accepted residual risk with a recorded rationale.
-- **Hidden inference.** Per repo-root `AGENTS.md` P0 trigger #6, every inference path must be visible in the UI. Do not introduce a new background agent dispatch path without a corresponding visible session surface.
-- **Programmatic UAT.** Per repo-root `AGENTS.md` P0 trigger #4, do not auto-generate test checklists or per-TC gate tasks from `docs/UAT-PLAN.md`. UAT-PLAN.md is a human reference guide for what to click during interactive CDP testing — not a data source for code generation. What IS allowed (and required): individual gate tasks with concrete scope that dispatch CDP work via `agent-browser` against the packaged Electron app, one task per CDP port, one task-pm per lane, real click-through evidence in the WorkResult. CDP is the only way to test the UI per the Definition of Done — dispatch CDP tasks the same as any backend or unit-test task, lowest-numbered sprint first, parallel up to the concurrency ceiling.
+- **Hidden inference.** Per repo-root `AGENTS.md` P0 trigger #6, every inference path must be observable by the calling MCP client through the `sampling://sessions` resource. Do not introduce a new background agent dispatch path without a corresponding visible session surface.
+- **Re-introducing an in-tree frontend.** Per repo-root `AGENTS.md` P0 trigger #4, do not re-add an Electron/Vue/SPA frontend, `apps/` directory, or `npm`/`vue-tsc`/`vitest` toolchain without explicit user direction. The repo is intentionally a vanilla Rust MCP server.
 - **Touching `memory://**`** by hand outside the maenifold MCP write commands. The graph is updated through `WriteMemory` / `EditMemory`.
 - **Editing security-boundary or trust-boundary code without explicit user authorization** baked into the spec.
 - **Any git-state mutation by a worker.** Workers do not commit and do not run `git checkout`, `git reset`, `git restore`, `git stash`, `git pull`, `git rebase`, `git merge`, `git clean`. Read-only git is fine. The PM owns commits, merges to `dev`, branch deletion, and worktree removal.
@@ -67,8 +67,7 @@ The PM is responsible for verifying these hold for the worker's worktree before 
 
 - **Build.** `cargo build --release -p <crate>` succeeds in the worktree.
 - **Tests.** `cargo test -p <crate>` succeeds for crates the worker touched. Per repo-root `AGENTS.md` test policy, blue-team runs only the changed-code tests; full workspace runs are reserved for sprint close.
-- **Frontend typecheck + build.** `npx vue-tsc --noEmit && npm run build` succeed in `apps/desktop/` for any frontend-touching task.
-- **UI verification (when applicable).** A UI change is not done until visually verified per the repo-root `AGENTS.md` Definition of Done UI rule. CDP testing via `agent-browser` against the packaged Electron app is the ONLY way to test the UI — `vue-tsc` clean and screenshots are not evidence. Each CDP-bearing task runs in its own worktree on a non-overlapping CDP port (see `scripts/uat-launch.sh`); one agent per CDP session.
+- **MCP wire surface.** When the change touches the MCP boundary, `curl POST http://localhost:8080/mcp` with `tools/list` must return exactly the 7 canonical tools (GatewayBatch, GatewayExecute, GatewayIndex, GatewayIntent, GetHelp, ReadMcpResource, complete_node). No more, no fewer.
 - **Memory note.** A `memory://` note is written for every accepted change with `[[WikiLinks]]` and a `## Source` section per repo-root `AGENTS.md` knowledge-grounding rules.
 
 ## Gate operations via MCP Gateway
@@ -148,11 +147,9 @@ worktree. The script:
 1. Runs `git worktree add worktrees/<task-id> -b worker-<task-id> <base-branch>` (default
    base = `dev`).
 2. Symlinks `worktrees/<task-id>/todo -> <main-repo>/todo` and same for `done`.
-3. Symlinks `worktrees/<task-id>/apps/desktop/node_modules -> <main-repo>/apps/desktop/node_modules`
-   when present (avoids redundant `npm ci` for tasks that don't change `package.json`).
-4. Installs a pre-commit hook that blocks worker self-commits unless `PM_OWNS_THIS=1`
+3. Installs a pre-commit hook that blocks worker self-commits unless `PM_OWNS_THIS=1`
    is set by the PM.
-5. Self-verifies the spec (`todo/<task-id>*.md`) is readable through the symlink, warns
+4. Self-verifies the spec (`todo/<task-id>*.md`) is readable through the symlink, warns
    if not.
 
 **Worker prompt.** Always include the absolute spec path in the dispatch prompt so the
@@ -178,24 +175,21 @@ The symlinks are removed automatically when the worktree directory is removed.
 
 The PM does not have a fixed file scope. The PM may dispatch workers anywhere in the repo by setting per-task scope in the spec amendment + dispatch prompt. Workers receive task-specific scope from the spec, not from this file.
 
-Cross-stack work (Rust + `apps/desktop` in the same task) is normal and expected — the spec defines the file boundary.
+Cross-crate work (e.g. `maenifold-core` + `maenifold-pipeline-driver` in the same task) is normal and expected — the spec defines the file boundary.
 
 ## Mid-iter redeploy (when validation needs the new artifact)
 
-When a shipped task changes a backend behavior or frontend asset that a downstream task needs to UAT, redeploy the affected artifact mid-iter before dispatching the dependent task. Do not wait for iter-end — dependent CDP UAT against a stale daemon or stale Electron bundle proves nothing.
+When a shipped task changes a backend behavior that a downstream task needs to verify, redeploy mid-iter before dispatching the dependent task. Do not wait for iter-end — dependent verification against a stale daemon proves nothing.
 
-Common patterns:
+Common pattern:
 
 - Backend Rust change merged → dependent task needs daemon behavior verified:
-  `cargo build --release -p maenifold-cli -p maenifold-pipeline-driver`
-  then restart daemon (`./scripts/deploy-daemon.sh` or equivalent).
-
-- Frontend Vue change merged → dependent task needs CDP UAT:
-  `cd apps/desktop && npm run package`
-  then relaunch via `scripts/uat-launch.sh <task-id>`.
+  `./rebuild.sh` from the main repo root (builds all release crates and `launchctl kickstart`s the daemon).
+  Alternatively, for an isolated build without service restart:
+  `cargo build --release -p maenifold-cli -p maenifold-pipeline-driver`.
 
 Record the redeploy in the iter log (PID + inode + size) so the audit trail
-shows the dependent task's UAT ran against the post-change artifact.
+shows the dependent task's verification ran against the post-change artifact.
 
 ## Wave boundaries (when to dispatch wave-boundary rubber-duck reviews)
 

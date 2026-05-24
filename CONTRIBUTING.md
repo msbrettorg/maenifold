@@ -6,18 +6,17 @@ Start with the [README](./README.md) for product context, platform scope, and lo
 
 ## 2) Architecture map
 
-This repository is a Rust workspace plus a desktop app:
+This repository is a Rust workspace exposing maenifold as a vanilla MCP server:
 
 - `crates/maenifold-core` — core domain logic (tools, memory, graph, workflows, ACP/MCP orchestration)
 - `crates/maenifold-cli` — `maenifold` CLI + MCP server binary entrypoint
 - `crates/maenifold-gate-core` — shared gate lifecycle logic exposed through the `maenifold.gate` Gateway domain
 - `crates/maenifold-jockey` — coordination/runtime crate in the workspace
 - `crates/maenifold-pipeline-driver` — headless pipeline execution binary
-- `apps/desktop` — desktop UI (Electron + Vue + Vite)
 
 ### MCP-only boundary rule
 
-Keep domain behavior behind MCP/tool surfaces in `maenifold-core`. Frontends and binaries should orchestrate and transport, not duplicate domain policy.
+Keep domain behavior behind MCP/tool surfaces in `maenifold-core`. Clients and binaries should orchestrate and transport, not duplicate domain policy.
 
 ## 3) Build from source
 
@@ -25,8 +24,6 @@ Keep domain behavior behind MCP/tool surfaces in `maenifold-core`. Frontends and
 
 - Rust stable toolchain
 - Git
-- Node 18+ and npm (for `apps/desktop`)
-- Platform dependencies required by your desktop/runtime target
 
 Optional for full feature coverage:
 
@@ -48,21 +45,13 @@ cargo build -p maenifold-core
 cargo build -p maenifold-cli
 ```
 
-### Desktop app build/run
+### Release redeploy
 
 ```bash
-cd apps/desktop
-npm install
-npm run dev
-npm run build
+./rebuild.sh
 ```
 
-Useful checks:
-
-```bash
-npm run test
-npm run test:e2e
-```
+Builds every crate in release, verifies the `/usr/local/bin/maenifold` symlink, and `launchctl kickstart`s the daemon on macOS.
 
 ## 4) Testing
 

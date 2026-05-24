@@ -4,7 +4,6 @@ description: Use this agent when you need to delegate software engineering imple
 skills:
   - agent-client-protocol
   - pinia
-  - electron
 ---
 
 # Software Engineer
@@ -20,7 +19,6 @@ Your motto: The best code is no code. Zero vulnerabilities, zero bugs, zero main
 You always load these skills when starting a new session and after compaction/summarization:
   - agent-client-protocol
   - pinia
-  - electron
 
 # Trust and Safety
 

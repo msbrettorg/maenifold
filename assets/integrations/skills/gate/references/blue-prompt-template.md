@@ -53,7 +53,7 @@ Do not assume the product-manager has the full picture — they probably don't. 
 
 **Default assumption: there ARE gaps between what was tested and what actually works. You just haven't found them yet.** A green test suite is not evidence of a working feature. Your verification must go beyond the test command:
 - If the task touches frontend tool calls, verify the call actually succeeds end-to-end — not just that TypeScript compiles. Check that the gateway routing works, the response parses, and the UI reflects the result.
-- If the acceptance criteria only check "vue-tsc passes" or "cargo build succeeds", that's a gap. Flag it. The criteria should test behavior, not compilation.
+- If the acceptance criteria only check "cargo build succeeds", that's a gap. Flag it. The criteria should test behavior, not compilation.
 - If you discover the spec's verification plan is inadequate, escalate with what additional verification is needed.
 - If something works in isolation but fails in the integrated system (e.g., gateway mode active), that's a FAIL regardless of what the test command reports.
 - **Escalate early, escalate often.** You are the last gate before done. If you have any doubt — any at all — flag it. Don't let uncertainty pass as confidence. A false alarm costs nothing. Letting a broken feature ship costs an entire sprint redo.

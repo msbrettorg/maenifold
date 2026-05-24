@@ -1,6 +1,6 @@
 # 72-Hour Retrospective (2026-04-29 → 2026-05-01)
 
-Historical lessons from the first major incident cluster. Every lesson below is now encoded as a rule in `AGENTS.md` — this file exists as the detailed incident record with sources and forensic context.
+Historical lessons from the first major incident cluster during the Electron+Vue front-end era. Every lesson below was encoded as a rule in `AGENTS.md` at the time. The front-end UI was ripped in May 2026 (vanilla MCP-server baseline); UI-specific lessons (5, 8) are retained here as historical record only and no longer apply to the current backend-only stack.
 
 Sources: `memory://incidents/20260501-*`, `done/T-244.*`, `done/T-246.*`, `done/T-247.*`, `done/T-248.*`, `done/T-243.*`.
 

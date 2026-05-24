@@ -46,9 +46,7 @@ is_toolchain_process() {
 	fi
 	case "$command" in
 		*" cargo "*|cargo\ *|*/cargo\ *|*" rustc "*|rustc\ *|*/rustc\ *|\
-		*" vitest"*|vitest\ *|*/vitest\ *|*" vue-tsc"*|vue-tsc\ *|*/vue-tsc\ *|\
-		*" playwright"*|playwright\ *|*/playwright\ *|*" agent-browser"*|agent-browser\ *|*/agent-browser\ *|\
-		*" electron"*|electron\ *|*/electron\ *|*" shell-mcp"*|shell-mcp\ *|*/shell-mcp\ *) return 0 ;;
+		*" shell-mcp"*|shell-mcp\ *|*/shell-mcp\ *) return 0 ;;
 	esac
 	return 1
 }

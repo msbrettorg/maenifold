@@ -64,8 +64,8 @@ The shells live one level up at the repo root: **`/ralph.sh`** and **`/meta.sh`*
 ```bash
 ./ralph.sh                                     # 50 iterations, default model
 ./ralph.sh --max-iterations 10                 # short run
-./ralph.sh --crate maenifold-gate              # scope to one Rust crate
-./ralph.sh --path apps/desktop                 # scope to UI
+./ralph.sh --crate maenifold-gate-core         # scope to one Rust crate
+./ralph.sh --path crates/maenifold-core/src/mcp  # scope to one subtree
 ./ralph.sh --model gpt-5.4 --max-iterations 5  # try a different model
 ```
 

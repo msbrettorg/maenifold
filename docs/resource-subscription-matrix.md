@@ -1,6 +1,8 @@
 # MCP Resource Subscription Matrix
 
 > Decision document for T-225.1. Defines which resource URIs support live subscriptions, polling fallback, or are non-subscribable.
+>
+> **Status note (post-UI-rip):** The "Dead frontend subscriptions" table below references the deleted Electron+Vue desktop app. Those rows are preserved as historical context for the server-side allowlist decision; they no longer correspond to any in-tree client. The server-side recommendations (allowlist, emitter priority) still apply to any future MCP client.
 
 ## Architecture
 
@@ -99,4 +101,3 @@ Polling configuration: resource-specific intervals set in the composable, not gl
 | `crates/maenifold-core/src/mcp/resources/subscription_worker.rs` | Asset watcher emitter (reference) |
 | `crates/maenifold-core/src/teams/runtime.rs:165-192` | Teams emitter (reference) |
 | `crates/maenifold-core/src/mcp/mod.rs:110-120` | Capability advertisement |
-| `apps/desktop/src/composables/useMcpResources.ts` | UI subscription composable |

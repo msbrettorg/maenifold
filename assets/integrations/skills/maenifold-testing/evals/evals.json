@@ -3,42 +3,36 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "We have a regression in the Agents tab: reconnect says active but the chat doesn't attach. Validate it in the real app.",
-      "expected_output": "Uses AGENTS.md plus the maenifold-testing skill, launches packaged Electron through scripts/uat-launch.sh, connects with agent-browser, snapshots before clicking, checks browser errors/console, and compares ACP reconnect behavior against ../acp-ui before proposing code changes.",
+      "prompt": "cargo build --release -p maenifold-cli is failing on the first run after a fresh clone. Figure out the right next step.",
+      "expected_output": "Reads the error from stdout/stderr, identifies whether the failure is missing toolchain, missing system dependency, or genuine compile error, and proposes the focused fix (rustup update, system pkg install, or code repair) before retrying.",
       "files": []
     },
     {
       "id": 2,
-      "prompt": "npm run build is failing during desktop verification because vue-tsc is missing. Figure out the right next step.",
-      "expected_output": "Checks apps/desktop/node_modules/.bin/vue-tsc, uses the RALPH learning that npm install restores missing .bin symlinks, and proposes that focused environment repair before rerunning the build.",
+      "prompt": "Pipeline behavior still looks stale after a workflow change. Validate whether the running code is actually current.",
+      "expected_output": "Identifies the two-binary maenifold-cli and maenifold-pipeline-driver deployment surface, rebuilds or proposes rebuilding the relevant release binaries via ./rebuild.sh, verifies running artifacts (inode comparison) rather than source only, and cleans stale driver processes only by exact PID.",
       "files": []
     },
     {
       "id": 3,
-      "prompt": "Pipeline behavior still looks stale after a workflow change. Validate whether the running code is actually current.",
-      "expected_output": "Identifies the two-binary maenifold-cli and maenifold-pipeline-driver deployment surface, rebuilds or proposes rebuilding the relevant release binaries, verifies running artifacts rather than source only, and cleans stale driver processes only by exact PID.",
+      "prompt": "A GatewayExecute curl command is returning a jq indexing error while testing gate status. Debug the request.",
+      "expected_output": "Inspects the raw MCP response, checks .error before .result, uses GatewayIndex for command/schema discovery, prefers the mae_mcp helper over hand-rolled envelopes, and avoids assuming CLI fallback command names without checking maenifold --help.",
       "files": []
     },
     {
       "id": 4,
-      "prompt": "A GatewayExecute curl command is returning a jq indexing error while testing gate status. Debug the request.",
-      "expected_output": "Inspects the raw MCP response, checks .error before .result, uses GatewayIndex for command/schema discovery, and avoids assuming CLI fallback command names without checking maenifold --help.",
+      "prompt": "LSP workspaceSymbol is returning empty for a Rust symbol I know exists. Is that a bug or known limitation?",
+      "expected_output": "Reads references/lsp-reference.md, notes that rust-analyzer fully supports workspaceSymbol across crates, attributes empty results to server warm-up time, and advises retrying next turn rather than falling back to grep.",
       "files": []
     },
     {
       "id": 5,
-      "prompt": "LSP workspaceSymbol is returning empty for TypeScript. Is that a bug or known limitation?",
-      "expected_output": "Reads references/lsp-reference.md, identifies the known async-loading limitation for typescript-language-server, explains the workaround (use documentSymbol on specific files or findReferences from a known symbol), and notes workspaceSymbol works reliably only for Rust via rust-analyzer.",
-      "files": []
-    },
-    {
-      "id": 6,
-      "prompt": "My SWE worker is stuck in a retry loop calling agent-browser snapshot over and over. What went wrong?",
+      "prompt": "My SWE worker is stuck in a retry loop calling GatewayExecute over and over. What went wrong?",
       "expected_output": "Reads references/command-timeouts.md, identifies the no-polling-loop violation, explains the clause (make ONE attempt, report failure, stop), and advises the PM to discard the WorkResult and re-dispatch with the no-polling clause enforced.",
       "files": []
     },
     {
-      "id": 7,
+      "id": 6,
       "prompt": "What was the phantom delete incident? I remember we had OneDrive issues but can't recall the details.",
       "expected_output": "Reads references/retrospective-72h.md, identifies T-248.13 (phantom delete RCA) and the OneDrive dataless-file issue, explains the lesson about never wrapping reads with silent continue, and links to memory://research/architecture/statefidelity-external-patterns-for-maenifold-may-2026.",
       "files": []

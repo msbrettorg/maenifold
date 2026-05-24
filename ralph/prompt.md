@@ -15,9 +15,7 @@ If you encounter issues with the MCP or CLI maenifold tools you should immediate
 
 These are the rules that get bent first when a PM is tired or in a hurry. If you remember nothing else, remember these. They map to AGENTS.md (repo root) Core Tenets + Gate — The Law rules #14, #15, #16.
 
-1. **FIX BUGS AND VERIFY THEM. CDP IS HOW YOU TEST THE PRODUCT.** The top priority every iter is shipping fixes for known bugs already filed in the backlog AND verifying that the product actually works. CDP testing via `agent-browser` against the packaged Electron app is not a quarantined floor-tier activity — it is the **only** valid way to verify UI behavior (per repo-root `AGENTS.md` Definition of Done). A CDP task that verifies a specific fix, feature, or regression IS the work, not a deferrable extra. Dispatch CDP tasks the same as any other task — lowest-numbered sprint first, parallel up to the ceiling, one task per CDP port via `scripts/uat-launch.sh <task-id>`.
-
-   What remains banned (per repo-root `AGENTS.md` P0 trigger #4) is **programmatic UAT** — auto-generating per-TC gate tasks from `docs/UAT-PLAN.md` and rubber-stamping them. That's not testing; that's box-checking. Real CDP work is interactive, click-through, evidence-cited verification of a concrete scope. Author the task with that scope, dispatch it, ship the WorkResult.
+1. **FIX BUGS AND VERIFY THEM. MCP IS HOW YOU TEST THE PRODUCT.** The top priority every iter is shipping fixes for known bugs already filed in the backlog AND verifying that the product actually works. The product is a Rust MCP server — verification happens by hitting `http://localhost:8080/mcp` with `curl` (or via the integrated `maenifold.*` gateway tools from a connected MCP client) against the packaged daemon, asserting on actual responses. `cargo build --release` clean and unit tests passing are not sufficient — the daemon must answer the call the spec promised. Dispatch verification tasks the same as any other task — lowest-numbered sprint first, parallel up to the ceiling.
 
    **NO PUNTING. Discovery → file + dispatch → ship, THIS ITER.** When you find a defect, gap, or product issue, you create a gate task AND dispatch a worker against it in the same iter, while you still have the context loaded. Filing a task without dispatching is punting. Surfacing it in `thoughts.md` "for the next PM" is punting. Recommending a fix is punting. WONTFIX is also punting unless the premise is verifiably dead — and even then, prefer to re-spec the task into a real fix rather than close it. Counter-example: T-302.65 + T-302.64 punted across 5 iters before iter-3 finally closed them.
 
@@ -55,9 +53,7 @@ These are the rules that get bent first when a PM is tired or in a hurry. If you
 **Not contention (CAN run in parallel):**
 
 - Different sprints. The lower-numbered sprint dominates the queue, but if it runs out of ready independent tasks, higher-numbered sprints fill the leftover slots.
-- CDP UAT lanes. Each uses `scripts/uat-launch.sh <task-id>` which enforces per-task port + TMPDIR + user-data-dir + isolated packaged daemon. (Per the 2026-05-16 supersedes lesson in `learnings.md` — the iter-4 "shared daemon" claim was mis-diagnosed.)
 - Different crates / different modules / different files.
-- Frontend + backend (different file trees, separate worktrees).
 
 **Concurrency ceiling:** soft cap at **10 task-pms in flight** to start. Each task-pm spawns 1-5 inner-loop workers over its lifetime (not all at once), so peak inference sessions = 10 task-pms + ~10-20 workers active. Tune from observation: if dispatches start failing on runtime resource limits, lower it; if everything's idle, raise it.
 
@@ -86,24 +82,21 @@ These are the rules that get bent first when a PM is tired or in a hurry. If you
 
 **Priority rule:** Tasks are ordered by ID. Lower sprint numbers = higher priority. Always work the lowest-numbered pending task first. T-01.x before T-203.x before T-204.x.
 
-**CDP tasks are in scope.** A task whose verification step requires `agent-browser` against the packaged Electron app, `--remote-debugging-port`, `MAENIFOLD_UAT=1`, or `scripts/uat-launch.sh` is normal product-verification work — dispatch it the same as any backend or unit-test task. Each CDP-bearing lane gets its own worktree and its own non-overlapping CDP port via `scripts/uat-launch.sh <task-id>` (which enforces per-task port + TMPDIR + user-data-dir + isolated packaged daemon). One agent per CDP session — visual audits are serial within a lane, but multiple lanes run in parallel because each lane has its own port + Electron instance.
+**MCP verification tasks are in scope.** A task whose verification step requires hitting the packaged daemon over `http://localhost:8080/mcp` is normal product-verification work — dispatch it the same as any backend or unit-test task. The daemon binary at `/usr/local/bin/maenifold` is a symlink to `target/release/maenifold`; rebuild via `./rebuild.sh` and the live daemon picks up the new bits on the next launchd kickstart. Verification evidence is concrete: the request, the response, the assertion that the response matched the spec.
 
 **What stays banned:**
 
-- **Programmatic UAT** — auto-generating per-TC gate tasks from `docs/UAT-PLAN.md` or batch-creating "TC-001 through TC-666" rubber-stamp tasks. UAT-PLAN.md is a human reference guide for what to click, not a data source for code generation. (Repo-root `AGENTS.md` P0 trigger #4.)
-- **Rubber-stamping CDP work** — a CDP gate-pass requires concrete evidence (snapshot output, screenshot, observed state change, asserted DOM ref) just like any other gate stage. "Looked OK" is not evidence.
+- **Re-introducing an in-tree frontend** — `apps/desktop/` was ripped to return maenifold to a vanilla MCP server baseline. Do not re-add Electron, Vue, npm, vue-tsc, vitest, or any `apps/` directory without explicit user direction. (Repo-root `AGENTS.md` P0 trigger #4.)
+- **Rubber-stamping verification work** — a `gate_Pass` requires concrete evidence (request body, response body, observed state change) just like any other gate stage. "Looked OK" is not evidence.
 
 **What the PM does NOT do anymore:**
 
-- Skip a task because its spec requires CDP.
-- Sort CDP tasks to the bottom of the queue regardless of sprint number.
-- Treat "this needs CDP verification" as a reason to leave the task in pending across iters.
+- Skip a task because its spec requires verification against the running daemon.
+- Treat "this needs daemon verification" as a reason to leave the task in pending across iters.
 
-Concrete sort key: `(sprint_number, task_number, priority)` — same for CDP and non-CDP tasks. Lowest sprint wins. Within sprint, lowest task wins. Priority breaks ties only when sprint+task are equal (rare). The concurrency ceiling (default 10 task-pms) pulls from the top of that sorted list regardless of whether the task is CDP-bound.
+Concrete sort key: `(sprint_number, task_number, priority)`. Lowest sprint wins. Within sprint, lowest task wins. Priority breaks ties only when sprint+task are equal (rare). The concurrency ceiling (default 10 task-pms) pulls from the top of that sorted list.
 
-Precedent: T-304.3 (P1 agents-perf CDP measurement) was wrongly skipped iter-19 by treating "uses agent-browser" as auto-disqualifying. That was the antipattern. CDP IS how you test the product; testing the product IS the work.
-
-Rationale: the backlog already contains hundreds of known defects waiting for fixes (LOC violations T-315.1, unwrap debt T-315.2, inline helpers T-322.20-25, sort UX T-322.1.x, drag-drop T-314.1, attachments T-314.2, dblclick T-318.1, inspector model identity T-318.2, etc.). Hand-rolled "discovery passes" that browse the UI looking for new bugs while the existing pile sits ARE rediscovery cosplay — file the task before you browse, not after. But a task with a specific scope (verify T-X fix interactively, exercise feature Y end-to-end, measure perf metric Z) IS real work and ships through gate the same as any other.
+Rationale: the backlog already contains hundreds of known defects waiting for fixes. Hand-rolled "discovery passes" that browse the product looking for new bugs while the existing pile sits ARE rediscovery cosplay — file the task before you browse, not after. But a task with a specific scope (verify T-X fix end-to-end, exercise feature Y, measure perf metric Z) IS real work and ships through gate the same as any other.
 
 ### 3.5. Scan for blocked tasks and dead-premise rot (Cardinal Rule #4)
 
@@ -135,7 +128,7 @@ Then read `ralph/state/thoughts.md` `## ⚠️ NEXT-PM FIRST READ` section (if p
 Print your assigned scope before doing anything else. Other RALPH instances may be running in parallel — touching files outside your scope causes lost work.
 
 - `RALPH_TARGET_CRATE` — Rust crate (e.g., `maenifold-gate`). Your dispatched work focuses here, but you manage the full pipeline for every task in scope.
-- `RALPH_TARGET_PATH` — filesystem path (e.g., `apps/desktop`). Same — you own the pipeline, not just one task at a time.
+- `RALPH_TARGET_PATH` — filesystem path (e.g., `crates/maenifold-core`). Same — you own the pipeline, not just one task at a time.
 - If both are empty: state "unscoped — managing freely" and prioritize from the full backlog.
 
 **You are a PM, not a solo contributor.** Your job is to keep your team busy - 8 agents in flight MINIMUM. Dispatch agents in parallel across different crates/files, manage multiple in-flight tasks, and drive them through gate stages concurrently. A PM with one task in flight and idle agents is underperforming.
@@ -190,7 +183,7 @@ You are the PM. The PM does the full lifecycle, not just task dispatch. **In one
 
 ### D. Dispatch task-pms (parallel across all sprints, contention-aware)
 - Read the three-tier RACI in `AGENTS.md` and `~/.copilot/agents/task-pm.md`. You dispatch one **task-pm** per Gate item; the task-pm dispatches the inner-loop workers.
-- One task-pm per task. Every task-pm gets its own git worktree (`scripts/worktree-create.sh <task-id>`) and its own CDP port if UI work is involved (`scripts/uat-launch.sh <task-id>` enforces uniqueness).
+- One task-pm per task. Every task-pm gets its own git worktree (`scripts/worktree-create.sh <task-id>`).
 - Every task-pm dispatch must include `model: 'claude-opus-4.6'` (or `gpt-5.5` for SWE-heavy specs). Banned models: `gemini-*`, `claude-haiku-*`, `gpt-5.1-codex-mini`, any other haiku/mini-tier.
 - **Manage a team, don't be a team of one.** Fan out across the entire backlog, not just one sprint. Different sprints, different crates, different files — all parallel.
 
@@ -210,8 +203,7 @@ A task is NOT in flight only if one of these holds:
 
 - Different sprints. Higher-numbered sprints fill the queue ONLY when the lowest-numbered sprint runs out of ready independent tasks AND the ceiling still has open slots.
 - Different files in the same sprint. Fine — multiple parallel task-pms within a sprint is the default.
-- CDP UAT lanes. Each task uses `scripts/uat-launch.sh <task-id>` which enforces per-task port + TMPDIR + user-data-dir + isolated packaged daemon. The 2026-05-15 "shared daemon contamination" claim was mis-diagnosed; see the 2026-05-16 supersedes lesson in `learnings.md`.
-- Frontend + backend. Different file trees, separate worktrees, parallel.
+- Different crates. Different file trees, separate worktrees, parallel.
 
 "I'm waiting for red-team on T-X" is NOT a reason to delay T-Y — the task-pm handles its own stages. "I'm triaging an escalation" is NOT a reason to delay dispatching unrelated ready tasks. The PM is the dispatcher; dispatch is THE job. Refill capacity as task-pms return clean-completion or escalation WorkResults.
 
@@ -235,25 +227,25 @@ Spec amendments and architect-duo reviews happen IN PARALLEL with already-runnin
 
 Every spec amendment MUST estimate: files touched + LOC + tests + wall-clock. If any exceed the per-task limits below, SPLIT the spec into 2+ child tasks BEFORE the first SWE dispatch:
 
-- 1 SWE = at most 1 backend module + 1 frontend component (or ≤5 files total).
+- 1 SWE = at most 1 module + 1 sibling module (or ≤5 files total).
 - 1 SWE = at most ~12 tests authored.
 - 1 SWE = at most ~250 net LOC.
 - **1 SWE = at most ~10 minutes wall-clock** (Lesson 14-cap).
 
 **Decomposition templates:**
 
-- **Full-stack feature** → split into:
-  - `T-XXX.Ya` Backend schema + tool + tests
-  - `T-XXX.Yb` Frontend store + composable + component (depends on Ya merged for the API contract)
+- **Cross-crate feature** → split into:
+  - `T-XXX.Ya` Schema + types + tests in the base crate
+  - `T-XXX.Yb` Caller wiring in the dependent crate (depends on Ya merged for the contract)
   - `T-XXX.Yc` Help doc + integration test (parallelizable with Yb)
 - **Big refactor** → split into one task per file or one task per module boundary. Each child task ≤250 LOC.
 - **Spec with >12 named tests** → split tests across 2+ children; each child also implements the production code its tests cover.
 
 The child tasks ship as separate gate rows + commits + merges. Each child can run in parallel with siblings IF they don't share a file. Even sequential children (Yb depends on Ya) parallelize across UNRELATED tasks: while Ya SWE is running, an unrelated T-305.Z SWE can also be running.
 
-**Iter-14 retrospective application:**
-- T-305.2 (28 tests, 16 files, 23 min) SHOULD have been: T-305.2a backend (~8 tests, ~6 files, ~8 min) + T-305.2b frontend (~8 tests, ~6 files, ~6 min) + T-305.2c help-doc + remaining tests (~12 tests, ~4 files, ~5 min). All 3 children have a single SWE-implementer in ≤10 min each, and Yb+Yc parallelize after Ya merges.
-- T-305.5 (20 tests, 17 files, 11+ min before interrupt) SHOULD have been: T-305.5a backend allowlist module + supervisor branching (~8 tests, ~5 files, ~7 min) + T-305.5b backend CRUD validation + helpers (~6 tests, ~3 files, ~5 min) + T-305.5c frontend Select + Textarea (~4 tests, ~3 files, ~5 min) + T-305.5d help doc (~2 tests, ~1 file, ~3 min).
+**Iter-14 retrospective application (historical — kept for the decomposition pattern):**
+- A 28-test/16-file/23-min task SHOULD have been: child-a (~8 tests, ~6 files, ~8 min) + child-b (~8 tests, ~6 files, ~6 min) + child-c help-doc + remaining tests (~12 tests, ~4 files, ~5 min). All 3 children have a single SWE-implementer in ≤10 min each, and b+c parallelize after a merges.
+- A 20-test/17-file/11+ min task SHOULD have been split into four ≤7-min children — one per natural module boundary plus a help-doc child.
 
 ### E. Ship the work (gate ops) — three-tier RACI
 
@@ -354,7 +346,7 @@ The iter is not closed until the audit passes. No punting.
 
 | Pipeline | Use when |
 |---|---|
-| `tdd` | Frontend calls backend APIs, CLI commands, MCP tools, or any external surface. Test-first = grounding-first. |
+| `tdd` | Any task that touches backend APIs, CLI commands, MCP tools, or any external surface. Test-first = grounding-first. |
 | `sdd` | Pure refactors, internal logic changes, integration contract already proven and unchanged. |
 | `slc` | Cross-crate work, new capabilities, requires discovery + spec phases. |
 | `lightweight` | Mechanical changes (formatting, renames, file moves, LOC splits). Build verifies. |
@@ -365,103 +357,39 @@ Sub-tasks of an SLC epic inherit the parent's pipeline unless you explicitly jus
 
 ---
 
-## UI verification (MANDATORY — read this even if you skim everything else)
+## Daemon verification (MANDATORY — read this even if you skim everything else)
 
-**"vue-tsc passes" is NOT evidence. "npm run build succeeds" is NOT evidence. Screenshots of static pages are NOT evidence. The ONLY evidence is: I clicked the button and this happened.**
+**"`cargo build --release` succeeded" is NOT evidence. "Unit tests pass" is NOT evidence. The ONLY evidence is: I hit the running daemon and this happened.**
 
-Sprint 201 shipped a completely broken UI. Sprint 178 replaced the home page with fake data. Sprint 202 shipped non-functional model management. All passed typecheck. All had screenshots. None worked when a human clicked through. This section exists so you never repeat those failures.
+Maenifold ships a Rust MCP server. Verification is concrete: a request goes in over `http://localhost:8080/mcp`, a response comes back, the assertion compares the response against the spec. No daemon round-trip = no evidence.
 
-### Tooling: agent-browser only
+### Tooling
 
-**No Python scripts. No Playwright. No hand-written WebSocket code. No Puppeteer.**
+- `curl` against `http://localhost:8080/mcp` (JSON-RPC over HTTP) is the universal hand-tool.
+- The integrated `maenifold-*` MCP tools (`GatewayExecute`, `GatewayBatch`, `GatewayIndex`, `GatewayIntent`, `GetHelp`, `ReadMcpResource`, `complete_node`) from a connected MCP client are the schema-validated path.
+- For ACP traffic: connect to `ws://127.0.0.1:8080/api/acp/session?agent=<name>` and exchange ACP frames.
 
-`agent-browser` is the only permitted tool. It handles Electron's CDP quirks, provides accessibility-tree snapshots with reliable `@eN` element refs, and dispatches real pointer events that work with Reka UI / shadcn-vue.
+### Verify-after-build sequence
 
-Prerequisites (one-time):
-```
-npm i -g agent-browser@latest    # must be >= 0.26.0
-agent-browser install             # download Chrome for Testing
-```
+1. **Rebuild and restart.** `./rebuild.sh` from the repo root. `/usr/local/bin/maenifold` is a symlink to `target/release/maenifold`, so the live binary updates the moment the release build finishes; `rebuild.sh` then `launchctl kickstart`s the daemon.
+2. **Confirm the wire surface.** `curl POST http://localhost:8080/mcp` with `tools/list` must return exactly 7 tools: `GatewayBatch`, `GatewayExecute`, `GatewayIndex`, `GatewayIntent`, `GetHelp`, `ReadMcpResource`, `complete_node`. No more, no fewer. If the count is wrong, the daemon is stale or broken — investigate before continuing.
+3. **Exercise the spec.** Call the command the spec promised (`GatewayExecute` with the right `domain` + `command` + `parameters`), capture the response, assert against the acceptance criteria.
+4. **Capture evidence.** The request body, the response body, and the explicit pass/fail mapping go in the gate notes. "Looks right" is not evidence.
 
-Before every UI test session:
-```
-agent-browser skills get electron   # load Electron-specific docs
-agent-browser skills get core       # load core workflow docs
-```
+### Verification rules
 
-### Launch sequence (TESTED — do not deviate)
-
-**CRITICAL: You CANNOT launch the Electron app with shell `&` backgrounding.** The process receives SIGHUP when the shell session ends and silently exits. The log will be empty. The CDP port will be dead. You will waste 20 minutes debugging a non-problem.
-
-**CRITICAL: You CANNOT use `open -a` with agent paths.** `open -a` expects an app name registered in /Applications or Spotlight, not a build output path.
-
-**Step 1: Kill any existing instance.** The app uses `requestSingleInstanceLock()` — a second launch silently exits with code 0. No error, no warning.
-
-```
-ps aux | grep "maenifold.app/Contents/MacOS/maenifold" | grep -v grep
-```
-
-If a PID appears, kill it: `kill <PID>`. Verify it's gone.
-
-**Step 2: Package the app.**
-
-```
-cd apps/desktop && npm run build && npm run package
-```
-
-**Step 3: Launch with setsid (fully detached process).**
-
-The correct way to launch is with `setsid` or equivalent process detachment that survives shell exit. In Copilot CLI, use `mode: "async"` with `detach: true`. In a regular terminal:
-
-```
-nohup ./out/maenifold-darwin-arm64/maenifold.app/Contents/MacOS/maenifold \
-  --remote-debugging-port=9222 > /tmp/mae-cdp.log 2>&1 &
-disown
-```
-
-**Step 4: Wait for startup, then verify CDP port.**
-
-```
-sleep 5
-curl -s http://127.0.0.1:9222/json | head -5
-```
-
-If this returns empty or connection refused — the app died. Check `/tmp/mae-cdp.log`. Common causes: SingletonLock (another instance), uncaught exception, missing daemon.
-
-**Step 5: Connect agent-browser (persistent daemon connection).**
-
-```
-agent-browser connect 9222
-```
-
-This is MANDATORY. It establishes a persistent connection. Without it, each `agent-browser` command opens a new CDP session that disconnects when done — and the Electron renderer self-terminates ~20 seconds after the last CDP client disconnects. This is Chromium behavior, not our bug.
-
-**Step 6: Test.**
-
-```
-agent-browser snapshot -i              # accessibility tree with @eN refs
-agent-browser click @e5                # click by ref
-agent-browser snapshot -i              # re-snapshot (refs are stale after changes)
-agent-browser screenshot evidence.png  # capture evidence
-```
-
-### Testing rules
-
-- **Click through every feature.** Navigate tabs, click buttons, open dialogs, submit forms. Do not just screenshot a static page.
-- **Re-snapshot after every interaction.** Element refs (`@e1`, `@e2`, ...) are assigned fresh on every snapshot and become stale after any DOM change.
-- **Verify results, not appearances.** "Dialog appeared" is not proof an action worked. Check the actual result — did the data change? Did the toast say success? Did the error surface?
-- **Do not cheat.** Never set Pinia store state directly. Never bypass the UI with curl. Never accept "it compiled" as evidence.
+- **Hit the running daemon, not in-process tests.** `cargo test` proves the unit; the daemon round-trip proves the wire.
+- **Use the documented MCP path.** Workers MUST default to `maenifold-GatewayExecute` and the other `maenifold-*` MCP tools. The `mae_mcp` curl helper is a last-resort fallback only when the MCP tool surface is unavailable.
+- **Verify results, not appearances.** A 200 OK is not proof — read the response body and compare to the spec.
+- **Do not cheat.** Never assert on cached `.gate/gate.db` rows when the spec is about live MCP behavior. Never claim a fix works because the compiler accepted it.
 - **File everything.** Any issue, no matter how small, gets a gate task. Triage happens later, not during testing.
-- **One agent per CDP session.** Visual audits are serial. Do not attempt parallel CDP connections.
 
 ### What NOT to do
 
-1. **Never launch with `&`** — the app will exit silently when the shell dies.
-2. **Never use `element.click()` for Reka UI components** — synthetic clicks don't fire pointer events. Tabs won't switch. agent-browser dispatches real CDP `Input.dispatchMouseEvent` sequences.
-3. **Never use Playwright `connect_over_cdp`** — it creates additional browser contexts that destabilize the renderer.
-4. **Never set Pinia store state directly** — that proves nothing about whether the button works.
-5. **Never test via curl and claim the UI works** — backend working proves nothing about frontend.
-6. **Never skip `agent-browser connect`** — without the persistent connection, the renderer dies ~20s after each command finishes.
+1. **Never assert on compile success alone** — the daemon must answer the call the spec promised.
+2. **Never paper over a stale daemon** — if the wire surface count is wrong, rerun `./rebuild.sh` before continuing.
+3. **Never assert on in-process duplex transports for wire-protocol claims** — `tokio::io::duplex` proves serialization, not that a foreign peer accepts the bytes. Hit the real daemon.
+4. **Never re-introduce an in-tree frontend** — `apps/desktop/` was ripped per repo-root `AGENTS.md` P0 trigger #4. No Electron, no Vue, no npm, no vue-tsc, no vitest, no `apps/` directory without explicit user direction.
 
 ---
 
@@ -497,14 +425,6 @@ agent-browser screenshot evidence.png  # capture evidence
 - **Parallel-safe.** N agents across N worktrees, zero coordination needed beyond "don't assign the same file to two agents."
 - **Red-team can audit in the worktree** while the next SWE works in a different worktree.
 
-### Frontend worktrees
-
-Frontend worktrees need `node_modules`. Options:
-- `cd worktrees/T-XXX.Y/apps/desktop && npm ci` (clean, slow)
-- Symlink: `ln -s $(pwd)/apps/desktop/node_modules worktrees/T-XXX.Y/apps/desktop/node_modules` (fast, fine for non-dependency-changing tasks)
-
-Use symlink by default. Use `npm ci` only if the task modifies `package.json`.
-
 ---
 
 ## Change-size limits (per task, not per iteration)
@@ -513,10 +433,10 @@ Use symlink by default. Use `npm ci` only if the task modifies `package.json`.
 - Max ~600 LOC net diff **per task**.
 - **Max ~10 minute SWE wall-clock per task.** If you find yourself authoring a spec whose SWE work plausibly takes longer than 10 minutes, SPLIT THE TASK before dispatch. Long-running SWEs are irresponsible: the agent's context grows, the failure blast radius widens, the runtime payload bloats, and a mid-task interrupt loses more work. Iter-14 had two offenders (T-305.2 SWE ran 23+ min, T-305.5 ran 11+ min before session interrupt forced a finish-implementation re-dispatch). That was a process violation, not a feature of throughput.
 - **Concrete sizing rules for SWE prompts:**
-  - 1 SWE = at most 1 backend module + 1 frontend component (or ≤ 5 files total).
+  - 1 SWE = at most 1 module + 1 sibling module (or ≤ 5 files total).
   - 1 SWE = at most ~12 tests authored.
   - 1 SWE = at most ~250 net LOC across all files.
-  - If a spec exceeds any of these, split into sequential SWE dispatches (e.g., "T-305.2a backend pause_state + dispatcher" → "T-305.2b frontend Switch" → "T-305.2c help-doc + tests"). Each child gets its own gate row + commit + merge.
+  - If a spec exceeds any of these, split into sequential SWE dispatches (e.g., "T-XXX.Ya schema + types" → "T-XXX.Yb caller wiring" → "T-XXX.Yc help-doc + tests"). Each child gets its own gate row + commit + merge.
 - Prefer simplification and deletion over adding new complexity. The constitution says "the best code is no code" — that applies to specs and prompts too.
 
 ---
@@ -532,8 +452,8 @@ You manage multiple tasks concurrently. Each task lives in its own worktree and 
    - Spot-check at least one acceptance criterion against real code.
    - Build in the worktree:
      - Rust crate: `cd worktrees/T-XXX.Y && cargo build --release -p <crate>`
-     - UI: `cd worktrees/T-XXX.Y/apps/desktop && npx vue-tsc --noEmit && npm run build`
-   - Tests: `cargo test -p <crate>` (Rust) or visual verification (UI).
+   - Tests: `cargo test -p <crate>`.
+   - Daemon verification (when the change touches the MCP wire surface): from the main repo, run `./rebuild.sh` and then hit `http://localhost:8080/mcp` per the Daemon Verification section.
 
 2. **On failure** — iterate fix attempts up to 3 times (re-dispatch SWE to same worktree). If still failing:
    - Record failure via gate (`gate fail T-XXX.YY --agent ralph --notes '...' --root .`)
@@ -572,7 +492,7 @@ If `git merge task/T-XXX.Y` conflicts:
 
 We use maenifold and gate to build maenifold and gate. Every MCP call you make IS a product validation. If a tool feels wrong, that IS a bug. The point of any context-rich discovery moment is to fix things **while you still have the context loaded** — the trace, the repro, the file paths, the architecture reasoning. Wait an iter and that context is gone.
 
-**Drain known bugs before discovering new ones.** UAT exists to discover defects; the backlog already has hundreds. Running UAT instead of fixing known defects is rediscovery cosplay. Sort the dispatch queue so every known-bug fix task in the entire backlog is in flight or shipped before a single UAT task gets a slot.
+**Drain known bugs before discovering new ones.** Exploratory testing exists to discover defects; the backlog already has hundreds. Running open-ended discovery instead of fixing known defects is rediscovery cosplay. Sort the dispatch queue so every known-bug fix task in the entire backlog is in flight or shipped before a single discovery task gets a slot.
 
 **When you discover an issue outside your current task scope, EXACTLY TWO dispositions are allowed** (Cardinal Rule #1 — NO PUNTING):
 
@@ -641,4 +561,4 @@ You are the PM. The PM doesn't punch out — the PM ships, then ships the next t
 
 If a task with explicit `depends_on:` against an unfinished task tries to dispatch — that's a real ordering violation, fix it. If sprint 303 has 5 ready tasks and sprint 305 has 8, and the ceiling is 10, you dispatch all 5 sprint-303 task-pms plus 5 sprint-305 task-pms, and the next freed slot goes to a sprint-303 task before any more sprint-305 work. Lowest first, always.
 
-**CDP testing IS testing the product.** A task whose spec requires CDP verification dispatches the same as any other task — its lane uses `scripts/uat-launch.sh <task-id>` for its own port + Electron instance, its worker drives `agent-browser` for click-through evidence, and its `gate_Pass` requires concrete snapshot/screenshot/state-change evidence just like any other stage. Multiple CDP lanes run in parallel (different ports, different worktrees) up to the concurrency ceiling. What stays banned is **programmatic UAT** (auto-generating per-TC gate tasks from `docs/UAT-PLAN.md`) per repo-root `AGENTS.md` P0 trigger #4 — but a task with a concrete scope ("verify T-X fix interactively", "exercise feature Y end-to-end", "measure perf metric Z under CDP") is real work and ships through gate the same as any backend or unit-test task.
+**Daemon verification IS testing the product.** A task whose spec requires hitting the packaged daemon over `http://localhost:8080/mcp` dispatches the same as any other task — its lane uses its own worktree, its worker hits the running daemon with `curl` or `maenifold-GatewayExecute`, and its `gate_Pass` requires concrete request/response evidence just like any other stage. What stays banned (per repo-root `AGENTS.md` P0 trigger #4) is **re-introducing an in-tree frontend** — no Electron, no Vue, no npm, no vue-tsc, no `apps/` directory without explicit user direction.

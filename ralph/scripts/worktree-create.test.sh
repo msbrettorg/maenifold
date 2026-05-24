@@ -382,15 +382,9 @@ if "${HELPER}" "${TEST_TASK_ID}" >/dev/null 2>&1; then
   fail "expected duplicate worktree creation to fail"
 fi
 
-# Test 11: node_modules symlink (only if main repo has it)
-if [[ -d "${REPO_ROOT}/apps/desktop/node_modules" ]]; then
-  [[ -L "${WORKTREE_DIR}/apps/desktop/node_modules" ]] \
-    || fail "apps/desktop/node_modules in worktree is not a symlink (main repo has it)"
-fi
+echo "PASS: all 10 worktree-create.sh smoke checks passed"
 
-echo "PASS: all 11 worktree-create.sh smoke checks passed"
-
-# Test 12: todo/done symlinks are ignored in the created worktree
+# Test 11: todo/done symlinks are ignored in the created worktree
 WORKTREE_STATUS="$(git -C "${WORKTREE_DIR}" status --short)"
 assert_no_status_entry "todo" "${WORKTREE_STATUS}"
 assert_no_status_entry "done" "${WORKTREE_STATUS}"
@@ -398,19 +392,19 @@ WORKTREE_OTHERS="$(git -C "${WORKTREE_DIR}" ls-files --others --exclude-standard
 assert_not_other_file "todo" "${WORKTREE_OTHERS}"
 assert_not_other_file "done" "${WORKTREE_OTHERS}"
 
-# Test 13: git add -A does not stage todo/done symlinks
+# Test 12: git add -A does not stage todo/done symlinks
 git -C "${WORKTREE_DIR}" add -A
 STAGED_NAMES="$(git -C "${WORKTREE_DIR}" diff --cached --name-only)"
 git -C "${WORKTREE_DIR}" reset -- todo done >/dev/null 2>&1 || true
 assert_not_staged "todo" "${STAGED_NAMES}"
 assert_not_staged "done" "${STAGED_NAMES}"
 
-# Test 14: main repo still does not report todo/done as untracked
+# Test 13: main repo still does not report todo/done as untracked
 MAIN_STATUS="$(git -C "${MAIN_REPO_ROOT}" status --short)"
 assert_no_status_entry "todo" "${MAIN_STATUS}"
 assert_no_status_entry "done" "${MAIN_STATUS}"
 
-# Test 15: two worktree creations add exactly one common exclude entry for each symlink
+# Test 14: two worktree creations add exactly one common exclude entry for each symlink
 "${HELPER}" "${IDEMPOTENCY_TASK_A}" >/dev/null 2>&1 \
   || fail "worktree-create.sh failed for ${IDEMPOTENCY_TASK_A}"
 "${HELPER}" "${IDEMPOTENCY_TASK_B}" >/dev/null 2>&1 \
@@ -422,7 +416,7 @@ DONE_EXCLUDE_COUNT="$(grep -xc '/done' "${EXCLUDE_FILE}" || true)"
 [[ "${DONE_EXCLUDE_COUNT}" == "1" ]] \
   || fail "expected exactly one /done line in common .git/info/exclude, found ${DONE_EXCLUDE_COUNT}"
 
-# Test 16: pre-existing common exclude content is preserved
+# Test 15: pre-existing common exclude content is preserved
 if ! assert_exclude_preserved_with_patterns; then
   fail "common .git/info/exclude was not preserved with only missing /todo and /done lines appended"
 fi
@@ -436,13 +430,13 @@ fi
 
 echo "PASS: all 16 worktree-create.sh smoke checks passed"
 
-# Test 17: SIGTERM during lock cleanup leaves no .lock dir
+# Test 16: SIGTERM during lock cleanup leaves no .lock dir
 run_signal_lock_cleanup_test 17 TERM "${SIGTERM_TASK}"
 
-# Test 18: SIGINT during lock cleanup leaves no .lock dir
+# Test 17: SIGINT during lock cleanup leaves no .lock dir
 run_signal_lock_cleanup_test 18 INT "${SIGINT_TASK}"
 
-# Test 19: stale lock timeout tells the operator how to recover
+# Test 18: stale lock timeout tells the operator how to recover
 rmdir "${EXCLUDE_FILE}.lock" >/dev/null 2>&1 || true
 mkdir "${EXCLUDE_FILE}.lock"
 set +e
@@ -450,37 +444,37 @@ STALE_LOCK_STDERR="$("${HELPER}" "${STALE_LOCK_TASK}" 2>&1 >/dev/null)"
 STALE_LOCK_RC=$?
 set -e
 if [[ ${STALE_LOCK_RC} -eq 0 ]]; then
-  record_failure "Test 19: expected stale lock invocation to exit non-zero"
+  record_failure "Test 18: expected stale lock invocation to exit non-zero"
 fi
 if [[ "${STALE_LOCK_STDERR}" != *rmdir* ]] || [[ "${STALE_LOCK_STDERR}" != *"${EXCLUDE_FILE}.lock"* ]]; then
-  record_failure "Test 19: stale lock stderr did not mention both rmdir and ${EXCLUDE_FILE}.lock; stderr was: ${STALE_LOCK_STDERR}"
+  record_failure "Test 18: stale lock stderr did not mention both rmdir and ${EXCLUDE_FILE}.lock; stderr was: ${STALE_LOCK_STDERR}"
 else
-  echo "PASS: Test 19 stale lock stderr includes rmdir recovery instructions"
+  echo "PASS: Test 18 stale lock stderr includes rmdir recovery instructions"
 fi
 rmdir "${EXCLUDE_FILE}.lock" >/dev/null 2>&1 || true
 
-# Test 20: creating a worktree from inside an existing worktree still uses the main repo worktrees dir
+# Test 19: creating a worktree from inside an existing worktree still uses the main repo worktrees dir
 (cd "${MAIN_REPO_ROOT}" && "${HELPER}" "${NESTED_PARENT_TASK}") >/dev/null 2>&1 \
-  || fail "Test 20: failed to create parent fixture worktree ${NESTED_PARENT_TASK}"
+  || fail "Test 19: failed to create parent fixture worktree ${NESTED_PARENT_TASK}"
 [[ -d "${NESTED_PARENT_WORKTREE}" ]] \
-  || fail "Test 20: parent fixture worktree was not created at ${NESTED_PARENT_WORKTREE}"
+  || fail "Test 19: parent fixture worktree was not created at ${NESTED_PARENT_WORKTREE}"
 
 set +e
 (cd "${NESTED_PARENT_WORKTREE}" && "${HELPER}" "${NESTED_CHILD_TASK}") >/dev/null 2>&1
 NESTED_CHILD_RC=$?
 set -e
 if [[ ${NESTED_CHILD_RC} -ne 0 ]]; then
-  record_failure "Test 20: worktree-create.sh failed from inside ${NESTED_PARENT_WORKTREE}"
+  record_failure "Test 19: worktree-create.sh failed from inside ${NESTED_PARENT_WORKTREE}"
 elif [[ -d "${NESTED_CHILD_EXPECTED_WORKTREE}" ]]; then
   if [[ -e "${NESTED_CHILD_WRONG_WORKTREE}" ]]; then
-    record_failure "Test 20: expected only ${NESTED_CHILD_EXPECTED_WORKTREE}, but nested path also exists at ${NESTED_CHILD_WRONG_WORKTREE}"
+    record_failure "Test 19: expected only ${NESTED_CHILD_EXPECTED_WORKTREE}, but nested path also exists at ${NESTED_CHILD_WRONG_WORKTREE}"
   else
-    echo "PASS: Test 20 created child worktree at main repo path ${NESTED_CHILD_EXPECTED_WORKTREE}"
+    echo "PASS: Test 19 created child worktree at main repo path ${NESTED_CHILD_EXPECTED_WORKTREE}"
   fi
 elif [[ -e "${NESTED_CHILD_WRONG_WORKTREE}" ]]; then
-  record_failure "Test 20: expected new worktree at ${NESTED_CHILD_EXPECTED_WORKTREE} but found ${NESTED_CHILD_WRONG_WORKTREE}"
+  record_failure "Test 19: expected new worktree at ${NESTED_CHILD_EXPECTED_WORKTREE} but found ${NESTED_CHILD_WRONG_WORKTREE}"
 else
-  record_failure "Test 20: expected new worktree at ${NESTED_CHILD_EXPECTED_WORKTREE} but neither it nor ${NESTED_CHILD_WRONG_WORKTREE} exists"
+  record_failure "Test 19: expected new worktree at ${NESTED_CHILD_EXPECTED_WORKTREE} but neither it nor ${NESTED_CHILD_WRONG_WORKTREE} exists"
 fi
 
 if [[ ${TEST_FAILURES} -gt 0 ]]; then
@@ -488,4 +482,4 @@ if [[ ${TEST_FAILURES} -gt 0 ]]; then
   exit 1
 fi
 
-echo "PASS: all 20 worktree-create.sh checks passed"
+echo "PASS: all 19 worktree-create.sh checks passed"

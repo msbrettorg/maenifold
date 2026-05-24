@@ -152,6 +152,7 @@ impl ServerHandler for MaenifoldHandler {
     ) -> impl Future<Output = std::result::Result<ReadResourceResult, rmcp::ErrorData>> + Send + '_
     {
         let uri = request.uri.to_string();
+        let config = self.config.clone();
         let gateway = self.gateway.clone();
         let gateway_diagnostics = self.gateway_diagnostics.clone();
         async move {
@@ -166,7 +167,7 @@ impl ServerHandler for MaenifoldHandler {
                 return gateway.read_resource(&uri).await;
             }
             tokio::task::spawn_blocking(move || {
-                with_lock_retry(|| self::resources::handle_read_resource(&uri))
+                with_lock_retry(|| self::resources::handle_read_resource_with_config(&uri, &config))
             })
             .await
             .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?

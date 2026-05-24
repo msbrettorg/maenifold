@@ -1,11 +1,10 @@
-use super::*;
 use crate::acp_config::MaenifoldSettings;
 use crate::config::Config;
 use crate::schedule::{ScheduleStore, ScheduledTask};
 use crate::test_util::ConfigResetGuard;
 use crate::tools::{ToolContext, schedule as schedule_tool};
 use crate::util::json::OutputFormat;
-use rmcp::model::ResourceContents;
+use rmcp::model::{ReadResourceResult, ResourceContents};
 use serde_json::{Value, json};
 use std::fs;
 use tempfile::TempDir;
@@ -53,8 +52,13 @@ pub(super) fn call_schedule(context: &ToolContext, payload: Value) -> Value {
     serde_json::from_str(&text).expect("schedule tool returns json")
 }
 
-pub(super) fn resource_json(uri: &str) -> Value {
-    let result = handle_read_resource(uri).expect("schedule resource read succeeds");
+pub(super) fn resource_json(context: &ToolContext, uri: &str) -> Value {
+    let result = crate::mcp::resources::handle_read_resource_with_config(uri, &context.config)
+        .expect("schedule resource read succeeds");
+    resource_result_json(result)
+}
+
+pub(super) fn resource_result_json(result: ReadResourceResult) -> Value {
     let first = result.contents.first().expect("resource has content");
     let ResourceContents::TextResourceContents { text, .. } = first else {
         panic!("schedule resources must return text content");
@@ -122,8 +126,8 @@ pub(super) fn assert_all_surfaces_agree(context: &ToolContext, id: &str) -> Sema
         .iter()
         .find(|task| task["id"] == id)
         .expect("tool list contains task");
-    let resource_get = resource_json(&format!("schedule://job/{id}"));
-    let resource_list = resource_json("schedule://jobs");
+    let resource_get = resource_json(context, &format!("schedule://job/{id}"));
+    let resource_list = resource_json(context, "schedule://jobs");
     let resource_list_task = resource_list
         .as_array()
         .expect("resource list is array")
@@ -163,8 +167,9 @@ pub(super) fn update_fields_with_store(context: &ToolContext, id: &str) {
     schedule_store.update(&task).expect("store field mutation");
 }
 
-pub(super) fn write_large_logs(task: &ScheduledTask) {
-    let log_dir = Config::current()
+pub(super) fn write_large_logs(context: &ToolContext, task: &ScheduledTask) {
+    let log_dir = context
+        .config
         .maenifold_root
         .join("schedules")
         .join(&task.id)

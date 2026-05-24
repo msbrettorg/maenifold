@@ -54,16 +54,24 @@ pub(super) fn is_schedule_uri(uri: &str) -> bool {
     uri.starts_with("schedule://")
 }
 
+#[cfg(test)]
 pub(super) fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
+    handle_read_resource_with_config(uri, &Config::current())
+}
+
+pub(super) fn handle_read_resource_with_config(
+    uri: &str,
+    config: &Config,
+) -> Result<ReadResourceResult> {
     let payload = match uri {
-        JOBS_URI => list_jobs_payload()?,
+        JOBS_URI => list_jobs_payload(config)?,
         _ if uri.starts_with(JOB_URI_PREFIX) => {
             let id = parse_id(uri, JOB_URI_PREFIX, JOB_TEMPLATE_URI)?;
-            read_job_payload(&id)?
+            read_job_payload(config, &id)?
         }
         _ if uri.starts_with(LOGS_URI_PREFIX) => {
             let id = parse_id(uri, LOGS_URI_PREFIX, LOGS_TEMPLATE_URI)?;
-            read_logs_payload(&id)?
+            read_logs_payload(config, &id)?
         }
         _ => {
             return Err(MaenifoldError::InvalidResourceUri(format!(
@@ -78,15 +86,15 @@ pub(super) fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
     ]))
 }
 
-fn list_jobs_payload() -> Result<Value> {
-    let jobs = schedule_store()
+fn list_jobs_payload(config: &Config) -> Result<Value> {
+    let jobs = schedule_store(config)
         .list()
         .map_err(|error| MaenifoldError::Message(error.to_string()))?;
     Ok(serde_json::to_value(jobs)?)
 }
 
-fn read_job_payload(id: &str) -> Result<Value> {
-    let store = schedule_store();
+fn read_job_payload(config: &Config, id: &str) -> Result<Value> {
+    let store = schedule_store(config);
     if !store.exists(id) {
         return Err(schedule_not_found(id));
     }
@@ -97,8 +105,8 @@ fn read_job_payload(id: &str) -> Result<Value> {
     Ok(serde_json::to_value(job)?)
 }
 
-fn read_logs_payload(id: &str) -> Result<Value> {
-    let store = schedule_store();
+fn read_logs_payload(config: &Config, id: &str) -> Result<Value> {
+    let store = schedule_store(config);
     if !store.exists(id) {
         return Err(schedule_not_found(id));
     }
@@ -107,8 +115,8 @@ fn read_logs_payload(id: &str) -> Result<Value> {
     Ok(json!(logs))
 }
 
-fn schedule_store() -> ScheduleStore {
-    ScheduleStore::new(Config::current().maenifold_root.join("schedules"))
+fn schedule_store(config: &Config) -> ScheduleStore {
+    ScheduleStore::new(config.maenifold_root.join("schedules"))
 }
 
 fn schedule_not_found(id: &str) -> MaenifoldError {

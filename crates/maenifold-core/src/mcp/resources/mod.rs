@@ -1,3 +1,4 @@
+use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::gateway_registry::GatewayRegistry;
 use crate::mcp::stdio_pool::StdioPool;
@@ -63,6 +64,10 @@ pub fn handle_list_resource_templates() -> Result<ListResourceTemplatesResult> {
 
 // T-12.0: RTM FR-11 / RTM-070 — preserve existing asset:// read behavior.
 pub fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
+    handle_read_resource_with_config(uri, &Config::current())
+}
+
+pub fn handle_read_resource_with_config(uri: &str, config: &Config) -> Result<ReadResourceResult> {
     if agent::is_agent_uri(uri) {
         agent::handle_read_resource(uri)
     } else if workflow::is_workflow_uri(uri) {
@@ -72,7 +77,7 @@ pub fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
     } else if pipeline::is_pipeline_uri(uri) {
         pipeline::handle_read_resource(uri)
     } else if schedule::is_schedule_uri(uri) {
-        schedule::handle_read_resource(uri)
+        schedule::handle_read_resource_with_config(uri, config)
     } else {
         asset::handle_read_resource(uri)
     }

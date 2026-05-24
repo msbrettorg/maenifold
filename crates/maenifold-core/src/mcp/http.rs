@@ -40,6 +40,7 @@ pub(super) fn router(service: MaenifoldHttpService, state: ApiState) -> Router {
 #[allow(dead_code)]
 pub(super) fn service(
     cancellation_token: tokio_util::sync::CancellationToken,
+    config: Config,
     gateway: Option<Arc<GatewayState>>,
     gateway_diagnostics: Option<Arc<StdioPool>>,
 ) -> MaenifoldHttpService {
@@ -47,8 +48,9 @@ pub(super) fn service(
 
     StreamableHttpService::new(
         move || {
-            let mut handler = MaenifoldHandler::new(TransportKind::Http)
-                .map_err(|e| std::io::Error::other(e.to_string()))?;
+            let mut handler =
+                MaenifoldHandler::new_with_config(TransportKind::Http, config.clone())
+                    .map_err(|e| std::io::Error::other(e.to_string()))?;
             if let Some(gateway) = gateway.as_ref() {
                 handler.set_gateway(gateway.clone());
             }
@@ -121,12 +123,13 @@ impl super::MaenifoldMcpServer {
             }
         };
         let router = router(
-            service(shutdown_token.child_token(), gateway, pool_for_api.clone()),
-            ApiState::with_user_prompt_registry(
-                Config::current(),
-                pool_for_api,
-                user_prompt_registry,
+            service(
+                shutdown_token.child_token(),
+                config.clone(),
+                gateway,
+                pool_for_api.clone(),
             ),
+            ApiState::with_user_prompt_registry(config.clone(), pool_for_api, user_prompt_registry),
         )
         // T-17.2: RTM FR-23 (RTM-130) — allow browser-based MCP clients to reach the
         // shared tool surface over HTTP.

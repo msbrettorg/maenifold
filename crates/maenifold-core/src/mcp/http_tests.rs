@@ -21,8 +21,14 @@ fn test_state() -> (TempDir, ApiState, ConfigResetGuard) {
 }
 
 fn test_router(state: ApiState) -> axum::Router {
+    let config = Config::current();
     router(
-        service(tokio_util::sync::CancellationToken::new(), None, None),
+        service(
+            tokio_util::sync::CancellationToken::new(),
+            config,
+            None,
+            None,
+        ),
         state,
     )
     .layer(localhost_cors())

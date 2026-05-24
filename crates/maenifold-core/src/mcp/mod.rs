@@ -88,6 +88,7 @@ pub use tool_utils::{McpToolDefinition, list_mcp_tools};
 pub struct MaenifoldMcpServer;
 struct MaenifoldHandler {
     transport: TransportKind,
+    config: Config,
     tools: Vec<Tool>,
     gateway: Option<Arc<GatewayState>>,
     gateway_diagnostics: Option<Arc<crate::mcp::stdio_pool::StdioPool>>,
@@ -98,7 +99,12 @@ pub(super) enum TransportKind {
     Http,
 }
 impl MaenifoldHandler {
+    #[cfg(test)]
     fn new(transport: TransportKind) -> Result<Self> {
+        Self::new_with_config(transport, Config::current())
+    }
+
+    fn new_with_config(transport: TransportKind, config: Config) -> Result<Self> {
         let tools = list_mcp_tools(&ToolRegistry::new())?
             .into_iter()
             .map(|t| {
@@ -113,6 +119,7 @@ impl MaenifoldHandler {
             .collect();
         Ok(Self {
             transport,
+            config,
             tools,
             gateway: None,
             gateway_diagnostics: None,
@@ -148,7 +155,7 @@ impl MaenifoldMcpServer {
                 (Some(gateway), diagnostics)
             }
         };
-        let mut handler = MaenifoldHandler::new(TransportKind::Stdio)?;
+        let mut handler = MaenifoldHandler::new_with_config(TransportKind::Stdio, config.clone())?;
         if let Some(gateway) = gateway {
             handler.set_gateway(gateway);
         }

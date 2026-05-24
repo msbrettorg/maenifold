@@ -1,11 +1,14 @@
 use super::handle_read_resource;
 use super::schedule_consistency_helpers::*;
 use crate::mcp::resources::map_resource_error;
+use crate::mcp::{MaenifoldClient, MaenifoldHandler, PendingRequestRegistry, TransportKind};
 use crate::tools::schedule as schedule_tool;
-use rmcp::model::ErrorCode;
+use rmcp::ServiceExt;
+use rmcp::model::{ErrorCode, ReadResourceRequestParams};
 use serde_json::json;
 use serial_test::serial;
 use std::fs;
+use std::sync::Arc;
 
 #[test]
 #[serial]
@@ -57,7 +60,7 @@ fn schedule_tool_and_resources_match_after_mutation_matrix() {
     assert_eq!(run_now["action"], "run_now");
     assert_eq!(run_now["id"], id);
     let tool_after_run = call_schedule(&context, json!({"action": "get", "id": id}));
-    let resource_after_run = resource_json(&format!("schedule://job/{id}"));
+    let resource_after_run = resource_json(&context, &format!("schedule://job/{id}"));
     let (tool_last_run, resource_last_run) =
         (&tool_after_run["last_run"], &resource_after_run["last_run"]);
     assert!(!tool_last_run.is_null() && !tool_last_run.as_str().is_some_and(str::is_empty));
@@ -110,12 +113,76 @@ fn schedule_log_tool_and_resource_share_bounds() {
             "enabled": false
         }),
     );
-    write_large_logs(&store(&context).read(id).expect("read scheduled task"));
+    write_large_logs(
+        &context,
+        &store(&context).read(id).expect("read scheduled task"),
+    );
 
     let tool_logs = call_schedule(&context, json!({"action": "logs", "id": id, "limit": 10}));
-    let resource_logs = resource_json(&format!("schedule://logs/{id}"));
+    let resource_logs = resource_json(&context, &format!("schedule://logs/{id}"));
     assert_eq!(tool_logs, resource_logs);
     assert_logs_within_bounds(&tool_logs);
+}
+
+#[test]
+#[serial]
+fn schedule_logs_resource_matches_tool_after_unrelated_config_override() {
+    let (_temp, context, _guard) = test_context();
+    let id = "log-bounds";
+    call_schedule(
+        &context,
+        json!({
+            "action": "create",
+            "id": id,
+            "description": "Log bounds task",
+            "schedule": "every weekday at 9am",
+            "agent": "swe",
+            "prompt": "Generate logs",
+            "enabled": false
+        }),
+    );
+    write_large_logs(
+        &context,
+        &store(&context).read(id).expect("read scheduled task"),
+    );
+
+    let tool_logs = call_schedule(&context, json!({"action": "logs", "id": id, "limit": 10}));
+
+    let (_other_temp, _other_context, _other_guard) = test_context();
+
+    let resource_logs = resource_json(&context, &format!("schedule://logs/{id}"));
+    assert_eq!(tool_logs, resource_logs);
+}
+
+#[tokio::test]
+#[serial]
+async fn handler_schedule_resource_uses_constructor_config_after_unrelated_override()
+-> anyhow::Result<()> {
+    let (_temp, context, _guard) = test_context();
+    let id = "handler-log-bounds";
+    call_schedule(
+        &context,
+        json!({
+            "action": "create",
+            "id": id,
+            "description": "Handler log bounds task",
+            "schedule": "every weekday at 9am",
+            "agent": "swe",
+            "prompt": "Generate logs",
+            "enabled": false
+        }),
+    );
+    write_large_logs(
+        &context,
+        &store(&context).read(id).expect("read scheduled task"),
+    );
+    let tool_logs = call_schedule(&context, json!({"action": "logs", "id": id, "limit": 10}));
+
+    let (_other_temp, _other_context, _other_guard) = test_context();
+
+    let resource_logs = handler_resource_json(&context, &format!("schedule://logs/{id}")).await?;
+    assert_eq!(tool_logs, resource_logs);
+    Ok(())
 }
 
 #[test]
@@ -144,4 +211,28 @@ fn read_recent_logs_merges_runrecord_sidecar_fields() {
     assert_eq!(logs[0]["duration_seconds"], 2);
     assert_eq!(logs[0]["mcp_action"], "maenifold.gate.gate_Status");
     assert_eq!(logs[0]["mcp_result"], serde_json::Value::Null);
+}
+
+async fn handler_resource_json(
+    context: &crate::tools::ToolContext,
+    uri: &str,
+) -> anyhow::Result<serde_json::Value> {
+    let (server_transport, client_transport) = tokio::io::duplex(2 * 1024 * 1024);
+    let handler = MaenifoldHandler::new_with_config(TransportKind::Stdio, context.config.clone())?;
+    let server_task = tokio::spawn(async move {
+        let server = handler.serve(server_transport).await?;
+        server.waiting().await?;
+        anyhow::Ok(())
+    });
+
+    let mut client = MaenifoldClient::new(Arc::new(PendingRequestRegistry::new()))
+        .serve(client_transport)
+        .await?;
+    let result = client
+        .peer()
+        .read_resource(ReadResourceRequestParams::new(uri))
+        .await?;
+    client.close().await?;
+    server_task.await??;
+    Ok(resource_result_json(result))
 }

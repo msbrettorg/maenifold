@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
-use crate::mcp::gateway_catalog::CommandEntry;
+use crate::mcp::gateway_registry::CommandEntry;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 use crate::workflow::pipeline::{pipeline, wait_for_pipeline_terminal};

@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 use super::domain_mapping::SafetyClass;
-use super::gateway_catalog::GatewayCatalog;
 use super::gateway_experiment_fixtures::{FIXTURES, FixtureCategory, IntentFixture};
+use super::gateway_registry::GatewayRegistry;
 use super::gateway_resolver::resolve_intent;
 use super::gateway_resolver_types::{ResolverError, ResolverOutput, ResolverResult};
 use crate::acp_config::IntentResolverSettings;
@@ -54,7 +54,7 @@ pub(crate) struct FixtureResult {
 }
 
 pub(crate) async fn run_experiment(
-    catalog: &GatewayCatalog,
+    catalog: &GatewayRegistry,
     settings: &IntentResolverSettings,
     root: &Path,
     levels: &[&str],

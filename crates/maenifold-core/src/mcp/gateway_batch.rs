@@ -1,8 +1,7 @@
 use crate::error::JSONRPC_INVALID_PARAMS;
 use crate::mcp::gateway_batch_types::{BatchItem, BatchItemResult, BatchResult, BatchState};
-use crate::mcp::gateway_catalog::CommandTarget;
-use crate::mcp::gateway_dispatch::validate_dispatch_parameters;
-use crate::mcp::gateway_handler::GatewayState;
+use crate::mcp::gateway_registry::CommandTarget;
+use crate::mcp::gateway_runtime::GatewayState;
 use crate::mcp::gateway_schema_validation::validate_parameters;
 use crate::mcp::schema::{
     gateway_tools::{BatchItemParams, GatewayBatchParams},
@@ -125,7 +124,7 @@ fn validate_item(state: &GatewayState, item: &BatchItem) -> Result<(), rmcp::Err
         )));
     }
     match state
-        .catalog
+        .registry()
         .resolve(&item.domain, &item.command)
         .map_err(|err| invalid_params(err.to_string()))?
     {
@@ -135,15 +134,14 @@ fn validate_item(state: &GatewayState, item: &BatchItem) -> Result<(), rmcp::Err
         CommandTarget::Upstream {
             server_name,
             tool_name,
-        } => {
-            let server = state.consolidated_server(&server_name)?;
-            validate_dispatch_parameters(
-                server,
+        } => state
+            .registry()
+            .validate_upstream(
+                &server_name,
                 &tool_name,
                 &Value::Object(item.parameters.clone()),
             )
-            .map_err(|err| invalid_params(err.to_string()))
-        }
+            .map_err(|err| invalid_params(err.to_string())),
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::mcp::gateway_catalog::CommandEntry;
+use crate::mcp::gateway_registry::CommandEntry;
 use maenifold_gate_core::lifecycle::{
     CreateTaskArgs, GateContext, GateLifecycle, StageNoteArgs, StatusArgs, SyncArgs, TaskArgs,
 };

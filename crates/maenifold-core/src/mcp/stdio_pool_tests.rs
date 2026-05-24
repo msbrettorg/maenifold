@@ -131,18 +131,25 @@ async fn stdio_pool_duplicate_server_name_rejected() {
 }
 
 #[tokio::test]
-async fn stdio_pool_build_rejects_tool_collisions() {
+async fn stdio_pool_build_allows_cross_server_duplicate_tool_names() {
     let left = started_server("server-a", "shared-tool").await;
     let right = started_server("server-b", "shared-tool").await;
     let mut servers = HashMap::new();
     servers.insert("server-a".to_string(), left);
     servers.insert("server-b".to_string(), right);
 
-    let error = collect_gateway_tools(&servers).expect_err("tool collisions should fail");
-    let rendered = error.to_string();
-    assert!(rendered.contains("MCP tool name collision: 'shared-tool'"));
-    assert!(rendered.contains("server-a"));
-    assert!(rendered.contains("server-b"));
+    let (tools, gateway_tools, _descriptions) =
+        collect_gateway_tools(&servers).expect("cross-server duplicates should be allowed");
+    assert_eq!(
+        tools
+            .iter()
+            .map(|tool| tool.name.to_string())
+            .collect::<Vec<_>>(),
+        vec!["shared-tool".to_string(), "shared-tool".to_string()]
+    );
+    assert_eq!(gateway_tools.len(), 2);
+    assert_eq!(gateway_tools[0].0, "server-a");
+    assert_eq!(gateway_tools[1].0, "server-b");
 
     for server in servers.into_values() {
         if let Some(session) = server.session {

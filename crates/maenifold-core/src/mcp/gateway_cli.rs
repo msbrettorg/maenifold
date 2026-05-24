@@ -11,16 +11,10 @@ pub(crate) async fn invoke_gateway_cli_tool(
 ) -> Result<String> {
     let gateway = match gateway_startup::build_gateway(config).await? {
         gateway_startup::GatewayStartup::Ready(gateway) => gateway,
-        gateway_startup::GatewayStartup::Disabled => {
-            return Err(MaenifoldError::Message(
-                "Gateway is disabled; no gateway state is available".to_string(),
-            ));
-        }
-        gateway_startup::GatewayStartup::Failed { error, .. } => {
-            return Err(MaenifoldError::Message(format!(
-                "Gateway startup failed: {error}"
-            )));
-        }
+        gateway_startup::GatewayStartup::Failed {
+            gateway,
+            diagnostics: _,
+        } => gateway,
     };
 
     let result = gateway

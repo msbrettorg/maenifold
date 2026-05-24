@@ -1,20 +1,12 @@
-use super::gateway_catalog::GatewayCatalog;
+use super::gateway_registry::GatewayRegistry;
 use super::gateway_resolver::{parse_and_validate_output, render_compact_catalog, resolve_intent};
 use super::gateway_resolver_types::ResolverError;
-use super::stdio_pool::StdioPool;
-use super::tool_routing::ToolRoutingRegistry;
 use crate::acp_config::IntentResolverSettings;
 use serde_json::json;
+use std::collections::BTreeMap;
 
-async fn catalog() -> GatewayCatalog {
-    let pool = StdioPool::start(
-        Vec::<crate::mcp::gateway_session::GatewayServerConfig>::new(),
-        std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()),
-    )
-    .await
-    .expect("pool");
-    let routing = ToolRoutingRegistry::build(&[], &pool).expect("routing");
-    GatewayCatalog::build(&[], &[], &routing).expect("catalog")
+async fn catalog() -> GatewayRegistry {
+    GatewayRegistry::build(Vec::new(), &BTreeMap::new()).expect("catalog")
 }
 
 fn output(candidates: serde_json::Value) -> String {

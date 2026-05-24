@@ -1,5 +1,5 @@
 use crate::error::{MaenifoldError, Result};
-use crate::mcp::gateway_catalog::GatewayCatalog;
+use crate::mcp::gateway_registry::GatewayRegistry;
 use crate::mcp::stdio_pool::StdioPool;
 use rmcp::RoleServer;
 use rmcp::model::{ListResourceTemplatesResult, ListResourcesResult, ReadResourceResult};
@@ -19,16 +19,16 @@ pub mod workflow;
 
 pub use subscription::{AssetWatcherState, notify_resource_updated, start_asset_watcher};
 
-static GATEWAY_CATALOG: RwLock<Option<Arc<GatewayCatalog>>> = RwLock::new(None);
+static GATEWAY_REGISTRY: RwLock<Option<Arc<GatewayRegistry>>> = RwLock::new(None);
 
-pub(crate) fn set_gateway_catalog(catalog: Arc<GatewayCatalog>) {
-    if let Ok(mut guard) = GATEWAY_CATALOG.write() {
-        *guard = Some(catalog);
+pub(crate) fn set_gateway_registry(registry: Arc<GatewayRegistry>) {
+    if let Ok(mut guard) = GATEWAY_REGISTRY.write() {
+        *guard = Some(registry);
     }
 }
 
-pub(crate) fn gateway_catalog() -> Option<Arc<GatewayCatalog>> {
-    GATEWAY_CATALOG.read().ok().and_then(|guard| guard.clone())
+pub(crate) fn gateway_registry() -> Option<Arc<GatewayRegistry>> {
+    GATEWAY_REGISTRY.read().ok().and_then(|guard| guard.clone())
 }
 
 // T-12.8: RTM FR-11 — resources/list assembly now lives in mcp/resources.
@@ -194,15 +194,15 @@ pub fn map_resource_error(err: MaenifoldError) -> rmcp::ErrorData {
 // If SWE identifies the actual lock interaction causing EDEADLK, these tests can be enhanced.
 
 #[cfg(test)]
-mod resources_tests_common;
+mod resources_graph_concept_tests;
+#[cfg(test)]
+mod resources_graph_corpus_primer_http_tests;
 #[cfg(test)]
 mod resources_graph_corpus_primer_test_support;
 #[cfg(test)]
 mod resources_graph_corpus_primer_tests;
 #[cfg(test)]
-mod resources_graph_concept_tests;
-#[cfg(test)]
-mod resources_graph_corpus_primer_http_tests;
+mod resources_tests_common;
 #[cfg(test)]
 mod resources_tests_invocation;
 #[cfg(test)]

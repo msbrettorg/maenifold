@@ -1,10 +1,11 @@
 use super::*;
 use crate::acp_config::IntentResolverSettings;
-use crate::mcp::gateway_catalog::GatewayCatalog;
+use crate::mcp::gateway_registry::GatewayRegistry;
+use crate::mcp::gateway_runtime::GatewayState;
 use crate::mcp::resource_routing::ResourceRoutingRegistry;
 use crate::mcp::stdio_pool::StdioPool;
-use crate::mcp::tool_routing::ToolRoutingRegistry;
 use serde_json::{Value, json};
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -17,14 +18,12 @@ async fn state() -> GatewayState {
         .await
         .expect("empty pool"),
     );
-    let routing = ToolRoutingRegistry::build(&[], pool.as_ref()).expect("routing");
-    let catalog = GatewayCatalog::build(&[], &[], &routing).expect("catalog");
+    let registry = GatewayRegistry::build(Vec::new(), &BTreeMap::new()).expect("registry");
     let resources = Arc::new(ResourceRoutingRegistry::build(pool.as_ref()).expect("resources"));
     GatewayState::new(
         pool,
         resources,
-        catalog,
-        vec![],
+        registry,
         IntentResolverSettings::default(),
         PathBuf::from("."),
     )

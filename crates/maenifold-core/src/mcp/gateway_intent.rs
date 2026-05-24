@@ -1,8 +1,7 @@
 use crate::mcp::domain_mapping::SafetyClass;
 use crate::mcp::gateway_direct_inference_resolver::resolve_intent_with_direct_inference;
-use crate::mcp::gateway_errors::{invalid_params, map_gateway_error};
-use crate::mcp::gateway_handler::GatewayState;
 use crate::mcp::gateway_resolver_types::{ResolverError, ResolverOutput};
+use crate::mcp::gateway_runtime::GatewayState;
 use crate::mcp::schema::gateway_tools::GatewayIntentParams;
 use rmcp::RoleServer;
 use rmcp::model::{CallToolResult, Content};
@@ -14,13 +13,14 @@ pub(crate) async fn handle_gateway_intent(
     arguments: Value,
     _client_peer: Option<Peer<RoleServer>>,
 ) -> std::result::Result<CallToolResult, rmcp::ErrorData> {
-    let params: GatewayIntentParams = serde_json::from_value(arguments)
-        .map_err(|err| map_gateway_error("GatewayIntent", invalid_params(err)))?;
+    let params: GatewayIntentParams = serde_json::from_value(arguments).map_err(|err| {
+        rmcp::ErrorData::invalid_params(format!("Invalid GatewayIntent arguments: {err}"), None)
+    })?;
     let intent = intent_with_hints(params.intent, params.domain_hints);
     // GatewayIntent resolver: direct inferencing only after T-331.1.
     let settings = state.intent_settings();
     let resolved = if settings.resolved_direct_inference().is_ok() {
-        resolve_intent_with_direct_inference(state.catalog(), settings, &intent).await
+        resolve_intent_with_direct_inference(state.registry(), settings, &intent).await
     } else {
         let setup_message = settings
             .resolved_direct_inference()
@@ -35,7 +35,7 @@ pub(crate) async fn handle_gateway_intent(
     };
     match resolved {
         Ok(output) => handle_resolved_intent(state, output).await,
-        Err(error) => Ok(render(fallback_response(error))),
+        Err(error) => Ok(render(fallback_response(error, state.startup_error()))),
     }
 }
 
@@ -144,7 +144,7 @@ fn missing_required(
     candidate: &crate::mcp::gateway_resolver_types::ResolverCandidate,
 ) -> Vec<String> {
     let Ok(required) = state
-        .catalog()
+        .registry()
         .required_parameters(&candidate.domain, &candidate.command)
     else {
         return Vec::new();
@@ -170,12 +170,12 @@ fn execute_plan(
     })
 }
 
-fn fallback_response(error: ResolverError) -> Value {
+fn fallback_response(error: ResolverError, startup_error: Option<&str>) -> Value {
     let status = match error {
         ResolverError::DirectInferenceSetup { .. } => "directInferenceSetup",
         _ => "fallback",
     };
-    json!({
+    let mut value = json!({
         "status": status,
         "error": error.to_string(),
         "instructions": error.fallback(),
@@ -183,7 +183,11 @@ fn fallback_response(error: ResolverError) -> Value {
             "inspect": { "tool": "GatewayIndex" },
             "execute": { "tool": "GatewayExecute" }
         }
-    })
+    });
+    if let (Some(startup_error), Value::Object(map)) = (startup_error, &mut value) {
+        map.insert("gatewayStartupError".to_string(), json!(startup_error));
+    }
+    value
 }
 
 fn intent_with_hints(intent: String, hints: Option<Vec<String>>) -> String {

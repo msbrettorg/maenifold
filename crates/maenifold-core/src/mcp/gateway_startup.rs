@@ -1,25 +1,20 @@
-use super::{MaenifoldHandler, TransportKind};
 use crate::acp_config::{AgentsConfig, McpServerEntry};
 use crate::config::Config;
 use crate::error::Result;
 use crate::mcp::PendingRequestRegistry;
-use crate::mcp::gateway_catalog::GatewayCatalog;
-use crate::mcp::gateway_consolidation::{build_consolidated_tools, gateway_tool_counts};
-use crate::mcp::gateway_handler::GatewayState;
+use crate::mcp::gateway_registry::GatewayRegistry;
+use crate::mcp::gateway_runtime::GatewayState;
 use crate::mcp::gateway_session::{GatewayServerConfig, HttpServerConfig};
 use crate::mcp::resource_routing::ResourceRoutingRegistry;
 use crate::mcp::resources;
 use crate::mcp::stdio_pool::{StdioPool, StdioServerConfig};
-use crate::mcp::tool_routing::ToolRoutingRegistry;
-use rmcp::model::Tool;
 use std::sync::Arc;
-use tracing::{info, warn};
+use tracing::info;
 
 pub(super) enum GatewayStartup {
-    Disabled,
     Ready(Arc<GatewayState>),
     Failed {
-        error: String,
+        gateway: Arc<GatewayState>,
         diagnostics: Option<Arc<StdioPool>>,
     },
 }
@@ -30,13 +25,19 @@ pub(super) async fn build_gateway(config: &Config) -> Result<GatewayStartup> {
 
 pub(super) async fn build_gateway_with_registry(
     config: &Config,
-    registry: Arc<PendingRequestRegistry>,
+    pending_registry: Arc<PendingRequestRegistry>,
 ) -> Result<GatewayStartup> {
     let agents_config = match AgentsConfig::load(&config.maenifold_root) {
         Ok(config) => config,
         Err(error) => {
-            tracing::error!(err = %error, "gateway config load failed, starting without gateway");
-            return Ok(GatewayStartup::Disabled);
+            tracing::error!(err = %error, "gateway config load failed, starting degraded gateway");
+            return degraded_gateway(
+                config,
+                pending_registry,
+                format!("gateway config load failed: {error}"),
+                None,
+            )
+            .await;
         }
     };
     let gateway_servers: Vec<_> = agents_config
@@ -45,7 +46,7 @@ pub(super) async fn build_gateway_with_registry(
         .filter(|(_name, server)| server.is_gateway())
         .collect();
     if gateway_servers.is_empty() {
-        return native_only_gateway(config, registry).await;
+        return native_only_gateway(config, pending_registry).await;
     }
 
     let configs: Vec<GatewayServerConfig> = gateway_servers
@@ -95,7 +96,7 @@ pub(super) async fn build_gateway_with_registry(
         })
         .collect();
 
-    match StdioPool::start(configs, registry).await {
+    match StdioPool::start(configs, Arc::clone(&pending_registry)).await {
         Ok(pool) => {
             let pool = Arc::new(pool);
             if pool.all_gateway_tools().is_empty() {
@@ -104,82 +105,54 @@ pub(super) async fn build_gateway_with_registry(
                     gateway_servers.len()
                 );
                 tracing::error!(err = %message, "gateway startup produced no upstream tools");
-                return Ok(GatewayStartup::Failed {
-                    error: message,
-                    diagnostics: Some(pool),
-                });
+                return degraded_gateway(
+                    config,
+                    Arc::clone(&pending_registry),
+                    message,
+                    Some(pool),
+                )
+                .await;
             }
-            match tool_registry_tools() {
-                Ok(native_tools) => match build_consolidated_tools(pool.all_gateway_tools()) {
-                    Ok((consolidated_tools, passthrough_tools)) => {
-                        match ToolRoutingRegistry::build(&native_tools, pool.as_ref()) {
-                            Ok(registry) => {
-                                let resource_routing =
-                                    ResourceRoutingRegistry::build(pool.as_ref())?;
-                                let catalog = GatewayCatalog::build_with_upstream_descriptions(
-                                    &consolidated_tools,
-                                    &passthrough_tools,
-                                    &registry,
-                                    &pool.all_gateway_descriptions(),
-                                )?;
-                                resources::set_gateway_catalog(Arc::new(catalog.clone()));
-                                let counts = gateway_tool_counts(
-                                    &consolidated_tools,
-                                    &passthrough_tools,
-                                    &native_tools,
-                                );
-                                let total = counts.total;
-                                let facades = counts.facades;
-                                let passthrough = counts.passthrough;
-                                info!(
-                                    "Gateway tools: {total} total ({facades} facades, {passthrough} passthrough)"
-                                );
-                                if total > 50 {
-                                    warn!(
-                                        "Gateway exposes {total} tools — consider consolidation threshold"
-                                    );
-                                }
-                                Ok(GatewayStartup::Ready(Arc::new(GatewayState::new(
-                                    Arc::clone(&pool),
-                                    Arc::new(resource_routing),
-                                    catalog,
-                                    consolidated_tools,
-                                    config.settings.gateway.intent_resolver.clone(),
-                                    config.maenifold_root.clone(),
-                                ))))
-                            }
-                            Err(error) => {
-                                tracing::error!(
-                                    err = %error,
-                                    "gateway tool routing failed, starting without gateway"
-                                );
-                                Ok(GatewayStartup::Failed {
-                                    error: error.to_string(),
-                                    diagnostics: Some(Arc::clone(&pool)),
-                                })
-                            }
+            match GatewayRegistry::build(pool.all_gateway_tools(), &pool.all_gateway_descriptions())
+            {
+                Ok(registry) => {
+                    let resource_routing = match ResourceRoutingRegistry::build(pool.as_ref()) {
+                        Ok(routing) => routing,
+                        Err(error) => {
+                            return degraded_gateway(
+                                config,
+                                Arc::clone(&pending_registry),
+                                error.to_string(),
+                                Some(Arc::clone(&pool)),
+                            )
+                            .await;
                         }
-                    }
-                    Err(error) => {
-                        tracing::error!(
-                            err = %error,
-                            "gateway consolidation failed, starting without gateway"
-                        );
-                        Ok(GatewayStartup::Failed {
-                            error: error.to_string(),
-                            diagnostics: Some(Arc::clone(&pool)),
-                        })
-                    }
-                },
+                    };
+                    let domain_count = registry.domains().len();
+                    resources::set_gateway_registry(Arc::new(registry.clone()));
+                    info!(
+                        "Gateway registry indexed {domain_count} domains from native + upstream sources"
+                    );
+                    Ok(GatewayStartup::Ready(Arc::new(GatewayState::new(
+                        Arc::clone(&pool),
+                        Arc::new(resource_routing),
+                        registry,
+                        config.settings.gateway.intent_resolver.clone(),
+                        config.maenifold_root.clone(),
+                    ))))
+                }
                 Err(error) => {
                     tracing::error!(
                         err = %error,
-                        "native tool registry load failed, starting without gateway"
+                        "gateway registry build failed, starting without gateway"
                     );
-                    Ok(GatewayStartup::Failed {
-                        error: error.to_string(),
-                        diagnostics: Some(Arc::clone(&pool)),
-                    })
+                    degraded_gateway(
+                        config,
+                        Arc::clone(&pending_registry),
+                        error.to_string(),
+                        Some(Arc::clone(&pool)),
+                    )
+                    .await
                 }
             }
         }
@@ -188,10 +161,7 @@ pub(super) async fn build_gateway_with_registry(
                 err = %error,
                 "gateway pool startup failed, starting without gateway"
             );
-            Ok(GatewayStartup::Failed {
-                error: error.to_string(),
-                diagnostics: None,
-            })
+            degraded_gateway(config, pending_registry, error.to_string(), None).await
         }
     }
 }
@@ -201,27 +171,43 @@ async fn native_only_gateway(
     registry: Arc<PendingRequestRegistry>,
 ) -> Result<GatewayStartup> {
     let pool = Arc::new(StdioPool::start(Vec::<StdioServerConfig>::new(), registry).await?);
-    let native_tools = tool_registry_tools()?;
-    let routing = ToolRoutingRegistry::build(&native_tools, pool.as_ref())?;
     let resource_routing = ResourceRoutingRegistry::build(pool.as_ref())?;
-    let catalog = GatewayCatalog::build(&[], &[], &routing)?;
-    resources::set_gateway_catalog(Arc::new(catalog.clone()));
+    let registry = GatewayRegistry::build(Vec::new(), &pool.all_gateway_descriptions())?;
+    let domain_count = registry.domains().len();
+    resources::set_gateway_registry(Arc::new(registry.clone()));
     info!(
-        "Gateway tools: {} native commands indexed (no upstream servers configured)",
-        native_tools.len()
+        "Gateway registry indexed {domain_count} native domains (no upstream servers configured)"
     );
     Ok(GatewayStartup::Ready(Arc::new(GatewayState::new(
         pool,
         Arc::new(resource_routing),
-        catalog,
-        Vec::new(),
+        registry,
         config.settings.gateway.intent_resolver.clone(),
         config.maenifold_root.clone(),
     ))))
 }
 
-fn tool_registry_tools() -> Result<Vec<Tool>> {
-    Ok(MaenifoldHandler::new(TransportKind::Http)?.tools)
+async fn degraded_gateway(
+    config: &Config,
+    registry: Arc<PendingRequestRegistry>,
+    error: String,
+    diagnostics: Option<Arc<StdioPool>>,
+) -> Result<GatewayStartup> {
+    let pool = match diagnostics {
+        Some(pool) => pool,
+        None => Arc::new(StdioPool::start(Vec::<StdioServerConfig>::new(), registry).await?),
+    };
+    let gateway = Arc::new(GatewayState::degraded(
+        Arc::clone(&pool),
+        config.settings.gateway.intent_resolver.clone(),
+        config.maenifold_root.clone(),
+        error.clone(),
+    )?);
+    resources::set_gateway_registry(Arc::new(gateway.registry().clone()));
+    Ok(GatewayStartup::Failed {
+        gateway,
+        diagnostics: Some(pool),
+    })
 }
 
 #[cfg(test)]

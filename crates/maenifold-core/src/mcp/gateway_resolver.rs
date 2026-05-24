@@ -2,14 +2,14 @@
 
 use crate::acp_config::IntentResolverSettings;
 use crate::mcp::domain_mapping::SafetyClass;
-use crate::mcp::gateway_catalog::{CommandEntry, DomainEntry, GatewayCatalog};
+use crate::mcp::gateway_registry::{CommandEntry, DomainEntry, GatewayRegistry};
 use crate::mcp::gateway_resolver_types::{ResolverError, ResolverOutput, ResolverResult};
 use serde_json::{Value, json};
 
 const FALLBACK: &str = "Use GatewayIndex to inspect available domains and commands, then call GatewayExecute explicitly.";
 
 pub(crate) async fn resolve_intent(
-    _catalog: &GatewayCatalog,
+    _catalog: &GatewayRegistry,
     settings: &IntentResolverSettings,
     _user_intent: &str,
     _root: &std::path::Path,
@@ -25,7 +25,7 @@ pub(crate) async fn resolve_intent(
 }
 
 pub(crate) fn parse_and_validate_output(
-    catalog: &GatewayCatalog,
+    catalog: &GatewayRegistry,
     output: &str,
     max_candidates: Option<u32>,
 ) -> ResolverResult<ResolverOutput> {
@@ -69,7 +69,7 @@ pub(crate) fn parse_and_validate_output(
     Ok(parsed)
 }
 
-pub(crate) fn render_compact_catalog(catalog: &GatewayCatalog, max_chars: u32) -> String {
+pub(crate) fn render_compact_catalog(catalog: &GatewayRegistry, max_chars: u32) -> String {
     let domains = catalog_records(catalog, true, true, None);
     fit_catalog(domains, max_chars)
         .or_else(|| fit_catalog(catalog_records(catalog, false, true, None), max_chars))
@@ -84,7 +84,7 @@ pub(crate) fn render_compact_catalog(catalog: &GatewayCatalog, max_chars: u32) -
 }
 
 pub(crate) fn resolver_prompt(
-    catalog: &GatewayCatalog,
+    catalog: &GatewayRegistry,
     settings: &IntentResolverSettings,
     user_intent: &str,
 ) -> String {
@@ -107,7 +107,7 @@ pub(crate) fn resolver_prompt(
 }
 
 fn catalog_records(
-    catalog: &GatewayCatalog,
+    catalog: &GatewayRegistry,
     include_examples: bool,
     include_schema: bool,
     description_limit: Option<usize>,
@@ -129,7 +129,7 @@ fn catalog_records(
 }
 
 fn domain_record(
-    catalog: &GatewayCatalog,
+    catalog: &GatewayRegistry,
     domain: DomainEntry,
     include_examples: bool,
     include_schema: bool,

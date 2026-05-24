@@ -4,7 +4,7 @@ use crate::api::routes::{ApiState, api_routes};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::PendingRequestRegistry;
-use crate::mcp::gateway_handler::GatewayState;
+use crate::mcp::gateway_runtime::GatewayState;
 use crate::mcp::stdio_pool::StdioPool;
 use axum::Router;
 use axum::routing::{delete, get};
@@ -42,7 +42,6 @@ pub(super) fn service(
     cancellation_token: tokio_util::sync::CancellationToken,
     gateway: Option<Arc<GatewayState>>,
     gateway_diagnostics: Option<Arc<StdioPool>>,
-    gateway_startup_error: Option<String>,
 ) -> MaenifoldHttpService {
     let session_manager = Arc::new(NeverSessionManager::default());
 
@@ -55,9 +54,6 @@ pub(super) fn service(
             }
             if let Some(diagnostics) = gateway_diagnostics.as_ref() {
                 handler.set_gateway_diagnostics(diagnostics.clone());
-            }
-            if let Some(error) = gateway_startup_error.as_ref() {
-                handler.set_gateway_startup_error(error.clone());
             }
             Ok(handler)
         },
@@ -111,21 +107,21 @@ impl super::MaenifoldMcpServer {
         let user_prompt_registry = Arc::new(PendingRequestRegistry::new());
         let gateway_startup =
             build_gateway_with_registry(&config, Arc::clone(&user_prompt_registry)).await?;
-        let (gateway, gateway_startup_error, pool_for_api) = match gateway_startup {
-            GatewayStartup::Disabled => (None, None, None),
+        let (gateway, pool_for_api) = match gateway_startup {
             GatewayStartup::Ready(gateway) => {
                 let diagnostics_pool = Some(gateway.pool());
-                (Some(gateway), None, diagnostics_pool)
+                (Some(gateway), diagnostics_pool)
             }
-            GatewayStartup::Failed { error, diagnostics } => (None, Some(error), diagnostics),
+            GatewayStartup::Failed {
+                gateway,
+                diagnostics,
+            } => {
+                let diagnostics_pool = diagnostics.or_else(|| Some(gateway.pool()));
+                (Some(gateway), diagnostics_pool)
+            }
         };
         let router = router(
-            service(
-                shutdown_token.child_token(),
-                gateway,
-                pool_for_api.clone(),
-                gateway_startup_error,
-            ),
+            service(shutdown_token.child_token(), gateway, pool_for_api.clone()),
             ApiState::with_user_prompt_registry(
                 Config::current(),
                 pool_for_api,

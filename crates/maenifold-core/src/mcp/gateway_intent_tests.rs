@@ -1,14 +1,14 @@
 use super::domain_mapping::SafetyClass;
-use super::gateway_catalog::GatewayCatalog;
-use super::gateway_handler::GatewayState;
 use super::gateway_intent::{handle_gateway_intent, handle_resolved_intent, resolved_text};
 use super::gateway_resolver_types::{ResolverCandidate, ResolverOutput};
 use super::resource_routing::ResourceRoutingRegistry;
 use super::stdio_pool::StdioPool;
-use super::tool_routing::ToolRoutingRegistry;
 use crate::acp_config::IntentResolverSettings;
+use crate::mcp::gateway_registry::GatewayRegistry;
+use crate::mcp::gateway_runtime::GatewayState;
 use serde_json::{Value, json};
 use serial_test::serial;
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -66,17 +66,9 @@ async fn state(settings: IntentResolverSettings) -> GatewayState {
         .await
         .expect("empty pool"),
     );
-    let routing = ToolRoutingRegistry::build(&[], pool.as_ref()).expect("routing");
-    let catalog = GatewayCatalog::build(&[], &[], &routing).expect("catalog");
+    let registry = GatewayRegistry::build(Vec::new(), &BTreeMap::new()).expect("registry");
     let resources = Arc::new(ResourceRoutingRegistry::build(pool.as_ref()).expect("resources"));
-    GatewayState::new(
-        pool,
-        resources,
-        catalog,
-        vec![],
-        settings,
-        PathBuf::from("."),
-    )
+    GatewayState::new(pool, resources, registry, settings, PathBuf::from("."))
 }
 
 fn settings(auto: bool) -> IntentResolverSettings {
@@ -272,19 +264,42 @@ async fn read_safe_complete_draft_still_auto_executes() {
 }
 
 #[tokio::test]
-async fn gateway_intent_visible_when_enabled_without_agent() {
+async fn gateway_surface_always_exposes_exact_seven_public_tools() {
     let disabled = state(IntentResolverSettings::default()).await;
     let enabled = state(settings(true)).await;
-    assert!(
-        !disabled
-            .list_tools()
-            .iter()
-            .any(|tool| tool.name == "GatewayIntent")
+    assert_eq!(
+        exposed_public_surface(disabled).await,
+        expected_public_surface()
     );
-    assert!(
-        enabled
-            .list_tools()
-            .iter()
-            .any(|tool| tool.name == "GatewayIntent")
+    assert_eq!(
+        exposed_public_surface(enabled).await,
+        expected_public_surface()
     );
+}
+
+async fn exposed_public_surface(gateway: GatewayState) -> Vec<String> {
+    let mut names: Vec<String> = gateway
+        .list_tools()
+        .into_iter()
+        .map(|tool| tool.name.to_string())
+        .collect();
+    names.extend(
+        ["GetHelp", "ReadMcpResource", "complete_node"]
+            .into_iter()
+            .map(str::to_string),
+    );
+    names.sort();
+    names
+}
+
+fn expected_public_surface() -> Vec<String> {
+    vec![
+        "GatewayBatch".to_string(),
+        "GatewayExecute".to_string(),
+        "GatewayIndex".to_string(),
+        "GatewayIntent".to_string(),
+        "GetHelp".to_string(),
+        "ReadMcpResource".to_string(),
+        "complete_node".to_string(),
+    ]
 }

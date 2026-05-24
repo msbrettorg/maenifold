@@ -10,19 +10,8 @@ pub(crate) mod domain_mapping;
 mod elicitation_validation;
 pub(crate) mod gateway_batch;
 pub(crate) mod gateway_batch_types;
-pub(crate) mod gateway_catalog;
-#[cfg(test)]
-mod gateway_catalog_domain_tests;
-#[cfg(test)]
-mod gateway_catalog_gate_create_tests;
-mod gateway_catalog_render;
-#[cfg(test)]
-mod gateway_catalog_test_fixtures;
 mod gateway_cli;
-pub mod gateway_consolidation;
 mod gateway_direct_inference_resolver;
-pub mod gateway_dispatch;
-mod gateway_errors;
 #[cfg(test)]
 mod gateway_experiment;
 #[cfg(test)]
@@ -30,19 +19,15 @@ mod gateway_experiment_fixtures;
 #[cfg(test)]
 mod gateway_experiment_tests;
 mod gateway_gate;
-pub(crate) mod gateway_handler;
-#[cfg(test)]
-mod gateway_integration_tests;
 mod gateway_intent;
 #[cfg(test)]
 mod gateway_intent_tests;
-mod gateway_metadata;
-#[cfg(test)]
-mod gateway_metadata_tests;
+pub(crate) mod gateway_registry;
 mod gateway_resolver;
 #[cfg(test)]
 mod gateway_resolver_tests;
 mod gateway_resolver_types;
+pub(crate) mod gateway_runtime;
 mod gateway_schema_validation;
 mod gateway_session;
 mod gateway_startup;
@@ -77,13 +62,12 @@ pub mod stdio_session;
 mod stdio_session_ops;
 mod stdio_session_support;
 mod task_hooks;
-pub mod tool_routing;
 pub(crate) mod tool_utils;
 use crate::assets::AssetManager;
 use crate::config::Config;
 use crate::db::GraphDatabase;
 use crate::error::{MaenifoldError, Result};
-use crate::mcp::gateway_handler::GatewayState;
+use crate::mcp::gateway_runtime::GatewayState;
 use crate::registry::ToolRegistry;
 pub use client_handler::MaenifoldClient;
 pub(crate) use cors::localhost_cors;
@@ -107,7 +91,6 @@ struct MaenifoldHandler {
     tools: Vec<Tool>,
     gateway: Option<Arc<GatewayState>>,
     gateway_diagnostics: Option<Arc<crate::mcp::stdio_pool::StdioPool>>,
-    gateway_startup_error: Option<String>,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum TransportKind {
@@ -133,7 +116,6 @@ impl MaenifoldHandler {
             tools,
             gateway: None,
             gateway_diagnostics: None,
-            gateway_startup_error: None,
         })
     }
     fn set_gateway(&mut self, gateway: Arc<GatewayState>) {
@@ -141,9 +123,6 @@ impl MaenifoldHandler {
     }
     fn set_gateway_diagnostics(&mut self, diagnostics: Arc<crate::mcp::stdio_pool::StdioPool>) {
         self.gateway_diagnostics = Some(diagnostics);
-    }
-    fn set_gateway_startup_error(&mut self, error: String) {
-        self.gateway_startup_error = Some(error);
     }
 }
 impl MaenifoldMcpServer {
@@ -153,7 +132,29 @@ impl MaenifoldMcpServer {
     pub async fn serve_stdio(shutdown: CancellationToken) -> Result<()> {
         let config = Config::current();
         initialize_runtime(&config)?;
-        let handler = MaenifoldHandler::new(TransportKind::Stdio)?;
+        let pending_registry = Arc::new(PendingRequestRegistry::new());
+        let gateway_startup =
+            self::gateway_startup::build_gateway_with_registry(&config, pending_registry).await?;
+        let (gateway, gateway_diagnostics) = match gateway_startup {
+            self::gateway_startup::GatewayStartup::Ready(gateway) => {
+                let diagnostics = Some(gateway.pool());
+                (Some(gateway), diagnostics)
+            }
+            self::gateway_startup::GatewayStartup::Failed {
+                gateway,
+                diagnostics,
+            } => {
+                let diagnostics = diagnostics.or_else(|| Some(gateway.pool()));
+                (Some(gateway), diagnostics)
+            }
+        };
+        let mut handler = MaenifoldHandler::new(TransportKind::Stdio)?;
+        if let Some(gateway) = gateway {
+            handler.set_gateway(gateway);
+        }
+        if let Some(diagnostics) = gateway_diagnostics {
+            handler.set_gateway_diagnostics(diagnostics);
+        }
         let transport = rmcp::transport::io::stdio();
         let service = handler
             .serve(transport)

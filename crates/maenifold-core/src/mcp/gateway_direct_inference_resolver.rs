@@ -11,14 +11,14 @@ use std::time::Duration;
 use serde_json::{Value, json};
 
 use crate::acp_config::{IntentResolverSettings, ResolvedInference};
-use crate::mcp::gateway_catalog::GatewayCatalog;
+use crate::mcp::gateway_registry::GatewayRegistry;
 use crate::mcp::gateway_resolver::{fallback, parse_and_validate_output, resolver_prompt};
 use crate::mcp::gateway_resolver_types::{ResolverError, ResolverOutput, ResolverResult};
 
 const DEFAULT_TIMEOUT_SECONDS: u64 = 30;
 
 pub(crate) async fn resolve_intent_with_direct_inference(
-    catalog: &GatewayCatalog,
+    catalog: &GatewayRegistry,
     settings: &IntentResolverSettings,
     user_intent: &str,
 ) -> ResolverResult<ResolverOutput> {

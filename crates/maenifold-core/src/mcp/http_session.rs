@@ -1,7 +1,6 @@
 use crate::error::{GATEWAY_TIMEOUT_ERROR, JSONRPC_INTERNAL_ERROR, MaenifoldError, Result};
 use crate::mcp::MaenifoldClient;
 use crate::mcp::PendingRequestRegistry;
-use crate::mcp::gateway_metadata;
 use rmcp::{
     Peer, RoleClient, ServiceExt,
     model::{
@@ -106,7 +105,9 @@ impl HttpSession {
             peer,
             tools: tools.into(),
             prompts: prompts.into(),
-            initialize_description: gateway_metadata::upstream_initialize_description(&server_info),
+            initialize_description: crate::mcp::gateway_registry::upstream_initialize_description(
+                &server_info,
+            ),
             call_timeout: config.timeout,
             server_name: config.name.clone(),
             dead: AtomicBool::new(false),

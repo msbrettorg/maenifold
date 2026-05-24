@@ -37,14 +37,14 @@ impl ServerHandler for MaenifoldHandler {
         let domains = self
             .gateway
             .as_ref()
-            .map(|gateway| gateway.catalog.domains())
+            .map(|gateway| gateway.registry().domains())
             .unwrap_or_default();
         ServerInfo::new(capabilities)
             .with_server_info(
                 Implementation::new("maenifold", env!("CARGO_PKG_VERSION"))
-                    .with_description(gateway_metadata::server_description(&domains)),
+                    .with_description(crate::mcp::gateway_registry::server_description(&domains)),
             )
-            .with_instructions(gateway_metadata::server_instructions(&domains))
+            .with_instructions(crate::mcp::gateway_registry::server_instructions(&domains))
     }
     fn list_tools(
         &self,
@@ -52,12 +52,6 @@ impl ServerHandler for MaenifoldHandler {
         _context: rmcp::service::RequestContext<rmcp::RoleServer>,
     ) -> impl Future<Output = std::result::Result<ListToolsResult, rmcp::ErrorData>> + Send + '_
     {
-        if let Some(error) = &self.gateway_startup_error {
-            return std::future::ready(Err(rmcp::ErrorData::internal_error(
-                format!("Gateway startup failed: {error}"),
-                None,
-            )));
-        }
         let mut tools = if let Some(gateway) = &self.gateway {
             let mut tools: Vec<Tool> = self
                 .tools

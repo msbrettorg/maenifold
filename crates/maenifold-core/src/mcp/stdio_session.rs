@@ -1,7 +1,6 @@
 use crate::error::MaenifoldError;
 use crate::mcp::MaenifoldClient;
 use crate::mcp::PendingRequestRegistry;
-use crate::mcp::gateway_metadata;
 use crate::mcp::stdio_session_support::{
     collect_failure_stderr, lock_std, map_service_error, spawn, to_message_error,
 };
@@ -177,7 +176,9 @@ impl StdioSession {
             stderr,
             tools: tools.into(),
             prompts: prompts.into(),
-            initialize_description: gateway_metadata::upstream_initialize_description(&server_info),
+            initialize_description: crate::mcp::gateway_registry::upstream_initialize_description(
+                &server_info,
+            ),
             call_timeout,
             server_name: entry.name.to_string(),
             process_group_id,

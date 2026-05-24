@@ -1,11 +1,10 @@
-use super::gateway_catalog::GatewayCatalog;
-use super::gateway_handler::GatewayState;
+use super::gateway_runtime::GatewayState;
 use super::gateway_tasks::{DOMAIN_NAME, invoke_tasks};
 use super::resource_routing::ResourceRoutingRegistry;
 use super::stdio_pool::StdioPool;
-use super::tool_routing::ToolRoutingRegistry;
 use crate::acp_config::IntentResolverSettings;
 use crate::config::Config;
+use crate::mcp::gateway_registry::GatewayRegistry;
 use crate::test_util::ConfigResetGuard;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
@@ -13,6 +12,7 @@ use crate::workflow::pipeline::persist_final_pipeline_status;
 use rmcp::model::CallToolResult;
 use serde_json::{Value, json};
 use serial_test::serial;
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -84,14 +84,12 @@ async fn state() -> GatewayState {
         .await
         .expect("pool"),
     );
-    let routing = ToolRoutingRegistry::build(&[], pool.as_ref()).expect("routing");
-    let catalog = GatewayCatalog::build(&[], &[], &routing).expect("catalog");
+    let registry = GatewayRegistry::build(Vec::new(), &BTreeMap::new()).expect("registry");
     let resources = Arc::new(ResourceRoutingRegistry::build(pool.as_ref()).expect("resources"));
     GatewayState::new(
         pool,
         resources,
-        catalog,
-        vec![],
+        registry,
         IntentResolverSettings::default(),
         PathBuf::from("."),
     )
@@ -220,16 +218,19 @@ async fn task_list_returns_empty_for_empty_root() {
 }
 
 #[tokio::test]
-async fn gateway_catalog_lists_maenifold_tasks_domain_with_5_commands() {
+async fn gateway_registry_lists_maenifold_tasks_domain_with_5_commands() {
     let state = state().await;
-    let commands = state.catalog.commands(DOMAIN_NAME).expect("tasks domain");
+    let commands = state
+        .registry()
+        .commands(DOMAIN_NAME)
+        .expect("tasks domain");
     assert_eq!(commands.len(), 5);
     assert!(commands.iter().any(|command| command.name == "TaskCreate"));
 }
 
 #[tokio::test]
 #[serial]
-async fn gateway_dispatch_routes_task_create_to_invoke_tasks() {
+async fn gateway_execute_routes_task_create_to_invoke_tasks() {
     let (_tmp, _guard, _context) = setup();
     let state = state().await;
     let previous = std::env::var("MAENIFOLD_PIPELINE_DRIVER").ok();

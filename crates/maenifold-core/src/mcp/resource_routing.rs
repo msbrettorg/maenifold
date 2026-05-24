@@ -11,12 +11,23 @@ pub(crate) struct ResourceRoutingRegistry {
 }
 
 impl ResourceRoutingRegistry {
+    pub(crate) fn empty() -> Self {
+        Self {
+            routes: HashMap::new(),
+            gateway_resources: Vec::new(),
+        }
+    }
+
     pub(crate) fn build(pool: &StdioPool) -> Result<Self> {
         Self::build_from_tool_sources(pool.all_gateway_tools())
     }
 
     pub(crate) fn lookup(&self, uri: &str) -> Option<&str> {
         self.routes.get(uri).map(String::as_str)
+    }
+
+    pub(crate) fn owns(&self, uri: &str) -> bool {
+        self.routes.contains_key(uri)
     }
 
     pub(crate) fn gateway_resources(&self) -> &[Resource] {

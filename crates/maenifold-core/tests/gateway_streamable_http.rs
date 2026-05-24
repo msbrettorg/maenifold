@@ -1,8 +1,8 @@
 mod common;
 
 use common::gateway_http::{
-    TestServer, error_tool, gateway_config, initialize, ok_tool, result_text, rpc, stdio_server,
-    stdio_server_with_metadata, tool_names, ui_tool,
+    TestServer, broken_server, error_tool, gateway_config, initialize, ok_tool, result_text, rpc,
+    stdio_server, stdio_server_with_metadata, tool_names, ui_tool,
 };
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde_json::{Value, json};
@@ -72,6 +72,7 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
             "GatewayBatch",
             "GatewayExecute",
             "GatewayIndex",
+            "GatewayIntent",
             "GetHelp",
             "ReadMcpResource",
             "complete_node",
@@ -199,6 +200,18 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
         resource["result"]["contents"][0]["text"],
         "<section>big dashboard</section>"
     );
+    let public_resource = rpc(
+        &server,
+        "tools/call",
+        json!({"name":"ReadMcpResource","arguments":{"uri":"ui://big-server/dashboard"}}),
+        None,
+    )
+    .await;
+    assert!(
+        result_text(&public_resource).contains("<section>big dashboard</section>"),
+        "{}",
+        result_text(&public_resource)
+    );
 
     let mut stale_headers = HeaderMap::new();
     stale_headers.insert(
@@ -226,6 +239,72 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
     assert_eq!(
         upstream_error["error"]["data"],
         json!({"detail":"passthrough boom"})
+    );
+
+    server.stop().await;
+}
+
+#[tokio::test]
+#[serial]
+async fn streamable_http_gateway_startup_failure_keeps_public_surface_and_diagnostics() {
+    let server = TestServer::start(gateway_config(vec![broken_server("broken-server")])).await;
+
+    initialize(&server).await;
+    let list = rpc(&server, "tools/list", Value::Null, None).await;
+    let names = tool_names(&list);
+    assert_tool_names(
+        &names,
+        &[
+            "GatewayBatch",
+            "GatewayExecute",
+            "GatewayIndex",
+            "GatewayIntent",
+            "GetHelp",
+            "ReadMcpResource",
+            "complete_node",
+        ],
+    );
+
+    let index = rpc(
+        &server,
+        "tools/call",
+        json!({"name":"GatewayIndex","arguments":{}}),
+        None,
+    )
+    .await;
+    let index_text = result_text(&index);
+    assert!(
+        index_text.contains("\"gatewayStatus\": \"degraded\""),
+        "{index_text}"
+    );
+    assert!(
+        index_text.contains("started degraded or exposed no tools")
+            || index_text.contains("gateway startup failed"),
+        "{index_text}"
+    );
+
+    let intent = rpc(
+        &server,
+        "tools/call",
+        json!({"name":"GatewayIntent","arguments":{"intent":"inspect gateway"}}),
+        None,
+    )
+    .await;
+    let intent_text = result_text(&intent);
+    assert!(intent_text.contains("\"status\""), "{intent_text}");
+    assert!(intent_text.contains("GatewayIndex"), "{intent_text}");
+
+    let diagnostics = rpc(
+        &server,
+        "tools/call",
+        json!({"name":"ReadMcpResource","arguments":{"uri":"gateway://diagnostics"}}),
+        None,
+    )
+    .await;
+    let diagnostics_text = result_text(&diagnostics);
+    assert!(
+        diagnostics_text.contains("broken-server") && diagnostics_text.contains("failed"),
+        "{diagnostics_text}"
     );
 
     server.stop().await;

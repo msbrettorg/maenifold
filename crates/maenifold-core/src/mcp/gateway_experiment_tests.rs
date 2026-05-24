@@ -1,14 +1,13 @@
 use super::domain_mapping::SafetyClass;
-use super::gateway_catalog::GatewayCatalog;
 use super::gateway_experiment::{
     ExperimentReport, LEVELS, LevelReport, score_fixture, write_report,
 };
 use super::gateway_experiment_fixtures::{FIXTURES, FixtureCategory};
+use super::gateway_registry::GatewayRegistry;
 use super::gateway_resolver_types::{ResolverCandidate, ResolverOutput};
-use super::stdio_pool::StdioPool;
-use super::tool_routing::ToolRoutingRegistry;
 use crate::acp_config::IntentResolverSettings;
 use serde_json::Map;
+use std::collections::BTreeMap;
 
 #[test]
 fn fixture_set_has_required_shape() {
@@ -138,13 +137,6 @@ fn candidate(
     }
 }
 
-async fn experiment_catalog() -> GatewayCatalog {
-    let pool = StdioPool::start(
-        Vec::<crate::mcp::gateway_session::GatewayServerConfig>::new(),
-        std::sync::Arc::new(crate::mcp::PendingRequestRegistry::new()),
-    )
-    .await
-    .expect("pool");
-    let routing = ToolRoutingRegistry::build(&[], &pool).expect("routing");
-    GatewayCatalog::build(&[], &[], &routing).expect("catalog builds")
+async fn experiment_catalog() -> GatewayRegistry {
+    GatewayRegistry::build(Vec::new(), &BTreeMap::new()).expect("catalog builds")
 }

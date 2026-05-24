@@ -264,7 +264,7 @@ async fn drop_gateway_native_wait_observes_request_cancel() {
     seed_active(&context, session_id);
 
     let request = tokio::spawn(async move {
-        let _ = crate::mcp::gateway_handler::invoke_native(
+        let _ = crate::mcp::gateway_runtime::invoke_native(
             "Pipeline".to_string(),
             json!({ "sessionId": session_id, "wait": true }),
         )

@@ -98,19 +98,19 @@ pub(super) async fn handle_read_resource(
 }
 
 fn handle_catalog_read(uri: &str) -> Result<ReadResourceResult> {
-    let value = if let Some(catalog) = super::gateway_catalog() {
+    let value = if let Some(registry) = super::gateway_registry() {
         if uri == GATEWAY_DOMAINS_URI {
-            json!({ "domains": catalog.domains() })
+            json!({ "domains": registry.domains() })
         } else if uri == GATEWAY_EXAMPLES_URI {
-            catalog.render_index(None, None, false, true)?
+            registry.render_index(None, None, false, true)?
         } else if let Some((domain, command)) = parse_command_uri(uri)? {
-            catalog
+            registry
                 .render_index(Some(domain), Some(command), true, false)
                 .map_err(|_| not_found(uri))?
         } else if let Some(domain) = parse_domain_commands_uri(uri)? {
-            json!({ "domain": domain, "commands": catalog.commands(domain).map_err(|_| not_found(uri))? })
+            json!({ "domain": domain, "commands": registry.commands(domain).map_err(|_| not_found(uri))? })
         } else if let Some(domain) = parse_domain_uri(uri)? {
-            catalog
+            registry
                 .render_index(Some(domain), None, false, false)
                 .map_err(|_| not_found(uri))?
         } else {

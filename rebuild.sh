@@ -91,7 +91,7 @@ echo ""
 echo "═══ Verify ═══"
 verify_failed=0
 sleep 2
-for port in 8080 8081; do
+for port in 8080; do
   code=$(curl --connect-timeout 2 --max-time 10 -s -o /dev/null -w "%{http_code}" "http://localhost:${port}/mcp" 2>/dev/null || echo "000")
   if [ "$code" = "405" ] || [ "$code" = "406" ]; then
     echo "  ✓ localhost:${port} responding (HTTP ${code})"

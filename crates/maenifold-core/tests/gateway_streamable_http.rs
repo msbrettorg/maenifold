@@ -37,6 +37,47 @@ async fn gateway_execute_reports_wrong_type_for_native_param() {
 }
 
 #[tokio::test]
+async fn gateway_execute_schedule_missing_action_returns_nudge() {
+    let server = TestServer::start(gateway_config(vec![])).await;
+    let response = rpc(
+        &server,
+        "tools/call",
+        json!({
+            "name": "GatewayExecute",
+            "arguments": {
+                "domain": "maenifold.system",
+                "command": "Schedule",
+                "parameters": {}
+            }
+        }),
+        None,
+    )
+    .await;
+    let text = result_text(&response);
+    let content = response["result"]["content"]
+        .as_array()
+        .expect("content should be an array");
+    assert!(!content.is_empty(), "content array should be non-empty");
+    let first = &content[0];
+
+    assert_eq!(
+        response["result"]["isError"], true,
+        "validation failure must be CallToolResult.isError=true, not JSON-RPC error envelope"
+    );
+    assert_eq!(first["type"], "text", "content[0].type should be \"text\"");
+    assert!(
+        first["text"].is_string(),
+        "content[0].text should be a string"
+    );
+    assert!(
+        text.contains("Required property 'action'")
+            || text.contains("anyOf")
+            || text.contains("action"),
+        "empty Schedule payload must be rejected with a discoverable error: got {text}"
+    );
+}
+
+#[tokio::test]
 #[serial]
 async fn gateway_batch_rejects_malformed_gate_item_before_execution() {
     let server = TestServer::start(gateway_config(vec![])).await;

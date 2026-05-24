@@ -88,9 +88,12 @@ fn write_pipeline_session(config: &Config, session_id: &str, workflow_id: &str) 
             retry_policy: None,
             session_ref: None,
             join_policy: None,
+            input_schema: None,
+            output_schema: None,
         }],
         edges: Vec::new(),
         inputs: None,
+        input_schema: None,
         template_id: None,
     };
     let node_states = HashMap::from([(
@@ -108,6 +111,8 @@ fn write_pipeline_session(config: &Config, session_id: &str, workflow_id: &str) 
             output_tokens: None,
             model: None,
             output: None,
+            input_artifact: None,
+            output_artifact: None,
             failure_reason: Some(
                 "preflight env validation failed for agent 'misconfigured-agent': MISSING_API_KEY from /nonexistent/path/that/will/never/exist (file not found)".to_string(),
             ),

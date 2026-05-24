@@ -117,6 +117,8 @@ mod tests {
                 output_tokens: None,
                 model: None,
                 output: None,
+                input_artifact: None,
+                output_artifact: None,
                 failure_reason: Some(
                     "preflight env validation failed for agent 'codex': API_KEY from /missing (missing)"
                         .to_string(),

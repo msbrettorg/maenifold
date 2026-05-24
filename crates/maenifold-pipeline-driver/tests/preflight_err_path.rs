@@ -76,6 +76,8 @@ fn write_pipeline_with_preflight_failure(config: &Config, session_id: &str, work
             output_tokens: None,
             model: None,
             output: None,
+            input_artifact: None,
+            output_artifact: None,
             failure_reason: Some(
                 "preflight env validation failed for agent 'misconfigured-agent': MISSING_API_KEY from /nonexistent/path (file not found)".to_string(),
             ),

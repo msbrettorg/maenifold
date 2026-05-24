@@ -111,6 +111,20 @@ async fn wrong_domain_command_error_suggests_correct_domain_and_available_comman
 }
 
 #[tokio::test]
+async fn unknown_domain_error_lists_valid_domains_sorted() {
+    let catalog = native_catalog().await;
+    let error = catalog
+        .resolve("maenifold.nope", "Foo")
+        .expect_err("nope is not a real domain");
+    let text = error.to_string();
+    assert!(text.contains("Unknown gateway domain 'maenifold.nope'."));
+    assert!(text.contains(" Available domains: "));
+    let memory_idx = text.find("maenifold.memory").expect("memory listed");
+    let system_idx = text.find("maenifold.system").expect("system listed");
+    assert!(memory_idx < system_idx, "domains not sorted: {text}");
+}
+
+#[tokio::test]
 async fn get_help_is_not_routed_but_remains_in_gateway_active_surface() {
     let catalog = native_catalog().await;
     assert_eq!(tool_domain("GetHelp"), None);

@@ -3,6 +3,7 @@ use crate::config::Config;
 use crate::db::{GraphDatabase, open_connection};
 use crate::mcp::schema::{EmbeddingModelsAction, EmbeddingModelsParams};
 use crate::util::json::OutputFormat;
+use serial_test::serial;
 
 struct ResetConfigOverrides;
 
@@ -13,6 +14,7 @@ impl Drop for ResetConfigOverrides {
 }
 
 #[test]
+#[serial]
 fn activate_clears_vec0_tables_after_loading_extension() {
     let temp = tempfile::TempDir::new().expect("temp dir");
     let _reset = ResetConfigOverrides;

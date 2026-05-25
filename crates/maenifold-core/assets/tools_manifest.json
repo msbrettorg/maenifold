@@ -951,6 +951,11 @@
                               "description": "New node identifier",
                               "type": "string"
                             },
+                            "inputSchema": {
+                              "additionalProperties": true,
+                              "description": "Optional JSON Schema describing the node input artifact",
+                              "type": "object"
+                            },
                             "joinPolicy": {
                               "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
                               "enum": [
@@ -959,6 +964,11 @@
                                 "first"
                               ],
                               "type": "string"
+                            },
+                            "outputSchema": {
+                              "additionalProperties": true,
+                              "description": "Optional JSON Schema for structured node output",
+                              "type": "object"
                             },
                             "prompt": {
                               "description": "Optional prompt for workflow nodes",
@@ -1084,6 +1094,11 @@
                               "description": "New node identifier",
                               "type": "string"
                             },
+                            "inputSchema": {
+                              "additionalProperties": true,
+                              "description": "Optional JSON Schema describing the node input artifact",
+                              "type": "object"
+                            },
                             "joinPolicy": {
                               "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
                               "enum": [
@@ -1102,6 +1117,11 @@
                             "model": {
                               "description": "Model override for prompt nodes",
                               "type": "string"
+                            },
+                            "outputSchema": {
+                              "additionalProperties": true,
+                              "description": "Optional JSON Schema for structured node output",
+                              "type": "object"
                             },
                             "prompt": {
                               "description": "Prompt text for prompt nodes",
@@ -1232,6 +1252,11 @@
                               "description": "New node identifier",
                               "type": "string"
                             },
+                            "inputSchema": {
+                              "additionalProperties": true,
+                              "description": "Optional JSON Schema describing the node input artifact",
+                              "type": "object"
+                            },
                             "joinPolicy": {
                               "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
                               "enum": [
@@ -1250,6 +1275,11 @@
                             "model": {
                               "description": "Model override for sequential thinking nodes",
                               "type": "string"
+                            },
+                            "outputSchema": {
+                              "additionalProperties": true,
+                              "description": "Optional JSON Schema for structured node output",
+                              "type": "object"
                             },
                             "requiresRole": {
                               "description": "Optional required role identifier for adopt validation",
@@ -1364,6 +1394,11 @@
                               "description": "New node identifier",
                               "type": "string"
                             },
+                            "inputSchema": {
+                              "additionalProperties": true,
+                              "description": "Optional JSON Schema describing the node input artifact",
+                              "type": "object"
+                            },
                             "joinPolicy": {
                               "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
                               "enum": [
@@ -1382,6 +1417,11 @@
                             "model": {
                               "description": "Model override for tool nodes",
                               "type": "string"
+                            },
+                            "outputSchema": {
+                              "additionalProperties": true,
+                              "description": "Optional JSON Schema for structured node output",
+                              "type": "object"
                             },
                             "retryBackoffMaxMs": {
                               "description": "Optional maximum retry backoff in milliseconds",
@@ -1641,6 +1681,11 @@
                               "description": "New node identifier",
                               "type": "string"
                             },
+                            "inputSchema": {
+                              "additionalProperties": true,
+                              "description": "Optional JSON Schema describing the node input artifact",
+                              "type": "object"
+                            },
                             "joinPolicy": {
                               "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
                               "enum": [
@@ -1649,6 +1694,11 @@
                                 "first"
                               ],
                               "type": "string"
+                            },
+                            "outputSchema": {
+                              "additionalProperties": true,
+                              "description": "Optional JSON Schema for structured node output",
+                              "type": "object"
                             },
                             "prompt": {
                               "description": "Optional prompt for workflow nodes",
@@ -1774,6 +1824,11 @@
                               "description": "New node identifier",
                               "type": "string"
                             },
+                            "inputSchema": {
+                              "additionalProperties": true,
+                              "description": "Optional JSON Schema describing the node input artifact",
+                              "type": "object"
+                            },
                             "joinPolicy": {
                               "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
                               "enum": [
@@ -1792,6 +1847,11 @@
                             "model": {
                               "description": "Model override for prompt nodes",
                               "type": "string"
+                            },
+                            "outputSchema": {
+                              "additionalProperties": true,
+                              "description": "Optional JSON Schema for structured node output",
+                              "type": "object"
                             },
                             "prompt": {
                               "description": "Prompt text for prompt nodes",
@@ -1922,6 +1982,11 @@
                               "description": "New node identifier",
                               "type": "string"
                             },
+                            "inputSchema": {
+                              "additionalProperties": true,
+                              "description": "Optional JSON Schema describing the node input artifact",
+                              "type": "object"
+                            },
                             "joinPolicy": {
                               "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
                               "enum": [
@@ -1940,6 +2005,11 @@
                             "model": {
                               "description": "Model override for sequential thinking nodes",
                               "type": "string"
+                            },
+                            "outputSchema": {
+                              "additionalProperties": true,
+                              "description": "Optional JSON Schema for structured node output",
+                              "type": "object"
                             },
                             "requiresRole": {
                               "description": "Optional required role identifier for adopt validation",
@@ -2054,6 +2124,11 @@
                               "description": "New node identifier",
                               "type": "string"
                             },
+                            "inputSchema": {
+                              "additionalProperties": true,
+                              "description": "Optional JSON Schema describing the node input artifact",
+                              "type": "object"
+                            },
                             "joinPolicy": {
                               "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
                               "enum": [
@@ -2072,6 +2147,11 @@
                             "model": {
                               "description": "Model override for tool nodes",
                               "type": "string"
+                            },
+                            "outputSchema": {
+                              "additionalProperties": true,
+                              "description": "Optional JSON Schema for structured node output",
+                              "type": "object"
                             },
                             "retryBackoffMaxMs": {
                               "description": "Optional maximum retry backoff in milliseconds",

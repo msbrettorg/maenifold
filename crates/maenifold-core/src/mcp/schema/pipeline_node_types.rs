@@ -46,6 +46,10 @@ pub struct PipelineWorkflowNodeSchema {
     /// Fan-in join policy.
     #[serde(default)]
     pub join_policy: Option<PipelineJoinPolicySchema>,
+    #[serde(default)]
+    pub input_schema: Option<Value>,
+    #[serde(default)]
+    pub output_schema: Option<Value>,
     /// Optional required role identifier for adopt validation
     #[serde(default)]
     pub requires_role: Option<String>,
@@ -105,6 +109,10 @@ pub struct PipelinePromptNodeSchema {
     /// Fan-in join policy.
     #[serde(default)]
     pub join_policy: Option<PipelineJoinPolicySchema>,
+    #[serde(default)]
+    pub input_schema: Option<Value>,
+    #[serde(default)]
+    pub output_schema: Option<Value>,
     /// Optional required role identifier for adopt validation
     #[serde(default)]
     pub requires_role: Option<String>,
@@ -178,6 +186,10 @@ pub struct PipelineSequentialThinkingNodeSchema {
     /// Fan-in join policy.
     #[serde(default)]
     pub join_policy: Option<PipelineJoinPolicySchema>,
+    #[serde(default)]
+    pub input_schema: Option<Value>,
+    #[serde(default)]
+    pub output_schema: Option<Value>,
     /// Optional required role identifier for adopt validation
     #[serde(default)]
     pub requires_role: Option<String>,
@@ -241,6 +253,10 @@ pub struct PipelineToolNodeSchema {
     /// Fan-in join policy.
     #[serde(default)]
     pub join_policy: Option<PipelineJoinPolicySchema>,
+    #[serde(default)]
+    pub input_schema: Option<Value>,
+    #[serde(default)]
+    pub output_schema: Option<Value>,
     /// Model override for tool nodes
     #[serde(default)]
     pub model: Option<String>,

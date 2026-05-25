@@ -4,6 +4,7 @@ use serde_json::{Value as JsonValue, json};
 
 use crate::{error::Result, tools::ToolContext, util::json::OutputFormat};
 
+use super::super::runner::ThinkResult;
 use super::executor_apply::apply_node_outcome;
 use super::executor_helpers::DispatchedNode;
 use super::executor_nodes::{NodeExecutionRequest, build_node_execution_request};
@@ -31,6 +32,13 @@ fn schema_prompt(id: &str) -> PipelineNode {
     schema_node(json!({
         "type":"prompt","id":id,"prompt":"return verdict","agent":"copilot",
         "model":"test-model","outputSchema":output_schema()
+    }))
+}
+
+fn schema_thinking(id: &str) -> PipelineNode {
+    schema_node(json!({
+        "type":"sequentialThinking","id":id,"topic":"decide","agent":"copilot",
+        "totalThoughts":2,"model":"test-model","outputSchema":output_schema()
     }))
 }
 
@@ -282,6 +290,57 @@ fn repair_turn_fires_once_when_no_complete_node_call_made() {
         Some(&json!(1)),
         "schema nodes must dispatch exactly one repair turn"
     );
+}
+
+#[test]
+fn sequential_output_schema_dispatch_advertises_complete_node() {
+    let NodeExecutionRequest::SequentialThinking { session_config, .. } =
+        build_request_for(&schema_thinking("thinking"))
+    else {
+        panic!("schema thinking node should build a thinking execution request");
+    };
+    assert_eq!(session_config.output_schema, Some(output_schema()));
+    assert!(
+        session_config
+            .allowed_tools
+            .as_deref()
+            .is_some_and(|tools| tools.iter().any(|tool| tool == "complete_node")),
+        "sequential output_schema dispatch must advertise complete_node"
+    );
+}
+
+#[test]
+fn sequential_complete_node_conclusion_stores_output_artifact() {
+    let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+    let session_id = "pipeline-sequential-schema-complete-node";
+    let def = definition(vec![schema_thinking("thinking")], vec![]);
+    seed_pipeline_session_with_node_sessions(
+        &context,
+        session_id,
+        def,
+        HashMap::from([(
+            "thinking".to_string(),
+            node_state("thinking", NodeStatus::Active, None),
+        )]),
+        1,
+    );
+
+    let outcome = classify_node_result(
+        "thinking",
+        NodeTaskResult::SequentialThinking(Ok(ThinkResult {
+            session_id: "thinking-session-1".to_string(),
+            acp_session_id: Some("acp-thinking-1".to_string()),
+            conclusion: Some(r#"{"verdict":"PASS"}"#.to_string()),
+            thoughts_completed: 1,
+        })),
+    );
+    let mut counts = ExecutionCounts::default();
+    apply_node_outcome(&context, session_id, "thinking", outcome, &mut counts)
+        .expect("complete_node conclusion should populate thinking output artifact");
+
+    let state = &node_states_from_session(&context, session_id)["thinking"];
+    assert_eq!(state.status, NodeStatus::Completed);
+    assert_eq!(state.output_artifact, Some(json!({"verdict":"PASS"})));
 }
 
 #[test]

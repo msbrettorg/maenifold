@@ -5,7 +5,10 @@
 // `node_adopt_schema()` helpers live in `pipeline_node_schema.rs` and are
 // exported as `pub(super)` so each variant can compose them inline.
 
-use super::pipeline_node_schema::{agent_config_schema, join_policy_schema, node_adopt_schema};
+use super::pipeline_node_schema::{
+    agent_config_schema, input_schema_schema, join_policy_schema, node_adopt_schema,
+    output_schema_schema,
+};
 use serde_json::{Value, json};
 
 pub(super) fn workflow_variant_schema() -> Value {
@@ -39,6 +42,8 @@ pub(super) fn workflow_variant_schema() -> Value {
                     },
                     "adopt": node_adopt_schema(),
                     "joinPolicy": join_policy_schema(),
+                    "inputSchema": input_schema_schema(),
+                    "outputSchema": output_schema_schema(),
                     "requiresRole": {
                         "type": "string",
                         "description": "Optional required role identifier for adopt validation"
@@ -114,6 +119,8 @@ pub(super) fn prompt_variant_schema() -> Value {
                     },
                     "adopt": node_adopt_schema(),
                     "joinPolicy": join_policy_schema(),
+                    "inputSchema": input_schema_schema(),
+                    "outputSchema": output_schema_schema(),
                     "requiresRole": {
                         "type": "string",
                         "description": "Optional required role identifier for adopt validation"

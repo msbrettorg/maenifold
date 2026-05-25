@@ -187,17 +187,27 @@ pub(crate) async fn drive_think_session_with_driver(
             .map(|blocks| prompt_with_embedded_context(&prompt, blocks))
             .unwrap_or(prompt);
         let response = driver.prompt(&prompt).await;
-        let response_text = normalize_think_prompt_response(response)?;
-        let done = is_completion_response(&response_text)
+        let normalized = normalize_think_prompt_response(response)?;
+        let done = normalized.conclusion.is_some()
+            || is_completion_response(&normalized.response)
             || thought_number >= opts.total_thoughts.saturating_add(3);
+        let conclusion = if done {
+            normalized
+                .conclusion
+                .as_deref()
+                .unwrap_or(&normalized.response)
+        } else {
+            ""
+        };
         let _: Value = think_call(
             &json_context,
             &think_progress_payload(
                 session_id,
-                &response_text,
+                &normalized.response,
                 thought_number,
                 opts.total_thoughts,
                 done,
+                done.then_some(conclusion),
             ),
         )?;
         if done {
@@ -207,7 +217,7 @@ pub(crate) async fn drive_think_session_with_driver(
             return Ok(ThinkResult {
                 session_id: session_id.to_string(),
                 acp_session_id: Some(driver.remote_id()),
-                conclusion: Some(response_text),
+                conclusion: Some(conclusion.to_string()),
                 thoughts_completed: thought_number,
             });
         }

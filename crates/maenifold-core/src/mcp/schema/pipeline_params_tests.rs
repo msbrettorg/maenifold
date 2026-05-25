@@ -110,6 +110,54 @@ fn pipeline_node_schema_exposes_join_policy_for_all_variants() {
 }
 
 #[test]
+fn pipeline_node_schema_accepts_structured_schema_fields_for_all_variants() {
+    let schema = schema_value_no_null_options::<PipelineParams>();
+    let validator = jsonschema::validator_for(&schema).expect("pipeline schema should compile");
+    let artifact_schema =
+        json!({"type":"object","required":["verdict"],"properties":{"verdict":{"type":"string"}}});
+    let nodes = [
+        json!({
+            "id": "workflow",
+            "type": "workflow",
+            "workflowId": "workflow-a",
+            "inputSchema": artifact_schema.clone(),
+            "outputSchema": artifact_schema.clone()
+        }),
+        json!({
+            "id": "prompt",
+            "type": "prompt",
+            "prompt": "return verdict",
+            "agent": "codex",
+            "inputSchema": artifact_schema.clone(),
+            "outputSchema": artifact_schema.clone()
+        }),
+        json!({
+            "id": "thinking",
+            "type": "sequentialThinking",
+            "topic": "decide",
+            "totalThoughts": 1,
+            "agent": "codex",
+            "inputSchema": artifact_schema.clone(),
+            "outputSchema": artifact_schema.clone()
+        }),
+        json!({
+            "id": "tool",
+            "type": "tool",
+            "toolName": "GetConfig",
+            "inputSchema": artifact_schema.clone(),
+            "outputSchema": artifact_schema
+        }),
+    ];
+
+    for node in nodes {
+        let payload = json!({"definition": {"nodes": [node.clone()], "edges": []}});
+        validator
+            .validate(&payload)
+            .unwrap_or_else(|error| panic!("node schema should accept {node}: {error}"));
+    }
+}
+
+#[test]
 fn conditional_edge_deserializes_to_domain_and_drives_ready_set() {
     let definition: PipelineDefinition = serde_json::from_value(json!({
         "nodes": [

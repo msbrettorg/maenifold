@@ -105,6 +105,22 @@ pub(super) fn join_policy_schema() -> serde_json::Value {
     })
 }
 
+pub(super) fn input_schema_schema() -> serde_json::Value {
+    json!({
+        "type": "object",
+        "description": "Optional JSON Schema describing the node input artifact",
+        "additionalProperties": true
+    })
+}
+
+pub(super) fn output_schema_schema() -> serde_json::Value {
+    json!({
+        "type": "object",
+        "description": "Optional JSON Schema for structured node output",
+        "additionalProperties": true
+    })
+}
+
 // T-01.9: Variant bodies were extracted to sibling modules; this entry point
 // just composes the `oneOf` array so the file stays well under the 300 LOC ceiling.
 fn node_schema_value() -> serde_json::Value {

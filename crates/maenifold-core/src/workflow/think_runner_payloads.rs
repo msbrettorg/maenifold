@@ -18,6 +18,11 @@ pub(super) struct ThinkSessionData {
     pub(super) session_id: String,
 }
 
+pub(super) struct NormalizedThinkResponse {
+    pub(super) response: String,
+    pub(super) conclusion: Option<String>,
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ThinkSeedPayload<'a> {
@@ -71,6 +76,7 @@ pub(super) fn think_progress_payload(
     thought_number: u32,
     total_thoughts: u32,
     done: bool,
+    conclusion: Option<&str>,
 ) -> Value {
     serialize_payload(ThinkProgressPayload {
         session_id,
@@ -78,7 +84,7 @@ pub(super) fn think_progress_payload(
         thought_number,
         total_thoughts,
         next_thought_needed: !done,
-        conclusion: done.then_some(response),
+        conclusion: done.then(|| conclusion.unwrap_or(response)),
     })
 }
 
@@ -99,10 +105,20 @@ pub(super) fn encode_think_failure(error: &MaenifoldError) -> String {
     format!("{THINK_FAILURE_PREFIX}{error}")
 }
 
-pub(super) fn normalize_think_prompt_response(response: Result<AgentResponse>) -> Result<String> {
-    response
-        .and_then(think_response_text)
-        .map(|text| tag_fallback(&text))
+pub(super) fn normalize_think_prompt_response(
+    response: Result<AgentResponse>,
+) -> Result<NormalizedThinkResponse> {
+    let response = response?;
+    if let Some(args) = response.complete_node_args {
+        return Ok(NormalizedThinkResponse {
+            response: "DONE structured output [[sequential-thinking]]".to_string(),
+            conclusion: Some(args.to_string()),
+        });
+    }
+    think_response_text(response).map(|text| NormalizedThinkResponse {
+        response: tag_fallback(&text),
+        conclusion: None,
+    })
 }
 
 pub(super) fn is_completion_response(response: &str) -> bool {
@@ -176,7 +192,30 @@ mod tests {
         }))
         .expect("success response should remain ok");
 
-        assert_eq!(response, "DONE final synthesis [[step]]");
+        assert_eq!(response.response, "DONE final synthesis [[step]]");
+        assert_eq!(response.conclusion, None);
+    }
+
+    #[test]
+    fn normalize_think_prompt_response_prefers_complete_node_args() {
+        let response = normalize_think_prompt_response(Ok(AgentResponse {
+            text: "prose response that must not become node output".to_string(),
+            error: None,
+            input_tokens: None,
+            output_tokens: None,
+            model: None,
+            complete_node_args: Some(serde_json::json!({"verdict":"PASS"})),
+        }))
+        .expect("complete_node args should produce structured thinking output");
+
+        assert_eq!(
+            response.response,
+            "DONE structured output [[sequential-thinking]]"
+        );
+        assert_eq!(
+            response.conclusion.as_deref(),
+            Some(r#"{"verdict":"PASS"}"#)
+        );
     }
 
     #[test]

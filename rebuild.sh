@@ -27,6 +27,43 @@ launchctl_kickstart_with_timeout() {
   return 0
 }
 
+verify_mcp_port() {
+  local port=$1
+  local attempts=${2:-15}
+  local code="000"
+  local attempt
+  for attempt in $(seq 1 "$attempts"); do
+    code=$(curl --connect-timeout 2 --max-time 10 -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${port}/mcp" 2>/dev/null) || code="000"
+    if [ "$code" = "405" ] || [ "$code" = "406" ]; then
+      echo "  ✓ localhost:${port} responding (HTTP ${code})"
+      return 0
+    fi
+    sleep 1
+  done
+  echo "  ✗ localhost:${port} not responding (HTTP ${code})"
+  return 1
+}
+
+verify_gate_domain() {
+  local attempts=${1:-15}
+  local gate_check=0
+  local attempt
+  for attempt in $(seq 1 "$attempts"); do
+    gate_check=$(curl --connect-timeout 2 --max-time 10 -s -X POST http://127.0.0.1:8080/mcp \
+      -H 'Content-Type: application/json' \
+      -H 'Accept: application/json, text/event-stream' \
+      -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"GatewayIndex","arguments":{}}}' \
+      2>/dev/null | grep -c 'maenifold.gate' || true)
+    if [ "${gate_check:-0}" -gt 0 ]; then
+      echo "  ✓ maenifold.gate domain registered"
+      return 0
+    fi
+    sleep 1
+  done
+  echo "  ✗ maenifold.gate domain MISSING from GatewayIndex — daemon may be running a stale binary"
+  return 1
+}
+
 echo "═══ Release build: all crates ═══"
 make manifest
 cargo build --release -p maenifold-jockey -p maenifold-core -p maenifold-pipeline-driver -p maenifold-cli
@@ -90,28 +127,15 @@ echo "  — front-end was rip'd; nothing to launch."
 echo ""
 echo "═══ Verify ═══"
 verify_failed=0
-sleep 2
 for port in 8080; do
-  code=$(curl --connect-timeout 2 --max-time 10 -s -o /dev/null -w "%{http_code}" "http://localhost:${port}/mcp" 2>/dev/null || echo "000")
-  if [ "$code" = "405" ] || [ "$code" = "406" ]; then
-    echo "  ✓ localhost:${port} responding (HTTP ${code})"
-  else
-    echo "  ✗ localhost:${port} not responding (HTTP ${code})"
+  if ! verify_mcp_port "$port"; then
     verify_failed=1
   fi
 done
 
 echo ""
 echo "═══ Verify maenifold.gate domain registration ═══"
-gate_check=$(curl --connect-timeout 2 --max-time 10 -s -X POST http://127.0.0.1:8080/mcp \
-  -H 'Content-Type: application/json' \
-  -H 'Accept: application/json, text/event-stream' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"GatewayIndex","arguments":{}}}' \
-  2>/dev/null | grep -c 'maenifold.gate' || true)
-if [ "${gate_check:-0}" -gt 0 ]; then
-  echo "  ✓ maenifold.gate domain registered"
-else
-  echo "  ✗ maenifold.gate domain MISSING from GatewayIndex — daemon may be running a stale binary"
+if ! verify_gate_domain; then
   verify_failed=1
 fi
 

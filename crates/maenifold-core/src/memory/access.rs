@@ -7,7 +7,7 @@ use crate::lineage::{
     gate_task_lineage_id, memory_note_lineage_id, pipeline_run_lineage_id,
     thinking_session_lineage_id,
 };
-use crate::markdown::{Frontmatter, read_markdown, slugify, write_markdown};
+use crate::markdown::{Frontmatter, file_exists, read_markdown, slugify, write_markdown};
 use crate::tools::ToolContext;
 // T-13.5: RTM FR-8 — centralized response helpers for hints
 use crate::tools::with_hint;
@@ -47,6 +47,29 @@ pub fn write_memory(context: &ToolContext, payload: &Value) -> Result<String> {
         .get("content")
         .and_then(Value::as_str)
         .ok_or(MaenifoldError::MissingProperty("content"))?;
+    if let Some(overwrite_val) = payload.get("overwrite") {
+        if !overwrite_val.is_boolean() {
+            let actual_type = match overwrite_val {
+                Value::Null => "Null",
+                Value::Number(_) => "Number",
+                Value::String(_) => "String",
+                Value::Array(_) => "Array",
+                Value::Object(_) => "Object",
+                _ => "Unknown",
+            };
+            let msg = format!(
+                "The requested operation requires an element of type 'Boolean', but the target element has type '{actual_type}'."
+            );
+            return Ok(match context.output_format {
+                OutputFormat::Json => failure("TYPE_ERROR", &msg),
+                OutputFormat::Markdown => format!("ERROR: {msg}"),
+            });
+        }
+    }
+    let overwrite = payload
+        .get("overwrite")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
     // PARITY-VAL003: RTM NFR-1 — reject non-string folder type to match C# type checking.
     if let Some(folder_val) = payload.get("folder")
         && !folder_val.is_string()
@@ -85,14 +108,6 @@ pub fn write_memory(context: &ToolContext, payload: &Value) -> Result<String> {
 Example: 'Learning about [[Machine Learning]] and [[Data Science]]'
 This ensures your note is connected to the knowledge graph and not orphaned.".to_string(),
         });
-    }
-
-    // T-89.3: Endophasia writing tap — emit concepts on successful write path only.
-    for concept in &concepts {
-        let _ = crate::endophasia::channel::sender().send(crate::endophasia::ConceptEvent::new(
-            crate::endophasia::SignalType::Writing,
-            concept.clone(),
-        ));
     }
 
     // T-0.3c: RTM NFR-4 / RTM-047
@@ -176,6 +191,14 @@ This ensures your note is connected to the knowledge graph and not orphaned.".to
         ));
     }
 
+    if file_exists(&uri, &context.config)? && !overwrite {
+        let msg = format!("Memory file already exists: {uri}. Set overwrite=true to replace it.");
+        return Ok(match context.output_format {
+            OutputFormat::Json => failure("VALIDATION_ERROR", &msg),
+            OutputFormat::Markdown => format!("ERROR: {msg}"),
+        });
+    }
+
     write_markdown(&uri, Some(&frontmatter), &full_content, &context.config)?;
     let (_, _, checksum) = read_markdown(&uri, &context.config)?;
     index_file_content(
@@ -189,6 +212,14 @@ This ensures your note is connected to the knowledge graph and not orphaned.".to
         Some(lineage_memory_note_id.as_str()),
         context,
     )?;
+
+    // T-89.3: Endophasia writing tap — emit concepts on successful write path only.
+    for concept in &concepts {
+        let _ = crate::endophasia::channel::sender().send(crate::endophasia::ConceptEvent::new(
+            crate::endophasia::SignalType::Writing,
+            concept.clone(),
+        ));
+    }
 
     Ok(match context.output_format {
         OutputFormat::Json => success(json!({

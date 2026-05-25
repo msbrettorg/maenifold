@@ -13,6 +13,9 @@ pub struct WriteMemoryParams {
     pub title: String,
     /// Content with [[Concept Names]]; at least one [[concept]] is required
     pub content: String,
+    /// Overwrite an existing memory file when true
+    #[serde(default)]
+    pub overwrite: bool,
     /// Optional folder path for organizing files
     #[serde(default)]
     pub folder: Option<String>,

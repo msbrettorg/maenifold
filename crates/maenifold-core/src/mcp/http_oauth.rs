@@ -1,9 +1,8 @@
 use crate::acp_config::HttpAuthConfig;
 use crate::error::{MaenifoldError, Result};
-use azure_core::credentials::{Secret, TokenCredential};
-use azure_identity::{ClientSecretCredential, DeveloperToolsCredential, ManagedIdentityCredential};
+use azure_core::credentials::TokenCredential;
+use azure_identity::{DeveloperToolsCredential, ManagedIdentityCredential};
 use serde::Deserialize;
-use std::env;
 use std::fmt;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -49,12 +48,6 @@ impl fmt::Debug for AzureDefaultCredential {
 impl AzureDefaultCredential {
     pub(super) fn new() -> Result<Self> {
         let mut sources = Vec::new();
-        if let Some(env_credential) = env_client_secret_credential()? {
-            sources.push(AzureCredentialSource {
-                name: "environment",
-                credential: env_credential,
-            });
-        }
         // Developer tools (az login / azd) BEFORE managed identity — on local
         // dev machines, ManagedIdentityCredential hangs for 30+ seconds trying
         // IMDS at 169.254.169.254 which doesn't exist outside Azure VMs.
@@ -186,26 +179,6 @@ fn protected_resource_metadata_url(base_url: &str) -> Result<reqwest::Url> {
         base_url.trim_end_matches('/')
     ))
     .map_err(|error| azure_auth_error(format!("invalid HTTP MCP URL '{base_url}': {error}")))
-}
-
-fn env_client_secret_credential() -> Result<Option<Arc<dyn TokenCredential>>> {
-    let client_id = env::var("AZURE_CLIENT_ID").ok();
-    let tenant_id = env::var("AZURE_TENANT_ID").ok();
-    let client_secret = env::var("AZURE_CLIENT_SECRET").ok();
-    match (client_id, tenant_id, client_secret) {
-        (Some(client_id), Some(tenant_id), Some(client_secret)) => ClientSecretCredential::new(
-            &tenant_id,
-            client_id,
-            Secret::new(client_secret),
-            None,
-        )
-        .map(|credential| Some(credential as Arc<dyn TokenCredential>))
-        .map_err(|error| azure_auth_error(error.to_string())),
-        (None, None, None) => Ok(None),
-        _ => Err(azure_auth_error(
-            "AZURE_CLIENT_ID, AZURE_TENANT_ID, and AZURE_CLIENT_SECRET must all be set to enable environment-based Azure auth".to_string(),
-        )),
-    }
 }
 
 fn azure_auth_error(message: String) -> MaenifoldError {

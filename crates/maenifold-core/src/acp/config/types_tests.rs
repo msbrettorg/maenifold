@@ -210,4 +210,27 @@ mod tests {
         let serialized = serde_json::to_value(&entries).expect("http auth config should serialize");
         assert_eq!(serialized["arm"]["auth"], json!("azure-default"));
     }
+
+    #[test]
+    fn http_auth_config_rejects_legacy_client_secret_shape() {
+        let error = serde_json::from_value::<HashMap<String, McpServerEntry>>(json!({
+            "arm": {
+                "url": "https://mcp.management.azure.com",
+                "gateway": true,
+                "auth": {
+                    "type": "azure-default",
+                    "clientId": "legacy-client-id",
+                    "clientSecret": "legacy-client-secret"
+                }
+            }
+        }))
+        .expect_err("legacy client-secret auth shape must be rejected");
+
+        assert!(
+            error.to_string().contains("unknown variant")
+                || error.to_string().contains("expected")
+                || error.to_string().contains("string"),
+            "legacy auth rejection should explain string-only azure-default config: {error}"
+        );
+    }
 }

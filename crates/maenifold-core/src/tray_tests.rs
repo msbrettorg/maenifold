@@ -5,7 +5,11 @@ use tray_icon::menu::MenuId;
 #[test]
 fn help_menu_routes_to_issues_url() {
     assert_eq!(
-        resolve_open_url(&MenuId::new("help"), Some(&MenuId::new("help")), ServerMode::Http(1234)),
+        resolve_open_url(
+            &MenuId::new("help"),
+            Some(&MenuId::new("help")),
+            ServerMode::Http(1234)
+        ),
         Some("https://github.com/ma-collective/maenifold-rs/issues".to_string())
     );
 }
@@ -13,7 +17,11 @@ fn help_menu_routes_to_issues_url() {
 #[test]
 fn unrelated_menu_ids_do_not_open_urls() {
     assert_eq!(
-        resolve_open_url(&MenuId::new("quit"), Some(&MenuId::new("help")), ServerMode::Http(1234)),
+        resolve_open_url(
+            &MenuId::new("quit"),
+            Some(&MenuId::new("help")),
+            ServerMode::Http(1234)
+        ),
         None
     );
 }

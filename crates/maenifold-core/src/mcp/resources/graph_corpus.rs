@@ -92,12 +92,14 @@ pub(super) fn read_or_route_to_concept(
             if let Some(limit) =
                 graph_corpus_primer::parse_limit(uri).map_err(GraphReadRouteError::ResourceError)?
             {
-                return Ok(ReadResourceResult::new(vec![ResourceContents::text(
-                    graph_corpus_primer::render_corpus_primer(connection, limit)
-                        .map_err(GraphReadRouteError::ResourceError)?,
-                    uri.to_string(),
-                )
-                .with_mime_type("application/json")]));
+                return Ok(ReadResourceResult::new(vec![
+                    ResourceContents::text(
+                        graph_corpus_primer::render_corpus_primer(connection, limit)
+                            .map_err(GraphReadRouteError::ResourceError)?,
+                        uri.to_string(),
+                    )
+                    .with_mime_type("application/json"),
+                ]));
             }
             let concept_payload = graph_concept::read_concept_context(connection, uri).map_err(
                 |error| match error {
@@ -110,11 +112,9 @@ pub(super) fn read_or_route_to_concept(
         }
     };
 
-    Ok(ReadResourceResult::new(vec![ResourceContents::text(
-        body,
-        uri.to_string(),
-    )
-    .with_mime_type("application/json")]))
+    Ok(ReadResourceResult::new(vec![
+        ResourceContents::text(body, uri.to_string()).with_mime_type("application/json"),
+    ]))
 }
 
 fn make_resource(uri: &str, name: &str, description: &str) -> Resource {

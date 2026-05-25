@@ -126,8 +126,7 @@ pub(super) fn spawn_restart_process() {
             Ok(child) => {
                 info!(
                     pid = child.id(),
-                    target,
-                    "launchctl kickstart issued for maenifold tray restart"
+                    target, "launchctl kickstart issued for maenifold tray restart"
                 );
                 return;
             }

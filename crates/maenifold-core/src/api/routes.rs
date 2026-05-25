@@ -1,14 +1,12 @@
+use crate::Config;
 use crate::api::config_manager::ConfigManager;
 use crate::api::config_watch::ConfigWatchState;
-use crate::api::{
-    routes_config::{
-        config_watch_handler, get_config_handler, get_config_path_handler,
-        machine_id_handler, reload_config_handler,
-    },
+use crate::api::routes_config::{
+    config_watch_handler, get_config_handler, get_config_path_handler, machine_id_handler,
+    reload_config_handler,
 };
 use crate::mcp::PendingRequestRegistry;
 use crate::mcp::stdio_pool::StdioPool;
-use crate::Config;
 use axum::{
     Router,
     http::StatusCode,
@@ -61,7 +59,6 @@ impl ApiState {
             user_prompt_registry,
         }
     }
-
 }
 
 pub struct ApiStateSharedConfig {

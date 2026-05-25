@@ -58,7 +58,9 @@ pub fn get_copilot_models(context: &ToolContext, payload: &Value) -> Result<Stri
     ))
 }
 
-fn map_copilot_models_error(error: jockey::copilot_models::GetCopilotModelsError) -> MaenifoldError {
+fn map_copilot_models_error(
+    error: jockey::copilot_models::GetCopilotModelsError,
+) -> MaenifoldError {
     let message = match error {
         jockey::copilot_models::GetCopilotModelsError::TokenMissing => {
             "Copilot token missing from ~/.config/github-copilot".to_string()

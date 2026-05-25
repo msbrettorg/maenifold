@@ -1,6 +1,4 @@
-use crate::mcp::pending_requests::{
-    ElicitationResponse, UserPromptAction, UserPromptResponse,
-};
+use crate::mcp::pending_requests::{ElicitationResponse, UserPromptAction, UserPromptResponse};
 use uuid::Uuid;
 
 #[test]

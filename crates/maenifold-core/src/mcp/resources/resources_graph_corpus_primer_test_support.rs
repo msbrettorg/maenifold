@@ -68,7 +68,12 @@ fn seed_named_fixture(connection: &Connection) {
         2,
         120,
         "mcp",
-        &[("gateway", 12), ("resources", 10), ("tools", 8), ("sampling", 6)],
+        &[
+            ("gateway", 12),
+            ("resources", 10),
+            ("tools", 8),
+            ("sampling", 6),
+        ],
     );
 }
 

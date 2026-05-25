@@ -1,6 +1,8 @@
 mod common;
 
-use common::gateway_http::{TestServer, gateway_config, initialize, ok_tool, rpc, stdio_server, tool_names};
+use common::gateway_http::{
+    TestServer, gateway_config, initialize, ok_tool, rpc, stdio_server, tool_names,
+};
 use serde_json::{Value, json};
 use serial_test::serial;
 
@@ -28,11 +30,7 @@ async fn wire_surface_exposes_only_canonical_seven_tools() {
     let expected = canonical_tool_names();
     assert_eq!(actual, expected);
 
-    for forbidden in [
-        "DiscoverMcpPrompts",
-        "DiscoverMcpTools",
-        "GetMcpPrompt",
-    ] {
+    for forbidden in ["DiscoverMcpPrompts", "DiscoverMcpTools", "GetMcpPrompt"] {
         assert!(
             !actual.iter().any(|name| name == forbidden),
             "forbidden tool {forbidden} was still exposed: {actual:?}"

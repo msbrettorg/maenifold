@@ -1,8 +1,8 @@
 use crate::error::{JSONRPC_INVALID_PARAMS, MaenifoldError, Result};
+use crate::mcp::PendingRequestRegistry;
 use crate::mcp::gateway_session::{
     GatewayServerConfig, GatewaySession, start_session_with_registry,
 };
-use crate::mcp::PendingRequestRegistry;
 use crate::mcp::stdio_pool_health::{RestartState, lock_state};
 pub use crate::mcp::stdio_pool_health::{ServerStartupStatus, StdioPoolHealth, StdioServerHealth};
 use crate::mcp::stdio_pool_prompts::collect_gateway_prompts;
@@ -63,10 +63,7 @@ impl ManagedServer {
 }
 impl StdioPool {
     #[allow(private_bounds)]
-    pub async fn start<S>(
-        servers: Vec<S>,
-        registry: Arc<PendingRequestRegistry>,
-    ) -> Result<Self>
+    pub async fn start<S>(servers: Vec<S>, registry: Arc<PendingRequestRegistry>) -> Result<Self>
     where
         S: Into<GatewayServerConfig>,
     {
@@ -96,7 +93,10 @@ impl StdioPool {
         while let Some(joined) = tasks.join_next().await {
             match joined {
                 Ok((_, config, Ok(session))) => {
-                    started.insert(config.name().to_string(), ManagedServer::running(config, session));
+                    started.insert(
+                        config.name().to_string(),
+                        ManagedServer::running(config, session),
+                    );
                 }
                 Ok((name, config, Err(error))) => {
                     warn!(server = %name, error = %error.error, "failed to start gateway MCP server");

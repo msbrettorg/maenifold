@@ -69,8 +69,7 @@ fn initialize_handshake_for_ollama_reports_no_image_or_audio() {
 async fn wait_for_worker_result_returns_result_when_oneshot_fires() {
     use tokio::sync::oneshot;
 
-    let (result_tx, mut result_rx) =
-        oneshot::channel::<(Vec<Value>, Vec<String>, String)>();
+    let (result_tx, mut result_rx) = oneshot::channel::<(Vec<Value>, Vec<String>, String)>();
 
     tokio::spawn(async move {
         tokio::time::sleep(std::time::Duration::from_millis(20)).await;
@@ -87,8 +86,7 @@ async fn wait_for_worker_result_returns_result_when_oneshot_fires() {
 async fn wait_for_worker_result_reports_worker_disconnect_on_sender_drop() {
     use tokio::sync::oneshot;
 
-    let (result_tx, mut result_rx) =
-        oneshot::channel::<(Vec<Value>, Vec<String>, String)>();
+    let (result_tx, mut result_rx) = oneshot::channel::<(Vec<Value>, Vec<String>, String)>();
     drop(result_tx);
 
     let err = wait_for_worker_result(&mut result_rx)
@@ -105,8 +103,7 @@ async fn session_load_loop_survives_event_channel_close_after_replay_complete() 
     use tokio::sync::{mpsc, oneshot};
 
     let (event_tx, mut event_rx) = mpsc::channel::<jockey::acp::AcpEvent>(8);
-    let (result_tx, mut rx) =
-        oneshot::channel::<(Vec<Value>, Vec<String>, String)>();
+    let (result_tx, mut rx) = oneshot::channel::<(Vec<Value>, Vec<String>, String)>();
 
     // Upstream: send ReplayComplete, then drop sender so channel closes.
     event_tx

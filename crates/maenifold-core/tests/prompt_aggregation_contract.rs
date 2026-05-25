@@ -22,10 +22,13 @@ fn fixture_config(name: &str, prompt_name: &str) -> StdioServerConfig {
 
 #[tokio::test]
 async fn prompt_aggregation_two_servers_same_name() {
-    let pool = StdioPool::start(vec![
-        fixture_config("fixtureA", "summarize"),
-        fixture_config("fixtureB", "summarize"),
-    ], std::sync::Arc::new(maenifold_core::mcp::PendingRequestRegistry::new()))
+    let pool = StdioPool::start(
+        vec![
+            fixture_config("fixtureA", "summarize"),
+            fixture_config("fixtureB", "summarize"),
+        ],
+        std::sync::Arc::new(maenifold_core::mcp::PendingRequestRegistry::new()),
+    )
     .await
     .expect("prompt fixture pool should start");
 

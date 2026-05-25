@@ -39,7 +39,11 @@ fn setup_graph_concept_fixture() -> (TempDir, ConfigResetGuard) {
         .execute(
             "INSERT INTO concept_graph (concept_a, concept_b, co_occurrence_count, source_files)
              VALUES (?1, ?2, 3, ?3)",
-            params!["maenifold", "neighbor-concept", "memory://fixtures/graph/maenifold.md"],
+            params![
+                "maenifold",
+                "neighbor-concept",
+                "memory://fixtures/graph/maenifold.md"
+            ],
         )
         .expect("insert concept graph edge");
     (tmp, guard)

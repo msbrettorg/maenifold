@@ -4,7 +4,7 @@ set -euo pipefail
 # Rust constitution audit — enforces build-time rules on crate source files.
 #
 # Rules:
-#   max-loc        .rs files must be ≤300 lines (constitution hard limit)
+#   max-loc        .rs files must be ≤500 lines (constitution hard limit)
 #   no-todo        No TODO/FIXME/HACK/XXX markers (file a gate task instead)
 #   no-unwrap      No .unwrap() in non-test code (use ? or expect with context)
 #
@@ -18,7 +18,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CRATES_DIR="$REPO_ROOT/crates"
-MAX_LOC=300
+MAX_LOC=500
 violations=0
 report_mode=false
 

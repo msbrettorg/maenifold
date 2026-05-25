@@ -20,7 +20,10 @@ impl TestHttpServer {
         let listener = TcpListener::bind("127.0.0.1:0")
             .await
             .expect("bind ephemeral MCP listener");
-        let endpoint = format!("http://{}/mcp", listener.local_addr().expect("listener addr"));
+        let endpoint = format!(
+            "http://{}/mcp",
+            listener.local_addr().expect("listener addr")
+        );
         let shutdown = CancellationToken::new();
         let task_shutdown = shutdown.clone();
         let task = tokio::spawn(async move {

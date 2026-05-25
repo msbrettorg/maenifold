@@ -1,6 +1,12 @@
-use super::ort_runtime_download::{download_runtime_inner, extract_runtime_dylibs, stage_and_extract_checked};
+use super::ort_runtime_download::{
+    download_runtime_inner, extract_runtime_dylibs, stage_and_extract_checked,
+};
 use flate2::{Compression, write::GzEncoder};
-use std::{fs, io::Cursor, path::{Path, PathBuf}};
+use std::{
+    fs,
+    io::Cursor,
+    path::{Path, PathBuf},
+};
 use tar::{Builder, Header};
 #[test]
 fn ort_runtime_extractor_keeps_only_dylibs() {
@@ -92,7 +98,11 @@ fn ort_runtime_download_does_not_truncate_existing_dylib_on_extraction_failure()
     let result = stage_and_extract_checked(&bad_archive, &sha, temp.path());
     assert!(result.is_err(), "extraction should fail on corrupt archive");
     let after = fs::read(&dylib_path).expect("dylib still readable");
-    assert_eq!(after.as_slice(), existing_content, "existing dylib must be untouched");
+    assert_eq!(
+        after.as_slice(),
+        existing_content,
+        "existing dylib must be untouched"
+    );
 }
 
 #[test]
@@ -108,8 +118,17 @@ fn ort_runtime_download_concurrent_invocations_do_not_corrupt() {
             std::thread::spawn(move || stage_and_extract_checked(&archive, &sha, &dir))
         })
         .collect();
-    let results: Vec<_> = handles.into_iter().map(|h| h.join().expect("thread")).collect();
-    assert!(!results.iter().filter(|r| r.is_ok()).collect::<Vec<_>>().is_empty());
+    let results: Vec<_> = handles
+        .into_iter()
+        .map(|h| h.join().expect("thread"))
+        .collect();
+    assert!(
+        !results
+            .iter()
+            .filter(|r| r.is_ok())
+            .collect::<Vec<_>>()
+            .is_empty()
+    );
     let content = fs::read(temp.path().join("libonnxruntime.dylib")).expect("final dylib");
     assert_eq!(content, macho64_header(0x06, b"cn"));
 }
@@ -130,7 +149,10 @@ fn ort_runtime_download_refuse_if_exists_strict_under_concurrency() {
             })
         })
         .collect();
-    let results: Vec<_> = handles.into_iter().map(|h| h.join().expect("thread")).collect();
+    let results: Vec<_> = handles
+        .into_iter()
+        .map(|h| h.join().expect("thread"))
+        .collect();
     let successes = results.iter().filter(|r| r.is_ok()).count();
     let failures = results.iter().filter(|r| r.is_err()).count();
     assert_eq!(successes, 1, "exactly one concurrent caller must succeed");
@@ -236,8 +258,13 @@ fn ort_runtime_extractor_rejects_non_macho_dylib_bytes() {
 #[test]
 #[ignore]
 fn ort_runtime_extractor_real_microsoft_tarball_smoke() {
-    let tarball_path = format!("{}/Downloads/onnxruntime-osx-arm64-1.24.1.tgz", std::env::var("HOME").unwrap());
-    if !Path::new(&tarball_path).is_file() { return; }
+    let tarball_path = format!(
+        "{}/Downloads/onnxruntime-osx-arm64-1.24.1.tgz",
+        std::env::var("HOME").unwrap()
+    );
+    if !Path::new(&tarball_path).is_file() {
+        return;
+    }
     let temp = tempfile::TempDir::new().expect("temp dir");
     let archive_bytes = fs::read(&tarball_path).expect("read tarball");
     let real_sha = sha2_hex(&archive_bytes);
@@ -245,20 +272,29 @@ fn ort_runtime_extractor_real_microsoft_tarball_smoke() {
         .expect("real tarball extraction must succeed");
     let content = fs::read(temp.path().join("libonnxruntime.dylib")).expect("read dylib");
     let magic = u32::from_ne_bytes([content[0], content[1], content[2], content[3]]);
-    let valid = [0xfeedfacfu32, 0xcffaedfe, 0xfeedface, 0xcefaedfe, 0xcafebabe, 0xbebafeca];
-    assert!(valid.contains(&magic), "must have Mach-O magic, got: 0x{magic:08x}");
+    let valid = [
+        0xfeedfacfu32,
+        0xcffaedfe,
+        0xfeedface,
+        0xcefaedfe,
+        0xcafebabe,
+        0xbebafeca,
+    ];
+    assert!(
+        valid.contains(&magic),
+        "must have Mach-O magic, got: 0x{magic:08x}"
+    );
     let size = content.len();
-    assert!(size > 30_000_000 && size < 40_000_000, "expected ~35 MB, got {size}");
+    assert!(
+        size > 30_000_000 && size < 40_000_000,
+        "expected ~35 MB, got {size}"
+    );
 }
 
 fn build_dsym_collision_archive(real_bytes: &[u8], dsym_bytes: &[u8]) -> Vec<u8> {
     let gz = GzEncoder::new(Vec::new(), Compression::default());
     let mut builder = Builder::new(gz);
-    append_bytes(
-        &mut builder,
-        "pkg/lib/libonnxruntime.dylib",
-        real_bytes,
-    );
+    append_bytes(&mut builder, "pkg/lib/libonnxruntime.dylib", real_bytes);
     append_bytes(
         &mut builder,
         "pkg/lib/libonnxruntime.dylib.dSYM/Contents/Resources/DWARF/libonnxruntime.dylib",
@@ -294,7 +330,14 @@ fn macho64_header(filetype: u32, tag: &[u8; 2]) -> [u8; 16] {
 fn ort_runtime_extractor_rejects_mh_dsym_filetype_at_lib_passing_path() {
     let t = tempfile::TempDir::new().expect("td");
     let a = build_single_dylib_archive(&macho64_header(0x0a, b"ds"));
-    let e = stage_and_extract_checked(&a, &sha2_hex(&a), t.path()).expect_err("MH_DSYM must reject");
-    assert!(e.contains("filetype 0xa"), "error must mention filetype 0xa, got: {e}");
-    assert!(!t.path().join("libonnxruntime.dylib").is_file(), "rejected file must not persist");
+    let e =
+        stage_and_extract_checked(&a, &sha2_hex(&a), t.path()).expect_err("MH_DSYM must reject");
+    assert!(
+        e.contains("filetype 0xa"),
+        "error must mention filetype 0xa, got: {e}"
+    );
+    assert!(
+        !t.path().join("libonnxruntime.dylib").is_file(),
+        "rejected file must not persist"
+    );
 }

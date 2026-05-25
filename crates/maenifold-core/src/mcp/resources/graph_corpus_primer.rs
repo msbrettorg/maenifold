@@ -1,5 +1,5 @@
 use crate::error::{MaenifoldError, Result};
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use serde::Serialize;
 
 pub(super) const CORPUS_PRIMER_URI: &str = "graph://corpus/primer";

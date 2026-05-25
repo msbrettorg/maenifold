@@ -101,8 +101,7 @@ pub(crate) fn extract_runtime_dylibs(
 
         if entry.header().entry_type().is_file() {
             let out_path = target_dir.join(&file_name);
-            let mut output =
-                std::fs::File::create(&out_path).map_err(|error| error.to_string())?;
+            let mut output = std::fs::File::create(&out_path).map_err(|error| error.to_string())?;
             std::io::copy(&mut entry, &mut output).map_err(|error| error.to_string())?;
             if file_name != "libonnxruntime.dylib" {
                 versioned_dylibs.push(file_name);
@@ -159,8 +158,12 @@ pub(crate) fn stage_and_extract_checked(
         let dir_entry = dir_entry.map_err(|e| e.to_string())?;
         let file_name = dir_entry.file_name();
         let final_path = target_dir.join(&file_name);
-        std::fs::rename(dir_entry.path(), &final_path)
-            .map_err(|e| format!("Atomic rename failed for {}: {e}", file_name.to_string_lossy()))?;
+        std::fs::rename(dir_entry.path(), &final_path).map_err(|e| {
+            format!(
+                "Atomic rename failed for {}: {e}",
+                file_name.to_string_lossy()
+            )
+        })?;
     }
 
     Ok(())
@@ -185,9 +188,7 @@ fn ensure_canonical_dylib(
                 .map(|name| target_dir.join(name))
                 .find(|path| path.is_file())
         })
-        .ok_or_else(|| {
-            "Archive did not contain a loadable libonnxruntime.dylib".to_string()
-        })?;
+        .ok_or_else(|| "Archive did not contain a loadable libonnxruntime.dylib".to_string())?;
 
     std::fs::copy(source, canonical)
         .map(|_| ())
@@ -234,13 +235,18 @@ fn validate_staged_dylib_magic(staging_dir: &Path) -> Result<(), String> {
         let name = dir_entry.file_name();
         if n < 4 {
             return Err(format!(
-                "Staged file {} too small ({n} bytes)", name.to_string_lossy()
+                "Staged file {} too small ({n} bytes)",
+                name.to_string_lossy()
             ));
         }
         if !is_loadable_library_magic(&[buf[0], buf[1], buf[2], buf[3]]) {
             return Err(format!(
                 "expected Mach-O magic, got 0x{:02x}{:02x}{:02x}{:02x} in staged file {}",
-                buf[0], buf[1], buf[2], buf[3], name.to_string_lossy()
+                buf[0],
+                buf[1],
+                buf[2],
+                buf[3],
+                name.to_string_lossy()
             ));
         }
         validate_macho_filetype(&buf, n, &name)?;
@@ -262,7 +268,9 @@ fn is_loadable_library_magic(header: &[u8; 4]) -> bool {
 /// Swapped magic → read filetype as BE. Fat binaries skip (accepted on magic).
 #[cfg(target_os = "macos")]
 fn validate_macho_filetype(
-    buf: &[u8; 16], bytes_read: usize, filename: &std::ffi::OsStr,
+    buf: &[u8; 16],
+    bytes_read: usize,
+    filename: &std::ffi::OsStr,
 ) -> Result<(), String> {
     let magic = u32::from_ne_bytes([buf[0], buf[1], buf[2], buf[3]]);
     if magic == 0xcafebabe || magic == 0xbebafeca {
@@ -291,7 +299,9 @@ fn validate_macho_filetype(
 
 /// Non-macOS: no dSYM filetype concern; stub accepts all staged files.
 #[cfg(not(target_os = "macos"))]
-fn validate_staged_dylib_magic(_staging_dir: &Path) -> Result<(), String> { Ok(()) }
+fn validate_staged_dylib_magic(_staging_dir: &Path) -> Result<(), String> {
+    Ok(())
+}
 
 fn sha256_bytes(data: &[u8]) -> String {
     let mut hasher = Sha256::new();

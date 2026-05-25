@@ -118,11 +118,7 @@ impl TrayApp<ServerMode, CoreTrayState> {
             return;
         }
 
-        if let Some(url) = resolve_open_url(
-            &event.id,
-            self.state.help_id.as_ref(),
-            self.mode,
-        ) {
+        if let Some(url) = resolve_open_url(&event.id, self.state.help_id.as_ref(), self.mode) {
             if let Err(err) = open_url(&url) {
                 error!(label = "help", error = %err, "failed to open tray URL");
             }

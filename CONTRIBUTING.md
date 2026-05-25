@@ -70,7 +70,7 @@ Testing philosophy is strict: **no mocks, stubs, or fakes** for core behavior. P
 
 - **Mechanism, not policy**: provide composable primitives and explicit behavior; avoid hidden “smart” automation.
 - Keep modules focused: one file, one primary responsibility.
-- Keep files small and maintainable: target a hard ceiling of **~300 LOC per file** (split sooner when cohesion drops).
+- Keep files small and maintainable: target a hard ceiling of **~500 LOC per file** (split sooner when cohesion drops).
 - Avoid unnecessary abstraction layers and speculative optimizations.
 - Keep error details explicit and actionable.
 

@@ -6,14 +6,16 @@ use super::resources_tests_common::*;
 fn graph_corpus_primer_fixture_payload_is_deterministic() {
     let (_tmp, _guard) = setup_primer_fixture();
 
-    let first = extract_text(
-        handle_read_resource(PRIMER_URI).expect("primer resource should be readable"),
-    );
+    let first =
+        extract_text(handle_read_resource(PRIMER_URI).expect("primer resource should be readable"));
     let second = extract_text(
         handle_read_resource(PRIMER_URI).expect("primer resource should be readable twice"),
     );
 
-    assert_eq!(first, second, "primer output must be byte-stable for the same fixture");
+    assert_eq!(
+        first, second,
+        "primer output must be byte-stable for the same fixture"
+    );
     assert_payload_lines(&first, &expected_lines());
 }
 
@@ -52,5 +54,8 @@ fn graph_corpus_primer_large_fixture_stays_under_eight_kib() {
     );
 
     let bytes = payload.as_bytes().len();
-    assert!(bytes <= 8 * 1024, "primer payload exceeded 8KiB hard cap: {bytes} bytes");
+    assert!(
+        bytes <= 8 * 1024,
+        "primer payload exceeded 8KiB hard cap: {bytes} bytes"
+    );
 }

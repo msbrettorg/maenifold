@@ -146,10 +146,7 @@ mod tests {
             .and_then(|timespan| timespan.get("pattern"))
             .and_then(serde_json::Value::as_str);
 
-        assert_eq!(
-            pattern,
-            Some(r"^(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$")
-        );
+        assert_eq!(pattern, Some(r"^(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$"));
     }
 
     #[test]
@@ -161,8 +158,16 @@ mod tests {
             .map(|tool| (tool.name, tool.description))
             .collect::<BTreeMap<_, _>>();
 
-        assert_eq!(expected.len(), 34, "fixture should contain 34 tool descriptions");
-        assert_eq!(actual.len(), 34, "manifest should contain 34 tool descriptions");
+        assert_eq!(
+            expected.len(),
+            34,
+            "fixture should contain 34 tool descriptions"
+        );
+        assert_eq!(
+            actual.len(),
+            34,
+            "manifest should contain 34 tool descriptions"
+        );
         assert_eq!(actual, expected);
     }
 }

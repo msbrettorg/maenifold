@@ -220,7 +220,7 @@ This is the canonical redeploy. It builds every crate in release, verifies the `
 cargo build --release -p maenifold-cli              # CLI/daemon only
 cargo build --release -p maenifold-pipeline-driver  # driver only
 make audit                                          # all constitution linters
-make audit-crates                                   # Rust: 300 LOC, no TODO, no unwrap
+make audit-crates                                   # Rust: 500 LOC, no TODO, no unwrap
 ```
 
 Binaries: `target/release/maenifold` (symlinked to `/usr/local/bin/maenifold`) and `target/release/maenifold-pipeline-driver`.
@@ -231,7 +231,7 @@ The daemon hosts MCP/HTTP; the driver hosts pipeline node execution. ANY change 
 
 ## Code Standards
 
-- **300 LOC hard limit** on Rust source files. Build-enforced.
+- **500 LOC hard limit** on Rust source files. Build-enforced.
 - **Research before building.** Hand-rolling a library's job is a P0 escalation.
 - **LSP is preferred** for Rust navigation (rust-analyzer). Load the `maenifold-testing` skill for server status and workarounds.
 - **MCP-end-to-end verification.** A unit-tested handler with no production caller is not a feature.

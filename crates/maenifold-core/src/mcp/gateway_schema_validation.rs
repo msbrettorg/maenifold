@@ -73,7 +73,7 @@ fn validation_result(
     let path = validation_path(error);
     let keyword = validation_keyword(error);
     Err(GatewayValidationError::new(format!(
-        "gateway validation failed for '{command_name}': {path}: {keyword}"
+        "gateway validation failed for '{command_name}': {path}: {keyword}: {error}"
     )))
 }
 

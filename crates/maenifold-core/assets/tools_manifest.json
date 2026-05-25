@@ -3091,6 +3091,11 @@
             "description": "Return help documentation instead of executing",
             "type": "boolean"
           },
+          "overwrite": {
+            "default": false,
+            "description": "Overwrite an existing memory file when true",
+            "type": "boolean"
+          },
           "pipelineSessionId": {
             "default": null,
             "description": "Optional pipeline session identifier for lineage tracking",

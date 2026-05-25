@@ -2,7 +2,7 @@
 // GatewayExecute and GatewayBatch so the `parameters` object cannot be
 // silently dropped from the MCP tool catalog (see todo/T-240.1).
 
-use super::gateway_tools::{gateway_batch_tool, gateway_execute_tool};
+use super::gateway_tools::{gateway_batch_tool, gateway_execute_tool, gateway_intent_tool};
 use serde_json::Value;
 
 fn required_set(schema: &Value) -> std::collections::BTreeSet<String> {
@@ -70,11 +70,34 @@ fn gateway_batch_item_schema_requires_parameters_object() {
     let tool = gateway_batch_tool();
     let schema = &tool.input_schema;
 
-    let item_schema = schema
+    let required = required_set(schema);
+    assert!(
+        !required.contains("calls"),
+        "GatewayBatch schema must not require `calls` at the top level because \
+         status mode uses `batchId`; got {required:?}"
+    );
+    assert!(
+        !required.contains("items"),
+        "GatewayBatch schema must not require legacy `items`; got {required:?}"
+    );
+
+    let properties = schema
         .get("properties")
-        .and_then(|p| p.get("items"))
-        .and_then(|items| items.get("items"))
-        .expect("GatewayBatch.items.items schema must be inlined");
+        .and_then(Value::as_object)
+        .expect("GatewayBatch schema must declare properties");
+    assert!(
+        properties.contains_key("calls"),
+        "GatewayBatch schema must expose `calls`; got {properties:?}"
+    );
+    assert!(
+        !properties.contains_key("items"),
+        "GatewayBatch schema must not expose legacy `items`; got {properties:?}"
+    );
+
+    let item_schema = properties
+        .get("calls")
+        .and_then(|calls| calls.get("items"))
+        .expect("GatewayBatch.calls.items schema must be inlined");
 
     let required = required_set(item_schema);
     assert!(
@@ -98,5 +121,34 @@ fn gateway_batch_item_schema_requires_parameters_object() {
         parameters.get("type").and_then(Value::as_str),
         Some("object"),
         "BatchItem `parameters` must be typed as object: {parameters}"
+    );
+}
+
+#[test]
+fn gateway_intent_schema_requires_goal_not_intent() {
+    let tool = gateway_intent_tool();
+    let schema = &tool.input_schema;
+
+    let required = required_set(schema);
+    assert!(
+        required.contains("goal"),
+        "GatewayIntent schema must require `goal`; got {required:?}"
+    );
+    assert!(
+        !required.contains("intent"),
+        "GatewayIntent schema must not require legacy `intent`; got {required:?}"
+    );
+
+    let properties = schema
+        .get("properties")
+        .and_then(Value::as_object)
+        .expect("GatewayIntent schema must declare properties");
+    assert!(
+        properties.contains_key("goal"),
+        "GatewayIntent schema must expose `goal`; got {properties:?}"
+    );
+    assert!(
+        !properties.contains_key("intent"),
+        "GatewayIntent schema must not expose legacy `intent`; got {properties:?}"
     );
 }

@@ -16,7 +16,7 @@ pub(crate) async fn handle_gateway_intent(
     let params: GatewayIntentParams = serde_json::from_value(arguments).map_err(|err| {
         rmcp::ErrorData::invalid_params(format!("Invalid GatewayIntent arguments: {err}"), None)
     })?;
-    let intent = intent_with_hints(params.intent, params.domain_hints);
+    let intent = intent_with_hints(params.goal, params.domain_hints);
     // GatewayIntent resolver: direct inferencing only after T-331.1.
     let settings = state.intent_settings();
     let resolved = if settings.resolved_direct_inference().is_ok() {

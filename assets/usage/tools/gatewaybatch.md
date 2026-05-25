@@ -7,7 +7,7 @@ batch status.
 
 - `operation` (string, required): Batch operation. Supported operations are
   determined by the running gateway implementation.
-- `items` (array, optional): Commands to execute. Each item contains
+- `calls` (array, optional): Commands to execute. Each item contains
   `domain`, `command`, and `parameters`.
 - `continueOnError` (bool, optional): Whether execution continues after an item
   fails.

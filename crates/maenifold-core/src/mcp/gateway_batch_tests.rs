@@ -37,10 +37,10 @@ fn item(domain: &str, command: &str, parameters: Value) -> BatchItemParams {
     }
 }
 
-fn params(items: Vec<BatchItemParams>, continue_on_error: bool) -> GatewayBatchParams {
+fn params(calls: Vec<BatchItemParams>, continue_on_error: bool) -> GatewayBatchParams {
     GatewayBatchParams {
         operation: "submit".to_string(),
-        items: Some(items),
+        calls: Some(calls),
         continue_on_error: Some(continue_on_error),
         batch_id: None,
     }
@@ -58,11 +58,11 @@ fn text(result: &CallToolResult) -> String {
 #[tokio::test]
 async fn gateway_batch_rejects_more_than_max_items_before_validation() {
     let state = state().await;
-    let items = (0..=MAX_BATCH_ITEMS)
+    let calls = (0..=MAX_BATCH_ITEMS)
         .map(|_| item("missing-domain", "missing-command", json!({})))
         .collect();
 
-    let err = handle_gateway_batch(&state, &BatchState::new(), params(items, true))
+    let err = handle_gateway_batch(&state, &BatchState::new(), params(calls, true))
         .await
         .expect_err("oversized batch should fail");
 
@@ -147,7 +147,7 @@ fn gateway_batch_status_returns_known_and_batch_not_found_for_unknown() {
         &batch_state,
         GatewayBatchParams {
             operation: "status".to_string(),
-            items: None,
+            calls: None,
             continue_on_error: None,
             batch_id: Some("known".to_string()),
         },
@@ -159,11 +159,50 @@ fn gateway_batch_status_returns_known_and_batch_not_found_for_unknown() {
         &batch_state,
         GatewayBatchParams {
             operation: "status".to_string(),
-            items: None,
+            calls: None,
             continue_on_error: None,
             batch_id: Some("missing".to_string()),
         },
     )
     .expect_err("unknown batch");
     assert!(format!("{unknown:?}").contains("batchNotFound"));
+}
+
+#[tokio::test]
+async fn gateway_batch_arguments_reject_legacy_items_field() {
+    let state = state().await;
+    let err = handle_gateway_batch_arguments(
+        &state,
+        &BatchState::new(),
+        json!({
+            "operation": "submit",
+            "continueOnError": true,
+            "items": []
+        }),
+    )
+    .await
+    .expect_err("legacy items field should be rejected");
+
+    let message = err.to_string();
+    assert!(message.contains("unknown field `items`"), "{message}");
+}
+
+#[tokio::test]
+async fn gateway_batch_arguments_accept_empty_calls_and_render_items_response() {
+    let state = state().await;
+    let result = handle_gateway_batch_arguments(
+        &state,
+        &BatchState::new(),
+        json!({
+            "operation": "submit",
+            "continueOnError": true,
+            "calls": []
+        }),
+    )
+    .await
+    .expect("empty calls should succeed");
+    let rendered: Value = serde_json::from_str(&text(&result)).expect("batch json");
+
+    assert_eq!(rendered["status"], "completed");
+    assert_eq!(rendered["items"], json!([]));
 }

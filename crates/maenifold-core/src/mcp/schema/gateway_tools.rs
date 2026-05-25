@@ -45,7 +45,7 @@ pub(crate) struct GatewayBatchParams {
     /// Required for `operation: "submit"`. Array of exact gateway calls; each
     /// item has the same `{domain, command, parameters}` shape as
     /// `GatewayExecute`. An empty array is accepted and returns immediately.
-    pub items: Option<Vec<BatchItemParams>>,
+    pub calls: Option<Vec<BatchItemParams>>,
     /// Optional for `operation: "submit"`. When true (default false), keeps
     /// executing remaining items after one fails. When false, stops on the
     /// first failure.
@@ -75,7 +75,7 @@ pub(crate) struct GatewayIntentParams {
     /// when one clearly wins AND its draft already includes every required
     /// parameter; otherwise you get back candidates to review and pass to
     /// `GatewayExecute`.
-    pub intent: String,
+    pub goal: String,
     /// Optional list of domain names to bias the resolver toward (e.g.
     /// `["maenifold.gate"]`). Passed to the LLM as additional context.
     pub domain_hints: Option<Vec<String>>,
@@ -98,7 +98,7 @@ pub(crate) fn gateway_execute_tool() -> McpToolDefinition {
 pub(crate) fn gateway_batch_tool() -> McpToolDefinition {
     derived_tool_definition::<GatewayBatchParams>(
         "GatewayBatch",
-        "Submits a batch of exact gateway calls, or polls status for one. Required: operation='submit'|'status'. For submit: items=[{domain, command, parameters}] and continueOnError: bool. For status: batchId. Example: {operation:'submit', continueOnError:false, items:[{domain:'maenifold.gate', command:'gate_Status', parameters:{root:'/repo'}}]}. Use only after GatewayIndex/GetHelp identifies each call.",
+        "Submits a batch of exact gateway calls, or polls status for one. Required: operation='submit'|'status'. For submit: calls=[{domain, command, parameters}] and continueOnError: bool. For status: batchId. Example: {operation:'submit', continueOnError:false, calls:[{domain:'maenifold.gate', command:'gate_Status', parameters:{root:'/repo'}}]}. Use only after GatewayIndex/GetHelp identifies each call.",
     )
 }
 

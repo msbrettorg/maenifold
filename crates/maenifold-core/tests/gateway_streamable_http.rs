@@ -286,7 +286,7 @@ async fn streamable_http_gateway_startup_failure_keeps_public_surface_and_diagno
     let intent = rpc(
         &server,
         "tools/call",
-        json!({"name":"GatewayIntent","arguments":{"intent":"inspect gateway"}}),
+        json!({"name":"GatewayIntent","arguments":{"goal":"inspect gateway"}}),
         None,
     )
     .await;

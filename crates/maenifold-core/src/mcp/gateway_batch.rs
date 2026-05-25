@@ -44,14 +44,14 @@ async fn submit_batch(
         .continue_on_error
         .ok_or_else(|| invalid_params("GatewayBatch submit requires continueOnError."))?;
     let items = params
-        .items
-        .ok_or_else(|| invalid_params("GatewayBatch submit requires items."))?
+        .calls
+        .ok_or_else(|| invalid_params("GatewayBatch submit requires calls."))?
         .into_iter()
         .map(batch_item)
         .collect::<Vec<_>>();
     if items.len() > MAX_BATCH_ITEMS {
         return Err(invalid_params(format!(
-            "GatewayBatch submit accepts at most {MAX_BATCH_ITEMS} items."
+            "GatewayBatch submit accepts at most {MAX_BATCH_ITEMS} calls."
         )));
     }
 
@@ -117,9 +117,9 @@ fn batch_item(item: BatchItemParams) -> BatchItem {
 }
 
 fn validate_item(state: &GatewayState, item: &BatchItem) -> Result<(), rmcp::ErrorData> {
-    if item.parameters.contains_key("intent") {
+    if item.parameters.contains_key("goal") {
         return Err(invalid_params(format!(
-            "GatewayBatch item '{}.{}' must not include natural-language intent.",
+            "GatewayBatch item '{}.{}' must not include natural-language goal.",
             item.domain, item.command
         )));
     }

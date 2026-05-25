@@ -10,7 +10,7 @@ const GATEWAY_META_TOOLS: &[(&str, &str)] = &[
     ),
     (
         "GatewayBatch",
-        r#"{"operation":"submit","continueOnError":true,"items":[{"domain":"maenifold.system","command":"GetConfig","parameters":{"learn":true}}]}"#,
+        r#"{"operation":"submit","continueOnError":true,"calls":[{"domain":"maenifold.system","command":"GetConfig","parameters":{"learn":true}}]}"#,
     ),
 ];
 

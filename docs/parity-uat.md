@@ -253,7 +253,7 @@ For `GatewayBatch`, run two read-safe commands:
 curl -s -X POST http://127.0.0.1:8080/mcp \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
-  -d '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"GatewayBatch","arguments":{"operation":"submit","continueOnError":true,"items":[{"domain":"maenifold.system","command":"GetConfig","parameters":{"learn":true}},{"domain":"maenifold.system","command":"MemoryStatus","parameters":{"learn":true}}]}}}' \
+  -d '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"GatewayBatch","arguments":{"operation":"submit","continueOnError":true,"calls":[{"domain":"maenifold.system","command":"GetConfig","parameters":{"learn":true}},{"domain":"maenifold.system","command":"MemoryStatus","parameters":{"learn":true}}]}}}' \
   | jq -r '.result.content[0].text'
 ```
 

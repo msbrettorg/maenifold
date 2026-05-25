@@ -41,7 +41,7 @@ Logs distinguish the two paths via the event type: `sampling` for path (1),
 
 ## Parameters
 
-- `intent` (string, required): Natural language request to resolve.
+- `goal` (string, required): Natural language request to resolve.
 - `domainHints` (string[], optional): Domains to bias candidate selection.
 
 ## Behavior

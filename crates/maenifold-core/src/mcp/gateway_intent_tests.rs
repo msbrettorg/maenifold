@@ -179,7 +179,7 @@ async fn resolver_error_returns_fallback_instructions() {
     let mut intent_settings = IntentResolverSettings::default();
     intent_settings.enabled = true;
     let state = state(intent_settings).await;
-    let result = handle_gateway_intent(&state, json!({"intent":"read config"}), None)
+    let result = handle_gateway_intent(&state, json!({"goal":"read config"}), None)
         .await
         .expect("fallback result");
     let value = json_text(&result);
@@ -261,6 +261,17 @@ async fn read_safe_complete_draft_still_auto_executes() {
     let text = resolved_text(&result);
     assert!(text.contains("maenifoldRoot"), "{text}");
     assert!(!text.contains("\"status\": \"candidates\""), "{text}");
+}
+
+#[tokio::test]
+async fn gateway_intent_arguments_reject_legacy_intent_field() {
+    let state = state(settings(true)).await;
+    let err = handle_gateway_intent(&state, json!({"intent":"read config"}), None)
+        .await
+        .expect_err("legacy intent field should be rejected");
+
+    let message = err.to_string();
+    assert!(message.contains("unknown field `intent`"), "{message}");
 }
 
 #[tokio::test]

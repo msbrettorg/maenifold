@@ -1,11 +1,10 @@
 use super::output::{map_ort_error, select_best_session_output};
 use super::tokenizer::load_tokenizer_assets;
-use super::{ModelState, model_state};
+use super::{ModelInputMetadata, ModelState, model_state};
 use crate::Config;
 use crate::error::{MaenifoldError, Result};
-use crate::tools::embedding_models::load_catalog;
+use crate::tools::embedding_models::{CatalogModel, load_catalog};
 use ort::session::Session;
-use std::collections::HashSet;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -24,7 +23,11 @@ pub fn load_model() -> Result<()> {
         return Ok(());
     }
 
-    let model_path = find_model_path()?;
+    let ResolvedModelPath {
+        model_path,
+        model_id,
+        catalog_model,
+    } = find_model_path()?;
     let model_dir = model_path.parent().ok_or_else(|| {
         MaenifoldError::Message("embedding model has no parent directory".to_string())
     })?;
@@ -34,12 +37,12 @@ pub fn load_model() -> Result<()> {
         .commit_from_file(&model_path)
         .map_err(map_ort_error)?;
     let embedding_dims = discover_embedding_dimensions(&session)?;
-    let input_names: HashSet<String> = session
+    let input_metadata: Vec<ModelInputMetadata> = session
         .inputs()
         .iter()
-        .map(|input| input.name().to_string())
-        .collect();
-    let (tokenizer, max_tokens) = load_tokenizer_assets(model_dir)?;
+        .map(ModelInputMetadata::from_outlet)
+        .collect::<Result<_>>()?;
+    let (tokenizer, max_tokens) = load_tokenizer_assets(model_dir, &model_id, &catalog_model)?;
     let model_filename = model_path
         .file_name()
         .and_then(|name| name.to_str())
@@ -53,7 +56,7 @@ pub fn load_model() -> Result<()> {
         max_tokens,
         model_filename,
         model_path: model_path.clone(),
-        input_names,
+        input_metadata,
     });
     Ok(())
 }
@@ -164,7 +167,13 @@ pub(crate) fn model_candidate_dirs(config: &Config) -> Result<Vec<PathBuf>> {
     Ok(candidate_dirs)
 }
 
-fn find_model_path() -> Result<PathBuf> {
+struct ResolvedModelPath {
+    model_path: PathBuf,
+    model_id: String,
+    catalog_model: CatalogModel,
+}
+
+fn find_model_path() -> Result<ResolvedModelPath> {
     let config = Config::current();
     let candidate_dirs = model_candidate_dirs(&config)?;
 
@@ -194,14 +203,14 @@ fn find_model_path() -> Result<PathBuf> {
         )));
     }
 
-    if !load_catalog(&config.assets_path)
-        .iter()
-        .any(|model| model.id == active_id)
-    {
-        return Err(MaenifoldError::Message(format!(
-            "Configured model '{active_id}' is not in the curated catalog. Use EmbeddingModels activate to select an installed catalog model."
-        )));
-    }
+    let catalog_model = load_catalog(&config.assets_path)
+        .into_iter()
+        .find(|model| model.id == active_id)
+        .ok_or_else(|| {
+            MaenifoldError::Message(format!(
+                "Configured model '{active_id}' is not in the curated catalog. Use EmbeddingModels activate to select an installed catalog model."
+            ))
+        })?;
 
     for dir in &candidate_dirs {
         let subdir_model = dir.join(active_id).join("model.onnx");
@@ -209,7 +218,11 @@ fn find_model_path() -> Result<PathBuf> {
             && metadata.is_file()
             && metadata.len() > 0
         {
-            return Ok(subdir_model);
+            return Ok(ResolvedModelPath {
+                model_path: subdir_model,
+                model_id: active_id.to_string(),
+                catalog_model: catalog_model.clone(),
+            });
         }
 
         let flat_model = dir.join(format!("{active_id}.onnx"));
@@ -217,7 +230,11 @@ fn find_model_path() -> Result<PathBuf> {
             && metadata.is_file()
             && metadata.len() > 0
         {
-            return Ok(flat_model);
+            return Ok(ResolvedModelPath {
+                model_path: flat_model,
+                model_id: active_id.to_string(),
+                catalog_model: catalog_model.clone(),
+            });
         }
     }
 

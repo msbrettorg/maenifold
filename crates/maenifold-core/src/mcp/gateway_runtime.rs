@@ -183,6 +183,7 @@ impl GatewayState {
             .render_index(
                 args.domain.as_deref(),
                 args.command.as_deref(),
+                args.include_commands.unwrap_or(false),
                 args.include_schemas.unwrap_or(false),
                 args.include_examples.unwrap_or(false),
             )

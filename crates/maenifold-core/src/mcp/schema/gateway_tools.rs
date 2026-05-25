@@ -13,6 +13,9 @@ pub(crate) struct GatewayIndexParams {
     /// Optional command name to inspect a single command within `domain`.
     /// Requires `domain` to be set; otherwise the call errors.
     pub command: Option<String>,
+    /// When true, expands each top-level domain entry with a lightweight
+    /// `commands` array of `{name, description}` summaries.
+    pub include_commands: Option<bool>,
     /// When true, includes each command's JSON Schema so the caller can build
     /// a valid `parameters` payload before `GatewayExecute`.
     pub include_schemas: Option<bool>,

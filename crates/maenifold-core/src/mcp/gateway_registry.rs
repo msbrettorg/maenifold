@@ -21,6 +21,21 @@ pub(crate) struct DomainEntry {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub(crate) struct DomainCommandSummary {
+    pub name: String,
+    pub description: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct DomainIndexEntry {
+    pub name: String,
+    pub description: String,
+    pub command_count: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commands: Option<Vec<DomainCommandSummary>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub(crate) struct CommandEntry {
     pub name: String,
     pub description: String,
@@ -90,10 +105,32 @@ impl GatewayRegistry {
             .collect())
     }
 
+    pub(crate) fn domain_index_entries(&self, include_commands: bool) -> Vec<DomainIndexEntry> {
+        self.domains
+            .iter()
+            .map(|(name, domain)| DomainIndexEntry {
+                name: name.clone(),
+                description: domain.description.clone(),
+                command_count: domain.commands.len(),
+                commands: include_commands.then(|| {
+                    domain
+                        .commands
+                        .values()
+                        .map(|command| DomainCommandSummary {
+                            name: command.entry.name.clone(),
+                            description: command.entry.description.clone(),
+                        })
+                        .collect()
+                }),
+            })
+            .collect()
+    }
+
     pub(crate) fn render_index(
         &self,
         domain: Option<&str>,
         command: Option<&str>,
+        include_commands: bool,
         include_schemas: bool,
         include_examples: bool,
     ) -> Result<Value> {
@@ -102,7 +139,7 @@ impl GatewayRegistry {
                 json!({ "domain": domain, "command": self.command_record(domain, command)?.entry.clone() })
             }
             (Some(domain), None) => json!({ "domain": domain, "commands": self.commands(domain)? }),
-            (None, None) => json!({ "domains": self.domains() }),
+            (None, None) => json!({ "domains": self.domain_index_entries(include_commands) }),
             (None, Some(_)) => {
                 return Err(MaenifoldError::GatewayInvalidParams(
                     "GatewayIndex command filter requires a domain.".to_string(),

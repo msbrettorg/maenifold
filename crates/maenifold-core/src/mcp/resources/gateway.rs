@@ -102,16 +102,16 @@ fn handle_catalog_read(uri: &str) -> Result<ReadResourceResult> {
         if uri == GATEWAY_DOMAINS_URI {
             json!({ "domains": registry.domains() })
         } else if uri == GATEWAY_EXAMPLES_URI {
-            registry.render_index(None, None, false, true)?
+            registry.render_index(None, None, false, false, true)?
         } else if let Some((domain, command)) = parse_command_uri(uri)? {
             registry
-                .render_index(Some(domain), Some(command), true, false)
+                .render_index(Some(domain), Some(command), false, true, false)
                 .map_err(|_| not_found(uri))?
         } else if let Some(domain) = parse_domain_commands_uri(uri)? {
             json!({ "domain": domain, "commands": registry.commands(domain).map_err(|_| not_found(uri))? })
         } else if let Some(domain) = parse_domain_uri(uri)? {
             registry
-                .render_index(Some(domain), None, false, false)
+                .render_index(Some(domain), None, false, false, false)
                 .map_err(|_| not_found(uri))?
         } else {
             return Err(MaenifoldError::InvalidResourceUri(uri.to_string()));

@@ -2,6 +2,7 @@ use crate::acp_config::IntentResolverSettings;
 use crate::mcp::domain_mapping;
 use crate::mcp::gateway_gate::invoke_gate;
 use crate::mcp::gateway_registry::{CommandTarget, GatewayRegistry};
+use crate::mcp::gateway_schema_validation::validate_parameters;
 use crate::mcp::gateway_tasks::invoke_tasks;
 use crate::mcp::resource_routing::{ResourceRoutingRegistry, map_gateway_resource_error};
 use crate::mcp::schema::gateway_tools::{
@@ -16,6 +17,9 @@ use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+#[cfg(test)]
+#[path = "gateway_runtime_missing_required_tests.rs"]
+mod missing_required_tests;
 #[path = "gateway_runtime_support.rs"]
 mod support;
 
@@ -214,12 +218,15 @@ impl GatewayState {
             )
         })?;
         let parameters = Value::Object(args.parameters);
-        match self
+        let command_record = self
             .registry
-            .resolve(&args.domain, &args.command)
-            .map_err(|err| support::map_gateway_error("GatewayExecute", err))?
-        {
+            .command_record(&args.domain, &args.command)
+            .map_err(|err| support::map_gateway_error("GatewayExecute", err))?;
+        let command_ref = format!("{}/{}", args.domain, args.command);
+        match command_record.target.clone() {
             CommandTarget::Native { tool_name } => {
+                validate_parameters(&command_ref, &parameters, &command_record.entry.schema)
+                    .map_err(|err| rmcp::ErrorData::invalid_params(err.to_string(), None))?;
                 support::invoke_native(tool_name, parameters).await
             }
             CommandTarget::Gate { command } => invoke_gate(command, parameters).await,

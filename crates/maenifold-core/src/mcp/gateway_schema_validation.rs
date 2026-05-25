@@ -33,7 +33,8 @@ pub(crate) fn validate_parameters(
     let Some(validator) = compile_validator(schema) else {
         return Ok(());
     };
-    validate_with_validator(command_name, parameters, &validator)
+    let errors = validator.iter_errors(parameters).collect::<Vec<_>>();
+    validation_result(command_name, Some(schema), &errors)
 }
 
 pub(crate) fn compile_validator(schema: &Value) -> Option<Arc<jsonschema::Validator>> {
@@ -48,14 +49,32 @@ pub(crate) fn validate_with_validator(
     parameters: &Value,
     validator: &jsonschema::Validator,
 ) -> Result<(), GatewayValidationError> {
-    if let Some(error) = validator.iter_errors(parameters).next() {
-        let path = validation_path(&error);
-        let keyword = validation_keyword(&error);
+    let errors = validator.iter_errors(parameters).collect::<Vec<_>>();
+    validation_result(command_name, None, &errors)
+}
+
+fn validation_result(
+    command_name: &str,
+    schema: Option<&Value>,
+    errors: &[jsonschema::ValidationError<'_>],
+) -> Result<(), GatewayValidationError> {
+    if errors.is_empty() {
+        return Ok(());
+    }
+    let missing = missing_required_properties(errors, schema);
+    if !missing.is_empty() {
         return Err(GatewayValidationError::new(format!(
-            "gateway validation failed for '{command_name}': {path}: {keyword}"
+            "Missing required parameter(s) for {command_name}: {}. See GetHelp toolName=\"{}\" or GatewayIndex with includeSchemas=true for full schema.",
+            missing.join(", "),
+            help_tool_name(command_name)
         )));
     }
-    Ok(())
+    let error = &errors[0];
+    let path = validation_path(error);
+    let keyword = validation_keyword(error);
+    Err(GatewayValidationError::new(format!(
+        "gateway validation failed for '{command_name}': {path}: {keyword}"
+    )))
 }
 
 pub(crate) fn compute_schema_hash(schema: &Value) -> String {
@@ -102,6 +121,53 @@ fn validation_keyword(error: &jsonschema::ValidationError<'_>) -> String {
         .filter(|keyword| !keyword.is_empty())
         .map(unescape_json_pointer_segment)
         .unwrap_or_else(|| "schema".to_string())
+}
+
+fn missing_required_properties(
+    errors: &[jsonschema::ValidationError<'_>],
+    schema: Option<&Value>,
+) -> Vec<String> {
+    let mut missing = errors
+        .iter()
+        .filter_map(|error| match &error.kind {
+            jsonschema::error::ValidationErrorKind::Required { property } => {
+                property.as_str().map(str::to_string)
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    if missing.is_empty() {
+        return missing;
+    }
+    missing.sort();
+    missing.dedup();
+    if let Some(schema) = schema {
+        let required = schema
+            .get("required")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .map(str::to_string)
+            .collect::<Vec<_>>();
+        if !required.is_empty() {
+            let mut ordered = required
+                .into_iter()
+                .filter(|name| missing.iter().any(|item| item == name))
+                .collect::<Vec<_>>();
+            let extras = missing
+                .into_iter()
+                .filter(|name| !ordered.iter().any(|item| item == name))
+                .collect::<Vec<_>>();
+            ordered.extend(extras);
+            return ordered;
+        }
+    }
+    missing
+}
+
+fn help_tool_name(command_name: &str) -> &str {
+    command_name.rsplit('/').next().unwrap_or(command_name)
 }
 
 fn escape_json_pointer_segment(segment: &str) -> String {

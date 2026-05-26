@@ -236,11 +236,18 @@
   <script type="application/json" id="gate-data"></script>
   <script>
     (() => {
-      const STAGES = ["pending", "swe", "red-team", "blue-team", "done"];
       const PRIORITY_ORDER = { p0: 0, p1: 1, p2: 2, p3: 3 };
       const byId = (id) => document.getElementById(id);
       const clear = (el) => { while (el.firstChild) el.removeChild(el.firstChild); };
       const taskState = (task) => String(task.state || task.stage || "pending").toLowerCase();
+      const deriveStages = (tasks) => {
+        if (!tasks || tasks.length === 0) return ["pending", "done"];
+        const observed = new Set();
+        for (const task of tasks) observed.add(taskState(task));
+        observed.delete("pending");
+        observed.delete("done");
+        return ["pending", ...Array.from(observed).sort((left, right) => left.localeCompare(right)), "done"];
+      };
       const taskId = (task) => String(task.taskId || task.id || "unknown");
       const priorityText = (task) => String(task.priority || "P2").toUpperCase();
       const priorityRank = (task) => PRIORITY_ORDER[priorityText(task).toLowerCase()] ?? 99;
@@ -328,15 +335,16 @@
         return card;
       };
       const renderColumns = (tasks) => {
-        const grouped = new Map(STAGES.map((stage) => [stage, []]));
+        const stages = deriveStages(tasks);
+        const grouped = new Map(stages.map((stage) => [stage, []]));
         for (const task of tasks) {
           const stage = taskState(task);
           (grouped.get(stage) || grouped.get("pending")).push(task);
         }
         const grid = byId("kanban-grid");
-        grid.style.setProperty("--stage-count", String(STAGES.length));
+        grid.style.setProperty("--stage-count", String(stages.length));
         clear(grid);
-        for (const stage of STAGES) {
+        for (const stage of stages) {
           const section = document.createElement("section");
           section.className = "column";
           const title = document.createElement("h2");
@@ -355,12 +363,13 @@
       };
       const render = (payload) => {
         const tasks = parsePayload(payload);
+        const stages = deriveStages(tasks);
         lastTasks = tasks;
         if (!selectedTaskId && tasks.length > 0) selectedTaskId = taskId(tasks[0]);
         byId("title").textContent = "Gate Board";
         byId("gate-status").textContent = `Loaded ${tasks.length} task${tasks.length === 1 ? "" : "s"}`;
         byId("task-count").textContent = String(tasks.length);
-        byId("stage-count").textContent = String(STAGES.length);
+        byId("stage-count").textContent = String(stages.length);
         byId("stale-count").textContent = String(tasks.filter(isStale).length);
         byId("empty").hidden = tasks.length !== 0;
         byId("kanban-grid").hidden = tasks.length === 0;

@@ -226,6 +226,34 @@ async fn gateway_index_include_commands_embeds_command_summaries_without_schemas
 }
 
 #[tokio::test]
+async fn gateway_index_pipeline_command_preserves_ui_resource_meta() {
+    let state = state().await;
+
+    let result = state
+        .handle_tool_call(
+            "GatewayIndex",
+            json!({
+                "domain": "maenifold.workflow",
+                "command": "Pipeline",
+                "includeSchemas": true
+            }),
+            None,
+        )
+        .await
+        .expect("GatewayIndex Pipeline command should succeed")
+        .expect("GatewayIndex should return a result");
+    let value = json_text(&result);
+    let resource_uri = value["command"]["_meta"]["ui"]["resourceUri"]
+        .as_str()
+        .expect("Pipeline command should advertise UI resource URI");
+
+    assert_eq!(
+        resource_uri,
+        crate::mcp::tool_utils::PIPELINE_UI_RESOURCE_URI
+    );
+}
+
+#[tokio::test]
 async fn gateway_execute_reports_overwrite_type_error_before_write_memory_business_validation() {
     let state = state().await;
 

@@ -14,6 +14,7 @@ pub(super) fn tool_definition(
         description: description.to_string(),
         input_schema,
         execution: None,
+        meta: None,
     }
 }
 

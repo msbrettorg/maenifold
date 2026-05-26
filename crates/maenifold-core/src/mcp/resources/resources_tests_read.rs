@@ -1,5 +1,40 @@
 use super::resources_tests_common::*;
 
+#[test]
+#[serial]
+fn read_pipeline_app_resource_returns_self_contained_html() {
+    let (_tmp, _guard) = setup_test_env();
+
+    let result = handle_read_resource(crate::mcp::tool_utils::PIPELINE_UI_RESOURCE_URI)
+        .expect("pipeline app resource should read");
+    let Some(rmcp::model::ResourceContents::TextResourceContents {
+        text, mime_type, ..
+    }) = result.contents.first()
+    else {
+        panic!("pipeline app resource should be text");
+    };
+
+    assert_eq!(
+        mime_type.as_deref(),
+        Some(crate::mcp::tool_utils::MCP_APP_HTML_MIME_TYPE)
+    );
+    assert!(text.starts_with("<!doctype html>"));
+    for required_key in [
+        "nodes",
+        "edges",
+        "status",
+        "ready",
+        "active",
+        "completed",
+        "running",
+    ] {
+        assert!(
+            text.contains(required_key),
+            "pipeline app HTML should handle {required_key}"
+        );
+    }
+}
+
 /// T-205.716: Regression test for concurrent handle_read_resource() calls on pipeline sessions.
 ///
 /// **CRITICAL PATH**: This test exercises the ACTUAL deadlock surface:

@@ -1,5 +1,23 @@
 use super::resources_tests_common::*;
 
+#[test]
+#[serial]
+fn list_resources_includes_pipeline_app_resource() {
+    let (_tmp, _guard) = setup_test_env();
+
+    let result = handle_list_resources().expect("resources list should load");
+    let resource = result
+        .resources
+        .iter()
+        .find(|resource| resource.uri == crate::mcp::tool_utils::PIPELINE_UI_RESOURCE_URI)
+        .expect("pipeline app resource should be listed");
+
+    assert_eq!(
+        resource.mime_type.as_deref(),
+        Some(crate::mcp::tool_utils::MCP_APP_HTML_MIME_TYPE)
+    );
+}
+
 /// T-205.716: Regression test for concurrent handle_list_resources() calls.
 ///
 /// This test reproduces the scenario that triggers "Resource deadlock avoided (os error 11)":

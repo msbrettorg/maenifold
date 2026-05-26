@@ -76,6 +76,7 @@ impl GatewayRegistry {
                                 .to_string(),
                             schema,
                             safety_class: domain_mapping::tool_safety(&name).to_string(),
+                            meta: tool.meta.as_ref().map(|meta| meta.0.clone()),
                         },
                         target: CommandTarget::Upstream {
                             server_name: server_name.clone(),
@@ -113,6 +114,7 @@ impl GatewayRegistry {
                             description: tool.description,
                             schema: tool.input_schema,
                             safety_class: domain_mapping::tool_safety(&tool.name).to_string(),
+                            meta: tool.meta,
                         },
                         target: CommandTarget::Native {
                             tool_name: tool.name,

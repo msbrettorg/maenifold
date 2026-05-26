@@ -373,7 +373,7 @@
             positions.set(id, { column, row });
           });
         }
-        return { positions, incoming, outgoing };
+        return { positions };
       };
       const renderSelected = (node) => {
         const target = byId("selected-node");
@@ -394,7 +394,7 @@
         editor.clear();
         drawflowIdToPayloadId = new Map();
         payloadNodeMap = new Map(nodes.map((node) => [nodeId(node), node]));
-        const { positions, incoming, outgoing } = layoutGraph(nodes, edges);
+        const { positions } = layoutGraph(nodes, edges);
         const drawflowByPayloadId = new Map();
         for (const node of nodes) {
           const id = nodeId(node);
@@ -403,8 +403,8 @@
           const htmlBody = `<div class="node-title">${escapeHtml(id)}</div><div class="node-type">${escapeHtml(nodeKind(node))}</div>`;
           const drawflowNodeId = editor.addNode(
             id,
-            incoming.get(id).length,
-            outgoing.get(id).length,
+            1,
+            1,
             position.column * 240,
             position.row * 100,
             `node-${statusClass(status)}`,
@@ -442,10 +442,15 @@
         appendItems("active-list", active);
         appendItems("edge-list", edges.map(edgeLabel));
         if (!selectedNodeId && nodes.length > 0) selectedNodeId = nodeId(nodes[0]);
-        renderDAG(nodes, edges, ready, active, completed);
         const drawflow = byId("drawflow");
-        drawflow.hidden = nodes.length === 0;
-        byId("empty").hidden = nodes.length !== 0;
+        const empty = byId("empty");
+        drawflow.hidden = false;
+        empty.hidden = true;
+        renderDAG(nodes, edges, ready, active, completed);
+        if (nodes.length === 0) {
+          drawflow.hidden = true;
+          empty.hidden = false;
+        }
         renderSelected(nodes.find((node) => nodeId(node) === selectedNodeId));
       };
       window.renderPipeline = render;

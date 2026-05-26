@@ -1,10 +1,14 @@
 use crate::error::{MaenifoldError, Result};
-use crate::mcp::resources::pipeline::{PIPELINE_SESSION_PREFIX, PIPELINE_SESSIONS_URI};
-use crate::mcp::tool_utils::{GATE_UI_RESOURCE_URI, MCP_APP_HTML_MIME_TYPE, PIPELINE_UI_RESOURCE_URI};
+use crate::mcp::resources::pipeline::{PIPELINE_SESSIONS_URI, PIPELINE_SESSION_PREFIX};
+use crate::mcp::tool_utils::{
+    GATE_UI_RESOURCE_URI, MCP_APP_HTML_MIME_TYPE, PIPELINE_UI_RESOURCE_URI,
+};
 use rmcp::model::ResourceContents;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use tray_icon::menu::MenuId;
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
+#[cfg(target_os = "macos")]
+use winit::platform::macos::WindowAttributesExtMacOS;
 use winit::window::WindowId;
 
 pub(crate) const PIPELINE_VIEWER_MENU_TEXT: &str = "Pipeline Viewer";
@@ -13,6 +17,7 @@ const PIPELINE_VIEWER_CLOSE_MESSAGE: &str = "close-pipeline-viewer";
 const GATE_VIEWER_CLOSE_MESSAGE: &str = "close-gate-viewer";
 const PIPELINE_VIEWER_TITLE: &str = "Pipeline";
 const GATE_VIEWER_TITLE: &str = "Gate Board";
+const MAENIFOLD_GATE_ROOT_ENV: &str = "MAENIFOLD_GATE_ROOT";
 const PIPELINE_DATA_MARKER: &str =
     r#"<script type="application/json" id="pipeline-data"></script>"#;
 const GATE_DATA_MARKER: &str = r#"<script type="application/json" id="gate-data"></script>"#;
@@ -79,7 +84,8 @@ pub(crate) fn open_pipeline_viewer(
                 .with_title(PIPELINE_VIEWER_TITLE)
                 .with_inner_size(LogicalSize::new(920.0, 640.0))
                 .with_min_inner_size(LogicalSize::new(520.0, 360.0))
-                .with_decorations(false)
+                .with_decorations(true)
+                .with_title_hidden(true)
                 .with_visible(true),
         )
         .map_err(|err| MaenifoldError::Message(format!("failed to create viewer window: {err}")))?;
@@ -129,7 +135,8 @@ pub(crate) fn open_gate_viewer(
                 .with_title(GATE_VIEWER_TITLE)
                 .with_inner_size(LogicalSize::new(920.0, 640.0))
                 .with_min_inner_size(LogicalSize::new(520.0, 360.0))
-                .with_decorations(false)
+                .with_decorations(true)
+                .with_title_hidden(true)
                 .with_visible(true),
         )
         .map_err(|err| MaenifoldError::Message(format!("failed to create viewer window: {err}")))?;
@@ -165,13 +172,13 @@ pub(crate) fn open_gate_viewer(
 }
 
 pub(crate) fn pipeline_viewer_html_for_payload(payload: &Value) -> Result<String> {
-    let html = pipeline_app_resource_html()?;
+    let html = viewer_app_resource_html(pipeline_viewer_resource_uri(), "Pipeline")?;
     let html = inject_pipeline_viewer_host_controls(&html)?;
     embed_pipeline_payload(&html, payload)
 }
 
 pub(crate) fn gate_viewer_html_for_payload(payload: &Value) -> Result<String> {
-    let html = gate_app_resource_html()?;
+    let html = viewer_app_resource_html(gate_viewer_resource_uri(), "Gate")?;
     let html = inject_gate_viewer_host_controls(&html)?;
     embed_gate_payload(&html, payload)
 }
@@ -193,14 +200,6 @@ pub(crate) fn gate_viewer_current_payload() -> Result<Value> {
     })
 }
 
-fn pipeline_app_resource_html() -> Result<String> {
-    viewer_app_resource_html(pipeline_viewer_resource_uri(), "Pipeline")
-}
-
-fn gate_app_resource_html() -> Result<String> {
-    viewer_app_resource_html(gate_viewer_resource_uri(), "Gate")
-}
-
 fn viewer_app_resource_html(uri: &str, label: &str) -> Result<String> {
     let result = crate::mcp::resources::handle_read_resource(uri)?;
     for content in result.contents {
@@ -217,13 +216,19 @@ fn viewer_app_resource_html(uri: &str, label: &str) -> Result<String> {
             )));
         }
     }
-    Err(MaenifoldError::Message(
-        format!("{label} app resource did not return HTML text content"),
-    ))
+    Err(MaenifoldError::Message(format!(
+        "{label} app resource did not return HTML text content"
+    )))
 }
 
 fn embed_pipeline_payload(html: &str, payload: &Value) -> Result<String> {
-    embed_json_payload(html, PIPELINE_DATA_MARKER, "pipeline-data", payload, "Pipeline")
+    embed_json_payload(
+        html,
+        PIPELINE_DATA_MARKER,
+        "pipeline-data",
+        payload,
+        "Pipeline",
+    )
 }
 
 fn embed_gate_payload(html: &str, payload: &Value) -> Result<String> {
@@ -323,9 +328,7 @@ fn inject_viewer_host_controls(
 }
 
 fn fetch_gate_status_payload() -> Result<Value> {
-    let root = std::env::current_dir().map_err(|error| {
-        MaenifoldError::Message(format!("Failed to resolve Gate root from current dir: {error}"))
-    })?;
+    let root = resolve_gate_root()?;
     let payload = serde_json::json!({
         "domain": "maenifold.gate",
         "command": "gate_Status",
@@ -334,6 +337,20 @@ fn fetch_gate_status_payload() -> Result<Value> {
     let text = invoke_gateway_tool_sync("GatewayExecute", payload)?;
     serde_json::from_str(&text).map_err(|error| {
         MaenifoldError::Message(format!("Failed to decode gate_Status payload: {error}"))
+    })
+}
+
+fn resolve_gate_root() -> Result<std::path::PathBuf> {
+    if let Some(root) = std::env::var(MAENIFOLD_GATE_ROOT_ENV)
+        .ok()
+        .and_then(|root| (!root.trim().is_empty()).then(|| std::path::PathBuf::from(root.trim())))
+    {
+        return Ok(root);
+    }
+    std::env::current_dir().map_err(|error| {
+        MaenifoldError::Message(format!(
+            "Failed to resolve Gate root from current dir: {error}"
+        ))
     })
 }
 

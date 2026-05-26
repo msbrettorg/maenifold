@@ -1,7 +1,9 @@
 use super::context::{ToolContext, load_help_doc, render, required_string};
 use crate::assets::{AssetKind, AssetManager};
 use crate::error::Result;
+use crate::mcp::resources;
 use crate::util::json::{OutputFormat, success};
+use rmcp::model::ResourceContents;
 use serde_json::Value;
 
 pub fn list_assets(context: &ToolContext, payload: &Value) -> Result<String> {
@@ -47,10 +49,23 @@ pub fn read_mcp_resource(context: &ToolContext, payload: &Value) -> Result<Strin
     }
 
     let uri = required_string(payload, "uri")?;
-    let asset_manager = AssetManager::new(&context.config);
-    let value = asset_manager.read_resource(uri)?;
+    let value = resource_text(resources::handle_read_resource_with_config(
+        uri,
+        &context.config,
+    )?);
     Ok(match context.output_format {
-        OutputFormat::Json => success(render(OutputFormat::Markdown, value)),
-        OutputFormat::Markdown => render(OutputFormat::Markdown, value),
+        OutputFormat::Json => success(value),
+        OutputFormat::Markdown => value,
     })
+}
+
+fn resource_text(result: rmcp::model::ReadResourceResult) -> String {
+    result
+        .contents
+        .into_iter()
+        .find_map(|content| match content {
+            ResourceContents::TextResourceContents { text, .. } => Some(text),
+            ResourceContents::BlobResourceContents { blob, .. } => Some(blob),
+        })
+        .unwrap_or_default()
 }

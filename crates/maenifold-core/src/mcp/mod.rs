@@ -107,15 +107,7 @@ impl MaenifoldHandler {
     fn new_with_config(transport: TransportKind, config: Config) -> Result<Self> {
         let tools = list_mcp_tools(&ToolRegistry::new())?
             .into_iter()
-            .map(|t| {
-                let schema: serde_json::Map<String, Value> = match t.input_schema {
-                    Value::Object(map) => map,
-                    _ => serde_json::Map::new(),
-                };
-                let mut tool = Tool::new(t.name, t.description, Arc::new(schema));
-                tool.execution = t.execution;
-                tool
-            })
+            .map(McpToolDefinition::into_rmcp_tool)
             .collect();
         Ok(Self {
             transport,

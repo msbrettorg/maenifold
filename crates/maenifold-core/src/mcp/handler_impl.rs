@@ -9,6 +9,20 @@ use rmcp::model::{
 use rmcp::service::RequestContext;
 use rmcp::{ErrorData, RoleServer, ServerHandler};
 
+fn mcp_apps_ui_extensions() -> rmcp::model::ExtensionCapabilities {
+    let mut extensions = rmcp::model::ExtensionCapabilities::new();
+    let mut settings = rmcp::model::JsonObject::new();
+    settings.insert(
+        "mimeTypes".to_string(),
+        json!([crate::mcp::tool_utils::MCP_APP_HTML_MIME_TYPE]),
+    );
+    extensions.insert(
+        crate::mcp::tool_utils::MCP_APPS_UI_EXTENSION.to_string(),
+        settings,
+    );
+    extensions
+}
+
 fn split_namespaced_prompt_name(name: &str) -> std::result::Result<(&str, &str), ErrorData> {
     name.split_once(':').ok_or_else(|| {
         ErrorData::invalid_params("Prompt names must be namespaced as <server>:<prompt>", None)
@@ -24,6 +38,7 @@ impl ServerHandler for MaenifoldHandler {
                 .enable_resources()
                 .enable_resources_subscribe()
                 .enable_resources_list_changed()
+                .enable_extensions_with(mcp_apps_ui_extensions())
                 .enable_tasks_with(TasksCapability::server_default())
                 .build(),
             TransportKind::Http => ServerCapabilities::builder()
@@ -31,6 +46,7 @@ impl ServerHandler for MaenifoldHandler {
                 .enable_prompts()
                 .enable_resources()
                 .enable_resources_subscribe()
+                .enable_extensions_with(mcp_apps_ui_extensions())
                 .enable_tasks_with(TasksCapability::server_default())
                 .build(),
         };
@@ -163,6 +179,7 @@ impl ServerHandler for MaenifoldHandler {
             }
             if uri.starts_with("ui://")
                 && let Some(gateway) = gateway
+                && gateway.owns_resource_uri(&uri)
             {
                 return gateway.read_resource(&uri).await;
             }

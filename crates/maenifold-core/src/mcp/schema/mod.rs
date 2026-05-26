@@ -26,9 +26,9 @@ use std::collections::HashMap;
 use std::sync::OnceLock;
 
 use crate::error::Result;
-use crate::mcp::McpToolDefinition;
+use crate::mcp::{McpToolDefinition, tool_utils::PIPELINE_UI_RESOURCE_URI};
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{Map, Value, json};
 
 pub(crate) use params::{
     AcpExecContextBlock, AcpExecImageContext, AcpExecResourceContext, AcpExecTextContext,
@@ -46,6 +46,7 @@ pub(crate) fn mcp_tool_from_registry_name(registry_name: &str) -> Result<McpTool
                 description: "Gateway tool (use learn=true for details)".to_string(),
                 input_schema: json!({ "type": "object" }),
                 execution: None,
+                meta: None,
             }
         }))
 }
@@ -76,17 +77,34 @@ struct ToolManifestEntry {
     input_schema: serde_json::Value,
     #[serde(default)]
     execution: Option<rmcp::model::ToolExecution>,
+    #[serde(rename = "_meta", default)]
+    meta: Option<Map<String, Value>>,
 }
 
 impl ToolManifestEntry {
     fn into_definition(self) -> McpToolDefinition {
+        let meta = self.meta.or_else(|| default_tool_meta(&self.name));
         McpToolDefinition {
             name: self.name,
             description: self.description,
             input_schema: self.input_schema,
             execution: self.execution,
+            meta,
         }
     }
+}
+
+fn default_tool_meta(name: &str) -> Option<Map<String, Value>> {
+    if name != "Pipeline" {
+        return None;
+    }
+    json!({
+        "ui": {
+            "resourceUri": PIPELINE_UI_RESOURCE_URI
+        }
+    })
+    .as_object()
+    .cloned()
 }
 
 #[cfg(test)]
@@ -133,6 +151,34 @@ mod tests {
             pipeline.execution.as_ref(),
             Some(&ToolExecution::new().with_task_support(TaskSupport::Optional))
         );
+    }
+
+    #[test]
+    fn pipeline_tool_advertises_ui_resource_uri() {
+        let pipeline = mcp_tool_from_registry_name("Pipeline").expect("Pipeline tool should load");
+        let uri = pipeline
+            .meta
+            .as_ref()
+            .and_then(|meta| meta.get("ui"))
+            .and_then(|ui| ui.get("resourceUri"))
+            .and_then(serde_json::Value::as_str);
+
+        assert_eq!(uri, Some(PIPELINE_UI_RESOURCE_URI));
+    }
+
+    #[test]
+    fn pipeline_rmcp_tool_preserves_ui_resource_uri() {
+        let tool = mcp_tool_from_registry_name("Pipeline")
+            .expect("Pipeline tool should load")
+            .into_rmcp_tool();
+        let uri = tool
+            .meta
+            .as_ref()
+            .and_then(|meta| meta.0.get("ui"))
+            .and_then(|ui| ui.get("resourceUri"))
+            .and_then(serde_json::Value::as_str);
+
+        assert_eq!(uri, Some(PIPELINE_UI_RESOURCE_URI));
     }
 
     #[test]

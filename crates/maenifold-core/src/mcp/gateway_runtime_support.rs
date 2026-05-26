@@ -7,7 +7,6 @@ use crate::tools::{RequestCancelOnDrop, with_cancellation_scope};
 use crate::util::json::OutputFormat;
 use rmcp::model::{CallToolResult, Content, ErrorCode, Tool};
 use serde_json::Value;
-use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 
 pub(super) async fn invoke_native(
@@ -100,13 +99,7 @@ pub(super) fn render_json(value: Value) -> String {
 }
 
 pub(super) fn tool_from_definition(definition: crate::mcp::McpToolDefinition) -> Tool {
-    let schema = match definition.input_schema {
-        Value::Object(map) => map,
-        _ => serde_json::Map::new(),
-    };
-    let mut tool = Tool::new(definition.name, definition.description, Arc::new(schema));
-    tool.execution = definition.execution;
-    tool
+    definition.into_rmcp_tool()
 }
 
 fn envelope_indicates_failure(text: &str) -> bool {

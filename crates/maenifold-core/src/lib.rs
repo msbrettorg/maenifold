@@ -41,6 +41,8 @@ pub mod tray;
 pub(crate) mod tray_helpers;
 #[cfg(feature = "app")]
 pub mod tray_menu;
+#[cfg(feature = "app")]
+pub(crate) mod tray_viewer;
 pub mod vector;
 pub mod workflow;
 

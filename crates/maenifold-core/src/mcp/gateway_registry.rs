@@ -1,6 +1,6 @@
 use crate::error::{MaenifoldError, Result};
 use serde::Serialize;
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
@@ -41,6 +41,8 @@ pub(crate) struct CommandEntry {
     pub description: String,
     pub schema: Value,
     pub safety_class: String,
+    #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
+    pub meta: Option<Map<String, Value>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

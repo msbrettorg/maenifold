@@ -375,3 +375,54 @@ For non-initial stages, `gate_Pass` returns `EXPECTED_STAGE_REQUIRED: task 'T-X.
 ### Lesson — iter-15 (2026-05-23): worktree-create script lives under `ralph/scripts/`, not `scripts/`
 
 `./ralph/scripts/worktree-create.sh <task-id>` is the canonical path. There is no `./scripts/worktree-create.sh`. The script symlinks todo/done/node_modules/out into the worktree and installs the PM_OWNS_THIS pre-commit guard.
+
+### Lesson — Worker can't self-commit; PM must commit-in-worktree BEFORE merge (2026-05-26 iter-16)
+
+Per the worktree-create.sh `PM_OWNS_THIS=1` pre-commit guard, dispatched workers cannot commit. The full ship workflow is therefore:
+
+1. PM creates worktree via `./ralph/scripts/worktree-create.sh <task-id> dev`
+2. SWE worker edits files in the worktree (cannot commit)
+3. Worker reports a WorkResult to the PM
+4. **PM commits in the worktree with `PM_OWNS_THIS=1 git commit -am "..."`** — THIS STEP IS EASY TO FORGET
+5. PM merges with `PM_OWNS_THIS=1 git merge --no-ff worker-<task-id>` from dev
+6. PM removes worktree + deletes branch
+
+If you skip step 4, `git merge worker-<task-id>` returns `Already up to date` (the worker branch hasn't moved off its base commit since the worker's edits are uncommitted in its working tree). The fix is to cd into the worktree and commit there. The merge then brings the worker commit into dev as a separate commit followed by a merge commit.
+
+Symptom this iter: T-251.9.1 merge returned "Already up to date" and `git worktree remove` failed with "contains modified or untracked files." Fix took ~30 seconds (commit in worktree, retry merge). Future PMs: bake step 4 into the dispatch checklist.
+
+### Lesson — gpt-5.5 model doesn't exist in Copilot CLI; use claude-opus-4.6-1m as canonical red-team substitute (2026-05-26 iter-16)
+
+Repo-root AGENTS.md Agent RACI table specifies `gpt-5.5` for both red-team (reasoning) and red-team (diff) roles, plus wave-boundary review 1. **That model is NOT available in the Copilot CLI environment.** Calling `task` with `model: 'gpt-5.5'` returns:
+
+```
+Model 'gpt-5.5' is not available. Available models: claude-sonnet-4.5, claude-haiku-4.5, claude-opus-4.7-1m-internal, claude-opus-4.6-1m, claude-opus-4.5, gpt-5.3-codex, gpt-5.2, gpt-5-mini, gpt-4.1, lark-picker-secondary
+```
+
+Of the available non-haiku/non-mini options that preserve the constitution's dual-model diversity intent (red-team should be a different model family from the SWE's `gpt-5.4`/`gpt-5.3-codex`), the canonical substitute is **`claude-opus-4.6-1m`** — which the constitution already slots as wave-boundary review 2. Using it for red-team gives the same cross-family check the original RACI intended.
+
+Future PMs: do NOT downgrade to `gpt-5.2` or `gpt-4.1` "because they're GPTs"; the RACI's intent is model-family diversity, not vendor diversity. Use claude-opus-4.6-1m for red-team where the table says gpt-5.5. File an audit task to update the RACI table to reflect environment reality if the gpt-5.5 deprecation is durable.
+
+### Lesson — Stash-worktree-pop pattern recovers prior-PM uncommitted state into a worker branch (2026-05-26 iter-16)
+
+When you inherit a dirty `dev` working tree from a prior PM that left an SWE artifact uncommitted (T-251.7 iter-16 scenario: 26 files +2237/-118 sitting in main repo as `M` + untracked), the constitutionally-clean recovery is:
+
+```bash
+# 1. Stash everything (including untracked files via -u)
+git stash push -u -m "<task-id> SWE orphan (recovery from main wt)"
+# 2. Verify main repo is now clean
+git status -sb   # should show only the branch header
+# 3. Create the worktree from the unchanged dev HEAD
+./ralph/scripts/worktree-create.sh <task-id> dev
+# 4. Apply the stash inside the worktree
+cd worktrees/<task-id> && git stash pop
+# 5. Verify diff stat matches the original orphan shape
+git diff --stat
+# 6. Commit on the worker branch with PM ownership
+PM_OWNS_THIS=1 git commit -am "<task-id>: <description> (SWE recovery)" \
+  --trailer "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
+```
+
+Before committing, run `cargo build --release -p <crate>` in the worktree with `CARGO_TARGET_DIR=target/agents/<task-id>` to verify the orphan actually compiles (sanity-check the prior PM's "SWE PASS" claim). If it fails, the orphan was broken work and needs SWE remediation, not just recovery.
+
+This pattern preserves Gate flow: the resumed worker branch can then proceed through the remaining stages (red-team / blue-team / merge / terminal-pass) cleanly. Don't try to commit recovery work directly on dev — it bypasses Gate auditing.

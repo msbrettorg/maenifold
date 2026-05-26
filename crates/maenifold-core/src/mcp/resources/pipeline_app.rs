@@ -62,4 +62,21 @@ mod tests {
     fn html_composition_is_byte_identical_to_snapshot() {
         assert_eq!(compose_html(), EXPECTED_SNAPSHOT);
     }
+
+    #[test]
+    fn composed_html_includes_drawflow_cdn_assets() {
+        let html = compose_html();
+        assert!(html.contains("drawflow.min.css"));
+        assert!(html.contains("drawflow.min.js"));
+    }
+
+    #[test]
+    fn composed_html_includes_drawflow_mount_div() {
+        assert!(compose_html().contains("id=\"drawflow\""));
+    }
+
+    #[test]
+    fn composed_html_no_longer_contains_node_grid_id() {
+        assert!(!compose_html().contains("id=\"node-grid\""));
+    }
 }

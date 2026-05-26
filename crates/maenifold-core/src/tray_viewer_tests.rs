@@ -1,10 +1,17 @@
 use super::{
-    PIPELINE_VIEWER_MENU_TEXT, is_pipeline_viewer_event, pipeline_viewer_html_for_payload,
-    pipeline_viewer_resource_uri, select_pipeline_session_id,
+    is_pipeline_viewer_event, pipeline_viewer_html_for_payload, pipeline_viewer_resource_uri,
+    resolve_gate_root, select_pipeline_session_id, MAENIFOLD_GATE_ROOT_ENV,
+    PIPELINE_VIEWER_MENU_TEXT,
 };
 use crate::mcp::tool_utils::PIPELINE_UI_RESOURCE_URI;
 use serde_json::json;
+use std::sync::{Mutex, OnceLock};
 use tray_icon::menu::MenuId;
+
+fn env_lock() -> &'static Mutex<()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(()))
+}
 
 #[test]
 fn pipeline_viewer_menu_event_matches_only_configured_id() {
@@ -76,4 +83,21 @@ fn pipeline_viewer_falls_back_to_pipeline_list_shape() {
         select_pipeline_session_id(&payload).as_deref(),
         Some("pipeline-101")
     );
+}
+
+#[test]
+fn fetch_gate_status_payload_prefers_env_var() {
+    let _guard = env_lock().lock().expect("env lock should not be poisoned");
+    let original_gate_root = std::env::var(MAENIFOLD_GATE_ROOT_ENV).ok();
+    let expected = "/tmp/maenifold-gate-root-precedence";
+    unsafe { std::env::set_var(MAENIFOLD_GATE_ROOT_ENV, expected) };
+
+    let resolved = resolve_gate_root().expect("Gate root should resolve from environment variable");
+
+    match original_gate_root {
+        Some(value) => unsafe { std::env::set_var(MAENIFOLD_GATE_ROOT_ENV, value) },
+        None => unsafe { std::env::remove_var(MAENIFOLD_GATE_ROOT_ENV) },
+    }
+
+    assert_eq!(resolved, std::path::PathBuf::from(expected));
 }

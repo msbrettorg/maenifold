@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pipeline</title>
+  <!-- MAENIFOLD_STYLE -->
+</head>
+<body>
+  <main>
+    <header>
+      <h1 id="title">Pipeline</h1>
+      <div class="status" id="pipeline-status">No pipeline view loaded</div>
+    </header>
+    <div class="stats" aria-label="Pipeline state counts">
+      <div class="stat"><b id="ready-count">0</b><span>Ready</span></div>
+      <div class="stat"><b id="active-count">0</b><span>Active</span></div>
+      <div class="stat"><b id="completed-count">0</b><span>Completed</span></div>
+      <div class="stat"><b id="running-count">0</b><span>Running</span></div>
+    </div>
+    <div class="content">
+      <div class="nodes">
+        <div class="empty" id="empty">No pipeline nodes available.</div>
+        <div class="node-grid" id="node-grid" hidden></div>
+      </div>
+      <aside>
+        <section>
+          <h2>Selected node</h2>
+          <div class="detail" id="selected-node">Select a node.</div>
+        </section>
+        <section>
+          <h2>Ready</h2>
+          <ul id="ready-list"></ul>
+        </section>
+        <section>
+          <h2>Active</h2>
+          <ul id="active-list"></ul>
+        </section>
+        <section>
+          <h2>Edges</h2>
+          <ul id="edge-list"></ul>
+        </section>
+      </aside>
+    </div>
+  </main>
+  <script type="application/json" id="pipeline-data"></script>
+  <!-- MAENIFOLD_SCRIPT -->
+</body>
+</html>

@@ -1,6 +1,6 @@
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::resources::pipeline::{PIPELINE_SESSION_PREFIX, PIPELINE_SESSIONS_URI};
-use crate::mcp::tool_utils::{MCP_APP_HTML_MIME_TYPE, PIPELINE_UI_RESOURCE_URI};
+use crate::mcp::tool_utils::{GATE_UI_RESOURCE_URI, MCP_APP_HTML_MIME_TYPE, PIPELINE_UI_RESOURCE_URI};
 use rmcp::model::ResourceContents;
 use serde_json::{Value, json};
 use tray_icon::menu::MenuId;
@@ -8,15 +8,20 @@ use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::WindowId;
 
 pub(crate) const PIPELINE_VIEWER_MENU_TEXT: &str = "Pipeline Viewer";
+pub(crate) const GATE_VIEWER_MENU_TEXT: &str = "Gate Board";
 const PIPELINE_VIEWER_CLOSE_MESSAGE: &str = "close-pipeline-viewer";
+const GATE_VIEWER_CLOSE_MESSAGE: &str = "close-gate-viewer";
 const PIPELINE_VIEWER_TITLE: &str = "Pipeline";
+const GATE_VIEWER_TITLE: &str = "Gate Board";
 const PIPELINE_DATA_MARKER: &str =
     r#"<script type="application/json" id="pipeline-data"></script>"#;
+const GATE_DATA_MARKER: &str = r#"<script type="application/json" id="gate-data"></script>"#;
 const HEAD_STYLE_END_MARKER: &str = "</style>";
 const BODY_START_MARKER: &str = "<body>";
 
 pub(crate) enum TrayViewerEvent {
     ClosePipelineViewer,
+    CloseGateViewer,
 }
 
 pub(crate) fn is_pipeline_viewer_event(
@@ -26,8 +31,16 @@ pub(crate) fn is_pipeline_viewer_event(
     pipeline_viewer_id.is_some_and(|id| event_id == id)
 }
 
+pub(crate) fn is_gate_viewer_event(event_id: &MenuId, gate_viewer_id: Option<&MenuId>) -> bool {
+    gate_viewer_id.is_some_and(|id| event_id == id)
+}
+
 pub(crate) fn pipeline_viewer_resource_uri() -> &'static str {
     PIPELINE_UI_RESOURCE_URI
+}
+
+pub(crate) fn gate_viewer_resource_uri() -> &'static str {
+    GATE_UI_RESOURCE_URI
 }
 
 pub(crate) struct PipelineViewer {
@@ -101,10 +114,66 @@ pub(crate) fn open_pipeline_viewer(
     ))
 }
 
+#[cfg(target_os = "macos")]
+pub(crate) fn open_gate_viewer(
+    event_loop: &ActiveEventLoop,
+    event_proxy: EventLoopProxy<TrayViewerEvent>,
+) -> Result<PipelineViewer> {
+    use winit::dpi::LogicalSize;
+    use winit::window::Window;
+    use wry::WebViewBuilder;
+
+    let window = event_loop
+        .create_window(
+            Window::default_attributes()
+                .with_title(GATE_VIEWER_TITLE)
+                .with_inner_size(LogicalSize::new(920.0, 640.0))
+                .with_min_inner_size(LogicalSize::new(520.0, 360.0))
+                .with_decorations(false)
+                .with_visible(true),
+        )
+        .map_err(|err| MaenifoldError::Message(format!("failed to create viewer window: {err}")))?;
+
+    let html = gate_viewer_html_for_payload(&gate_viewer_current_payload()?)?;
+    let proxy = event_proxy.clone();
+    let webview = WebViewBuilder::new()
+        .with_html(html)
+        .with_ipc_handler(move |request| {
+            if request.body() == GATE_VIEWER_CLOSE_MESSAGE {
+                let _ = proxy.send_event(TrayViewerEvent::CloseGateViewer);
+            }
+        })
+        .build(&window)
+        .map_err(|err| {
+            MaenifoldError::Message(format!("failed to create viewer webview: {err}"))
+        })?;
+
+    Ok(PipelineViewer {
+        window,
+        _webview: webview,
+    })
+}
+
+#[cfg(not(target_os = "macos"))]
+pub(crate) fn open_gate_viewer(
+    _event_loop: &ActiveEventLoop,
+    _event_proxy: EventLoopProxy<TrayViewerEvent>,
+) -> Result<PipelineViewer> {
+    Err(MaenifoldError::Message(
+        "Gate viewer is currently implemented for macOS tray builds".to_string(),
+    ))
+}
+
 pub(crate) fn pipeline_viewer_html_for_payload(payload: &Value) -> Result<String> {
     let html = pipeline_app_resource_html()?;
     let html = inject_pipeline_viewer_host_controls(&html)?;
     embed_pipeline_payload(&html, payload)
+}
+
+pub(crate) fn gate_viewer_html_for_payload(payload: &Value) -> Result<String> {
+    let html = gate_app_resource_html()?;
+    let html = inject_gate_viewer_host_controls(&html)?;
+    embed_gate_payload(&html, payload)
 }
 
 pub(crate) fn pipeline_viewer_current_payload() -> Result<Value> {
@@ -115,8 +184,25 @@ pub(crate) fn pipeline_viewer_current_payload() -> Result<Value> {
     read_json_resource_payload(&format!("{PIPELINE_SESSION_PREFIX}{session_id}"))
 }
 
+pub(crate) fn gate_viewer_current_payload() -> Result<Value> {
+    fetch_gate_status_payload().or_else(|error| {
+        Ok(json!({
+            "tasks": [],
+            "issue": format!("Gate status unavailable: {error}")
+        }))
+    })
+}
+
 fn pipeline_app_resource_html() -> Result<String> {
-    let result = crate::mcp::resources::handle_read_resource(pipeline_viewer_resource_uri())?;
+    viewer_app_resource_html(pipeline_viewer_resource_uri(), "Pipeline")
+}
+
+fn gate_app_resource_html() -> Result<String> {
+    viewer_app_resource_html(gate_viewer_resource_uri(), "Gate")
+}
+
+fn viewer_app_resource_html(uri: &str, label: &str) -> Result<String> {
+    let result = crate::mcp::resources::handle_read_resource(uri)?;
     for content in result.contents {
         if let ResourceContents::TextResourceContents {
             text, mime_type, ..
@@ -126,33 +212,63 @@ fn pipeline_app_resource_html() -> Result<String> {
                 return Ok(text);
             }
             return Err(MaenifoldError::Message(format!(
-                "Pipeline app resource returned unexpected MIME type: {:?}",
+                "{label} app resource returned unexpected MIME type: {:?}",
                 mime_type
             )));
         }
     }
     Err(MaenifoldError::Message(
-        "Pipeline app resource did not return HTML text content".to_string(),
+        format!("{label} app resource did not return HTML text content"),
     ))
 }
 
 fn embed_pipeline_payload(html: &str, payload: &Value) -> Result<String> {
+    embed_json_payload(html, PIPELINE_DATA_MARKER, "pipeline-data", payload, "Pipeline")
+}
+
+fn embed_gate_payload(html: &str, payload: &Value) -> Result<String> {
+    embed_json_payload(html, GATE_DATA_MARKER, "gate-data", payload, "Gate")
+}
+
+fn embed_json_payload(
+    html: &str,
+    marker: &str,
+    element_id: &str,
+    payload: &Value,
+    label: &str,
+) -> Result<String> {
     let payload = escape_json_for_script(&serde_json::to_string(payload)?);
-    let script =
-        format!(r#"<script type="application/json" id="pipeline-data">{payload}</script>"#);
-    let embedded = html.replacen(PIPELINE_DATA_MARKER, &script, 1);
+    let script = format!(r#"<script type="application/json" id="{element_id}">{payload}</script>"#);
+    let embedded = html.replacen(marker, &script, 1);
     if embedded == html {
-        return Err(MaenifoldError::Message(
-            "Pipeline app HTML is missing the pipeline-data script marker".to_string(),
-        ));
+        return Err(MaenifoldError::Message(format!(
+            "{label} app HTML is missing the {element_id} script marker"
+        )));
     }
     Ok(embedded)
 }
 
 fn inject_pipeline_viewer_host_controls(html: &str) -> Result<String> {
-    let style = format!(
-        r#"
-    .viewer-close {{
+    inject_viewer_host_controls(
+        html,
+        "Pipeline",
+        "Close Pipeline viewer",
+        PIPELINE_VIEWER_CLOSE_MESSAGE,
+    )
+}
+
+fn inject_gate_viewer_host_controls(html: &str) -> Result<String> {
+    inject_viewer_host_controls(html, "Gate", "Close Gate viewer", GATE_VIEWER_CLOSE_MESSAGE)
+}
+
+fn inject_viewer_host_controls(
+    html: &str,
+    label: &str,
+    close_label: &str,
+    close_message: &str,
+) -> Result<String> {
+    let style = r#"
+    .viewer-close {
       position: fixed;
       z-index: 20;
       top: 12px;
@@ -165,30 +281,28 @@ fn inject_pipeline_viewer_host_controls(html: &str) -> Result<String> {
       color: var(--fg);
       font: 16px/1 ui-sans-serif, system-ui, sans-serif;
       cursor: pointer;
-    }}
-    .viewer-close:hover {{ background: var(--line); }}
-    header {{ padding-right: 64px; }}
-"#
-    );
+    }
+    .viewer-close:hover { background: var(--line); }
+    header { padding-right: 64px; }
+"#;
     let html = html.replacen(
         HEAD_STYLE_END_MARKER,
         &format!("{style}{HEAD_STYLE_END_MARKER}"),
         1,
     );
     if !html.contains(&format!("{style}{HEAD_STYLE_END_MARKER}")) {
-        return Err(MaenifoldError::Message(
-            "Pipeline app HTML is missing the style close marker".to_string(),
-        ));
+        return Err(MaenifoldError::Message(format!(
+            "{label} app HTML is missing the style close marker"
+        )));
     }
-
     let control = format!(
         r#"{BODY_START_MARKER}
-  <button class="viewer-close" type="button" aria-label="Close Pipeline viewer">x</button>
+  <button class="viewer-close" type="button" aria-label="{close_label}">x</button>
   <script>
     (() => {{
       const close = () => {{
         if (window.ipc && typeof window.ipc.postMessage === "function") {{
-          window.ipc.postMessage("{PIPELINE_VIEWER_CLOSE_MESSAGE}");
+          window.ipc.postMessage("{close_message}");
         }} else {{
           window.close();
         }}
@@ -201,11 +315,71 @@ fn inject_pipeline_viewer_host_controls(html: &str) -> Result<String> {
     );
     let html = html.replacen(BODY_START_MARKER, &control, 1);
     if !html.contains(r#"class="viewer-close""#) {
-        return Err(MaenifoldError::Message(
-            "Pipeline app HTML is missing the body close marker".to_string(),
-        ));
+        return Err(MaenifoldError::Message(format!(
+            "{label} app HTML is missing the body close marker"
+        )));
     }
     Ok(html)
+}
+
+fn fetch_gate_status_payload() -> Result<Value> {
+    let root = std::env::current_dir().map_err(|error| {
+        MaenifoldError::Message(format!("Failed to resolve Gate root from current dir: {error}"))
+    })?;
+    let payload = serde_json::json!({
+        "domain": "maenifold.gate",
+        "command": "gate_Status",
+        "parameters": { "root": root.to_string_lossy().to_string() },
+    });
+    let text = invoke_gateway_tool_sync("GatewayExecute", payload)?;
+    serde_json::from_str(&text).map_err(|error| {
+        MaenifoldError::Message(format!("Failed to decode gate_Status payload: {error}"))
+    })
+}
+
+fn invoke_gateway_tool_sync(tool_name: &str, arguments: Value) -> Result<String> {
+    let config = crate::config::Config::current();
+    let future = crate::mcp::invoke_gateway_cli_tool(&config, tool_name, arguments);
+    match tokio::runtime::Handle::try_current() {
+        Ok(handle) => {
+            if matches!(
+                handle.runtime_flavor(),
+                tokio::runtime::RuntimeFlavor::MultiThread
+            ) {
+                tokio::task::block_in_place(|| handle.block_on(future))
+            } else {
+                std::thread::scope(|scope| {
+                    scope
+                        .spawn(|| {
+                            tokio::runtime::Builder::new_current_thread()
+                                .enable_all()
+                                .build()
+                                .map_err(|error| {
+                                    MaenifoldError::Message(format!(
+                                        "Failed to build runtime for gateway tool '{tool_name}': {error}"
+                                    ))
+                                })?
+                                .block_on(future)
+                        })
+                        .join()
+                        .map_err(|_| {
+                            MaenifoldError::Message(format!(
+                                "Gateway tool '{tool_name}' thread panicked"
+                            ))
+                        })?
+                })
+            }
+        }
+        Err(_) => tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|error| {
+                MaenifoldError::Message(format!(
+                    "Failed to build runtime for gateway tool '{tool_name}': {error}"
+                ))
+            })?
+            .block_on(future),
+    }
 }
 
 fn read_json_resource_payload(uri: &str) -> Result<Value> {
@@ -300,84 +474,5 @@ fn empty_pipeline_view_payload() -> Value {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        PIPELINE_VIEWER_MENU_TEXT, is_pipeline_viewer_event, pipeline_viewer_html_for_payload,
-        pipeline_viewer_resource_uri, select_pipeline_session_id,
-    };
-    use crate::mcp::tool_utils::PIPELINE_UI_RESOURCE_URI;
-    use serde_json::json;
-    use tray_icon::menu::MenuId;
-
-    #[test]
-    fn pipeline_viewer_menu_event_matches_only_configured_id() {
-        let viewer_id = MenuId::new("pipeline-viewer");
-        assert!(is_pipeline_viewer_event(&viewer_id, Some(&viewer_id)));
-        assert!(!is_pipeline_viewer_event(
-            &MenuId::new("help"),
-            Some(&viewer_id)
-        ));
-        assert!(!is_pipeline_viewer_event(&viewer_id, None));
-    }
-
-    #[test]
-    fn pipeline_viewer_targets_pipeline_mcp_app_resource() {
-        assert_eq!(PIPELINE_VIEWER_MENU_TEXT, "Pipeline Viewer");
-        assert_eq!(pipeline_viewer_resource_uri(), PIPELINE_UI_RESOURCE_URI);
-    }
-
-    #[test]
-    fn pipeline_viewer_html_embeds_view_payload_from_mcp_resource() {
-        let html = pipeline_viewer_html_for_payload(&json!({
-            "pipelineId": "visual-uat",
-            "status": "active",
-            "ready": ["next"],
-            "active": ["now"],
-            "completed": ["done"],
-            "nodes": [
-                { "id": "now", "type": "tool", "status": "active" },
-                { "id": "next", "type": "workflow", "status": "ready" }
-            ],
-            "edges": [{ "from": "now", "to": "next", "type": "success" }]
-        }))
-        .expect("Pipeline viewer HTML should embed sample payload");
-
-        assert!(html.contains("window.renderPipeline"));
-        assert!(html.contains("visual-uat"));
-        assert!(html.contains(r#"aria-label="Close Pipeline viewer""#));
-        assert!(html.contains("window.ipc.postMessage"));
-        assert!(html.contains("close-pipeline-viewer"));
-        assert!(html.contains(r#"<script type="application/json" id="pipeline-data">{"#));
-    }
-
-    #[test]
-    fn pipeline_viewer_selects_active_pipeline_before_completed() {
-        let payload = json!({
-            "sessions": [
-                { "pipelineId": "pipeline-999", "status": "completed" },
-                { "pipelineId": "pipeline-100", "status": "active" },
-                { "pipelineId": "pipeline-101", "status": "pending" }
-            ]
-        });
-
-        assert_eq!(
-            select_pipeline_session_id(&payload).as_deref(),
-            Some("pipeline-101")
-        );
-    }
-
-    #[test]
-    fn pipeline_viewer_falls_back_to_pipeline_list_shape() {
-        let payload = json!({
-            "pipelines": [
-                { "id": "pipeline-100", "status": "completed" },
-                { "sessionId": "pipeline-101", "status": "completed" }
-            ]
-        });
-
-        assert_eq!(
-            select_pipeline_session_id(&payload).as_deref(),
-            Some("pipeline-101")
-        );
-    }
-}
+#[path = "tray_viewer_tests.rs"]
+mod tests;

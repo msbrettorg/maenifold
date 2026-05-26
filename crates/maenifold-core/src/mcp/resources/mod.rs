@@ -10,6 +10,7 @@ use std::sync::{Arc, RwLock};
 pub mod agent;
 mod asset;
 mod gateway;
+mod gate_app;
 pub mod graph;
 pub mod pipeline;
 mod pipeline_app;
@@ -39,6 +40,7 @@ pub fn handle_list_resources() -> Result<ListResourcesResult> {
     resources.extend(agent::list_resources());
     resources.extend(gateway::list_resources());
     resources.extend(graph::list_resources());
+    resources.extend(gate_app::list_resources());
     resources.extend(pipeline_app::list_resources());
     resources.extend(pipeline::list_resources()?);
     resources.extend(schedule::list_resources());
@@ -72,6 +74,8 @@ pub fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
 pub fn handle_read_resource_with_config(uri: &str, config: &Config) -> Result<ReadResourceResult> {
     if agent::is_agent_uri(uri) {
         agent::handle_read_resource(uri)
+    } else if gate_app::is_gate_app_uri(uri) {
+        gate_app::handle_read_resource(uri)
     } else if pipeline_app::is_pipeline_app_uri(uri) {
         pipeline_app::handle_read_resource(uri)
     } else if workflow::is_workflow_uri(uri) {

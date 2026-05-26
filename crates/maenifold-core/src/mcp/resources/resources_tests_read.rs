@@ -35,6 +35,33 @@ fn read_pipeline_app_resource_returns_self_contained_html() {
     }
 }
 
+#[test]
+#[serial]
+fn read_gate_app_resource_returns_self_contained_html() {
+    let (_tmp, _guard) = setup_test_env();
+
+    let result = handle_read_resource(crate::mcp::tool_utils::GATE_UI_RESOURCE_URI)
+        .expect("gate app resource should read");
+    let Some(rmcp::model::ResourceContents::TextResourceContents {
+        text, mime_type, ..
+    }) = result.contents.first()
+    else {
+        panic!("gate app resource should be text");
+    };
+
+    assert_eq!(
+        mime_type.as_deref(),
+        Some(crate::mcp::tool_utils::MCP_APP_HTML_MIME_TYPE)
+    );
+    assert!(text.starts_with("<!doctype html>"));
+    for required_key in ["kanban-grid", "gate-data", "window.renderGate"] {
+        assert!(
+            text.contains(required_key),
+            "gate app HTML should include {required_key}"
+        );
+    }
+}
+
 /// T-205.716: Regression test for concurrent handle_read_resource() calls on pipeline sessions.
 ///
 /// **CRITICAL PATH**: This test exercises the ACTUAL deadlock surface:

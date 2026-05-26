@@ -1,6 +1,8 @@
 use super::{ServerMode, resolve_open_url};
 use crate::tray_menu::{is_launchd_managed, launchd_service_target};
-use crate::tray_viewer::{PIPELINE_VIEWER_MENU_TEXT, is_pipeline_viewer_event};
+use crate::tray_viewer::{
+    GATE_VIEWER_MENU_TEXT, PIPELINE_VIEWER_MENU_TEXT, is_gate_viewer_event, is_pipeline_viewer_event,
+};
 use tray_icon::menu::MenuId;
 
 #[test]
@@ -50,6 +52,15 @@ fn tray_menu_wires_pipeline_viewer_item() {
         &MenuId::new("help"),
         Some(&pipeline_id)
     ));
+}
+
+#[test]
+fn tray_menu_wires_gate_viewer_item() {
+    let gate_id = MenuId::new("gate-viewer");
+
+    assert_eq!(GATE_VIEWER_MENU_TEXT, "Gate Board");
+    assert!(is_gate_viewer_event(&gate_id, Some(&gate_id)));
+    assert!(!is_gate_viewer_event(&MenuId::new("help"), Some(&gate_id)));
 }
 
 /// `launchd_service_target()` must match the exact name used in `rebuild.sh`

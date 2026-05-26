@@ -11,6 +11,7 @@ use serde_json::{Map, Value};
 use std::sync::Arc;
 
 pub(crate) const PIPELINE_UI_RESOURCE_URI: &str = "ui://maenifold/pipeline";
+pub(crate) const GATE_UI_RESOURCE_URI: &str = "ui://maenifold/gate";
 pub(crate) const MCP_APPS_UI_EXTENSION: &str = "io.modelcontextprotocol/ui";
 pub(crate) const MCP_APP_HTML_MIME_TYPE: &str = "text/html;profile=mcp-app";
 

@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gate Board</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: Canvas;
+      --fg: CanvasText;
+      --muted: color-mix(in srgb, CanvasText 62%, Canvas 38%);
+      --line: color-mix(in srgb, CanvasText 16%, Canvas 84%);
+      --surface: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      --ready: #2563eb;
+      --active: #b45309;
+      --done: #15803d;
+      --idle: #64748b;
+      --error: #b91c1c;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0;
+      font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+    }
+    main {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      min-height: 100vh;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 650;
+    }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--muted);
+      background: var(--surface);
+      white-space: nowrap;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      border-bottom: 1px solid var(--line);
+      background: var(--line);
+    }
+    .stat {
+      min-width: 0;
+      padding: 12px 20px;
+      background: var(--bg);
+    }
+    .stat b {
+      display: block;
+      font-size: 22px;
+      line-height: 1.1;
+    }
+    .stat span {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    .content {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      min-height: 0;
+    }
+    .board {
+      min-width: 0;
+      padding: 16px;
+      overflow: auto;
+    }
+    .kanban-grid {
+      --stage-count: 5;
+      display: grid;
+      grid-template-columns: repeat(var(--stage-count), minmax(0, 1fr));
+      gap: 12px;
+      align-items: start;
+    }
+    .column {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      min-height: 220px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+    .column h2 {
+      margin: 0;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-transform: uppercase;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+    .cards {
+      display: grid;
+      gap: 10px;
+      padding: 10px;
+      align-content: start;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--bg);
+      padding: 10px;
+      cursor: pointer;
+    }
+    .card[aria-selected="true"] {
+      outline: 2px solid var(--ready);
+      outline-offset: 2px;
+    }
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: flex-start;
+    }
+    .task-id {
+      font: 12px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+    .task-title {
+      margin-top: 6px;
+      font-weight: 620;
+      overflow-wrap: anywhere;
+    }
+    .chip-row {
+      margin-top: 8px;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 11px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--fg);
+      white-space: nowrap;
+    }
+    .chip.priority-p0, .chip.priority-p1 { color: #fff; border-color: transparent; }
+    .chip.priority-p0 { background: #7f1d1d; }
+    .chip.priority-p1 { background: #b45309; }
+    .chip.priority-p2 { background: #365314; color: #e2e8f0; }
+    .chip.pipeline { background: #1e293b; color: #e2e8f0; border-color: transparent; }
+    .chip.stale { background: var(--error); color: #fff; border-color: transparent; }
+    aside {
+      min-width: 0;
+      border-left: 1px solid var(--line);
+      overflow: auto;
+    }
+    section {
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .detail {
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+    .detail pre {
+      margin: 8px 0 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: var(--fg);
+    }
+    .empty {
+      display: grid;
+      place-items: center;
+      min-height: 320px;
+      color: var(--muted);
+      text-align: center;
+    }
+    @media (max-width: 980px) {
+      .content { grid-template-columns: 1fr; }
+      aside { border-left: 0; border-top: 1px solid var(--line); }
+    }
+    @media (max-width: 760px) {
+      header { align-items: flex-start; flex-direction: column; }
+      .stats { grid-template-columns: 1fr; }
+    }
+
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1 id="title">Gate Board</h1>
+      <div class="status" id="gate-status">No gate status loaded</div>
+    </header>
+    <div class="stats" aria-label="Gate board totals">
+      <div class="stat"><b id="task-count">0</b><span>Tasks</span></div>
+      <div class="stat"><b id="stage-count">0</b><span>Stages</span></div>
+      <div class="stat"><b id="stale-count">0</b><span>Stale &gt;24h</span></div>
+    </div>
+    <div class="content">
+      <section class="board">
+        <div class="empty" id="empty">No gate tasks found.</div>
+        <div class="kanban-grid" id="kanban-grid" hidden></div>
+      </section>
+      <aside>
+        <section>
+          <h2>Selected task</h2>
+          <div class="detail" id="selected-task">Select a task card.</div>
+        </section>
+        <section>
+          <h2>Most recent gate record</h2>
+          <div class="detail" id="selected-record">No record selected.</div>
+        </section>
+      </aside>
+    </div>
+  </main>
+  <script type="application/json" id="gate-data"></script>
+  <script>
+    (() => {
+      const STAGES = ["pending", "swe", "red-team", "blue-team", "done"];
+      const PRIORITY_ORDER = { p0: 0, p1: 1, p2: 2, p3: 3 };
+      const byId = (id) => document.getElementById(id);
+      const clear = (el) => { while (el.firstChild) el.removeChild(el.firstChild); };
+      const taskState = (task) => String(task.state || task.stage || "pending").toLowerCase();
+      const taskId = (task) => String(task.taskId || task.id || "unknown");
+      const priorityText = (task) => String(task.priority || "P2").toUpperCase();
+      const priorityRank = (task) => PRIORITY_ORDER[priorityText(task).toLowerCase()] ?? 99;
+      const isStale = (task) => {
+        const stamp = task.lastUpdatedAt;
+        if (!stamp) return false;
+        const millis = Date.parse(stamp);
+        return Number.isFinite(millis) && (Date.now() - millis) > 24 * 60 * 60 * 1000;
+      };
+      const compact = (value) => JSON.stringify(value, (k, item) =>
+        item === null || item === "" || typeof item === "undefined" ? undefined : item, 2
+      );
+      const parsePayload = (value) => {
+        if (Array.isArray(value)) return value;
+        if (value && Array.isArray(value.tasks)) return value.tasks;
+        if (value && value.data && Array.isArray(value.data.tasks)) return value.data.tasks;
+        return [];
+      };
+      let selectedTaskId = "";
+      let lastTasks = [];
+      const renderInspector = () => {
+        const task = lastTasks.find((item) => taskId(item) === selectedTaskId);
+        const selected = byId("selected-task");
+        const record = byId("selected-record");
+        clear(selected);
+        clear(record);
+        if (!task) {
+          selected.textContent = "Select a task card.";
+          record.textContent = "No record selected.";
+          return;
+        }
+        const pre = document.createElement("pre");
+        pre.textContent = compact({
+          taskId: task.taskId, title: task.title, state: task.state, pipeline: task.pipeline,
+          priority: task.priority, sprint: task.sprint, blocked: task.blocked,
+          blocked_reason: task.blocked_reason, lastUpdatedAt: task.lastUpdatedAt,
+          location: task.location, path: task.path
+        }) || "{}";
+        selected.appendChild(pre);
+        const recordPre = document.createElement("pre");
+        recordPre.textContent = compact(task.latestRecord || task.lastRecord || null) || "null";
+        record.appendChild(recordPre);
+      };
+      const renderCard = (task) => {
+        const card = document.createElement("article");
+        card.className = "card";
+        card.tabIndex = 0;
+        card.setAttribute("role", "button");
+        card.setAttribute("aria-selected", String(taskId(task) === selectedTaskId));
+        card.addEventListener("click", () => { selectedTaskId = taskId(task); renderColumns(lastTasks); });
+        card.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectedTaskId = taskId(task);
+            renderColumns(lastTasks);
+          }
+        });
+        const head = document.createElement("div");
+        head.className = "card-head";
+        const id = document.createElement("div");
+        id.className = "task-id";
+        id.textContent = taskId(task);
+        head.appendChild(id);
+        const title = document.createElement("div");
+        title.className = "task-title";
+        title.textContent = task.title || "(untitled)";
+        const chipRow = document.createElement("div");
+        chipRow.className = "chip-row";
+        const p = document.createElement("span");
+        const pText = priorityText(task);
+        p.className = `chip ${`priority-${pText.toLowerCase()}`}`;
+        p.textContent = pText;
+        chipRow.appendChild(p);
+        const pipeline = document.createElement("span");
+        pipeline.className = "chip pipeline";
+        pipeline.textContent = String(task.pipeline || "SDD").toUpperCase();
+        chipRow.appendChild(pipeline);
+        if (isStale(task)) {
+          const stale = document.createElement("span");
+          stale.className = "chip stale";
+          stale.textContent = "STALE";
+          chipRow.appendChild(stale);
+        }
+        card.append(head, title, chipRow);
+        return card;
+      };
+      const renderColumns = (tasks) => {
+        const grouped = new Map(STAGES.map((stage) => [stage, []]));
+        for (const task of tasks) {
+          const stage = taskState(task);
+          (grouped.get(stage) || grouped.get("pending")).push(task);
+        }
+        const grid = byId("kanban-grid");
+        grid.style.setProperty("--stage-count", String(STAGES.length));
+        clear(grid);
+        for (const stage of STAGES) {
+          const section = document.createElement("section");
+          section.className = "column";
+          const title = document.createElement("h2");
+          title.textContent = stage;
+          const cards = document.createElement("div");
+          cards.className = "cards";
+          const sorted = grouped.get(stage).sort((left, right) => {
+            const byPriority = priorityRank(left) - priorityRank(right);
+            return byPriority || taskId(left).localeCompare(taskId(right));
+          });
+          for (const task of sorted) cards.appendChild(renderCard(task));
+          section.append(title, cards);
+          grid.appendChild(section);
+        }
+        renderInspector();
+      };
+      const render = (payload) => {
+        const tasks = parsePayload(payload);
+        lastTasks = tasks;
+        if (!selectedTaskId && tasks.length > 0) selectedTaskId = taskId(tasks[0]);
+        byId("title").textContent = "Gate Board";
+        byId("gate-status").textContent = `Loaded ${tasks.length} task${tasks.length === 1 ? "" : "s"}`;
+        byId("task-count").textContent = String(tasks.length);
+        byId("stage-count").textContent = String(STAGES.length);
+        byId("stale-count").textContent = String(tasks.filter(isStale).length);
+        byId("empty").hidden = tasks.length !== 0;
+        byId("kanban-grid").hidden = tasks.length === 0;
+        renderColumns(tasks);
+      };
+      window.renderGate = render;
+      window.setGateView = render;
+      window.addEventListener("message", (event) => {
+        const message = event.data || {};
+        const params = message.params || {};
+        const toolResult = params.result || params.toolResult || params;
+        const payload = message.structuredContent
+          || params.structuredContent
+          || toolResult.structuredContent
+          || toolResult.data
+          || message.data
+          || message;
+        render(payload);
+      });
+      const embedded = byId("gate-data").textContent.trim();
+      if (embedded) {
+        try { render(JSON.parse(embedded)); } catch (_) {}
+      }
+    })();
+
+  </script>
+</body>
+</html>

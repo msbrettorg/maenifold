@@ -426,3 +426,163 @@ PM_OWNS_THIS=1 git commit -am "<task-id>: <description> (SWE recovery)" \
 Before committing, run `cargo build --release -p <crate>` in the worktree with `CARGO_TARGET_DIR=target/agents/<task-id>` to verify the orphan actually compiles (sanity-check the prior PM's "SWE PASS" claim). If it fails, the orphan was broken work and needs SWE remediation, not just recovery.
 
 This pattern preserves Gate flow: the resumed worker branch can then proceed through the remaining stages (red-team / blue-team / merge / terminal-pass) cleanly. Don't try to commit recovery work directly on dev — it bypasses Gate auditing.
+
+### Lesson — User rejects headless previews as visual UAT; must drive the real deployed app (2026-05-26 iter-16b)
+
+PM took headless Chrome screenshots of the served HTML files at file:// URLs and reported them as "visual UAT." User response: "I have yet to see ANY visual UAT happen. Headless does not count."
+
+Headless Chrome rendering the served HTML proves:
+- The HTML parses as valid markup
+- The inline JS executes without syntax errors
+- CDN-loaded libraries (e.g., Drawflow) work in Chrome
+
+Headless Chrome does NOT prove:
+- The wry WebView in the deployed app loads the CDN library
+- The chromeless macOS window opens at all
+- The tray menu item is wired
+- The IPC paths work
+- The user can actually interact with it
+
+**Real visual UAT on macOS for tray-served chromeless wry windows:**
+
+```bash
+# 1. Open the menu item via accessibility API
+osascript << EOF2
+tell application "System Events"
+  tell process "maenifold"
+    click menu bar item 1 of menu bar 2
+    delay 0.4
+    click menu item "Pipeline Viewer" of menu 1 of menu bar item 1 of menu bar 2
+  end tell
+end tell
+EOF2
+
+# 2. Wait for wry to load + CDN libs to fetch + JS to render
+sleep 5
+
+# 3. Atomic query bounds + screencapture in one osascript via do shell script
+#    (avoids race between bash query and bash screencapture)
+osascript << EOF2
+tell application "System Events"
+  tell process "maenifold"
+    set frontmost to true
+    delay 0.3
+    if (count of windows) = 0 then return "NO_WINDOW"
+    set w to window 1
+    set p to position of w
+    set s to size of w
+    set capCmd to "screencapture -R " & (item 1 of p) & "," & (item 2 of p) & "," & (item 1 of s) & "," & (item 2 of s) & " -x -t png /path/out.png"
+    do shell script capCmd
+  end tell
+end tell
+EOF2
+```
+
+**Privacy note:** `screencapture -R x,y,w,h` captures whatever is at those coordinates on the screen at that instant. If the target window is not on top, you capture the user's desktop instead. Always: (a) `set frontmost to true` before query+capture, (b) verify the window is visible at the queried bounds before capture, (c) delete any accidental fullscreen/region captures immediately if they contain user-private content.
+
+**Accessibility prereq:** Terminal/automation host must have Accessibility permission granted in System Settings → Privacy & Security. If `osascript` returns empty process lists or 0 menu bars, that's the symptom.
+
+### Lesson — Gate parser rejects 4-level task IDs; max format is T-{sprint}.{task}.{sub} (2026-05-26 iter-16b)
+
+Attempted to file `T-251.9.4.1-drawflow-single-node-centering.md` as a granular child of T-251.9.4. Gate sync returned error state on the task with `malformed task id` because the canonical format is `T-{sprint}.{N}.md` or `T-{sprint}.{N}.{M}.md` — exactly 2 or 3 numeric levels after the sprint. There is no 4-level / N.M.O scheme.
+
+Fix when this happens mid-iter: rename the file to the next free 2-or-3-level ID in the sprint (e.g., `T-251.10`), update the frontmatter `id:` to match, gate_Sync rebuild, advance via the new ID. If a worker is already dispatched against the original name, the worker branch (e.g., `worker-T-251.9.4.1`) is a one-time intentional mismatch with the new Gate ID — document it in the merge commit body so future history is unambiguous.
+
+Future: when decomposing T-X.Y.Z into multiple sub-sub-tasks, use parallel sprint-level IDs (T-X.10, T-X.11, T-X.12) with `discovered_in: T-X.Y.Z` frontmatter to preserve provenance, rather than trying to deepen the hierarchy.
+
+### Lesson — Drawflow `zoom_refresh()` short-circuits when zoom===zoom_last_value (2026-05-26 iter-16b)
+
+`fitDAGToViewport` in `assets/pipeline-app/app.js` for the Drawflow DAG renderer wasn't applying centering translation in the single-node case. Setting `editor.canvas_x/canvas_y` and calling `editor.zoom_refresh()` should apply the transform — but it doesn't when zoom === zoom_last_value.
+
+Root cause (Drawflow 0.0.60 source `drawflow.js:584-589`):
+```js
+zoom_refresh() {
+  this.canvas_x = (this.canvas_x / this.zoom_last_value) * this.zoom;
+  this.canvas_y = (this.canvas_y / this.zoom_last_value) * this.zoom;
+  this.zoom_last_value = this.zoom;
+  // applies precanvas.style.transform = translate + scale
+}
+```
+
+When `zoom === zoom_last_value`, the rescale ratio is 1:1 — the canvas_x/y you just set get re-set to their existing values, no translation change applied.
+
+**Two-step bump-then-restore workaround using only documented public API:**
+
+```js
+const targetCanvasX = (viewport.width / 2) - (centerX * zoom);
+const targetCanvasY = (viewport.height / 2) - (centerY * zoom);
+editor.zoom = zoom;
+editor.canvas_x = targetCanvasX;
+editor.canvas_y = targetCanvasY;
+if (typeof editor.zoom_refresh === "function") {
+  const epsilon = 0.001;
+  const bumpedZoom = clamp(
+    zoom >= zoomMax ? zoom - epsilon : zoom + epsilon,
+    zoomMin, zoomMax
+  );
+  if (Math.abs(bumpedZoom - zoom) > Number.EPSILON) {
+    editor.zoom_last_value = bumpedZoom;  // force rescale ratio != 1
+    editor.zoom_refresh();                // first refresh applies rescale
+  }
+  editor.canvas_x = targetCanvasX;
+  editor.canvas_y = targetCanvasY;
+  editor.zoom_last_value = zoom;
+  editor.zoom_refresh();                  // second refresh with 1:1 ratio applies final transform
+}
+```
+
+**Critical constraint:** do NOT reach for `editor.precanvas.style.transform` directly even though it's technically "easier." The T-251.9.4 red-team explicitly flagged `editor.precanvas` as private internal — any access requires PM remediation. Stay in `editor.{zoom, canvas_x, canvas_y, zoom_refresh, zoom_last_value, zoom_min, zoom_max, zoom_in, zoom_out, zoom_reset, addNode, addConnection, clear, start, on, reroute}`.
+
+### Lesson — UI lists driven by external taxonomies must be derived from data, not hardcoded (2026-05-26 iter-16b)
+
+T-251.8 shipped the Gate kanban with `const STAGES = ["pending", "swe", "red-team", "blue-team", "done"]` hardcoded in `assets/gate-app/app.js`. The maenifold Gate state machine in `crates/maenifold-gate-core/src/lifecycle_helpers.rs:254-278` defines 8 distinct pipelines (sdd/tdd/gsd/lightweight/mdd/slc/sdd-c/tdd-c/test) each with different state sets. Tasks in any non-sdd pipeline got silently bucketed into the "pending" column via the fallback `(grouped.get(stage) || grouped.get("pending"))`.
+
+User saw it and rejected hard: "Your hardcoded stage names are BS" → "Rejected."
+
+**Rule going forward:** any UI taxonomy that's defined in the backend (Gate stages, pipeline types, EdgeType variants, status enums, MIME types, agent capability flags, etc.) MUST be derived from the live payload or read from a backend-served catalog. Hardcoded mirror copies WILL drift the moment a new variant is added upstream, and the drift is silent (no test catches "column missing" because tests just check the hardcoded one is present).
+
+**Implementation pattern (deriveStages variant for any taxonomy):**
+
+```js
+const deriveTaxonomyValues = (items, key, head, tail) => {
+  if (!items || items.length === 0) return [head, tail].filter(Boolean);
+  const observed = new Set();
+  for (const it of items) observed.add(it[key]);
+  if (head) observed.delete(head);
+  if (tail) observed.delete(tail);
+  const middle = Array.from(observed).sort((a, b) => a.localeCompare(b));
+  return [head, ...middle, tail].filter(Boolean);
+};
+```
+
+**Negative-assertion regression test (Rust example for an embedded-HTML asset):**
+
+```rust
+#[test]
+fn composed_html_has_no_hardcoded_stage_array() {
+    assert!(!compose_html().contains(
+        r#"["pending", "swe", "red-team", "blue-team", "done"]"#,
+    ));
+}
+```
+
+Negative assertions are the right shape for "the bad thing must not come back" — they catch the regression even if a future SWE re-introduces the literal under a different variable name.
+
+### Lesson — launchctl setenv after service launch does not propagate to running processes (2026-05-26 iter-16b)
+
+Set `MAENIFOLD_GATE_ROOT` via `launchctl setenv MAENIFOLD_GATE_ROOT /path/to/repo` after the daemon was already running. The daemon continued to see no env var; Gate Board returned "Loaded 0 tasks" because `fetch_gate_status_payload` fell back to `std::env::current_dir()` (which for a launchd-managed daemon is `/`).
+
+`launchctl setenv` updates the launchd environment going forward — it does NOT inject into already-running processes. The new env var becomes visible only after the process is restarted (or relaunched via `kickstart -k`).
+
+Fix for tray viewer mid-iter UAT — set the env var, then kickstart the launchd label, then verify with `ps eww -p NEW_PID | grep MAENIFOLD_GATE_ROOT`.
+
+Persistent fix (so user doesn't need to re-set after reboot): add to `~/Library/LaunchAgents/com.ma-collective.maenifold.plist` under `<key>EnvironmentVariables</key>`:
+
+```xml
+<key>MAENIFOLD_GATE_ROOT</key>
+<string>/Users/brett/src/ma-collective/maenifold-rs</string>
+```
+
+Then `launchctl bootout` + `launchctl bootstrap` of the plist to reload it.
+
+PM real-UAT verification: `ps eww -p NEW_PID | grep -o 'MAENIFOLD_GATE_ROOT=[^ ]*'` should show the value in the new process's environment. If grep returns nothing, the env var didn't propagate.

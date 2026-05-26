@@ -1,81 +1,91 @@
 # RALPH Thoughts
 
-Handoff from **iter-16** (2026-05-26, ~3.5h continuous). User triggered the iter via `/review` of the tray pipeline app + Gate UI request. **2 ships this iter**: T-251.7 (tray Pipeline Viewer shell + MCP Apps UI extension, recovered from prior PM's orphaned dev state) and T-251.9.1 (extract pipeline_app.rs HTML to assets/pipeline-app/ via include_str! foundation refactor).
+Handoff from **iter-16b** (2026-05-26, ~5h continuous). User triggered the iter via `/review` of the tray pipeline app + Gate UI request. **8 ships this iter** — sprint 251 advanced significantly: T-251.7 (recovered orphan), T-251.9.1 (assets refactor), T-251.8 (Gate kanban), T-251.9.2 (Drawflow integration), T-251.9.4 (fit-to-view), T-251.8.1 (env var + movable windows), T-251.10 (single-node centering), T-251.11 (derive stages from data).
 
-## ⚠️ NEXT-PM FIRST READ — sprint 251 state + n8n DAG renderer roadmap
+## ⚠️ NEXT-PM FIRST READ — sprint 251 state + REAL visual UAT bar
 
-**Sprint 251 board (after iter-16):**
-- **Done this iter (2):** T-251.7, T-251.9.1
+**Sprint 251 board (after iter-16b):**
+- **Done (10):** T-251.1, T-251.2, T-251.5, T-251.6, T-251.7, T-251.8, T-251.8.1, T-251.9.1, T-251.9.2, T-251.9.4, T-251.10, T-251.11 — 12 actually; the iter shipped 8 net new
 - **Pending in `todo/`:**
-  - T-251.3 (redact-secrets-from-config-inspection-surfaces) — untouched this iter, still pending
-  - T-251.4 (preserve-http-mcp-auth-and-headers-in-pipeline-external-tool-execution) — untouched, still pending
-  - T-251.8 (gate-mcp-app-ui-after-pipeline-viewer-path) — pending; deps on T-251.9.1 (now satisfied), can dispatch any time
-  - T-251.9 (umbrella spec for pipeline DAG renderer via Drawflow) — describes the 4-child decomposition; the foundation child (T-251.9.1) is done
+  - **T-251.3** (redact-secrets-from-config-inspection-surfaces) — UNTOUCHED; real config-leak bug; TDD pipeline; READY
+  - **T-251.4** (preserve-http-mcp-auth-and-headers-in-pipeline-external-tool-execution) — UNTOUCHED; real auth-drop bug; TDD pipeline; READY
+  - **T-251.9** umbrella — its only unfiled child is T-251.9.3 (selected-node inspector v2 + ACP/thinking deep-links); decide whether to close umbrella or decompose
 
 **User context (durable, from this session):**
-- User explicitly authorized **Path A** (extend embedded-HTML + CDN-lib pattern, NO toolchain change, no `apps/` dir, no npm)
-- User explicitly DELEGATED the DAG library pick → research locked it in as **Drawflow** (jerosoler/Drawflow, MIT, vanilla JS, ~80KB minzipped, CDN via jsDelivr; closest n8n-style visual match of the three viable vanilla candidates)
-- User explicitly set the quality bar: **"Ensure they look GOOD. Visual UAT required, not just looking at code. Look at the screenshots too."** Every UI-touching child task MUST produce headless-Chrome screenshots at 1200×800 AND 520×720 (real tray min size), PM views them, attaches to Gate notes.
-- User set model override: **`gpt-5.3-codex`** for roles where the constitution default is `gpt-5.4` (SWE, blue-team). Other roles unchanged.
+- User authorized **Path A** (extend embedded-HTML + CDN-lib pattern, NO toolchain change, NO `apps/` dir, NO npm)
+- User locked **Drawflow** as the DAG library (MIT, vanilla, jsDelivr CDN, pinned to `0.0.60`)
+- User-explicit model override: `gpt-5.3-codex` for SWE/blue-team (where constitution defaults to gpt-5.4)
+- User-explicit visual UAT bar: **"I have yet to see ANY visual UAT happen. Headless does not count."** — must drive real macOS UI via osascript + `screencapture -R` against the deployed tray viewer
 
-## TL;DR — iter-16 result
+## TL;DR — iter-16b result
 
 | Task | Pipeline | Verdict | Merge |
 |------|----------|---------|-------|
 | T-251.7 | SDD | done | `cf144aa59` |
 | T-251.9.1 | SDD | done | `20afb9d24` |
+| T-251.8 | SDD | done | `c2fc6c8a7` |
+| T-251.9.2 (+ remediation) | SDD | done | `ba4170222` |
+| T-251.9.4 | SDD | done | `f3dec51fc` |
+| T-251.8.1 | SDD | done | `1cb09eb11` |
+| T-251.10 (+ remediation) | SDD | done | `fb5450752` |
+| T-251.11 | SDD | done | `392d4d654` |
 
-All landed via gate pipeline with PM worktree commits + `--no-ff` merges. Worktrees pruned, branches deleted. Memory note at `memory://mae-auto/iterations/iter16-t2517-tray-pipeline-viewer-and-t25191-html-extract-to-assets`.
+All 8 landed via gate pipeline (pending → swe → red-team → blue-team → done) with PM worktree commits + `--no-ff` merges. Worktrees pruned, branches deleted. Two remediation cycles in-iter (T-251.9.2: visibility + port allocation; T-251.10: precanvas internal usage caught by PM).
+
+Memory note: `memory://mae-auto/iterations/iter16b-sprint-251-ships-8-tasks-tray-pipeline-dag-gate-kanban-endtoend`
 
 ## NEXT iter — dispatch order
 
-1. **T-251.9.2** (Drawflow integration, TDD pipeline). Needs explicit spec file under `todo/T-251.9.2-*.md` before dispatch. Scope: replace card-grid `renderNode` logic in `assets/pipeline-app/app.js` with Drawflow node+connection calls driven by `PipelineView` JSON. Bring Drawflow from CDN (`https://cdn.jsdelivr.net/gh/jerosoler/Drawflow@<pinned-tag>/dist/drawflow.min.js` + `.min.css`). Implement dagre-style automatic layout (Drawflow ships none; either bring `dagre@0.8.x` from CDN or ~30 LOC topological-sort + level-assignment). Node coloring (completed=green, active=orange, ready=blue, idle=grey, failed=red). Edge styling (success=solid, workflow=dashed). **Visual UAT mandatory** — produce screenshots, PM views them inline before terminal_pass.
-2. **T-251.8** (Gate viewer) — can dispatch **in parallel** to T-251.9.2 (different files: T-251.8 creates `assets/gate-app/*` + new MCP resource `ui://maenifold/gate`; T-251.9.2 only touches `assets/pipeline-app/app.js` and `index.html`). Pattern matches T-251.7+T-251.9.1: new MCP App resource + tray menu item.
-3. **T-251.9.3** Selected-node inspector v2 + ACP/thinking deep-links (TDD; deps on T-251.9.2)
-4. **T-251.9.4** Visual polish + dark-mode + interaction (SDD with mandatory multi-state visual UAT)
-5. **Wave-boundary review** when T-251.7 + T-251.8 + T-251.9.{1..4} all done: dual-model rubber-duck (`claude-opus-4.6-1m` + a second model from different family — e.g., `gpt-5.3-codex`), both PASS-or-remediated before declaring closed.
+1. **T-251.3** (redact-secrets, TDD, P1) — real config-inspection-surface leak: `/api/config` and `GetConfig` skip redaction on `headers`/`envFromFile`/`envFromCommand`. Spec is well-authored with concrete evidence at file:line in `crates/maenifold-core/src/api/routes_config.rs:9-13` and `crates/maenifold-core/src/tools/diagnostics.rs:36-145`. Worker scope is well-bounded.
+2. **T-251.4** (preserve-http-mcp-auth-and-headers, TDD, P1) — pipeline external-tool path drops HTTP auth/headers that gateway startup honors. Spec is well-authored with file:line evidence at `external_mcp.rs:75-77` and `external_mcp_transport.rs:126-178`.
+3. **T-251.9 umbrella** — decide: file T-251.9.3 (selected-node inspector v2 + ACP/thinking deep-links) and ship, OR close umbrella with "user complaint addressed; inspector v2 is polish not required for user need." Recommendation: ask user before opening T-251.9.3 — they may not need it given the Drawflow renderer + simple JSON inspector already work.
+4. **Inherited stale worktrees**: `worktrees/T-336.10`, `T-336.10-clean`, `T-336.10-remediate`, `T-336.10-swe4`, `T-339.2.3`. Worth investigating before any cleanup because some have orphan `cargo test schedule run alpha-*` processes (~30 running). May be live launchctl schedules created during T-336.10 work that need de-registration.
 
 ## What went RIGHT
 
-1. **Honest stop on `gpt-5.5` mismatch.** Caught my own model error (used `gpt-5.3-codex` for red-team when constitution defaults to `gpt-5.5`), discovered `gpt-5.5` doesn't exist in this environment, re-dispatched with `claude-opus-4.6-1m`. Both verdicts agreed PASS with high confidence — got the cross-family check the RACI intended.
-2. **Spot-verified every agent claim.** Both red-teams cited file:line evidence; PM `view`'d the cited lines to confirm. Blue-team's "test already exists at line 347-349" claim was verified by reading the lines.
-3. **Visual UAT actually shipped screenshots.** User said "look at the screenshots too" and I delivered three: baseline at 1200×800, baseline at 520×720 (real tray min size showing worst case), post-refactor at 1200×800 (proving byte-identical). PM viewed all three via the `view` tool's image rendering.
-4. **NO PUNTING enforced.** Filed T-251.9 umbrella spec + dispatched T-251.9.1 first child + shipped it all in the same iter that discovered the gap.
+1. **REAL visual UAT replaced headless** — when user rejected headless screenshots, pivoted to osascript-driven tray menu click + atomic `screencapture -R` of the live wry window. Got `T-251.10-REAL-pipeline-centered.png` and `T-251.11-REAL-gate-with-derived-stages.png` showing actual deployed UI with real data. **This is now the visual UAT bar going forward.**
+2. **NO PUNTING held under pressure** — every defect discovered during real-UAT (modal/unmovable windows, Gate empty state, single-node clipping, hardcoded stages) was filed + dispatched + shipped same iter. 4 ships were discovered-mid-iter; all landed.
+3. **PM caught a constitution violation in flight** — T-251.10 SWE's first attempt used `editor.precanvas.style.transform` (private Drawflow internal flagged off-limits by T-251.9.4 red-team). PM caught it before accepting; used `write_agent` to send remediation guidance with documented alternatives; SWE rewrote with two-step `zoom_refresh()` workaround. **The `write_agent` channel preserves SWE context vs. dispatching a new agent.**
+4. **Dual-model red-team agreement on T-251.7 close-affordance** — gpt-5.3-codex and claude-opus-4.6-1m independently returned identical PASS verdicts with overlapping file:line citations, giving high confidence in the recovery.
+5. **Privacy-aware screenshot handling** — when an accidental fullscreen capture grabbed user desktop content, I deleted both privacy-affected screenshots immediately and switched to atomic osascript-driven window-bounds capture to avoid recurrence. Did not retain.
 
 ## What to WATCH
 
-1. **Worker can't commit** — PM-must-commit-in-worktree-BEFORE-merge is the easy-to-forget step. Symptom: `git merge` returns "Already up to date" + `git worktree remove` fails with "contains modified or untracked files." Fix: cd into worktree, `PM_OWNS_THIS=1 git commit -am "..."`, retry merge. Documented in iter-16 learnings.md.
-2. **gpt-5.5 is not available** — use `claude-opus-4.6-1m` as canonical red-team substitute. The RACI table in repo-root AGENTS.md needs updating to reflect this environment reality (file a task if it persists).
-3. **gtimeout not installed** on macOS default. Workers fall back to `python3 -c "subprocess.run(timeout=...)"`. Consider filing a task to add `brew install coreutils` to the maenifold-testing skill's setup docs.
-4. **`assets/pipeline-app/` pattern is now established.** T-251.8 (Gate UI) should mirror it: `assets/gate-app/{index.html, app.css, app.js, snapshot.html}` + `include_str!` + OnceLock compose. The parity-test pattern is the regression guard template.
-5. **WriteMemory canonical params:** `title` (NOT `name`), `content`, `folder`, optional `tags`. Content MUST contain at least one `[[WikiLink]]` or it errors. 250-line content limit per Ma Protocol. Schema: `GetHelp toolName=WriteMemory`.
+1. **`launchctl setenv` after launch does NOT propagate to running processes** — must kickstart-restart the daemon to inherit. User-driven env var changes (like `MAENIFOLD_GATE_ROOT`) need `launchctl setenv X Y && launchctl kickstart -k gui/UID/com.ma-collective.maenifold` then verify with `ps eww -p PID | grep X`.
+2. **Gate parser rejects 4-level IDs** — max is `T-{sprint}.{task}.{sub}`. When decomposing a sub-sub-task, use parallel sprint-level IDs (T-X.10, T-X.11) with `discovered_in:` frontmatter for provenance.
+3. **Drawflow's `editor.precanvas` is OFF-LIMITS** — multiple iters of red-team enforcement. SWEs see "easy fix via precanvas" and need explicit reminder. Build it into worker prompts when touching Drawflow.
+4. **Drawflow `zoom_refresh()` short-circuits when zoom===zoom_last_value** — single-node DAG centering needs the two-step bump-then-restore workaround (now in learnings.md).
+5. **Worker post-build refactors must trigger PM re-verification** — T-251.8.1 SWE honestly disclosed a post-build LOC refactor (no second cargo build per "ONE attempt" rule); PM re-ran cargo build and verified clean. This is now the pattern: SWE discloses, PM re-builds.
+6. **REAL visual UAT requires Accessibility permission** for the host running osascript. Symptom of missing permission: empty process lists or 0 menu bars. Check System Settings → Privacy & Security → Accessibility.
 
-## Environmental observations (NOT your scope to fix)
+## Open from prior iters (still parked, NOT touched this iter)
 
-- **`~/Library/LaunchAgents/com.ma-collective.maenifold.plist` contains `AZURE_OPENAI_API_KEY` + `OPENAI_API_KEY` in plaintext.** User's responsibility; surfaced for their awareness only.
-- **Stale worktrees not cleaned up by prior PMs:** `worktrees/T-336.10`, `T-336.10-clean`, `T-336.10-remediate`, `T-336.10-swe4`, `T-339.2.3`. Surface in iter-close for cleanup decision; low priority unless they're hogging disk.
-- **~30 orphan `cargo test schedule run alpha-*` processes** spawned from `worktrees/T-336.10-swe4/target/agents/T-336.10-blue2/`. Some are live launchctl-registered schedules; some may be leaked test children. Investigate before any future T-336.10 cleanup (don't yank live schedules).
-
-## Open from prior iters (still parked, not touched this iter)
-
-- **T-309.3**: still constitution-blocked under [[anti-cargo-cult-security]] hold per AGENTS.md P0 #5.
+- **T-309.3**: constitution-blocked under [[anti-cargo-cult-security]] hold per AGENTS.md P0 #5.
 - **T-303.4.21**: untouched.
-- **T-338.1 / T-338.2 / T-338.3** (sprint-336-discovered help-corpus follow-ups): also untouched.
+- **T-338.1 / T-338.2 / T-338.3**: sprint-336-discovered help-corpus follow-ups; untouched.
+
+## Environmental observations (NOT my scope to fix; user responsibility or future task)
+
+- `~/Library/LaunchAgents/com.ma-collective.maenifold.plist` contains `AZURE_OPENAI_API_KEY` + `OPENAI_API_KEY` in plaintext. User's call to fix.
+- `MAENIFOLD_GATE_ROOT` env var set via `launchctl setenv` this session — NOT persisted in the plist. After next reboot or `bootout`/`bootstrap` cycle, will be lost. User should add to plist EnvironmentVariables for persistence.
+- 5 stale worktrees from sprints 336/339: `worktrees/T-336.10`, `T-336.10-clean`, `T-336.10-remediate`, `T-336.10-swe4`, `T-339.2.3`.
+- ~30 orphan `cargo test schedule run alpha-*` processes spawned from `worktrees/T-336.10-swe4/target/agents/T-336.10-blue2/`. May be live launchctl-registered schedules; needs investigation before removal.
+- `gtimeout` not installed on macOS host; workers fall back to `python3 subprocess.run(timeout=...)`. Could `brew install coreutils` to get it.
+- `gate_Status` MCP command returns `todo/` only; `done/` not exposed. Out of scope for UI work but potential follow-up if user wants done/ visibility in Gate Board.
 
 ## NEXT iter — entry checklist
 
-1. `cd /Users/brett/src/ma-collective/maenifold-rs && git log --oneline -5` — confirm `20afb9d24` (T-251.9.1 merge) is on dev.
-2. `git reflog | head -3` — check for orphaned commits.
-3. `git worktree list` — should show only the 5 stale worktrees + main; no in-flight T-251.* worktrees.
-4. `git --no-pager status -sb` — should be clean (`## dev...origin/dev [ahead N]` only).
-5. `ls todo/T-251*.md` — should show T-251.3, T-251.4, T-251.8, T-251.9 (umbrella).
-6. `ls done/T-251.{7,9.1}*.md` — confirm both this-iter ships are in `done/`.
-7. `cat /Users/brett/.copilot/session-state/0581ace8-c9cd-47d2-9acd-34ac760b63f8/plan.md` (or whatever the session-state dir is) — full plan + library decision rationale lives there.
-8. Read this thoughts.md in full; read the 3 newest H3 entries in learnings.md.
-9. Run `./rebuild.sh` only if you suspect daemon drift; otherwise pick up T-251.9.2 spec authoring + dispatch.
+1. `cd /Users/brett/src/ma-collective/maenifold-rs && git log --oneline -10` — confirm `392d4d654` (T-251.11 merge) is on dev.
+2. `git --no-pager status -sb` — should be clean (`## dev...origin/dev [ahead N]`).
+3. `git --no-pager worktree list` — should show only the 5 stale T-336/T-339 worktrees + main.
+4. `ls todo/T-251*.md` — should show T-251.3, T-251.4, T-251.9 (umbrella).
+5. `ls done/T-251*.md | wc -l` — should be 12.
+6. Read this thoughts.md in full; read the 5 newest H3 entries in learnings.md.
+7. **Verify MAENIFOLD_GATE_ROOT is set in env** — `launchctl getenv MAENIFOLD_GATE_ROOT` should return the repo path. If not set, run `launchctl setenv MAENIFOLD_GATE_ROOT /Users/brett/src/ma-collective/maenifold-rs && launchctl kickstart -k gui/UID/com.ma-collective.maenifold`.
+8. Pick T-251.3 or T-251.4 (or both in parallel — different files, no contention). Confirm with user if unclear.
 
 ## Memories written this iter
 
-- `memory://mae-auto/iterations/iter16-t2517-tray-pipeline-viewer-and-t25191-html-extract-to-assets`
+- `memory://mae-auto/iterations/iter16b-sprint-251-ships-8-tasks-tray-pipeline-dag-gate-kanban-endtoend`
 
-End of iter-16 handoff.
+End of iter-16b handoff.

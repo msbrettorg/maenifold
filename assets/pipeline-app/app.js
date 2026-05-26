@@ -189,10 +189,24 @@
         const zoom = clamp(Number.isFinite(rawZoom) ? rawZoom : 1, zoomMin, zoomMax);
         const centerX = minX + (bboxWidth / 2);
         const centerY = minY + (bboxHeight / 2);
+        const targetCanvasX = (viewport.width / 2) - (centerX * zoom);
+        const targetCanvasY = (viewport.height / 2) - (centerY * zoom);
         editor.zoom = zoom;
-        editor.canvas_x = (viewport.width / 2) - (centerX * zoom);
-        editor.canvas_y = (viewport.height / 2) - (centerY * zoom);
+        editor.canvas_x = targetCanvasX;
+        editor.canvas_y = targetCanvasY;
         if (typeof editor.zoom_refresh === "function") {
+          const epsilon = 0.001;
+          const bumpedZoom = clamp(
+            zoom >= zoomMax ? zoom - epsilon : zoom + epsilon,
+            zoomMin,
+            zoomMax
+          );
+          if (Math.abs(bumpedZoom - zoom) > Number.EPSILON) {
+            editor.zoom_last_value = bumpedZoom;
+            editor.zoom_refresh();
+          }
+          editor.canvas_x = targetCanvasX;
+          editor.canvas_y = targetCanvasY;
           editor.zoom_last_value = zoom;
           editor.zoom_refresh();
         }

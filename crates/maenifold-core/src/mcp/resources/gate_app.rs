@@ -62,6 +62,13 @@ mod tests {
     }
 
     #[test]
+    fn composed_gate_html_has_no_hardcoded_stage_array() {
+        assert!(!compose_html().contains(
+            r#"["pending", "swe", "red-team", "blue-team", "done"]"#,
+        ));
+    }
+
+    #[test]
     fn composed_gate_html_no_drawflow() {
         assert!(!compose_html().contains("drawflow.min.js"));
     }

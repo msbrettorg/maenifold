@@ -13,6 +13,12 @@
       };
       const nodeId = (node) => itemId(node) || "unnamed";
       const nodeKind = (node) => node.type || node.kind || node.nodeType || "node";
+      const escapeHtml = (value) => String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
       const edgeLabel = (edge) => {
         if (!edge || typeof edge !== "object") return String(edge || "");
         const from = edge.from || edge.source || edge.sourceId || "?";
@@ -23,6 +29,9 @@
       const statusClass = (value) => String(value || "idle").toLowerCase().replace(/[^a-z0-9_-]/g, "");
       const clear = (el) => { while (el.firstChild) el.removeChild(el.firstChild); };
       let selectedNodeId = "";
+      let editor = null;
+      let drawflowIdToPayloadId = new Map();
+      let payloadNodeMap = new Map();
       const appendItems = (id, items) => {
         const list = byId(id);
         clear(list);
@@ -64,6 +73,77 @@
         if (item === null || item === "" || typeof item === "undefined") return undefined;
         return item;
       }, 2);
+      const edgeFromId = (edge) => edge?.from || edge?.source || edge?.sourceId || "";
+      const edgeToId = (edge) => edge?.to || edge?.target || edge?.targetId || "";
+      const layoutGraph = (nodes, edges) => {
+        const order = new Map();
+        const incoming = new Map();
+        const outgoing = new Map();
+        const indegree = new Map();
+        const depth = new Map();
+        for (let index = 0; index < nodes.length; index += 1) {
+          const id = nodeId(nodes[index]);
+          order.set(id, index);
+          incoming.set(id, []);
+          outgoing.set(id, []);
+          indegree.set(id, 0);
+          depth.set(id, 0);
+        }
+        for (const edge of edges) {
+          const from = edgeFromId(edge);
+          const to = edgeToId(edge);
+          if (!order.has(from) || !order.has(to)) continue;
+          outgoing.get(from).push(to);
+          incoming.get(to).push(from);
+          indegree.set(to, indegree.get(to) + 1);
+        }
+        const queue = [];
+        for (const node of nodes) {
+          const id = nodeId(node);
+          if (indegree.get(id) === 0) queue.push(id);
+        }
+        queue.sort((left, right) => order.get(left) - order.get(right));
+        const processed = new Set();
+        while (queue.length > 0) {
+          const current = queue.shift();
+          processed.add(current);
+          for (const next of outgoing.get(current)) {
+            const nextDepth = Math.max(depth.get(next), depth.get(current) + 1);
+            depth.set(next, nextDepth);
+            indegree.set(next, indegree.get(next) - 1);
+            if (indegree.get(next) === 0) {
+              queue.push(next);
+              queue.sort((left, right) => order.get(left) - order.get(right));
+            }
+          }
+        }
+        for (const node of nodes) {
+          const id = nodeId(node);
+          if (processed.has(id)) continue;
+          const inferredDepth = incoming.get(id).reduce(
+            (maxDepth, upstreamId) => Math.max(maxDepth, (depth.get(upstreamId) || 0) + 1),
+            0
+          );
+          depth.set(id, inferredDepth);
+        }
+        const columns = new Map();
+        for (const node of nodes) {
+          const id = nodeId(node);
+          const column = depth.get(id) || 0;
+          if (!columns.has(column)) columns.set(column, []);
+          columns.get(column).push(id);
+        }
+        for (const columnNodes of columns.values()) {
+          columnNodes.sort((left, right) => order.get(left) - order.get(right));
+        }
+        const positions = new Map();
+        for (const [column, columnNodes] of columns.entries()) {
+          columnNodes.forEach((id, row) => {
+            positions.set(id, { column, row });
+          });
+        }
+        return { positions };
+      };
       const renderSelected = (node) => {
         const target = byId("selected-node");
         clear(target);
@@ -77,49 +157,40 @@
         pre.textContent = compact(interestingNodeDetail(node)) || "{}";
         target.append(title, pre);
       };
-      const renderNode = (node, ready, active, completed) => {
-        const article = document.createElement("article");
-        article.className = "node";
-        article.setAttribute("role", "button");
-        article.tabIndex = 0;
-        article.setAttribute("aria-selected", String(nodeId(node) === selectedNodeId));
-        article.addEventListener("click", () => {
-          selectedNodeId = nodeId(node);
-          render(window.__pipelineView);
-        });
-        article.addEventListener("keydown", (event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            selectedNodeId = nodeId(node);
-            render(window.__pipelineView);
-          }
-        });
-        const head = document.createElement("div");
-        head.className = "node-head";
-        const title = document.createElement("div");
-        title.className = "node-title";
-        title.textContent = nodeId(node);
-        const status = nodeStatus(node, ready, active, completed);
-        const chip = document.createElement("span");
-        chip.className = `chip ${statusClass(status)}`;
-        chip.textContent = status;
-        head.append(title, chip);
-        const details = document.createElement("dl");
-        for (const [label, value] of [
-          ["Type", nodeKind(node)],
-          ["Label", node.displayLabel || node.label || ""],
-          ["Tool", node.toolName || node.tool_name || ""],
-          ["Session", node.sessionId || node.session_id || ""]
-        ]) {
-          if (!value) continue;
-          const dt = document.createElement("dt");
-          dt.textContent = label;
-          const dd = document.createElement("dd");
-          dd.textContent = value;
-          details.append(dt, dd);
+      const renderDAG = (nodes, edges, ready, active, completed) => {
+        const mount = byId("drawflow");
+        if (!editor || !mount) return;
+        editor.clear();
+        drawflowIdToPayloadId = new Map();
+        payloadNodeMap = new Map(nodes.map((node) => [nodeId(node), node]));
+        const { positions } = layoutGraph(nodes, edges);
+        const drawflowByPayloadId = new Map();
+        for (const node of nodes) {
+          const id = nodeId(node);
+          const position = positions.get(id) || { column: 0, row: 0 };
+          const status = nodeStatus(node, ready, active, completed);
+          const htmlBody = `<div class="node-title">${escapeHtml(id)}</div><div class="node-type">${escapeHtml(nodeKind(node))}</div>`;
+          const drawflowNodeId = editor.addNode(
+            id,
+            1,
+            1,
+            position.column * 240,
+            position.row * 100,
+            `node-${statusClass(status)}`,
+            {},
+            htmlBody
+          );
+          drawflowByPayloadId.set(id, drawflowNodeId);
+          drawflowIdToPayloadId.set(String(drawflowNodeId), id);
         }
-        article.append(head, details);
-        return article;
+        for (const edge of edges) {
+          const from = edgeFromId(edge);
+          const to = edgeToId(edge);
+          const fromDrawflowId = drawflowByPayloadId.get(from);
+          const toDrawflowId = drawflowByPayloadId.get(to);
+          if (!fromDrawflowId || !toDrawflowId) continue;
+          editor.addConnection(fromDrawflowId, toDrawflowId, "output_1", "input_1");
+        }
       };
       const render = (view) => {
         if (!view || typeof view !== "object") return;
@@ -139,16 +210,34 @@
         appendItems("ready-list", ready);
         appendItems("active-list", active);
         appendItems("edge-list", edges.map(edgeLabel));
-        const grid = byId("node-grid");
-        clear(grid);
         if (!selectedNodeId && nodes.length > 0) selectedNodeId = nodeId(nodes[0]);
-        for (const node of nodes) grid.appendChild(renderNode(node, ready, active, completed));
-        grid.hidden = nodes.length === 0;
-        byId("empty").hidden = nodes.length !== 0;
+        const drawflow = byId("drawflow");
+        const empty = byId("empty");
+        drawflow.hidden = false;
+        empty.hidden = true;
+        renderDAG(nodes, edges, ready, active, completed);
+        if (nodes.length === 0) {
+          drawflow.hidden = true;
+          empty.hidden = false;
+        }
         renderSelected(nodes.find((node) => nodeId(node) === selectedNodeId));
       };
       window.renderPipeline = render;
       window.setPipelineView = render;
+      document.addEventListener("DOMContentLoaded", () => {
+        const mount = byId("drawflow");
+        if (!mount || typeof Drawflow !== "function") return;
+        editor = new Drawflow(mount);
+        editor.reroute = true;
+        editor.start();
+        editor.on("nodeSelected", (id) => {
+          const payloadId = drawflowIdToPayloadId.get(String(id));
+          if (!payloadId) return;
+          selectedNodeId = payloadId;
+          renderSelected(payloadNodeMap.get(payloadId));
+        });
+        if (window.__pipelineView) render(window.__pipelineView);
+      });
       window.addEventListener("message", (event) => {
         const message = event.data || {};
         const params = message.params || {};

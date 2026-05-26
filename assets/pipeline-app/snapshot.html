@@ -306,7 +306,16 @@
       }, 2);
       const edgeFromId = (edge) => edge?.from || edge?.source || edge?.sourceId || "";
       const edgeToId = (edge) => edge?.to || edge?.target || edge?.targetId || "";
-      const layoutGraph = (nodes, edges) => {
+      const viewportSize = (mount) => {
+        if (!mount) return { width: 0, height: 0 };
+        const rect = mount.getBoundingClientRect();
+        return {
+          width: mount.clientWidth || rect.width || 0,
+          height: mount.clientHeight || rect.height || 0
+        };
+      };
+      const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+      const layoutGraph = (nodes, edges, mount) => {
         const order = new Map();
         const incoming = new Map();
         const outgoing = new Map();
@@ -367,13 +376,57 @@
         for (const columnNodes of columns.values()) {
           columnNodes.sort((left, right) => order.get(left) - order.get(right));
         }
+        const maxColumn = columns.size > 0 ? Math.max(...columns.keys()) : 0;
+        const maxRows = [...columns.values()].map((columnNodes) => columnNodes.length);
+        const tallestColumn = maxRows.length > 0 ? Math.max(...maxRows) : 1;
+        const viewport = viewportSize(mount);
+        const usableWidth = Math.max(120, viewport.width - 80);
+        const usableHeight = Math.max(120, viewport.height - 80);
+        const xSpacing = Math.min(240, usableWidth / Math.max(1, maxColumn + 1));
+        const ySpacing = Math.min(100, usableHeight / Math.max(1, tallestColumn));
         const positions = new Map();
         for (const [column, columnNodes] of columns.entries()) {
           columnNodes.forEach((id, row) => {
-            positions.set(id, { column, row });
+            positions.set(id, { column, row, x: column * xSpacing, y: row * ySpacing });
           });
         }
         return { positions };
+      };
+      const fitDAGToViewport = (mount, positions) => {
+        if (!editor || !mount || !positions || positions.size === 0) return;
+        const nodeWidth = 180;
+        const nodeHeight = 64;
+        const padding = 24;
+        let minX = Number.POSITIVE_INFINITY;
+        let minY = Number.POSITIVE_INFINITY;
+        let maxX = Number.NEGATIVE_INFINITY;
+        let maxY = Number.NEGATIVE_INFINITY;
+        for (const position of positions.values()) {
+          minX = Math.min(minX, position.x);
+          minY = Math.min(minY, position.y);
+          maxX = Math.max(maxX, position.x);
+          maxY = Math.max(maxY, position.y);
+        }
+        if (!Number.isFinite(minX) || !Number.isFinite(minY)) return;
+        const bboxWidth = Math.max(nodeWidth, (maxX - minX) + nodeWidth);
+        const bboxHeight = Math.max(nodeHeight, (maxY - minY) + nodeHeight);
+        const viewport = viewportSize(mount);
+        if (viewport.width <= 0 || viewport.height <= 0) return;
+        const fitWidth = Math.max(1, viewport.width - (padding * 2));
+        const fitHeight = Math.max(1, viewport.height - (padding * 2));
+        const rawZoom = Math.min(fitWidth / bboxWidth, fitHeight / bboxHeight) * 0.9;
+        const zoomMin = typeof editor.zoom_min === "number" ? editor.zoom_min : 0.5;
+        const zoomMax = typeof editor.zoom_max === "number" ? editor.zoom_max : 1.6;
+        const zoom = clamp(Number.isFinite(rawZoom) ? rawZoom : 1, zoomMin, zoomMax);
+        const centerX = minX + (bboxWidth / 2);
+        const centerY = minY + (bboxHeight / 2);
+        editor.zoom = zoom;
+        editor.canvas_x = (viewport.width / 2) - (centerX * zoom);
+        editor.canvas_y = (viewport.height / 2) - (centerY * zoom);
+        if (typeof editor.zoom_refresh === "function") {
+          editor.zoom_last_value = zoom;
+          editor.zoom_refresh();
+        }
       };
       const renderSelected = (node) => {
         const target = byId("selected-node");
@@ -394,19 +447,19 @@
         editor.clear();
         drawflowIdToPayloadId = new Map();
         payloadNodeMap = new Map(nodes.map((node) => [nodeId(node), node]));
-        const { positions } = layoutGraph(nodes, edges);
+        const { positions } = layoutGraph(nodes, edges, mount);
         const drawflowByPayloadId = new Map();
         for (const node of nodes) {
           const id = nodeId(node);
-          const position = positions.get(id) || { column: 0, row: 0 };
+          const position = positions.get(id) || { column: 0, row: 0, x: 0, y: 0 };
           const status = nodeStatus(node, ready, active, completed);
           const htmlBody = `<div class="node-title">${escapeHtml(id)}</div><div class="node-type">${escapeHtml(nodeKind(node))}</div>`;
           const drawflowNodeId = editor.addNode(
             id,
             1,
             1,
-            position.column * 240,
-            position.row * 100,
+            position.x,
+            position.y,
             `node-${statusClass(status)}`,
             {},
             htmlBody
@@ -422,6 +475,7 @@
           if (!fromDrawflowId || !toDrawflowId) continue;
           editor.addConnection(fromDrawflowId, toDrawflowId, "output_1", "input_1");
         }
+        fitDAGToViewport(mount, positions);
       };
       const render = (view) => {
         if (!view || typeof view !== "object") return;

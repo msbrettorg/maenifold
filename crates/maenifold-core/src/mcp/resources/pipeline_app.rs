@@ -79,4 +79,9 @@ mod tests {
     fn composed_html_no_longer_contains_node_grid_id() {
         assert!(!compose_html().contains("id=\"node-grid\""));
     }
+
+    #[test]
+    fn composed_html_contains_fit_to_view_call() {
+        assert!(compose_html().contains("fitDAGToViewport(mount, positions);"));
+    }
 }

@@ -1,0 +1,323 @@
+{
+  "success": true,
+  "data": {
+    "pipelineId": "consumption-strike-synopsys-1779458959615",
+    "status": 123,
+    "final": false,
+    "edges": [
+      {
+        "source": "acr-trend",
+        "target": "tactical-synth",
+        "type": "success",
+        "mode": "context",
+        "mapping": null
+      },
+      {
+        "source": "msx-pipeline",
+        "target": "tactical-synth",
+        "type": "success",
+        "mode": "context",
+        "mapping": null
+      },
+      {
+        "source": "pipeline-aggregate",
+        "target": "tactical-synth",
+        "type": "success",
+        "mode": "context",
+        "mapping": null
+      },
+      {
+        "source": "ai-quota",
+        "target": "tactical-synth",
+        "type": "success",
+        "mode": "context",
+        "mapping": null
+      },
+      {
+        "source": "attached-products",
+        "target": "tactical-synth",
+        "type": "success",
+        "mode": "context",
+        "mapping": null
+      },
+      {
+        "source": "workiq-signal",
+        "target": "tactical-synth",
+        "type": "success",
+        "mode": "context",
+        "mapping": null
+      },
+      {
+        "source": "field-playbooks",
+        "target": "tactical-synth",
+        "type": "success",
+        "mode": "context",
+        "mapping": null
+      },
+      {
+        "source": "teams-prior-plays",
+        "target": "tactical-synth",
+        "type": "success",
+        "mode": "context",
+        "mapping": null
+      },
+      {
+        "source": "acr-trend",
+        "target": "strategic-synth",
+        "type": "success",
+        "mode": "context",
+        "mapping": null
+      },
+      {
+        "source": "msx-pipeline",
+        "target": "strategic-synth",
+        "type": "success",
+        "mode": "context",
+        "mapping": null
+      },
+      {
+        "source": "pipeline-aggregate",
+        "target": "strategic-synth",
+        "type": "success",
+        "mode": "context",
+        "mapping": null
+      },
+      {
+        "source": "ai-quota",
+        "target": "strategic-synth",
+        "type": "success",
+        "mode": "context",
+        "mapping": null
+      },
+      {
+        "source": "attached-products",
+        "target": "strategic-synth",
+        "type": "success",
+        "mode": "context",
+        "mapping": null
+      },
+      {
+        "source": "workiq-signal",
+        "target": "strategic-synth",
+        "type": "success",
+        "mode": "context",
+        "mapping": null
+      },
+      {
+        "source": "field-playbooks",
+        "target": "strategic-synth",
+        "type": "success",
+        "mode": "context",
+        "mapping": null
+      },
+      {
+        "source": "teams-prior-plays",
+        "target": "strategic-synth",
+        "type": "success",
+        "mode": "context",
+        "mapping": null
+      },
+      {
+        "source": "tactical-synth",
+        "target": "think-tank",
+        "type": "success",
+        "mode": "binding",
+        "mapping": {
+          "inputs.candidates": "candidates",
+          "inputs.weakest_candidates": "weakest_candidates",
+          "inputs.acr_gap_summary": "acr_gap_summary"
+        }
+      },
+      {
+        "source": "strategic-synth",
+        "target": "think-tank",
+        "type": "success",
+        "mode": "binding",
+        "mapping": {
+          "inputs.forcing_function": "forcing_function",
+          "inputs.strategic_frame": "strategic_frame",
+          "inputs.stakeholder_map": "stakeholder_map",
+          "inputs.customer_truth": "customer_truth",
+          "inputs.offer_shape": "offer_shape",
+          "inputs.prioritized_plays": "prioritized_plays"
+        }
+      },
+      {
+        "source": "think-tank",
+        "target": "email-draft",
+        "type": "success",
+        "mode": "binding",
+        "mapping": {
+          "inputs.headline_dollar_amount": "headline_dollar_amount",
+          "inputs.plan_markdown": "plan_markdown"
+        }
+      },
+      {
+        "source": "think-tank",
+        "target": "plan-render",
+        "type": "success",
+        "mode": "binding",
+        "mapping": {
+          "inputs.plan_markdown": "plan_markdown"
+        }
+      },
+      {
+        "source": "think-tank",
+        "target": "memory-writeback",
+        "type": "success",
+        "mode": "binding",
+        "mapping": {
+          "inputs.headline_dollar_amount": "headline_dollar_amount"
+        }
+      },
+      {
+        "source": "plan-render",
+        "target": "sp-upload",
+        "type": "success",
+        "mode": "binding",
+        "mapping": {
+          "inputs.pdf_path": "pdf_path"
+        }
+      },
+      {
+        "source": "sp-upload",
+        "target": "teams-card",
+        "type": "success",
+        "mode": "binding",
+        "mapping": {
+          "inputs.plan_webUrl": "webUrl"
+        }
+      },
+      {
+        "source": "think-tank",
+        "target": "teams-card",
+        "type": "success",
+        "mode": "binding",
+        "mapping": {
+          "inputs.headline_dollar_amount": "headline_dollar_amount",
+          "inputs.plan_markdown": "plan_markdown"
+        }
+      },
+      {
+        "source": "email-draft",
+        "target": "mail-stage",
+        "type": "success",
+        "mode": "binding",
+        "mapping": {
+          "inputs.html_body": "html_body",
+          "inputs.to_emails": "to_emails",
+          "inputs.subject": "subject"
+        }
+      },
+      {
+        "source": "mail-stage",
+        "target": "mail-attach",
+        "type": "success",
+        "mode": "binding",
+        "mapping": {
+          "inputs.draftId": "draftId"
+        }
+      },
+      {
+        "source": "sp-upload",
+        "target": "mail-attach",
+        "type": "success",
+        "mode": "binding",
+        "mapping": {
+          "inputs.webUrl": "webUrl"
+        }
+      },
+      {
+        "source": "tactical-synth",
+        "target": "memory-writeback",
+        "type": "success",
+        "mode": "binding",
+        "mapping": {
+          "inputs.acr_gap_summary": "acr_gap_summary"
+        }
+      },
+      {
+        "source": "strategic-synth",
+        "target": "memory-writeback",
+        "type": "success",
+        "mode": "binding",
+        "mapping": {
+          "inputs.forcing_function": "forcing_function",
+          "inputs.offer_shape": "offer_shape",
+          "inputs.strategic_frame": "strategic_frame",
+          "inputs.customer_truth": "customer_truth"
+        }
+      },
+      {
+        "source": "sp-upload",
+        "target": "memory-writeback",
+        "type": "success",
+        "mode": "binding",
+        "mapping": {
+          "inputs.plan_webUrl": "webUrl"
+        }
+      },
+      {
+        "source": "mail-stage",
+        "target": "memory-writeback",
+        "type": "success",
+        "mode": "binding",
+        "mapping": {
+          "inputs.draftId": "draftId"
+        }
+      }
+    ],
+    "ready": {},
+    "active": [],
+    "completed": [],
+    "mermaid": "graph LR\n  acr-trend>\u23f3 tool: msx-mcp.get_azure_consumption]\n  msx-pipeline>\u23f3 tool: msx-mcp.get_account_overview]\n  pipeline-aggregate>\u23f3 tool: msx-mcp.get_pipeline_summary]\n  ai-quota>\u23f3 tool: msx-mcp.quota_consumption]\n  attached-products>\u23f3 tool: msx-mcp.find_opportunities_by_product]\n  workiq-signal>\u23f3 tool: workiq.ask_work_iq]\n  field-playbooks>\u23f3 tool: sharepoint.findFileOrFolder]\n  teams-prior-plays>\u23f3 tool: teams.SearchTeamsMessages]\n  tactical-synth{{\\\"\u23f3 think: TACTICAL CONSUMPTION SYNTHESIS for {{inputs.accountName}} (TPID {{inputs.tpid}}). You have 8 source streams in your prompt context. Do the work in this order across your 6 thoughts: (1) From acr-trend, characterize the last 12 months \u2014 monthly ACR, MoM delta, identify any decline / plateau / under-pace signal. State the QUANTIFIED gap if one exists; if not, declare 'no shortfall; pivot to gap-creation framing'. (2) From ai-quota, find any model+region where utilization is at or above 80% of allocated quota \u2014 that is throttled real demand and a quota-uplift play. (3) From attached-products + msx-pipeline, list every Azure SKU family the customer is already buying \u2014 these are the lowest-friction expansion vectors. (4) From workiq-signal, extract every workload reference, every competitor mention, every roadmap signal the customer has uttered in 60 days. (5) Enumerate 5-10 specific expansion candidates as a structured list. For each: workload name, SKU family, estimated $/month at full landing, technical lift required (low/medium/high), 30/60/90 day timing, and a 1-sentence rationale citing which source streams support it. Show the $/month math (units \u00d7 unit price \u00d7 utilization assumption). (6) Self-critique: which two candidates are the weakest and why. Return strict JSON.\\\"}}\n  strategic-synth{{\\\"\u23f3 think: STRATEGIC CONSUMPTION SYNTHESIS for {{inputs.accountName}} (TPID {{inputs.tpid}}). You have the same 8 source streams. Your job is the offer-shape work, not the math. (1) From workiq-signal + teams-prior-plays, articulate the customer-truth \u2014 what does {{inputs.accountName}} actually want right now in their own words. (2) From msx-pipeline + pipeline-aggregate, map the stakeholders: who at the customer holds the wallet, who blocks, who champions; who on Brett's deal team owns each relationship. (3) Without seeing the tactical candidate list yet, declare a strategic frame for this account \u2014 is this a workload-migration play, an AI-capacity-unlock play, a FinOps-modernization play, a competitive-displacement play, a renewal-anchored expansion play, or something else. Pick ONE frame; defend it from the source data. (4) Design the offer-shape \u2014 incentive structure (MACC depletion accelerator? AzAcc? consumption rebate? engineering sponsorship?), engagement vehicle (POC / sprint / Architecture Design Session / FastTrack), success metric (ACR delta in N days). (5) Name the 3 plays you would prioritize at the strategic frame level (workload categories, not specific SKUs \u2014 the tactical-synth quantifies the SKUs). (6) State the single highest-leverage forcing function in the next 30 days that this motion should land against. Return strict JSON.\\\"}}\n  think-tank[\\\"\u23f3 wf: think-tank\\\"]\n  email-draft(\\\"\u23f3 prompt: Draft an internal email to the {{inputs....\\\")\n  teams-card(\\\"\u23f3 prompt: Compose an Adaptive Card JSON payload fo...\\\")\n  plan-render(\\\"\u23f3 prompt: Render runtime_inputs.plan_markdown to a...\\\")\n  sp-upload>\u23f3 tool: sharepoint.uploadFileFromUrl]\n  mail-stage>\u23f3 tool: mail.CreateDraftMessage]\n  mail-attach>\u23f3 tool: mail.AddDraftAttachments]\n  meeting-find>\u23f3 tool: calendar.FindMeetingTimes]\n  memory-writeback>\u23f3 tool: GatewayExecute]\n  acr-trend --> tactical-synth\n  msx-pipeline --> tactical-synth\n  pipeline-aggregate --> tactical-synth\n  ai-quota --> tactical-synth\n  attached-products --> tactical-synth\n  workiq-signal --> tactical-synth\n  field-playbooks --> tactical-synth\n  teams-prior-plays --> tactical-synth\n  acr-trend --> strategic-synth\n  msx-pipeline --> strategic-synth\n  pipeline-aggregate --> strategic-synth\n  ai-quota --> strategic-synth\n  attached-products --> strategic-synth\n  workiq-signal --> strategic-synth\n  field-playbooks --> strategic-synth\n  teams-prior-plays --> strategic-synth\n  tactical-synth --> think-tank\n  strategic-synth --> think-tank\n  think-tank --> email-draft\n  think-tank --> plan-render\n  think-tank --> memory-writeback\n  plan-render --> sp-upload\n  sp-upload --> teams-card\n  think-tank --> teams-card\n  email-draft --> mail-stage\n  mail-stage --> mail-attach\n  sp-upload --> mail-attach\n  tactical-synth --> memory-writeback\n  strategic-synth --> memory-writeback\n  sp-upload --> memory-writeback\n  mail-stage --> memory-writeback",
+    "running": "yes",
+    "inputSchema": {
+      "properties": {
+        "accountName": {
+          "type": "string"
+        },
+        "deal_room_drive_id": {
+          "type": "string"
+        },
+        "deal_room_folder_id": {
+          "type": "string"
+        },
+        "deal_team_emails": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "now_iso": {
+          "type": "string"
+        },
+        "plus_30d_iso": {
+          "type": "string"
+        },
+        "run_date": {
+          "type": "string"
+        },
+        "target_timeline_days": {
+          "default": 90,
+          "type": "integer"
+        },
+        "tpid": {
+          "pattern": "^[0-9]+$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "accountName",
+        "tpid",
+        "target_timeline_days",
+        "run_date",
+        "now_iso",
+        "plus_30d_iso"
+      ],
+      "type": "object"
+    },
+    "name": "consumption-strike-synopsys"
+  },
+  "error": null
+}

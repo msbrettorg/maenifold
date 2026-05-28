@@ -265,3 +265,7 @@ fn write_relation_counts(connection: &Connection, relation_counts: RelationCount
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "graph_state_tests.rs"]
+mod tests;

@@ -3,11 +3,27 @@ use super::vec0::ensure_vec0_tables;
 use crate::config::Config;
 use crate::error::Result;
 use rusqlite::Connection;
+use std::collections::HashSet;
+use std::path::PathBuf;
+use std::sync::{Mutex, OnceLock};
+
+static INITIALIZED_PATHS: OnceLock<Mutex<HashSet<PathBuf>>> = OnceLock::new();
 
 pub struct GraphDatabase;
 
 impl GraphDatabase {
     pub fn initialize_database(config: &Config) -> Result<()> {
+        let cache = INITIALIZED_PATHS.get_or_init(|| Mutex::new(HashSet::new()));
+        let mut guard = cache.lock().expect("init cache poisoned");
+        if guard.contains(&config.database_path) {
+            return Ok(());
+        }
+        Self::do_initialize(config)?;
+        guard.insert(config.database_path.clone());
+        Ok(())
+    }
+
+    fn do_initialize(config: &Config) -> Result<()> {
         config.ensure_directories()?;
         // T-15.22: RTM FR-11 — journal_mode and synchronous are now set by
         // open_connection() on every connection, so no duplicate pragmas needed here.

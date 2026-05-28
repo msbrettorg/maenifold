@@ -1,9 +1,29 @@
-use std::{collections::HashMap, ffi::OsStr, ffi::OsString};
+use std::{
+    collections::HashMap,
+    ffi::{OsStr, OsString},
+    fs,
+    path::Path,
+    sync::Arc,
+};
 
+use axum::{
+    Router,
+    body::Bytes,
+    extract::State,
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+};
 use rmcp::model::{CallToolResult, Content};
+use serde_json::json;
+use tempfile::TempDir;
+use tokio::sync::Mutex;
 
 use super::super::external_mcp_transport::build_child_path_env;
 use super::*;
+use crate::{
+    acp_config::HttpAuthConfig, config::Config, tools::ToolContext, util::json::OutputFormat,
+};
 
 fn config_with_global_and_agents(
     global_servers: HashMap<String, McpServerEntry>,
@@ -291,5 +311,252 @@ fn build_child_path_env_deduplicates_existing_entries() {
     assert_eq!(
         entries.iter().filter(|entry| *entry == "/usr/bin").count(),
         1
+    );
+}
+
+type CapturedRequests = Vec<(String, HashMap<String, String>)>;
+
+#[derive(Clone)]
+struct HeaderCaptureState {
+    requests: Arc<Mutex<CapturedRequests>>,
+}
+
+struct EnvVarGuard {
+    key: &'static str,
+    original: Option<OsString>,
+}
+
+impl EnvVarGuard {
+    fn set(key: &'static str, value: OsString) -> Self {
+        let original = std::env::var_os(key);
+        unsafe {
+            std::env::set_var(key, &value);
+        }
+        Self { key, original }
+    }
+}
+
+impl Drop for EnvVarGuard {
+    fn drop(&mut self) {
+        match self.original.as_ref() {
+            Some(value) => unsafe {
+                std::env::set_var(self.key, value);
+            },
+            None => unsafe {
+                std::env::remove_var(self.key);
+            },
+        }
+    }
+}
+
+fn prepend_path_guard(path: &Path) -> EnvVarGuard {
+    let mut paths = vec![path.to_path_buf()];
+    if let Some(existing) = std::env::var_os("PATH") {
+        paths.extend(std::env::split_paths(&existing));
+    }
+    let joined = std::env::join_paths(paths).expect("join PATH");
+    EnvVarGuard::set("PATH", joined)
+}
+
+#[cfg(unix)]
+fn install_fake_azure_cli(dir: &Path, token: &str) {
+    use std::os::unix::fs::PermissionsExt;
+
+    let script = dir.join("az");
+    fs::write(
+        &script,
+        format!(
+            "#!/bin/sh\nprintf '%s\\n' '{{\"accessToken\":\"{token}\",\"expires_on\":1893557045,\"tokenType\":\"Bearer\"}}'\n"
+        ),
+    )
+    .expect("write fake az");
+    let mut permissions = fs::metadata(&script)
+        .expect("fake az metadata")
+        .permissions();
+    permissions.set_mode(0o755);
+    fs::set_permissions(&script, permissions).expect("chmod fake az");
+}
+
+async fn oauth_metadata_handler() -> impl IntoResponse {
+    (
+        StatusCode::OK,
+        [(axum::http::header::CONTENT_TYPE, "application/json")],
+        json!({
+            "scopes_supported": ["api://maenifold-tests/.default"]
+        })
+        .to_string(),
+    )
+}
+
+async fn capture_mcp_headers_handler(
+    State(state): State<HeaderCaptureState>,
+    headers: axum::http::HeaderMap,
+    body: Bytes,
+) -> impl IntoResponse {
+    let json_body: serde_json::Value = serde_json::from_slice(&body).expect("MCP request JSON");
+    let method = json_body
+        .get("method")
+        .and_then(|value| value.as_str())
+        .expect("MCP request method")
+        .to_string();
+    let mut captured = HashMap::new();
+    for header_name in ["authorization", "x-custom-header"] {
+        if let Some(value) = headers
+            .get(header_name)
+            .and_then(|value| value.to_str().ok())
+        {
+            captured.insert(header_name.to_string(), value.to_string());
+        }
+    }
+    state.requests.lock().await.push((method.clone(), captured));
+
+    if method == "initialize" {
+        let response = json!({
+            "jsonrpc": "2.0",
+            "id": json_body.get("id").cloned().expect("initialize id"),
+            "result": {
+                "protocolVersion": "2025-03-26",
+                "capabilities": { "tools": {} },
+                "serverInfo": {
+                    "name": "test-server",
+                    "version": "1.0.0"
+                }
+            }
+        });
+        return (
+            StatusCode::OK,
+            [
+                (axum::http::header::CONTENT_TYPE, "application/json"),
+                (
+                    axum::http::HeaderName::from_static("mcp-session-id"),
+                    "test-session-123",
+                ),
+            ],
+            response.to_string(),
+        );
+    }
+
+    if method == "notifications/initialized" {
+        return (
+            StatusCode::ACCEPTED,
+            [
+                (axum::http::header::CONTENT_TYPE, "application/json"),
+                (
+                    axum::http::HeaderName::from_static("mcp-session-id"),
+                    "test-session-123",
+                ),
+            ],
+            String::new(),
+        );
+    }
+
+    if method == "tools/call" {
+        let response = json!({
+            "jsonrpc": "2.0",
+            "id": json_body.get("id").cloned().expect("tools/call id"),
+            "result": serde_json::to_value(CallToolResult::success(vec![Content::text("ok")]))
+                .expect("serialize call result")
+        });
+        return (
+            StatusCode::OK,
+            [
+                (axum::http::header::CONTENT_TYPE, "application/json"),
+                (
+                    axum::http::HeaderName::from_static("mcp-session-id"),
+                    "test-session-123",
+                ),
+            ],
+            response.to_string(),
+        );
+    }
+
+    panic!("unexpected MCP method: {method}");
+}
+
+async fn delete_mcp_session_handler() -> impl IntoResponse {
+    StatusCode::NO_CONTENT
+}
+
+#[tokio::test]
+#[serial_test::serial]
+async fn invoke_external_tool_preserves_http_auth_and_custom_headers() {
+    let fake_cli_dir = TempDir::new().expect("fake Azure CLI dir");
+    install_fake_azure_cli(fake_cli_dir.path(), "TOKEN_4242");
+    let _path_guard = prepend_path_guard(fake_cli_dir.path());
+
+    let state = HeaderCaptureState {
+        requests: Arc::new(Mutex::new(Vec::new())),
+    };
+    let app = Router::new()
+        .route(
+            "/.well-known/oauth-protected-resource/",
+            get(oauth_metadata_handler),
+        )
+        .route(
+            "/mcp",
+            post(capture_mcp_headers_handler).delete(delete_mcp_session_handler),
+        )
+        .with_state(state.clone());
+    let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+        .await
+        .expect("bind test HTTP server");
+    let port = listener.local_addr().expect("listener addr").port();
+    let server_handle = tokio::spawn(async move {
+        axum::serve(listener, app)
+            .await
+            .expect("serve test HTTP server");
+    });
+
+    let config = config_with_global_and_agents(
+        HashMap::from([(
+            "remote".to_string(),
+            McpServerEntry::Http {
+                url: format!("http://127.0.0.1:{port}/mcp"),
+                headers: HashMap::from([(
+                    "X-Custom-Header".to_string(),
+                    "marker-value-9876".to_string(),
+                )]),
+                auth: Some(HttpAuthConfig::AzureDefault),
+                timeout: None,
+                gateway: false,
+            },
+        )]),
+        [],
+    );
+    let context = ToolContext::new(Config::current(), OutputFormat::Json);
+
+    let result = invoke_external_tool(
+        &context,
+        &config,
+        "remote",
+        "echo",
+        Some(&json!({ "value": "ignored" })),
+        None,
+        None,
+        Path::new("."),
+    )
+    .await;
+
+    server_handle.abort();
+
+    let output = result.expect("external MCP HTTP tool call should succeed");
+    assert_eq!(output, "ok");
+
+    let requests = state.requests.lock().await;
+    let tool_call_headers = requests
+        .iter()
+        .find(|(method, _)| method == "tools/call")
+        .map(|(_, headers)| headers)
+        .expect("captured tools/call request");
+
+    assert_eq!(
+        tool_call_headers.get("x-custom-header"),
+        Some(&"marker-value-9876".to_string()),
+        "HTTP MCP tools/call request should include custom headers from McpServerEntry::Http"
+    );
+    assert_eq!(
+        tool_call_headers.get("authorization"),
+        Some(&"Bearer TOKEN_4242".to_string()),
+        "HTTP MCP tools/call request should include Authorization derived from McpServerEntry::Http auth"
     );
 }

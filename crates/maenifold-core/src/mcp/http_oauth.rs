@@ -110,12 +110,12 @@ impl AzureDefaultCredential {
     }
 }
 
-pub(super) struct PreparedHttpClient {
-    pub(super) client: GatewayHttpClient,
-    pub(super) auth_header: Option<String>,
+pub(crate) struct PreparedHttpClient {
+    pub(crate) client: GatewayHttpClient,
+    pub(crate) auth_header: Option<String>,
 }
 
-pub(super) async fn prepare_http_client(
+pub(crate) async fn prepare_http_client(
     config: &HttpServerConfig,
     http_client: reqwest::Client,
 ) -> Result<PreparedHttpClient> {

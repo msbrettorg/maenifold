@@ -6,9 +6,11 @@ use std::sync::Arc;
 use crate::{
     acp_config::{AgentsConfig, McpServerEntry},
     error::{MaenifoldError, Result},
+    mcp::gateway_session::HttpServerConfig,
     mcp::stdio_pool::StdioPool,
     tools::ToolContext,
 };
+use std::time::Duration;
 
 use super::external_mcp_transport::{invoke_via_http, invoke_via_stdio, invoke_via_stdio_fallback};
 
@@ -72,8 +74,23 @@ async fn call_external_mcp_tool(
                 .await
             }
         }
-        McpServerEntry::Http { url, .. } => {
-            invoke_via_http(server_name, remote_tool_name, url, arguments).await
+        McpServerEntry::Http {
+            url,
+            headers,
+            auth,
+            timeout,
+            ..
+        } => {
+            let config = HttpServerConfig {
+                name: server_name.to_string(),
+                url: url.clone(),
+                headers: headers.clone(),
+                auth: auth.clone(),
+                timeout: timeout
+                    .map(Duration::from_secs)
+                    .unwrap_or(Duration::from_secs(60)),
+            };
+            invoke_via_http(&config, remote_tool_name, arguments).await
         }
     }
 }

@@ -14,7 +14,9 @@ mod systemd;
 
 pub use config::{RunRecord, RunStatus, ScheduledTask};
 pub use cron::{ParsedSchedule, parse_schedule};
-pub use launchd::LaunchdManager;
+#[cfg(test)]
+pub(crate) use launchd::{FailingLaunchctlBackend, NoopLaunchctlBackend};
+pub use launchd::{LaunchctlBackend, LaunchdManager, RealLaunchctlBackend};
 pub use lock::LockGuard;
 pub use store::ScheduleStore;
 pub use supervisor::Supervisor;

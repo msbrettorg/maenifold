@@ -1,11 +1,17 @@
 use super::schedule_os::{is_not_installed_scheduler_error, sync_os_scheduler};
 use super::{ToolContext, render, resolve_maenifold_bin, schedule_store};
 use crate::error::{MaenifoldError, Result};
+#[cfg(all(test, target_os = "macos"))]
+use crate::schedule::LaunchctlBackend;
 use crate::schedule::{ScheduledTask, pause_state};
 use chrono::Utc;
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use std::path::Path;
+#[cfg(all(test, target_os = "macos"))]
+use std::path::PathBuf;
+#[cfg(all(test, target_os = "macos"))]
+use std::sync::Arc;
 
 #[derive(Debug)]
 struct Failure {
@@ -29,6 +35,31 @@ pub(super) fn resume_all(context: &ToolContext, _payload: &Value) -> Result<Stri
 }
 
 pub(super) fn set_all_enabled(context: &ToolContext, payload: &Value) -> Result<String> {
+    let bin = resolve_maenifold_bin()?;
+    set_all_enabled_with_scheduler(context, payload, |task| sync_for_batch(task, &bin))
+}
+
+#[cfg(all(test, target_os = "macos"))]
+pub(in crate::tools) fn set_all_enabled_for_test(
+    context: &ToolContext,
+    payload: &Value,
+    bin: &Path,
+    agents_dir: PathBuf,
+    backend: Arc<dyn LaunchctlBackend>,
+) -> Result<String> {
+    set_all_enabled_with_scheduler(context, payload, |task| {
+        sync_for_batch_for_test(task, bin, agents_dir.clone(), backend.clone())
+    })
+}
+
+fn set_all_enabled_with_scheduler<SyncFn>(
+    context: &ToolContext,
+    payload: &Value,
+    sync_scheduler: SyncFn,
+) -> Result<String>
+where
+    SyncFn: Fn(&ScheduledTask) -> Result<()>,
+{
     if pause_state::is_paused(&context.config.maenifold_root)
         .map_err(|error| MaenifoldError::Message(error.to_string()))?
     {
@@ -42,7 +73,6 @@ pub(super) fn set_all_enabled(context: &ToolContext, payload: &Value) -> Result<
         .ok_or_else(|| {
             MaenifoldError::InvalidArgument("'enabled' must be a boolean".to_string())
         })?;
-    let bin = resolve_maenifold_bin()?;
     let store = schedule_store(context);
     let mut changed = Vec::new();
     let mut unchanged = Vec::new();
@@ -57,7 +87,7 @@ pub(super) fn set_all_enabled(context: &ToolContext, payload: &Value) -> Result<
         }
         task.enabled = enabled;
         match store.update(&task) {
-            Ok(()) => match sync_for_batch(&task, &bin) {
+            Ok(()) => match sync_scheduler(&task) {
                 Ok(()) => changed.push(task.id),
                 Err(error) => failed.push(Failure {
                     id: task.id,
@@ -98,6 +128,25 @@ pub(super) fn pause_status(context: &ToolContext) -> Result<String> {
 }
 
 pub(in crate::tools) fn pause_all_with_bin(context: &ToolContext, bin: &Path) -> Result<String> {
+    pause_all_with_scheduler(context, |task| sync_for_batch(task, bin))
+}
+
+#[cfg(all(test, target_os = "macos"))]
+pub(in crate::tools) fn pause_all_for_test(
+    context: &ToolContext,
+    bin: &Path,
+    agents_dir: PathBuf,
+    backend: Arc<dyn LaunchctlBackend>,
+) -> Result<String> {
+    pause_all_with_scheduler(context, |task| {
+        sync_for_batch_for_test(task, bin, agents_dir.clone(), backend.clone())
+    })
+}
+
+fn pause_all_with_scheduler<SyncFn>(context: &ToolContext, sync_scheduler: SyncFn) -> Result<String>
+where
+    SyncFn: Fn(&ScheduledTask) -> Result<()>,
+{
     let store = schedule_store(context);
     let tasks = store
         .list()
@@ -138,7 +187,7 @@ pub(in crate::tools) fn pause_all_with_bin(context: &ToolContext, bin: &Path) ->
             let mut paused = task.clone();
             paused.enabled = false;
             match store.update(&paused) {
-                Ok(()) => match sync_for_batch(&paused, bin) {
+                Ok(()) => match sync_scheduler(&paused) {
                     Ok(()) => changed.push(task.id),
                     Err(error) => {
                         let _ = store.restore_snapshot_if_current(&task, &paused);
@@ -156,7 +205,7 @@ pub(in crate::tools) fn pause_all_with_bin(context: &ToolContext, bin: &Path) ->
                 }),
             }
         } else {
-            match sync_for_batch(&task, bin) {
+            match sync_scheduler(&task) {
                 Ok(()) => unchanged.push(task.id),
                 Err(error) => failed.push(Failure {
                     id: task.id,
@@ -176,6 +225,28 @@ pub(in crate::tools) fn pause_all_with_bin(context: &ToolContext, bin: &Path) ->
 }
 
 pub(in crate::tools) fn resume_all_with_bin(context: &ToolContext, bin: &Path) -> Result<String> {
+    resume_all_with_scheduler(context, |task| sync_for_batch(task, bin))
+}
+
+#[cfg(all(test, target_os = "macos"))]
+pub(in crate::tools) fn resume_all_for_test(
+    context: &ToolContext,
+    bin: &Path,
+    agents_dir: PathBuf,
+    backend: Arc<dyn LaunchctlBackend>,
+) -> Result<String> {
+    resume_all_with_scheduler(context, |task| {
+        sync_for_batch_for_test(task, bin, agents_dir.clone(), backend.clone())
+    })
+}
+
+fn resume_all_with_scheduler<SyncFn>(
+    context: &ToolContext,
+    sync_scheduler: SyncFn,
+) -> Result<String>
+where
+    SyncFn: Fn(&ScheduledTask) -> Result<()>,
+{
     let Some(state) = pause_state::read(&context.config.maenifold_root)
         .map_err(|error| MaenifoldError::Message(error.to_string()))?
     else {
@@ -199,7 +270,7 @@ pub(in crate::tools) fn resume_all_with_bin(context: &ToolContext, bin: &Path) -
         };
         task.enabled = prior_enabled;
         match store.update(&task) {
-            Ok(()) => match sync_for_batch(&task, bin) {
+            Ok(()) => match sync_scheduler(&task) {
                 Ok(()) if prior_enabled => changed.push(id),
                 Ok(()) => unchanged.push(id),
                 Err(error) => failed.push(Failure {
@@ -230,6 +301,20 @@ pub(in crate::tools) fn resume_all_with_bin(context: &ToolContext, bin: &Path) -
 
 fn sync_for_batch(task: &ScheduledTask, bin: &Path) -> Result<()> {
     match sync_os_scheduler(task, bin) {
+        Ok(()) => Ok(()),
+        Err(error) if !task.enabled && is_absent_uninstall_error(&error) => Ok(()),
+        Err(error) => Err(error),
+    }
+}
+
+#[cfg(all(test, target_os = "macos"))]
+fn sync_for_batch_for_test(
+    task: &ScheduledTask,
+    bin: &Path,
+    agents_dir: PathBuf,
+    backend: Arc<dyn LaunchctlBackend>,
+) -> Result<()> {
+    match super::schedule_os::sync_os_scheduler_for_test(task, bin, agents_dir, backend) {
         Ok(()) => Ok(()),
         Err(error) if !task.enabled && is_absent_uninstall_error(&error) => Ok(()),
         Err(error) => Err(error),

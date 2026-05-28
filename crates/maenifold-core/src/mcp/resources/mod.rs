@@ -11,12 +11,9 @@ use std::sync::{Arc, RwLock};
 
 pub mod agent;
 mod asset;
-pub mod console;
-mod gate_app;
 mod gateway;
 pub mod graph;
 pub mod pipeline;
-mod pipeline_app;
 pub mod schedule;
 pub mod subscription;
 mod subscription_worker;
@@ -65,9 +62,6 @@ pub fn handle_list_resources() -> Result<ListResourcesResult> {
     resources.extend(agent::list_resources());
     resources.extend(gateway::list_resources());
     resources.extend(graph::list_resources());
-    resources.extend(gate_app::list_resources());
-    resources.extend(console::list_resources());
-    resources.extend(pipeline_app::list_resources());
     resources.extend(pipeline::list_resources()?);
     resources.extend(schedule::list_resources());
     resources.extend(workflow::list_resources());
@@ -100,12 +94,6 @@ pub fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
 pub fn handle_read_resource_with_config(uri: &str, config: &Config) -> Result<ReadResourceResult> {
     if agent::is_agent_uri(uri) {
         agent::handle_read_resource(uri)
-    } else if console::is_console_uri(uri) {
-        console::handle_read_resource_with_config(uri, config)
-    } else if gate_app::is_gate_app_uri(uri) {
-        gate_app::handle_read_resource(uri)
-    } else if pipeline_app::is_pipeline_app_uri(uri) {
-        pipeline_app::handle_read_resource(uri)
     } else if workflow::is_workflow_uri(uri) {
         workflow::handle_read_resource(uri)
     } else if graph::is_graph_uri(uri) {

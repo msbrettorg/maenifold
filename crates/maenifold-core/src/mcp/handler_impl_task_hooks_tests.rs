@@ -75,28 +75,6 @@ fn initialize_advertises_tasks_capability() {
 }
 
 #[test]
-fn initialize_advertises_mcp_apps_ui_extension() {
-    for transport in [TransportKind::Stdio, TransportKind::Http] {
-        let handler = MaenifoldHandler::new(transport).expect("handler");
-        let info = handler.get_info();
-        let ui_extension = info
-            .capabilities
-            .extensions
-            .as_ref()
-            .and_then(|extensions| extensions.get(crate::mcp::tool_utils::MCP_APPS_UI_EXTENSION))
-            .expect("MCP Apps UI extension should be advertised");
-
-        assert_eq!(
-            ui_extension
-                .get("mimeTypes")
-                .and_then(Value::as_array)
-                .expect("mimeTypes should be an array"),
-            &[json!(crate::mcp::tool_utils::MCP_APP_HTML_MIME_TYPE)]
-        );
-    }
-}
-
-#[test]
 fn tools_list_marks_pipeline_as_optional_task() {
     let handler = MaenifoldHandler::new(TransportKind::Stdio).expect("handler");
     let pipeline = handler

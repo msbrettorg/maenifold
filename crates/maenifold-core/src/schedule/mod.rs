@@ -13,14 +13,16 @@ mod supervisor;
 mod systemd;
 
 pub use config::{RunRecord, RunStatus, ScheduledTask};
-pub use cron::{ParsedSchedule, parse_schedule};
+pub use cron::{parse_schedule, ParsedSchedule};
 #[cfg(test)]
 pub(crate) use launchd::{FailingLaunchctlBackend, NoopLaunchctlBackend};
 pub use launchd::{LaunchctlBackend, LaunchdManager, RealLaunchctlBackend};
 pub use lock::LockGuard;
 pub use store::ScheduleStore;
 pub use supervisor::Supervisor;
-pub use systemd::SystemdManager;
+#[cfg(all(test, target_os = "linux"))]
+pub(crate) use systemd::{FailingSystemctlBackend, NoopSystemctlBackend};
+pub use systemd::{RealSystemctlBackend, SystemctlBackend, SystemdManager};
 
 pub(crate) fn validate_schedule_id(id: &str) -> anyhow::Result<()> {
     if id.is_empty() || id.len() > 64 {

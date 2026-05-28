@@ -1,4 +1,6 @@
 use crate::error::{MaenifoldError, Result};
+#[cfg(all(test, target_os = "macos"))]
+use crate::schedule::LaunchctlBackend;
 #[cfg(target_os = "macos")]
 use crate::schedule::LaunchdManager;
 use crate::schedule::ScheduledTask;
@@ -6,8 +8,12 @@ use crate::schedule::ScheduledTask;
 use crate::schedule::SystemdManager;
 use serde::Serialize;
 use std::path::Path;
+#[cfg(all(test, target_os = "macos"))]
+use std::path::PathBuf;
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 use std::process::Command;
+#[cfg(all(test, target_os = "macos"))]
+use std::sync::Arc;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -34,6 +40,26 @@ pub(crate) struct LastFireResult {
 #[cfg(target_os = "macos")]
 pub(super) fn sync_os_scheduler(task: &ScheduledTask, bin: &Path) -> Result<()> {
     let manager = LaunchdManager::new(bin.to_path_buf())
+        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+    if task.enabled {
+        manager
+            .install(task)
+            .map_err(|error| MaenifoldError::Message(error.to_string()))
+    } else {
+        manager
+            .uninstall(&task.id)
+            .map_err(|error| MaenifoldError::Message(error.to_string()))
+    }
+}
+
+#[cfg(all(test, target_os = "macos"))]
+pub(in crate::tools) fn sync_os_scheduler_for_test(
+    task: &ScheduledTask,
+    bin: &Path,
+    agents_dir: PathBuf,
+    backend: Arc<dyn LaunchctlBackend>,
+) -> Result<()> {
+    let manager = LaunchdManager::new_with(agents_dir, bin.to_path_buf(), backend)
         .map_err(|error| MaenifoldError::Message(error.to_string()))?;
     if task.enabled {
         manager
@@ -76,6 +102,19 @@ pub(super) fn sync_os_scheduler(task: &ScheduledTask, _bin: &Path) -> Result<()>
 #[cfg(target_os = "macos")]
 pub(super) fn uninstall_os_scheduler(task_id: &str, bin: &Path) -> Result<()> {
     LaunchdManager::new(bin.to_path_buf())
+        .map_err(|error| MaenifoldError::Message(error.to_string()))?
+        .uninstall(task_id)
+        .map_err(|error| MaenifoldError::Message(error.to_string()))
+}
+
+#[cfg(all(test, target_os = "macos"))]
+pub(in crate::tools) fn uninstall_os_scheduler_for_test(
+    task_id: &str,
+    bin: &Path,
+    agents_dir: PathBuf,
+    backend: Arc<dyn LaunchctlBackend>,
+) -> Result<()> {
+    LaunchdManager::new_with(agents_dir, bin.to_path_buf(), backend)
         .map_err(|error| MaenifoldError::Message(error.to_string()))?
         .uninstall(task_id)
         .map_err(|error| MaenifoldError::Message(error.to_string()))

@@ -21,14 +21,24 @@ export function usePolledQuery<TData>(
   options: UsePolledQueryOptions<TData> = {},
 ): UsePolledQueryResult<TData> {
   const { enabled = true, intervalMs = 2_000, initialData } = options;
-  const [data, setData] = useState<TData | null>(initialData ?? null);
+  const initialDataRef = useRef(initialData);
+  const queryFnRef = useRef(queryFn);
+  const [data, setData] = useState<TData | null>(
+    initialDataRef.current ?? null,
+  );
   const [error, setError] = useState<Error | null>(null);
-  const [isLoading, setIsLoading] = useState(Boolean(enabled && !initialData));
+  const [isLoading, setIsLoading] = useState(
+    Boolean(enabled && !initialDataRef.current),
+  );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
   const requestIdRef = useRef(0);
   const timerRef = useRef<number | null>(null);
   const scheduleNextRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    queryFnRef.current = queryFn;
+  }, [queryFn]);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -53,7 +63,7 @@ export function usePolledQuery<TData>(
       }
 
       try {
-        const nextData = await queryFn();
+        const nextData = await queryFnRef.current();
 
         if (requestId !== requestIdRef.current) {
           return;
@@ -75,14 +85,14 @@ export function usePolledQuery<TData>(
         }
       }
     },
-    [enabled, queryFn],
+    [enabled],
   );
 
   useEffect(() => {
     clearTimer();
 
     if (!enabled) {
-      setData(initialData ?? null);
+      setData(initialDataRef.current ?? null);
       setError(null);
       setLastUpdatedAt(null);
       setIsLoading(false);
@@ -107,7 +117,7 @@ export function usePolledQuery<TData>(
       requestIdRef.current += 1;
       clearTimer();
     };
-  }, [clearTimer, enabled, initialData, intervalMs, queryKey, runQuery]);
+  }, [enabled, intervalMs, queryKey]);
 
   const refetch = useCallback(async () => {
     clearTimer();

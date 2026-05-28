@@ -20,7 +20,6 @@ clap = { version = "4", features = ["derive"] }
 futures-util = "0.3"
 jockey = { package = "maenifold-jockey", path = "../maenifold-jockey" }
 maenifold-gate-core = { path = "../maenifold-gate-core" }
-keyring = { version = "3", features = ["apple-native"] }
 libc.workspace = true
 machine-uid = "0.5"
 notify.workspace = true
@@ -31,14 +30,12 @@ pulldown-cmark.workspace = true
 regex.workspace = true
 croner = "3.0.1"
 rusqlite.workspace = true
-rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs"] }
 serde.workspace = true
 serde_json.workspace = true
 schemars.workspace = true
 serde_yml.workspace = true
 sse-stream = "0.2"
 handlebars = "6"
-html_escape = { package = "html-escape", version = "0.2" }
 indexmap = { version = "2", features = ["serde"] }
 jsonschema = { version = "0.28", default-features = false }
 sha2.workspace = true
@@ -55,7 +52,6 @@ agent-client-protocol-schema = { workspace = true }
 async-trait = { workspace = true }
 rmcp = { workspace = true, features = ["client", "reqwest", "transport-child-process", "transport-streamable-http-client-reqwest", "transport-streamable-http-server"] }
 reqwest.workspace = true
-tokio-tungstenite = { version = "0.29", features = ["rustls-tls-webpki-roots"] }
 tower-http.workspace = true
 uuid.workspace = true
 walkdir.workspace = true
@@ -64,7 +60,6 @@ tempfile.workspace = true
 fd-lock.workspace = true
 ort.workspace = true
 tokenizers.workspace = true
-unicode-normalization = "0.1"
 hf-hub = { version = "0.5", default-features = false, features = ["tokio", "rustls-tls"], optional = true }
 flate2 = "1"
 tar = "0.4"

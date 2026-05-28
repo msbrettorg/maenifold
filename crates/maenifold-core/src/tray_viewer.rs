@@ -66,16 +66,31 @@ impl PipelineViewer {
 }
 
 #[cfg(target_os = "macos")]
-fn build_viewer_webview(
-    window: winit::window::Window,
+fn open_viewer(
+    event_loop: &ActiveEventLoop,
     event_proxy: EventLoopProxy<TrayViewerEvent>,
+    title: &'static str,
     initial_url: &'static str,
     close_message: &'static str,
     close_event: fn() -> TrayViewerEvent,
     target: ViewerTarget,
     viewer_label: &'static str,
 ) -> Result<PipelineViewer> {
+    use winit::dpi::LogicalSize;
+    use winit::window::Window;
     use wry::WebViewBuilder;
+
+    let window = event_loop
+        .create_window(
+            Window::default_attributes()
+                .with_title(title)
+                .with_inner_size(LogicalSize::new(920.0, 640.0))
+                .with_min_inner_size(LogicalSize::new(520.0, 360.0))
+                .with_decorations(true)
+                .with_title_hidden(true)
+                .with_visible(true),
+        )
+        .map_err(|err| MaenifoldError::Message(format!("failed to create viewer window: {err}")))?;
 
     let console_root = crate::config::Config::current().assets_path.join("console");
     let proxy = event_proxy.clone();
@@ -141,24 +156,10 @@ pub(crate) fn open_pipeline_viewer(
     event_loop: &ActiveEventLoop,
     event_proxy: EventLoopProxy<TrayViewerEvent>,
 ) -> Result<PipelineViewer> {
-    use winit::dpi::LogicalSize;
-    use winit::window::Window;
-
-    let window = event_loop
-        .create_window(
-            Window::default_attributes()
-                .with_title(PIPELINE_VIEWER_TITLE)
-                .with_inner_size(LogicalSize::new(920.0, 640.0))
-                .with_min_inner_size(LogicalSize::new(520.0, 360.0))
-                .with_decorations(true)
-                .with_title_hidden(true)
-                .with_visible(true),
-        )
-        .map_err(|err| MaenifoldError::Message(format!("failed to create viewer window: {err}")))?;
-
-    build_viewer_webview(
-        window,
+    open_viewer(
+        event_loop,
         event_proxy,
+        PIPELINE_VIEWER_TITLE,
         "console://maenifold/index.html?surface=pipeline",
         PIPELINE_VIEWER_CLOSE_MESSAGE,
         || TrayViewerEvent::ClosePipelineViewer,
@@ -182,24 +183,10 @@ pub(crate) fn open_gate_viewer(
     event_loop: &ActiveEventLoop,
     event_proxy: EventLoopProxy<TrayViewerEvent>,
 ) -> Result<PipelineViewer> {
-    use winit::dpi::LogicalSize;
-    use winit::window::Window;
-
-    let window = event_loop
-        .create_window(
-            Window::default_attributes()
-                .with_title(GATE_VIEWER_TITLE)
-                .with_inner_size(LogicalSize::new(920.0, 640.0))
-                .with_min_inner_size(LogicalSize::new(520.0, 360.0))
-                .with_decorations(true)
-                .with_title_hidden(true)
-                .with_visible(true),
-        )
-        .map_err(|err| MaenifoldError::Message(format!("failed to create viewer window: {err}")))?;
-
-    build_viewer_webview(
-        window,
+    open_viewer(
+        event_loop,
         event_proxy,
+        GATE_VIEWER_TITLE,
         "console://maenifold/index.html?surface=gate",
         GATE_VIEWER_CLOSE_MESSAGE,
         || TrayViewerEvent::CloseGateViewer,

@@ -305,7 +305,7 @@ mod budget_tests {
         let budget = std::time::Duration::from_secs(600);
         let quick = async { Ok::<u32, MaenifoldError>(42) };
         let result = await_with_budget("copilot", budget, quick).await;
-        assert_eq!(result.unwrap(), 42);
+        assert_eq!(result.expect("fast success must return Ok(42)"), 42);
     }
 
     // T-328.16 — Spawns a real `sleep 99999` child, wraps a never-resolving

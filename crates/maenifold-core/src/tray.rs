@@ -14,7 +14,7 @@ use crate::tray_helpers::{
 };
 use crate::tray_menu::{CoreTrayMenuState, build_tray_menu, toggle_login_item};
 use crate::tray_viewer::{
-    PipelineViewer, TrayViewerEvent, is_gate_viewer_event, is_pipeline_viewer_event,
+    PipelineViewer, TrayViewerEvent, ViewerTarget, is_gate_viewer_event, is_pipeline_viewer_event,
     open_gate_viewer, open_pipeline_viewer,
 };
 use tokio_util::sync::CancellationToken;
@@ -224,6 +224,31 @@ impl ApplicationHandler<TrayViewerEvent> for TrayApp<ServerMode, CoreTrayState> 
             }
             TrayViewerEvent::CloseGateViewer => {
                 self.state.gate_viewer.take();
+            }
+            TrayViewerEvent::DispatchScript { target, script } => {
+                let viewer = match target {
+                    ViewerTarget::Pipeline => self.state.pipeline_viewer.as_ref(),
+                    ViewerTarget::Gate => self.state.gate_viewer.as_ref(),
+                };
+                #[cfg(target_os = "macos")]
+                {
+                    if let Some(viewer) = viewer {
+                        if let Err(err) = viewer.webview().evaluate_script(&script) {
+                            warn!(error = %err, ?target, "failed to evaluate viewer script");
+                        }
+                    } else {
+                        info!(?target, "dropping dispatched script for closed viewer");
+                    }
+                }
+                #[cfg(not(target_os = "macos"))]
+                {
+                    let _ = viewer;
+                    let _ = script;
+                    info!(
+                        ?target,
+                        "dropping dispatched script on unsupported platform"
+                    );
+                }
             }
         }
     }

@@ -161,6 +161,79 @@ const STATUS_TO_TONE: Record<string, PipelineNodeTone> = {
 };
 
 export function parseGatewayToolResult<T>(result: unknown): T {
+  return extractGatewayPayload(result) as T;
+}
+
+export function normalizePipelineView(raw: unknown): PipelineView {
+  const value = asRecord(extractGatewayPayload(raw));
+
+  return {
+    pipelineId: readString(value.pipelineId),
+    status: readString(value.status, "pending"),
+    final: readBoolean(value.final),
+    running: readBoolean(value.running),
+    nodes: readArray(value.nodes).map(normalizePipelineNode),
+    edges: readArray(value.edges).map(normalizePipelineEdge),
+    ready: readArray(value.ready).map((entry) => readString(entry)),
+    active: readArray(value.active).map((entry) => readString(entry)),
+    completed: readArray(value.completed).map((entry) => readString(entry)),
+    mermaid: readOptionalString(value.mermaid),
+    name: readOptionalString(value.name),
+    description: readOptionalString(value.description),
+    inputSchema: normalizeOptionalJsonValue(value.inputSchema),
+    degraded: normalizeOptionalJsonValue(value.degraded),
+  };
+}
+
+export function normalizePipelineList(raw: unknown): PipelineListResponse {
+  const value = asRecord(extractGatewayPayload(raw));
+
+  return {
+    pipelines: readArray(value.pipelines).map((entry) => {
+      const record = asRecord(entry);
+
+      return {
+        pipelineId: readString(record.pipelineId),
+        status: readString(record.status, "pending"),
+        nodeCount: readNumber(record.nodeCount),
+        completedCount: readNumber(record.completedCount),
+        runs: readArray(record.runs).map((run) => {
+          const runRecord = asRecord(run);
+          return {
+            nodeId: readString(runRecord.nodeId),
+            startedAt: readOptionalString(runRecord.startedAt),
+            completedAt: readOptionalString(runRecord.completedAt),
+            status: readOptionalString(runRecord.status),
+            outcome: readOptionalString(runRecord.outcome),
+          };
+        }),
+        nodes: readArray(record.nodes).map(normalizePipelineNode),
+        name: readOptionalString(record.name),
+        description: readOptionalString(record.description),
+        degraded: normalizeOptionalJsonValue(record.degraded),
+      };
+    }),
+  };
+}
+
+export function normalizeTaskList(raw: unknown): PipelineTaskList {
+  const value = asRecord(extractGatewayPayload(raw));
+
+  return {
+    tasks: readArray(value.tasks).map((entry) => {
+      const record = asRecord(entry);
+
+      return {
+        taskId: readString(record.taskId),
+        status: readString(record.status, "working"),
+        pipelineStatus: readString(record.pipelineStatus, "pending"),
+      };
+    }),
+    nextCursor: readOptionalString(value.nextCursor),
+  };
+}
+
+function extractGatewayPayload(result: unknown): unknown {
   const toolResult = result as GatewayToolResult;
   const text = toolResult.content?.find((entry) => entry.type === "text")?.text;
 
@@ -172,20 +245,20 @@ export function parseGatewayToolResult<T>(result: unknown): T {
     throw new Error(text);
   }
 
-  const parsed = JSON.parse(text) as GatewayEnvelope<T> | T;
+  const parsed = JSON.parse(text) as GatewayEnvelope<unknown> | unknown;
 
-  if (isGatewayEnvelope<T>(parsed)) {
+  if (isGatewayEnvelope(parsed)) {
     if (parsed.success === false) {
       throw new Error(parsed.error ?? "Gateway request failed");
     }
 
-    return (parsed.data ?? (parsed as T)) as T;
+    return parsed.data ?? parsed;
   }
 
-  return parsed as T;
+  return parsed;
 }
 
-function isGatewayEnvelope<T>(value: GatewayEnvelope<T> | T): value is GatewayEnvelope<T> {
+function isGatewayEnvelope(value: unknown): value is GatewayEnvelope<unknown> {
   return (
     typeof value === "object" &&
     value !== null &&
@@ -208,6 +281,136 @@ export function selectPrimaryPipelineId(
   );
 
   return activePipeline?.pipelineId ?? null;
+}
+
+function normalizePipelineNode(value: unknown): PipelineNode {
+  const record = asRecord(value);
+
+  return {
+    nodeId: readString(record.nodeId),
+    sessionId: readString(record.sessionId),
+    status: readString(record.status, "pending"),
+    attempts: readNumber(record.attempts),
+    output: normalizeJsonValue(record.output),
+    type: readString(record.type),
+    displayLabel: readOptionalString(record.displayLabel),
+    startedAt: readOptionalString(record.startedAt),
+    completedAt: readOptionalString(record.completedAt),
+    retryAfter: readOptionalString(record.retryAfter),
+    retryCount: readOptionalNumber(record.retryCount),
+    inputTokens: readOptionalNumber(record.inputTokens),
+    outputTokens: readOptionalNumber(record.outputTokens),
+    inputArtifact: normalizeOptionalJsonValue(record.inputArtifact),
+    outputArtifact: normalizeOptionalJsonValue(record.outputArtifact),
+    failureReason: readOptionalString(record.failureReason),
+    acpSessionId: readOptionalString(record.acpSessionId),
+    acpProcessAlive: readOptionalBoolean(record.acpProcessAlive),
+    thinkingSessionId: readOptionalString(record.thinkingSessionId),
+    toolProvenance: normalizeOptionalJsonValue(record.toolProvenance),
+    provenance: normalizeOptionalJsonValue(record.provenance),
+    assembled_prompt: readOptionalString(record.assembled_prompt),
+    workflow_steps: normalizeOptionalJsonValue(record.workflow_steps),
+    thinking_trace: normalizeOptionalJsonValue(record.thinking_trace),
+    workflowId: readOptionalString(record.workflowId),
+    prompt: readOptionalString(record.prompt),
+    toolName: readOptionalString(record.toolName),
+    toolArgs: normalizeOptionalJsonValue(record.toolArgs),
+    agent: readOptionalString(record.agent),
+    acpClient: readOptionalString(record.acpClient),
+    topic: readOptionalString(record.topic),
+    model: readOptionalString(record.model),
+    thoughtLevel: readOptionalString(record.thoughtLevel),
+    allowedTools: readOptionalStringArray(record.allowedTools),
+    maxTurns: readOptionalNumber(record.maxTurns),
+    cwd: readOptionalString(record.cwd),
+    timeout: readOptionalNumber(record.timeout),
+    agentConfig: normalizeOptionalJsonValue(record.agentConfig),
+    inputSchema: normalizeOptionalJsonValue(record.inputSchema),
+    outputSchema: normalizeOptionalJsonValue(record.outputSchema),
+  };
+}
+
+function normalizePipelineEdge(value: unknown): PipelineEdge {
+  const record = asRecord(value);
+
+  return {
+    source: readString(record.source),
+    target: readString(record.target),
+    type: readOptionalString(record.type),
+    mode: normalizeOptionalJsonValue(record.mode),
+    mapping: normalizeOptionalJsonValue(record.mapping),
+  };
+}
+
+function asRecord(value: unknown): UnknownRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as UnknownRecord)
+    : {};
+}
+
+function readArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function readString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function readOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function readBoolean(value: unknown): boolean {
+  return typeof value === "boolean" ? value : false;
+}
+
+function readOptionalBoolean(value: unknown): boolean | undefined {
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function readNumber(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function readOptionalNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function readOptionalStringArray(value: unknown): string[] | null | undefined {
+  if (value == null) {
+    return value as null | undefined;
+  }
+
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === "string")
+    : undefined;
+}
+
+function normalizeOptionalJsonValue(value: unknown): JsonValue | undefined {
+  return value === undefined ? undefined : normalizeJsonValue(value);
+}
+
+function normalizeJsonValue(value: unknown): JsonValue {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    (typeof value === "number" && Number.isFinite(value)) ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((entry) => normalizeJsonValue(entry));
+  }
+
+  if (typeof value === "object" && value !== null) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, normalizeJsonValue(entry)]),
+    );
+  }
+
+  return null;
 }
 
 export function getNodeTone(status: string): PipelineNodeTone {

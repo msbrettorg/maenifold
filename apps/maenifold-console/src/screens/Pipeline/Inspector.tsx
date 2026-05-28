@@ -92,10 +92,10 @@ export function Inspector({
             <InspectorLogs node={node} />
           </TabsContent>
           <TabsContent value="inputs" className="h-full">
-            <InspectorInputs node={node} />
+            <InspectorInputs node={node} theme={theme} />
           </TabsContent>
           <TabsContent value="outputs" className="h-full">
-            <InspectorOutputs node={node} />
+            <InspectorOutputs node={node} theme={theme} />
           </TabsContent>
           <TabsContent value="raw" className="h-full">
             <InspectorRaw value={node as unknown as JsonValue} theme={theme} />

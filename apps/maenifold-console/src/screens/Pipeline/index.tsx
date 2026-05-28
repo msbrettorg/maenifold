@@ -15,11 +15,10 @@ import { useTheme } from "@/hooks/useTheme";
 import { useBridge } from "@/lib/bridge/useBridge";
 import {
   computeRunMetadata,
-  parseGatewayToolResult,
+  normalizePipelineList,
+  normalizePipelineView,
+  normalizeTaskList,
   selectPrimaryPipelineId,
-  type PipelineListResponse,
-  type PipelineTaskList,
-  type PipelineView,
 } from "@/lib/pipeline";
 
 import { Dag } from "./Dag";
@@ -42,26 +41,29 @@ export default function PipelineScreen() {
   }, []);
 
   const invokeGateway = useCallback(
-    async <T,>(domain: string, command: string, parameters: Record<string, unknown>) => {
-      const result = await bridge.invoke("GatewayExecute", {
+    (domain: string, command: string, parameters: Record<string, unknown>) =>
+      bridge.invoke("GatewayExecute", {
         domain,
         command,
         parameters,
-      });
-
-      return parseGatewayToolResult<T>(result);
-    },
+      }),
     [bridge],
   );
 
   const tasksQuery = usePolledQuery(
     "tasks",
-    () => invokeGateway<PipelineTaskList>("maenifold.tasks", "TaskList", {}),
+    async () =>
+      normalizeTaskList(
+        await invokeGateway("maenifold.tasks", "TaskList", {}),
+      ),
     { intervalMs: 2_000 },
   );
   const pipelineListQuery = usePolledQuery(
     "pipeline-list",
-    () => invokeGateway<PipelineListResponse>("maenifold.workflow", "Pipeline", { list: true }),
+    async () =>
+      normalizePipelineList(
+        await invokeGateway("maenifold.workflow", "Pipeline", { list: true }),
+      ),
     { intervalMs: 2_000 },
   );
 
@@ -74,10 +76,10 @@ export default function PipelineScreen() {
     activePipelineId ?? "pipeline-view-idle",
     () =>
       activePipelineId
-        ? invokeGateway<PipelineView>("maenifold.workflow", "Pipeline", {
+        ? invokeGateway("maenifold.workflow", "Pipeline", {
             sessionId: activePipelineId,
             view: true,
-          })
+          }).then((result) => normalizePipelineView(result))
         : Promise.resolve(null),
     {
       enabled: Boolean(activePipelineId),

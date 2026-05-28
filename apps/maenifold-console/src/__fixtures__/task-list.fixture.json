@@ -1,0 +1,40 @@
+{
+  "tasks": [
+    {
+      "taskId": "consumption-strike-synopsys-1779458959615",
+      "status": "working",
+      "pipelineStatus": "active"
+    },
+    {
+      "taskId": "maspace-codex-smoke-1779394124080",
+      "status": "completed",
+      "pipelineStatus": "completed"
+    },
+    {
+      "taskId": "maspace-t11-recovery-1779392823028",
+      "status": "completed",
+      "pipelineStatus": "completed"
+    },
+    {
+      "taskId": "smoke-test-1779243129518-1779243129543",
+      "status": "completed",
+      "pipelineStatus": "completed"
+    },
+    {
+      "taskId": "task-cancel-running-1779811226267",
+      "status": "working",
+      "pipelineStatus": "active"
+    },
+    {
+      "taskId": "task-cancel-running-1779811226838",
+      "status": "working",
+      "pipelineStatus": "active"
+    },
+    {
+      "taskId": "task-cancel-running-1779897715577",
+      "status": "working",
+      "pipelineStatus": "active"
+    }
+  ],
+  "nextCursor": null
+}

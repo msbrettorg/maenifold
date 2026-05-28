@@ -167,6 +167,35 @@ async fn gateway_execute_missing_required_message_excludes_non_required_errors()
 }
 
 #[tokio::test]
+async fn gateway_execute_learn_true_bypasses_required_validation() {
+    let state = state().await;
+
+    let result = match state
+        .handle_gateway_execute(json!({
+            "domain": "maenifold.memory",
+            "command": "WriteMemory",
+            "parameters": {
+                "learn": true
+            }
+        }))
+        .await
+    {
+        Ok(result) => result,
+        Err(err) => panic!("expected learn help success, got validation error: {err}"),
+    };
+
+    assert!(!result.is_error.unwrap_or(false), "{}", text(&result));
+    let value = json_text(&result);
+    assert_eq!(value["success"], true, "{value}");
+    let message = value["data"].as_str().expect("learn help text");
+    assert!(
+        message.contains("WriteMemory creates a new memory note"),
+        "{message}"
+    );
+    assert!(message.contains("- learn (bool, optional)"), "{message}");
+}
+
+#[tokio::test]
 async fn gateway_index_default_catalog_omits_commands_from_domain_entries() {
     let state = state().await;
 

@@ -1,5 +1,6 @@
 use crate::error::Result;
 use crate::markdown::{append_h2_section, read_markdown};
+use crate::memory::learn_requested;
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use crate::workflow::{
@@ -23,11 +24,7 @@ pub fn sequential_thinking(context: &ToolContext, payload: &Value) -> Result<Str
     if let Some(output) = validate_payload(context, payload, &input)? {
         return Ok(output);
     }
-    if payload
-        .get("learn")
-        .and_then(Value::as_bool)
-        .unwrap_or(false)
-    {
+    if learn_requested(payload) {
         let help = load_help_doc(&context.config.assets_path, "SequentialThinking")
             .unwrap_or_else(|| "ERROR: Help file not found for SequentialThinking".to_string());
         return Ok(render_text_success(context, help));

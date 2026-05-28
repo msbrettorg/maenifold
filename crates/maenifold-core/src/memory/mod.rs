@@ -16,6 +16,7 @@ pub use access_read::read_memory;
 pub use editing::edit_memory;
 pub use lifecycle::{delete_memory, move_memory};
 pub use listing::list_memories;
+pub(crate) use support::learn_requested;
 pub use support::{get_help, sanitize_user_input};
 
 // T-12.5: RTM FR-25.2 keeps `maenifold_core::memory` backward-compatible

@@ -15,6 +15,29 @@ type MatchMediaResult = {
   dispatchEvent: ReturnType<typeof vi.fn>;
 };
 
+function installLocalStorage(initialEntries: Record<string, string> = {}) {
+  const store = new Map(Object.entries(initialEntries));
+  const localStorageMock = {
+    getItem: vi.fn((key: string) => store.get(key) ?? null),
+    setItem: vi.fn((key: string, value: string) => {
+      store.set(key, value);
+    }),
+    removeItem: vi.fn((key: string) => {
+      store.delete(key);
+    }),
+    clear: vi.fn(() => {
+      store.clear();
+    }),
+  };
+
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    value: localStorageMock,
+  });
+
+  return localStorageMock;
+}
+
 function installMatchMedia(matches: boolean) {
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
@@ -41,8 +64,17 @@ async function flushEffects() {
 describe("useTheme", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    window.localStorage.clear();
-    document.documentElement.className = "";
+    installLocalStorage();
+    if (
+      typeof window !== "undefined" &&
+      window.localStorage &&
+      typeof window.localStorage.clear === "function"
+    ) {
+      window.localStorage.clear();
+    }
+    if (typeof document !== "undefined" && document.documentElement) {
+      document.documentElement.className = "";
+    }
     installMatchMedia(false);
   });
 
@@ -51,7 +83,7 @@ describe("useTheme", () => {
   });
 
   it("reads the initial theme from localStorage before consulting system preference", async () => {
-    window.localStorage.setItem("theme", "dark");
+    installLocalStorage({ theme: "dark" });
     installMatchMedia(false);
 
     const { result } = renderHook(() => useTheme());
@@ -87,7 +119,7 @@ describe("useTheme", () => {
   });
 
   it("toggleTheme writes light mode to localStorage and removes the dark class", async () => {
-    window.localStorage.setItem("theme", "dark");
+    installLocalStorage({ theme: "dark" });
 
     const { result } = renderHook(() => useTheme());
     await flushEffects();
@@ -100,22 +132,27 @@ describe("useTheme", () => {
     expect(window.localStorage.getItem("theme")).toBe("light");
     expect(document.documentElement).not.toHaveClass("dark");
   });
+});
 
+describe("useTheme (SSR)", () => {
   it("is SSR-safe when window and document are unavailable", () => {
     const originalWindow = globalThis.window;
     const originalDocument = globalThis.document;
-
-    vi.stubGlobal("window", undefined);
-    vi.stubGlobal("document", undefined);
+    // @ts-expect-error -- deliberate SSR simulation
+    delete (globalThis as { window?: Window }).window;
+    // @ts-expect-error -- deliberate SSR simulation
+    delete (globalThis as { document?: Document }).document;
 
     function Probe() {
       useTheme();
       return null;
     }
 
-    expect(() => renderToString(createElement(Probe))).not.toThrow();
-
-    vi.stubGlobal("window", originalWindow);
-    vi.stubGlobal("document", originalDocument);
+    try {
+      expect(() => renderToString(createElement(Probe))).not.toThrow();
+    } finally {
+      (globalThis as { window?: Window }).window = originalWindow;
+      (globalThis as { document?: Document }).document = originalDocument;
+    }
   });
 });

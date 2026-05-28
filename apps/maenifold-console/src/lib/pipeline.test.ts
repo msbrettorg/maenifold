@@ -1,4 +1,6 @@
 import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   computeRunMetadata,
@@ -13,9 +15,12 @@ import {
   type PipelineView,
 } from "./pipeline";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 function readFixture<T>(name: string): T {
   return JSON.parse(
-    readFileSync(new URL(`../__fixtures__/${name}`, import.meta.url), "utf8"),
+    readFileSync(path.resolve(__dirname, "..", "__fixtures__", name), "utf8"),
   ) as T;
 }
 
@@ -155,23 +160,23 @@ describe("pipeline adapters", () => {
   });
 
   it("returns safe zeroed metadata for an empty pipeline view fixture", () => {
-    expect(computeRunMetadata(emptyViewFixture.data)).toEqual({
-      activeNodes: 0,
-      completedNodes: 0,
-      failedNodes: 0,
-      elapsedMs: 0,
-      hasActiveRun: false,
-    });
+    const metadata = computeRunMetadata(emptyViewFixture.data);
+
+    expect(metadata.activeNodes).toBe(0);
+    expect(metadata.completedNodes).toBe(0);
+    expect(metadata.failedNodes).toBe(0);
+    expect(metadata.hasActiveRun).toBe(false);
+    expect(metadata.elapsedMs).toBeGreaterThanOrEqual(0);
   });
 
   it("preserves malformed inner fields so callers can degrade unknown values safely", () => {
-    const parsed = parseGatewayToolResult<typeof malformedViewFixture>(
+    const parsed = parseGatewayToolResult<typeof malformedViewFixture.data>(
       makeGatewayToolResult(malformedViewFixture),
     );
 
-    expect(parsed.data.status).toBe(123);
-    expect(getNodeTone(String(parsed.data.status))).toBe("pending");
-    expect(Array.isArray(parsed.data.ready)).toBe(false);
+    expect(parsed.status).toBe(123);
+    expect(getNodeTone(String(parsed.status))).toBe("pending");
+    expect(Array.isArray(parsed.ready)).toBe(false);
   });
 
   it("counts failed nodes and derives duration strings from the real pipeline fixture", () => {

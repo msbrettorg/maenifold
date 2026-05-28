@@ -129,3 +129,56 @@
     @apply font-sans;
     }
 }
+
+.pipeline-flow .react-flow__controls {
+  @apply overflow-hidden rounded-lg border border-border bg-card shadow-none;
+}
+
+.pipeline-flow .react-flow__controls-button {
+  @apply h-8 w-8 border-b border-border bg-card text-foreground;
+}
+
+.pipeline-flow .react-flow__controls-button:last-child {
+  @apply border-b-0;
+}
+
+.pipeline-flow .react-flow__minimap {
+  @apply rounded-lg border border-border bg-card;
+}
+
+.pipeline-markdown h1,
+.pipeline-markdown h2,
+.pipeline-markdown h3 {
+  @apply mb-2 text-base font-semibold tracking-tight text-foreground;
+}
+
+.pipeline-markdown p,
+.pipeline-markdown li,
+.pipeline-markdown td,
+.pipeline-markdown th,
+.pipeline-markdown blockquote {
+  @apply text-sm leading-6 text-foreground/90;
+}
+
+.pipeline-markdown p + p,
+.pipeline-markdown ul + p,
+.pipeline-markdown table + p {
+  @apply mt-3;
+}
+
+.pipeline-markdown ul {
+  @apply ml-5 list-disc space-y-2;
+}
+
+.pipeline-markdown table {
+  @apply my-3 w-full border-collapse overflow-hidden rounded-lg border border-border;
+}
+
+.pipeline-markdown th,
+.pipeline-markdown td {
+  @apply border-t border-border px-3 py-2 text-left align-top;
+}
+
+.pipeline-markdown thead th {
+  @apply border-t-0 bg-muted/40;
+}

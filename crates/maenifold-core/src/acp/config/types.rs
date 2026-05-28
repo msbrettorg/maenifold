@@ -41,6 +41,8 @@ pub enum McpServerEntry {
         headers: HashMap<String, String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         auth: Option<HttpAuthConfig>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        timeout: Option<u64>,
         #[serde(default)]
         gateway: bool,
     },
@@ -129,6 +131,7 @@ impl<'de> Deserialize<'de> for McpServerEntry {
                 url,
                 headers: raw.headers,
                 auth: raw.auth,
+                timeout: raw.timeout,
                 gateway: raw.gateway,
             }),
             (Some(_), Some(_)) => Err(serde::de::Error::custom(

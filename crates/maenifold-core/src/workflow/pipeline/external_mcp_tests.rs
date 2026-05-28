@@ -47,6 +47,7 @@ fn resolve_server_entry_finds_global_server_without_agent() {
         url: "http://localhost:8081".to_string(),
         headers: HashMap::new(),
         auth: None,
+        timeout: None,
         gateway: false,
     };
     let config =
@@ -63,6 +64,7 @@ fn resolve_server_entry_prefers_global_over_agent() {
         url: "http://localhost:8081".to_string(),
         headers: HashMap::new(),
         auth: None,
+        timeout: None,
         gateway: false,
     };
     let agent_local = McpServerEntry::Stdio {

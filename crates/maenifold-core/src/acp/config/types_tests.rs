@@ -11,6 +11,7 @@ mod tests {
             url: "http://localhost:8080/mcp".to_string(),
             headers: HashMap::new(),
             auth: None,
+            timeout: None,
             gateway: false,
         };
 
@@ -27,6 +28,7 @@ mod tests {
             url: "http://localhost:9999/mcp".to_string(),
             headers: HashMap::new(),
             auth: None,
+            timeout: None,
             gateway: false,
         };
 
@@ -209,6 +211,65 @@ mod tests {
 
         let serialized = serde_json::to_value(&entries).expect("http auth config should serialize");
         assert_eq!(serialized["arm"]["auth"], json!("azure-default"));
+    }
+
+    #[test]
+    fn http_mcp_entry_honours_configured_timeout_seconds() {
+        let entries: HashMap<String, McpServerEntry> = serde_json::from_value(json!({
+            "slow-mcp": {
+                "url": "https://learn.microsoft.com/api/mcp",
+                "gateway": true,
+                "timeout": 240
+            }
+        }))
+        .expect("http timeout config should deserialize");
+
+        let entry = entries.get("slow-mcp").expect("slow-mcp entry");
+        match entry {
+            McpServerEntry::Http { timeout, .. } => {
+                assert_eq!(
+                    *timeout,
+                    Some(240),
+                    "configured timeout should round-trip through deserialize"
+                );
+            }
+            other => panic!("expected Http entry, got {other:?}"),
+        }
+
+        let serialized = serde_json::to_value(entry).expect("serialize http timeout");
+        assert_eq!(
+            serialized["timeout"],
+            json!(240),
+            "configured timeout should round-trip through serialize"
+        );
+    }
+
+    #[test]
+    fn http_mcp_entry_omits_timeout_when_absent() {
+        let entries: HashMap<String, McpServerEntry> = serde_json::from_value(json!({
+            "default-mcp": {
+                "url": "https://learn.microsoft.com/api/mcp",
+                "gateway": true
+            }
+        }))
+        .expect("http entry without timeout should deserialize");
+
+        let entry = entries.get("default-mcp").expect("default-mcp entry");
+        match entry {
+            McpServerEntry::Http { timeout, .. } => {
+                assert_eq!(
+                    *timeout, None,
+                    "omitted timeout should remain None so gateway_startup falls back to 60s"
+                );
+            }
+            other => panic!("expected Http entry, got {other:?}"),
+        }
+
+        let serialized = serde_json::to_value(entry).expect("serialize http entry");
+        assert!(
+            serialized.get("timeout").is_none(),
+            "absent timeout must not serialize a field (skip_serializing_if guard)"
+        );
     }
 
     #[test]

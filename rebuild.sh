@@ -97,6 +97,18 @@ echo "═══ Desktop app ═══"
 echo "  — front-end was rip'd; vanilla MCP server only. Skipping packaging."
 
 echo ""
+echo "═══ Deploy console bundle ═══"
+CONSOLE_SRC="${ROOT}/assets/console"
+CONSOLE_DST="${HOME}/maenifold/assets/console"
+if [ -d "$CONSOLE_SRC" ]; then
+  mkdir -p "$CONSOLE_DST"
+  rsync -a --delete "$CONSOLE_SRC/" "$CONSOLE_DST/"
+  echo "  ✓ console bundle synced to $CONSOLE_DST"
+else
+  echo "  — $CONSOLE_SRC missing (skipping — run 'cd apps/maenifold-console && npm run build:console' first)"
+fi
+
+echo ""
 echo "═══ Restart launchd services ═══"
 for svc in com.ma-collective.maenifold; do
   if launchctl list "$svc" &>/dev/null; then

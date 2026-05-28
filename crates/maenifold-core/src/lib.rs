@@ -5,6 +5,7 @@ pub mod assets;
 pub mod benchmark;
 pub mod cli;
 pub mod community;
+pub mod console_protocol;
 pub mod config;
 pub mod db;
 pub mod decay;

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Maenifold Gate - Kanban</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-tint": "#9e4214",
+                        "on-surface-variant": "#56423b",
+                        "on-surface": "#211a12",
+                        "surface-dim": "#e6d8ca",
+                        "primary": "#943b0c",
+                        "on-tertiary-fixed": "#241a05",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "background": "#ffffff",
+                        "primary-fixed": "#ffdbcd",
+                        "primary-container": "#b45224",
+                        "on-secondary": "#ffffff",
+                        "tertiary-container": "#7d6d51",
+                        "surface-container-low": "#fff1e5",
+                        "error": "#ba1a1a",
+                        "on-tertiary-container": "#fff2df",
+                        "on-secondary-fixed-variant": "#524533",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed": "#360f00",
+                        "tertiary-fixed-dim": "#d8c4a3",
+                        "secondary-fixed": "#f4dfc7",
+                        "on-secondary-fixed": "#241a0b",
+                        "on-primary-container": "#fff0ec",
+                        "inverse-on-surface": "#fdeee0",
+                        "on-tertiary-fixed-variant": "#53452b",
+                        "surface-container-highest": "#efe0d3",
+                        "on-secondary-container": "#6f604d",
+                        "on-background": "#211a12",
+                        "tertiary": "#63553a",
+                        "surface-bright": "#fff8f4",
+                        "surface-variant": "#fafafa",
+                        "error-container": "#ffdad6",
+                        "surface": "#ffffff",
+                        "secondary-fixed-dim": "#d7c3ac",
+                        "on-primary-fixed-variant": "#7e2c00",
+                        "inverse-primary": "#ffb597",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-high": "#f5e6d8",
+                        "secondary": "#6b5c49",
+                        "tertiary-fixed": "#f5e0bd",
+                        "secondary-container": "#f1dcc4",
+                        "on-error": "#ffffff",
+                        "outline-variant": "#ddc1b6",
+                        "outline": "#897269",
+                        "inverse-surface": "#372f26",
+                        "primary-fixed-dim": "#ffb597",
+                        "surface-container": "#faebde"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    spacing: {
+                        "xl": "48px",
+                        "container-max": "1280px",
+                        "unit": "4px",
+                        "gutter": "24px",
+                        "sm": "8px",
+                        "lg": "24px",
+                        "xs": "4px",
+                        "md": "16px"
+                    },
+                    fontFamily: {
+                        "body-lg": ["Geist Sans", "sans-serif"],
+                        "display": ["Geist Sans", "sans-serif"],
+                        "body-md": ["Geist Sans", "sans-serif"],
+                        "label-md": ["Geist Sans", "sans-serif"],
+                        "headline-lg": ["Geist Sans", "sans-serif"],
+                        "headline-md": ["Geist Sans", "sans-serif"],
+                        "headline-lg-mobile": ["Geist Sans", "sans-serif"],
+                        "code-md": ["JetBrains Mono", "monospace"]
+                    },
+                    fontSize: {
+                        "body-lg": ["16px", { lineHeight: "1.6", fontWeight: "400" }],
+                        "display": ["48px", { lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "600" }],
+                        "body-md": ["14px", { lineHeight: "1.5", fontWeight: "400" }],
+                        "label-md": ["12px", { lineHeight: "1", letterSpacing: "0.02em", fontWeight: "500" }],
+                        "headline-lg": ["32px", { lineHeight: "1.2", letterSpacing: "-0.01em", fontWeight: "600" }],
+                        "headline-md": ["20px", { lineHeight: "1.4", fontWeight: "500" }],
+                        "headline-lg-mobile": ["24px", { lineHeight: "1.2", fontWeight: "600" }],
+                        "code-md": ["13px", { lineHeight: "1.5", fontWeight: "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Geist Sans', sans-serif; background-color: #ffffff; color: #211a12; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .hairline { border: 1px solid #e5e7eb; }
+        .hairline-b { border-bottom: 1px solid #e5e7eb; }
+        .hairline-r { border-right: 1px solid #e5e7eb; }
+        .hairline-t { border-top: 1px solid #e5e7eb; }
+        .hairline-l { border-left: 1px solid #e5e7eb; }
+        
+        .kanban-col { min-width: 280px; max-width: 320px; }
+        
+        /* Shadcn inspired utilities */
+        .badge { display: inline-flex; items: center; border-radius: 9999px; border: 1px solid transparent; padding: 2px 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; transition: all 0.2s; }
+        .badge-outline { border-color: #e5e7eb; color: #374151; background: transparent; }
+        .badge-orange { background-color: #f97316; color: white; }
+        
+        .scroll-hidden::-webkit-scrollbar { display: none; }
+        .scroll-hidden { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #3b82f6; box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+    </style>
+</head>
+<body class="h-screen w-full flex overflow-hidden font-body-md text-on-surface antialiased bg-background selection:bg-primary-container selection:text-white">
+<!-- Left Sidebar (56px) -->
+<aside class="w-[56px] h-full flex flex-col items-center py-4 bg-surface-variant hairline-r z-20 flex-shrink-0 relative">
+<div class="flex flex-col gap-6 w-full items-center">
+<button class="w-10 h-10 rounded-md flex items-center justify-center text-primary-container bg-surface-container hover:bg-surface-container-high transition-colors" title="Board (Active)">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+</button>
+<button class="w-10 h-10 rounded-md flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors" title="Sprint">
+<span class="material-symbols-outlined">directions_run</span>
+</button>
+<button class="w-10 h-10 rounded-md flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors" title="Audit">
+<span class="material-symbols-outlined">history</span>
+</button>
+</div>
+<div class="mt-auto mb-4 w-full flex items-center justify-center">
+<button class="w-10 h-10 rounded-md flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors" title="Settings">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</aside>
+<div class="flex-1 flex flex-col h-full overflow-hidden relative">
+<!-- Top Bar (48px) -->
+<header class="h-[48px] w-full bg-surface hairline-b flex items-center justify-between px-6 flex-shrink-0 z-10">
+<div class="flex items-center gap-4">
+<div class="flex items-baseline gap-2">
+<span class="font-headline-md text-on-surface tracking-tight">Gate</span>
+<span class="font-mono text-[11px] text-on-surface-variant uppercase tracking-wider">process: sdd · sprint: T-251</span>
+</div>
+</div>
+<nav class="hidden md:flex items-center gap-6">
+<a class="font-label-md text-on-surface-variant hover:text-on-surface transition-colors" href="#">System</a>
+<a class="font-label-md text-on-surface-variant hover:text-on-surface transition-colors" href="#">Operators</a>
+<a class="font-label-md text-on-surface-variant hover:text-on-surface transition-colors" href="#">Logs</a>
+<a class="font-label-md text-primary-container border-b-2 border-primary-container pb-[13px] pt-[15px]" href="#">Gate Board</a>
+</nav>
+<div class="flex items-center gap-3">
+<div class="badge badge-outline border-outline-variant bg-surface-variant text-on-surface font-mono text-[11px] py-1 px-2 flex items-center gap-1.5 rounded-full">
+<div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                    Agent 30 8fr66a
+                </div>
+</div>
+</header>
+<!-- Toolbar (44px) -->
+<div class="h-[44px] w-full bg-surface-variant hairline-b flex items-center justify-between px-6 flex-shrink-0 z-10 text-sm">
+<div class="flex items-center gap-3">
+<button class="h-7 px-2.5 rounded-md border border-outline-variant bg-surface flex items-center gap-2 hover:bg-surface-container-low transition-colors font-label-md">
+                    sdd
+                    <span class="material-symbols-outlined text-[16px]">arrow_drop_down</span>
+</button>
+<span class="text-outline-variant">/</span>
+<button class="h-7 px-2.5 rounded-md border border-outline-variant bg-surface flex items-center gap-2 hover:bg-surface-container-low transition-colors font-label-md">
+                    T-251
+                    <span class="material-symbols-outlined text-[16px]">arrow_drop_down</span>
+</button>
+</div>
+<div class="flex items-center gap-3">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-2 text-[16px] text-on-surface-variant">search</span>
+<input class="h-7 pl-8 pr-3 w-48 rounded-md border border-outline-variant bg-surface text-sm focus:outline-none focus:ring-1 focus:ring-primary-container font-body-md placeholder:text-on-surface-variant" placeholder="Find task..." type="text"/>
+</div>
+<button class="h-7 px-2.5 rounded-md border border-outline-variant bg-surface flex items-center gap-1.5 hover:bg-surface-container-low transition-colors font-label-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px]">filter_list</span>
+                    All Priorities
+                </button>
+</div>
+</div>
+<!-- Main Kanban Board Area -->
+<main class="flex-1 overflow-x-auto overflow-y-hidden bg-[#fafafa] flex scroll-hidden pb-[24px]">
+<div class="flex h-full gap-4 px-6 py-6 min-w-max">
+<!-- PENDING (14) -->
+<div class="kanban-col flex flex-col h-full w-[300px]">
+<div class="flex items-center justify-between mb-3 px-1">
+<span class="font-mono text-[11px] font-semibold text-on-surface uppercase tracking-widest">PENDING</span>
+<span class="font-mono text-[10px] bg-surface border border-outline-variant rounded-full px-2 py-0.5">14</span>
+</div>
+<div class="flex-1 overflow-y-auto scroll-hidden flex flex-col gap-3 pb-4 pr-1">
+<!-- Card 1 -->
+<div class="bg-surface rounded-lg hairline p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="font-mono text-xs font-semibold text-on-surface">T-251.18</span>
+<span class="badge badge-outline text-[9px]">QUEUED</span>
+</div>
+<h3 class="font-body-md text-sm leading-snug line-clamp-2">Update dependency resolver for sub-module isolation</h3>
+<div class="flex gap-1 mt-1 flex-wrap">
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-[10px] text-on-surface-variant font-mono">core</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-[10px] text-on-surface-variant font-mono">P2</span>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface rounded-lg hairline p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="font-mono text-xs font-semibold text-on-surface">T-251.19</span>
+<span class="badge badge-outline text-[9px]">BLOCKED</span>
+</div>
+<h3 class="font-body-md text-sm leading-snug line-clamp-2">Refactor auth token refresh payload handler</h3>
+<div class="flex gap-1 mt-1 flex-wrap">
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-[10px] text-on-surface-variant font-mono">auth</span>
+</div>
+</div>
+</div>
+</div>
+<!-- SWE (1) -->
+<div class="kanban-col flex flex-col h-full w-[300px]">
+<div class="flex items-center justify-between mb-3 px-1">
+<span class="font-mono text-[11px] font-semibold text-on-surface uppercase tracking-widest flex items-center gap-2">SWE <div class="pulse-dot"></div></span>
+<span class="font-mono text-[10px] bg-surface border border-outline-variant rounded-full px-2 py-0.5">1</span>
+</div>
+<div class="flex-1 overflow-y-auto scroll-hidden flex flex-col gap-3 pb-4 pr-1">
+<!-- Card: Selected -->
+<div class="bg-surface rounded-lg p-3 shadow-sm flex flex-col gap-2 relative ring-2 ring-blue-600 ring-offset-1 ring-offset-[#fafafa] cursor-pointer">
+<div class="flex items-center justify-between">
+<span class="font-mono text-xs font-semibold text-on-surface">T-251.21</span>
+<span class="badge badge-orange text-[9px]">IN FLIGHT</span>
+</div>
+<h3 class="font-body-md text-sm leading-snug line-clamp-2">Launchd test isolation: injectable agents_dir + LaunchctlBackend</h3>
+<div class="flex gap-1 mt-1 flex-wrap">
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-[10px] text-on-surface-variant font-mono">sys</span>
+<span class="px-1.5 py-0.5 rounded bg-red-100 text-red-800 text-[10px] font-mono">P0</span>
+</div>
+</div>
+</div>
+</div>
+<!-- RED TEAM (2) -->
+<div class="kanban-col flex flex-col h-full w-[300px]">
+<div class="flex items-center justify-between mb-3 px-1">
+<span class="font-mono text-[11px] font-semibold text-on-surface uppercase tracking-widest">RED TEAM</span>
+<span class="font-mono text-[10px] bg-surface border border-outline-variant rounded-full px-2 py-0.5">2</span>
+</div>
+<div class="flex-1 overflow-y-auto scroll-hidden flex flex-col gap-3 pb-4 pr-1">
+<!-- Empty state example if needed, but requested 2 cards -->
+<!-- Card -->
+<div class="bg-surface rounded-lg hairline p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="font-mono text-xs font-semibold text-on-surface">T-251.15</span>
+<span class="badge badge-outline text-[9px] bg-surface-container-low">REVIEW</span>
+</div>
+<h3 class="font-body-md text-sm leading-snug line-clamp-2">Audit trail injection vulnerabilities in logger module</h3>
+<div class="flex gap-1 mt-1 flex-wrap">
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-[10px] text-on-surface-variant font-mono">sec</span>
+</div>
+</div>
+</div>
+</div>
+<!-- BLUE TEAM (2) -->
+<div class="kanban-col flex flex-col h-full w-[300px]">
+<div class="flex items-center justify-between mb-3 px-1">
+<span class="font-mono text-[11px] font-semibold text-on-surface uppercase tracking-widest">BLUE TEAM</span>
+<span class="font-mono text-[10px] bg-surface border border-outline-variant rounded-full px-2 py-0.5">0</span>
+</div>
+<div class="flex-1 flex flex-col pb-4 pr-1">
+<!-- Empty Column State -->
+<div class="h-24 rounded-lg border-2 border-dashed border-gray-300 opacity-40 flex items-center justify-center">
+<span class="font-mono text-[11px] text-on-surface-variant">No tasks</span>
+</div>
+</div>
+</div>
+<!-- DONE (7) -->
+<div class="kanban-col flex flex-col h-full w-[300px]">
+<div class="flex items-center justify-between mb-3 px-1">
+<span class="font-mono text-[11px] font-semibold text-on-surface uppercase tracking-widest opacity-60">DONE</span>
+<span class="font-mono text-[10px] bg-surface border border-outline-variant rounded-full px-2 py-0.5 opacity-60">7</span>
+</div>
+<div class="flex-1 overflow-y-auto scroll-hidden flex flex-col gap-3 pb-4 pr-1 opacity-60">
+<!-- Card -->
+<div class="bg-surface rounded-lg hairline p-3 shadow-sm cursor-default flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="font-mono text-xs font-semibold text-on-surface line-through decoration-gray-400">T-251.01</span>
+<span class="badge badge-outline text-[9px] bg-green-50 text-green-700 border-green-200">MERGED</span>
+</div>
+<h3 class="font-body-md text-sm leading-snug line-clamp-2 text-on-surface-variant">Initial sprint scaffolding and env setup</h3>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Status Footer (24px) -->
+<footer class="h-[24px] absolute bottom-0 left-0 w-full bg-surface-variant hairline-t flex items-center px-4 z-10">
+<span class="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
+                sync OK · schema v3.1 · ttl lock OK · last sync 8.4s ago
+            </span>
+</footer>
+</div>
+<!-- Slide-over Inspector (380px) -->
+<aside class="w-[380px] h-full bg-surface hairline-l flex flex-col flex-shrink-0 z-30 shadow-[-4px_0_24px_rgba(0,0,0,0.02)] relative">
+<!-- Header -->
+<div class="px-5 py-4 hairline-b bg-surface flex flex-col gap-3 shrink-0">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<h2 class="font-mono text-sm font-semibold text-on-surface">T-251.21</h2>
+<span class="badge badge-orange text-[9px]">IN FLIGHT</span>
+</div>
+<button class="w-6 h-6 rounded flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</div>
+<p class="font-body-md text-sm leading-snug text-on-surface">Launchd test isolation: injectable agents_dir + LaunchctlBackend</p>
+<!-- Progress Row -->
+<div class="flex items-center gap-2 mt-2 font-mono text-[9px] text-on-surface-variant uppercase tracking-wider">
+<span class="flex items-center gap-1 text-green-600"><span class="material-symbols-outlined text-[12px]">check</span> PENDING</span>
+<span class="text-outline-variant">→</span>
+<span class="flex items-center gap-1 text-blue-600 font-semibold"><div class="pulse-dot w-1.5 h-1.5"></div> SWE</span>
+<span class="text-outline-variant">→</span>
+<span>RED TEAM</span>
+<span class="text-outline-variant">→</span>
+<span>BLUE TEAM</span>
+</div>
+</div>
+<!-- Tabs -->
+<div class="flex px-5 hairline-b bg-surface-variant/50 shrink-0">
+<button class="py-2.5 px-3 font-label-md text-xs text-on-surface-variant hover:text-on-surface transition-colors">Overview</button>
+<button class="py-2.5 px-3 font-label-md text-xs text-primary-container border-b-2 border-primary-container">History</button>
+<button class="py-2.5 px-3 font-label-md text-xs text-on-surface-variant hover:text-on-surface transition-colors">Worktrees</button>
+<button class="py-2.5 px-3 font-label-md text-xs text-on-surface-variant hover:text-on-surface transition-colors">Audit</button>
+</div>
+<!-- Content Area (History Tab) -->
+<div class="flex-1 overflow-y-auto p-5 bg-surface">
+<!-- Vertical Timeline -->
+<div class="relative pl-3 border-l border-outline-variant/40 space-y-5">
+<!-- Entry 1 -->
+<div class="relative">
+<div class="absolute -left-[17px] top-1 w-[9px] h-[9px] rounded-full bg-green-500 ring-4 ring-surface"></div>
+<div class="flex flex-col gap-1">
+<span class="font-mono text-[10px] text-on-surface-variant">09:35:12</span>
+<span class="font-mono text-xs text-on-surface bg-surface-container-low px-2 py-1 rounded inline-block w-fit border border-outline-variant/30">system_test_runner: pass (isolation_chk)</span>
+</div>
+</div>
+<!-- Entry 2 -->
+<div class="relative">
+<div class="absolute -left-[17px] top-1 w-[9px] h-[9px] rounded-full bg-blue-500 ring-4 ring-surface"></div>
+<div class="flex flex-col gap-1">
+<span class="font-mono text-[10px] text-on-surface-variant">09:30:04</span>
+<span class="font-mono text-xs text-on-surface bg-surface-container-low px-2 py-1 rounded inline-block w-fit border border-outline-variant/30">git_sync: remote tracking branch</span>
+</div>
+</div>
+<!-- Entry 3 -->
+<div class="relative">
+<div class="absolute -left-[17px] top-1 w-[9px] h-[9px] rounded-full bg-gray-400 ring-4 ring-surface"></div>
+<div class="flex flex-col gap-1">
+<span class="font-mono text-[10px] text-on-surface-variant">09:28:45</span>
+<span class="font-mono text-xs text-on-surface bg-surface-container-low px-2 py-1 rounded inline-block w-fit border border-outline-variant/30">agent_30: discovery payload req</span>
+</div>
+</div>
+<!-- Entry 4 -->
+<div class="relative">
+<div class="absolute -left-[17px] top-1 w-[9px] h-[9px] rounded-full bg-gray-400 ring-4 ring-surface"></div>
+<div class="flex flex-col gap-1">
+<span class="font-mono text-[10px] text-on-surface-variant">09:25:11</span>
+<span class="font-mono text-xs text-on-surface bg-surface-container-low px-2 py-1 rounded inline-block w-fit border border-outline-variant/30">file_sys: injected mock_dir_1</span>
+</div>
+</div>
+<!-- Entry 5 -->
+<div class="relative">
+<div class="absolute -left-[17px] top-1 w-[9px] h-[9px] rounded-full bg-red-500 ring-4 ring-surface"></div>
+<div class="flex flex-col gap-1">
+<span class="font-mono text-[10px] text-on-surface-variant">09:24:00</span>
+<span class="font-mono text-xs text-error bg-error-container/30 px-2 py-1 rounded inline-block w-fit border border-error-container">process_killed: timeout (SIGKILL)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<div class="p-4 hairline-t bg-surface-variant flex items-center justify-between shrink-0">
+<button class="px-3 py-1.5 rounded-md border border-red-200 text-red-600 font-label-md text-xs hover:bg-red-50 transition-colors">
+                Mark blocked
+            </button>
+<button class="px-3 py-1.5 rounded-md bg-[#f97316] text-white font-label-md text-xs hover:bg-[#ea580c] transition-colors shadow-sm">
+                Open in editor
+            </button>
+</div>
+</aside>
+</body></html>

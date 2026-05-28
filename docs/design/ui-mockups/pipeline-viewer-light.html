@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Maenifold Pipeline Viewer</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Geist Sans & JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Assuming Geist Sans is available via a similar method or using a web-safe fallback. For this demo, we'll map standard sans to it in config -->
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Config injected from instructions -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#efe0d3",
+                        "on-primary-container": "#fff0ec",
+                        "surface-container-low": "#fff1e5",
+                        "on-primary-fixed-variant": "#7e2c00",
+                        "on-tertiary-fixed": "#241a05",
+                        "secondary-container": "#f1dcc4",
+                        "secondary": "#6b5c49",
+                        "primary-fixed-dim": "#ffb597",
+                        "tertiary": "#63553a",
+                        "secondary-fixed-dim": "#d7c3ac",
+                        "primary": "#943b0c",
+                        "background": "#fff8f4",
+                        "surface-variant": "#efe0d3",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed": "#360f00",
+                        "on-surface": "#211a12",
+                        "primary-fixed": "#ffdbcd",
+                        "secondary-fixed": "#f4dfc7",
+                        "on-secondary-container": "#6f604d",
+                        "on-error": "#ffffff",
+                        "tertiary-container": "#7d6d51",
+                        "outline-variant": "#ddc1b6",
+                        "on-tertiary-container": "#fff2df",
+                        "on-error-container": "#93000a",
+                        "surface-tint": "#9e4214",
+                        "inverse-surface": "#372f26",
+                        "on-primary": "#ffffff",
+                        "surface-bright": "#fff8f4",
+                        "surface-dim": "#e6d8ca",
+                        "inverse-on-surface": "#fdeee0",
+                        "on-tertiary": "#ffffff",
+                        "surface-container": "#faebde",
+                        "on-tertiary-fixed-variant": "#53452b",
+                        "tertiary-fixed-dim": "#d8c4a3",
+                        "on-surface-variant": "#56423b",
+                        "on-background": "#211a12",
+                        "on-secondary-fixed-variant": "#524533",
+                        "error-container": "#ffdad6",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-high": "#f5e6d8",
+                        "primary-container": "#b45224",
+                        "on-secondary-fixed": "#241a0b",
+                        "inverse-primary": "#ffb597",
+                        "error": "#ba1a1a",
+                        "surface": "#fff8f4",
+                        "outline": "#897269",
+                        "tertiary-fixed": "#f5e0bd"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "md": "16px",
+                        "gutter": "24px",
+                        "container-max": "1280px",
+                        "xl": "48px",
+                        "xs": "4px",
+                        "sm": "8px",
+                        "lg": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["Geist Sans", "sans-serif"],
+                        "headline-md": ["Geist Sans", "sans-serif"],
+                        "body-lg": ["Geist Sans", "sans-serif"],
+                        "code-md": ["JetBrains Mono", "monospace"],
+                        "body-md": ["Geist Sans", "sans-serif"],
+                        "headline-lg": ["Geist Sans", "sans-serif"],
+                        "display": ["Geist Sans", "sans-serif"],
+                        "label-md": ["Geist Sans", "sans-serif"],
+                        "sans": ["Geist Sans", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                        "headline-md": ["20px", {"lineHeight": "1.4", "fontWeight": "500"}],
+                        "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "code-md": ["13px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "display": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "label-md": ["12px", {"lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "500"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Base styles */
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+            font-family: theme('fontFamily.sans');
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* App-like feel */
+        }
+
+        /* Dot Grid Background for Canvas */
+        .dot-grid {
+            background-image: radial-gradient(theme('colors.outline-variant') 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* Pulse animation for running state */
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(249, 115, 22, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+        }
+        .animate-pulse-border {
+            animation: pulse-border 2s infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -20;
+            }
+        }
+        .animate-dash {
+            stroke-dasharray: 5, 5;
+            animation: dash 1s linear infinite;
+        }
+        
+        /* Thin scrollbars for inspector */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.outline-variant');
+            border-radius: theme('borderRadius.full');
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: theme('colors.outline');
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen antialiased">
+<!-- TopNavBar (Derived from JSON) -->
+<header class="bg-surface-container docked full-width top-0 h-[44px] border-b border-outline-variant flex justify-between items-center w-full px-gutter z-50 shrink-0">
+<div class="flex items-center gap-2">
+<span class="text-headline-md font-headline-md font-bold text-primary">Pipeline</span>
+<span class="text-on-surface-variant flex items-center">
+<span class="material-symbols-outlined text-[16px] mx-1" style="font-variation-settings: 'FILL' 0;">chevron_right</span>
+<span class="text-body-md font-body-md">build-core.yaml</span>
+<span class="material-symbols-outlined text-[16px] mx-1" style="font-variation-settings: 'FILL' 0;">chevron_right</span>
+<span class="text-body-md font-body-md font-semibold">compile.rust</span>
+</span>
+</div>
+<!-- Navigation Links (suppressed typical nav as this is a focused viewer tool, but using the JSON trailing actions) -->
+<div class="flex items-center gap-4 text-on-surface-variant">
+<button class="hover:bg-surface-container-highest transition-colors p-1 rounded flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">search</span>
+</button>
+<button class="hover:bg-surface-container-highest transition-colors p-1 rounded flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">filter_list</span>
+</button>
+<button class="hover:bg-surface-container-highest transition-colors p-1 rounded flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">fullscreen</span>
+</button>
+<button class="hover:bg-surface-container-highest transition-colors p-1 rounded flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">refresh</span>
+</button>
+<button class="hover:bg-surface-container-highest transition-colors p-1 rounded flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+</button>
+<div class="flex items-center gap-2 pl-2 border-l border-outline-variant">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">notifications</span>
+<div class="w-6 h-6 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-label-md font-label-md">OP</div>
+</div>
+</div>
+</header>
+<!-- KPI Strip -->
+<div class="h-[60px] bg-surface flex items-center px-gutter gap-md border-b border-outline-variant shrink-0">
+<!-- Card 1: ACTIVE -->
+<div class="w-[240px] h-[44px] bg-surface-container-lowest border border-outline-variant rounded flex items-center justify-between px-3 shadow-sm">
+<div class="flex flex-col">
+<span class="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">Active</span>
+<span class="text-body-lg font-body-lg font-semibold text-primary">1</span>
+</div>
+<!-- Fake Sparkline -->
+<svg class="stroke-primary fill-none stroke-[1.5px]" height="20" viewbox="0 0 40 20" width="40">
+<polyline points="0,15 10,12 20,18 30,5 40,8"></polyline>
+</svg>
+</div>
+<!-- Card 2: DONE -->
+<div class="w-[240px] h-[44px] bg-surface-container-lowest border border-outline-variant rounded flex items-center justify-between px-3 shadow-sm">
+<div class="flex flex-col">
+<span class="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">Done</span>
+<span class="text-body-lg font-body-lg font-semibold text-on-surface">12</span>
+</div>
+<svg class="stroke-outline fill-none stroke-[1.5px]" height="20" viewbox="0 0 40 20" width="40">
+<polyline points="0,18 10,18 20,18 30,18 40,18"></polyline>
+</svg>
+</div>
+<!-- Card 3: FAILED -->
+<div class="w-[240px] h-[44px] bg-surface-container-lowest border border-outline-variant rounded flex items-center justify-between px-3 shadow-sm">
+<div class="flex flex-col">
+<span class="text-[10px] uppercase font-bold text-error tracking-wider">Failed</span>
+<span class="text-body-lg font-body-lg font-semibold text-error">0</span>
+</div>
+<svg class="stroke-outline fill-none stroke-[1.5px]" height="20" viewbox="0 0 40 20" width="40">
+<polyline points="0,18 10,18 20,18 30,18 40,18"></polyline>
+</svg>
+</div>
+<!-- Card 4: ELAPSED -->
+<div class="w-[240px] h-[44px] bg-surface-container-lowest border border-outline-variant rounded flex items-center justify-between px-3 shadow-sm">
+<div class="flex flex-col">
+<span class="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">Elapsed</span>
+<span class="text-code-md font-code-md font-medium text-on-surface">02:47</span>
+</div>
+</div>
+</div>
+<!-- Main Content Area -->
+<main class="flex flex-1 overflow-hidden">
+<!-- LEFT: Canvas Area (60%) -->
+<div class="w-[62%] relative dot-grid bg-surface-bright flex flex-col transition-all">
+<!-- Canvas Controls Overlay -->
+<div class="absolute top-4 left-4 z-10 flex gap-2">
+<div class="bg-surface-container-lowest border border-outline-variant rounded shadow-sm flex items-center px-2 py-1">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant mr-1" style="font-variation-settings: 'FILL' 0;">search</span>
+<input class="border-none bg-transparent text-body-md font-body-md w-32 focus:ring-0 p-0 text-on-surface placeholder:text-on-surface-variant" placeholder="Find node..." type="text"/>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded shadow-sm flex items-center px-3 py-1 cursor-pointer hover:bg-surface-container-highest">
+<span class="text-label-md font-label-md text-on-surface-variant">Filter: All</span>
+<span class="material-symbols-outlined text-[14px] ml-1 text-on-surface-variant">arrow_drop_down</span>
+</div>
+</div>
+<!-- React Flow Canvas Simulation -->
+<div class="w-full h-full relative overflow-hidden">
+<!-- SVG Edges Layer -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none" style="z-index: 0;"><defs><marker id="arrow-gray" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="5" refy="5" viewbox="0 0 10 10"><path d="M 0 0 L 10 5 L 0 10 z" fill="#cbd5e1"></path></marker><marker id="arrow-orange" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="5" refy="5" viewbox="0 0 10 10"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f97316"></path></marker><marker id="arrow-red" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="5" refy="5" viewbox="0 0 10 10"><path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444"></path></marker></defs><path class="stroke-[#cbd5e1] stroke-[2px] fill-none" d="M 200 220 L 210 220" marker-end="url(#arrow-gray)"></path><path class="stroke-[#cbd5e1] stroke-[2px] fill-none" d="M 390 220 L 400 220" marker-end="url(#arrow-gray)"></path><path class="stroke-[#f97316] stroke-[2px] fill-none animate-dash" d="M 580 220 L 590 220" marker-end="url(#arrow-orange)"></path><path class="stroke-[#ef4444] stroke-[2px] fill-none" d="M 790 220 L 800 220" marker-end="url(#arrow-red)" style="stroke-dasharray: 5,5"></path></svg>
+<!-- Nodes Layer -->
+<div class="absolute inset-0 z-10"><!-- Node 1: init_env --><div class="absolute left-[20px] top-[180px] w-[180px] h-[80px] bg-surface-container-lowest border border-outline-variant rounded shadow-sm flex items-center px-3"><div class="w-8 h-8 rounded bg-[#e6f4ea] flex items-center justify-center mr-3 shrink-0"><span class="material-symbols-outlined text-[#137333] text-[18px]">check</span></div><div class="flex flex-col overflow-hidden"><span class="text-body-md font-body-md font-semibold text-on-surface truncate">init_env</span><span class="text-label-md font-code-md text-on-surface-variant">12s</span></div></div><!-- Node 2: fetch_deps --><div class="absolute left-[210px] top-[180px] w-[180px] h-[80px] bg-surface-container-lowest border border-outline-variant rounded shadow-sm flex items-center px-3"><div class="w-8 h-8 rounded bg-[#e6f4ea] flex items-center justify-center mr-3 shrink-0"><span class="material-symbols-outlined text-[#137333] text-[18px]">check</span></div><div class="flex flex-col overflow-hidden"><span class="text-body-md font-body-md font-semibold text-on-surface truncate">fetch_deps</span><span class="text-label-md font-code-md text-on-surface-variant">33s</span></div></div><!-- Node 3: lint_source --><div class="absolute left-[400px] top-[180px] w-[180px] h-[80px] bg-surface-container-lowest border border-outline-variant rounded shadow-sm flex items-center px-3"><div class="w-8 h-8 rounded bg-[#e6f4ea] flex items-center justify-center mr-3 shrink-0"><span class="material-symbols-outlined text-[#137333] text-[18px]">check</span></div><div class="flex flex-col overflow-hidden"><span class="text-body-md font-body-md font-semibold text-on-surface truncate">lint_source</span><span class="text-label-md font-code-md text-on-surface-variant">4s</span></div></div><!-- Node 4: compile.rust (Running) --><div class="absolute left-[590px] top-[180px] w-[200px] h-[96px] bg-surface-container-lowest border-2 border-primary rounded shadow-sm flex flex-col p-3 animate-pulse-border"><div class="flex justify-between items-start mb-2"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[16px] animate-spin">progress_activity</span><span class="text-body-md font-body-md font-semibold text-on-surface">compile.rust</span></div><span class="bg-primary-container text-on-primary-container text-[10px] uppercase px-1.5 py-0.5 rounded font-bold tracking-wider">Running</span></div><div class="text-[11px] text-on-surface-variant font-code-md mb-1">target/release/deps...</div><div class="w-full bg-surface-container h-1 rounded overflow-hidden mt-auto"><div class="bg-primary h-full w-[65%]"></div></div></div><!-- Node 5: test_subnv_1 (Failed) --><div class="absolute left-[800px] top-[180px] w-[180px] h-[80px] bg-error-container border border-error rounded shadow-sm flex items-center px-3"><div class="w-8 h-8 rounded bg-error flex items-center justify-center mr-3 shrink-0 text-on-error"><span class="material-symbols-outlined text-[18px]">error</span></div><div class="flex flex-col overflow-hidden"><span class="text-body-md font-body-md font-semibold text-on-error-container truncate">test_subnv_1</span><div class="flex items-center gap-1"><span class="material-symbols-outlined text-[12px] text-error">report</span><span class="text-label-md font-bold text-error uppercase tracking-tighter">Failed</span></div></div></div></div>
+</div>
+<!-- MiniMap (Bottom Left) -->
+<div class="absolute bottom-4 left-4 w-[120px] h-[80px] bg-surface-container-lowest border border-outline-variant shadow-sm rounded p-1 opacity-80 hover:opacity-100 transition-opacity z-10 flex items-center justify-center">
+<!-- Abstract minimap representation -->
+<div class="w-full h-full relative">
+<div class="absolute top-[35px] left-[10px] w-[15px] h-[8px] bg-outline-variant rounded-[1px]"></div>
+<div class="absolute top-[35px] left-[35px] w-[15px] h-[8px] bg-outline-variant rounded-[1px]"></div>
+<div class="absolute top-[35px] left-[60px] w-[15px] h-[8px] bg-outline-variant rounded-[1px]"></div>
+<div class="absolute top-[30px] left-[85px] w-[25px] h-[15px] border-2 border-primary rounded-[1px] bg-surface"></div>
+<!-- Viewport indicator -->
+<div class="absolute top-0 left-0 w-full h-full border border-primary/30 bg-primary/5 rounded-[2px] pointer-events-none"></div>
+</div>
+</div>
+</div>
+<!-- RIGHT: SideNavBar (Inspector Panel) - adapted from JSON structure -->
+<div class="w-[38%] bg-surface flex flex-col border-l border-outline-variant shrink-0 relative">
+<!-- Inspector Header -->
+<div class="p-md border-b border-outline-variant shrink-0">
+<div class="flex justify-between items-start mb-2">
+<h2 class="text-headline-sm font-headline-sm font-semibold text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant">code</span>
+                        compile.rust
+                    </h2>
+<span class="bg-primary-container text-on-primary-container text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider">Running</span>
+</div>
+<p class="text-label-md font-label-md text-on-surface-variant">Started 2m ago · Runner: ubuntu-latest-8core</p>
+</div>
+<!-- Tabs -->
+<div class="flex px-md gap-4 border-b border-outline-variant shrink-0 bg-surface-container-lowest">
+<!-- Using SideNavBar labels from JSON contextually adjusted for Inspector tabs -->
+<button class="text-label-md font-label-md text-on-surface-variant py-2 border-b-2 border-transparent hover:text-on-surface transition-colors">Overview</button>
+<button class="text-label-md font-label-md text-primary py-2 border-b-2 border-primary font-bold">Logs</button>
+<button class="text-label-md font-label-md text-on-surface-variant py-2 border-b-2 border-transparent hover:text-on-surface transition-colors">Artifacts</button>
+<button class="text-label-md font-label-md text-on-surface-variant py-2 border-b-2 border-transparent hover:text-on-surface transition-colors">Sessions</button>
+<button class="text-label-md font-label-md text-on-surface-variant py-2 border-b-2 border-transparent hover:text-on-surface transition-colors">Raw</button>
+</div>
+<!-- Active Tab Content: Logs -->
+<div class="flex-1 overflow-y-auto bg-surface-container-lowest p-2">
+<div class="font-code-md text-code-md flex flex-col gap-1">
+<!-- Log Row: INFO -->
+<div class="flex gap-3 py-1 px-2 hover:bg-surface-container transition-colors rounded group">
+<span class="text-outline w-[70px] shrink-0">14:02:10</span>
+<span class="text-[#2563eb] w-[40px] shrink-0 font-bold">INFO</span>
+<span class="text-on-surface">Compiling native_tls v0.2.11</span>
+</div>
+<!-- Log Row: DEBUG -->
+<div class="flex gap-3 py-1 px-2 hover:bg-surface-container transition-colors rounded group">
+<span class="text-outline w-[70px] shrink-0">14:02:11</span>
+<span class="text-outline w-[40px] shrink-0 font-bold">DBG</span>
+<span class="text-on-surface-variant">Running `rustc --crate-name native_tls...`</span>
+</div>
+<!-- Log Row: INFO -->
+<div class="flex gap-3 py-1 px-2 hover:bg-surface-container transition-colors rounded group">
+<span class="text-outline w-[70px] shrink-0">14:02:15</span>
+<span class="text-[#2563eb] w-[40px] shrink-0 font-bold">INFO</span>
+<span class="text-on-surface">Compiling hyper v0.14.26</span>
+</div>
+<!-- Log Row: ERROR 1 -->
+<div class="flex gap-3 py-1 px-2 bg-[#fef2f2] border border-[#fca5a5] rounded group mt-2">
+<span class="text-outline w-[70px] shrink-0 pt-0.5">14:02:18</span>
+<span class="text-error w-[40px] shrink-0 font-bold pt-0.5">ERR</span>
+<div class="flex flex-col">
+<span class="text-error font-semibold">error[E0432]: unresolved import `native_tls`</span>
+<span class="text-on-surface-variant text-[12px] mt-1 whitespace-pre">  --&gt; src/client/tls.rs:12:5
+   |
+12 | use native_tls::TlsConnector;
+   |     ^^^^^^^^^^ use of undeclared crate or module `native_tls`</span>
+</div>
+</div>
+<!-- Log Row: WARN -->
+<div class="flex gap-3 py-1 px-2 hover:bg-[#fffbeb] transition-colors rounded group mt-2 border border-transparent hover:border-[#fcd34d]">
+<span class="text-outline w-[70px] shrink-0">14:02:19</span>
+<span class="text-[#d97706] w-[40px] shrink-0 font-bold">WARN</span>
+<span class="text-on-surface">Attempting fallback compilation strategy (static-link)</span>
+</div>
+<!-- Log Row: INFO -->
+<div class="flex gap-3 py-1 px-2 hover:bg-surface-container transition-colors rounded group">
+<span class="text-outline w-[70px] shrink-0">14:02:22</span>
+<span class="text-[#2563eb] w-[40px] shrink-0 font-bold">INFO</span>
+<span class="text-on-surface">Waiting for child processes to exit...</span>
+</div>
+<!-- Spinning indicator for current tail -->
+<div class="flex gap-3 py-2 px-2 mt-2 items-center">
+<span class="material-symbols-outlined text-outline text-[16px] animate-spin">sync</span>
+<span class="text-outline italic text-[12px]">Tailing logs...</span>
+</div>
+</div>
+</div>
+<!-- Footer / Actions (inside Inspector) -->
+<div class="p-md border-t border-outline-variant bg-surface flex justify-between items-center shrink-0">
+<div class="flex gap-2">
+<button class="bg-primary text-on-primary px-4 py-2 rounded text-label-md font-label-md hover:bg-primary/90 transition-colors shadow-sm">Open session</button>
+<button class="bg-transparent border border-outline-variant text-on-surface px-4 py-2 rounded text-label-md font-label-md hover:bg-surface-container transition-colors">Open workflow</button>
+</div>
+<button class="text-error text-label-md font-label-md hover:underline px-2 py-2">Cancel node</button>
+</div>
+</div>
+</main>
+<!-- Footer (Status Bar) - Derived from JSON -->
+<footer class="bg-surface-container-lowest border-t border-outline-variant docked full-width bottom-0 h-[28px] flex items-center justify-between px-md py-xs z-50 shrink-0">
+<div class="flex items-center gap-4 text-code-md font-code-md text-secondary">
+<span class="flex items-center gap-1">
+<div class="w-2 h-2 rounded-full bg-[#10b981]"></div>
+                daemon OK
+            </span>
+<span class="border-l border-outline-variant pl-4">Uptime: 12h</span>
+<span class="border-l border-outline-variant pl-4">Last refresh: 9.4s ago</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 text-code-md font-code-md text-secondary">
+<span>System Logs</span>
+<span class="material-symbols-outlined text-[14px]">open_in_new</span>
+</div>
+<!-- Agent Count Chip -->
+<div class="border border-outline-variant rounded-full px-2 py-0.5 text-[10px] text-secondary flex items-center gap-1 bg-surface-container">
+<span class="material-symbols-outlined text-[12px]">group_work</span>
+                4 Agents
+            </div>
+</div>
+</footer>
+</body></html>

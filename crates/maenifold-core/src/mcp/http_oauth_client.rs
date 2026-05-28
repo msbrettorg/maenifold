@@ -10,13 +10,13 @@ use std::{collections::HashMap, sync::Arc};
 use super::http_oauth::AzureDefaultCredential;
 
 #[derive(Clone)]
-pub(super) enum GatewayHttpClient {
+pub(crate) enum GatewayHttpClient {
     Plain(reqwest::Client),
     Azure(AzureHttpClient),
 }
 
 #[derive(Clone)]
-pub(super) struct AzureHttpClient {
+pub(crate) struct AzureHttpClient {
     http_client: reqwest::Client,
     credential: AzureDefaultCredential,
     scope: Arc<str>,

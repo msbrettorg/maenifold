@@ -28,7 +28,7 @@ const SHUTDOWN_WAIT: Duration = Duration::from_secs(2);
 
 type RmcpClient = RunningService<RoleClient, MaenifoldClient>;
 
-pub(super) struct HttpSession {
+pub(crate) struct HttpSession {
     client: StdMutex<Option<RmcpClient>>,
     peer: Peer<RoleClient>,
     tools: Arc<[Tool]>,

@@ -29,7 +29,7 @@ mod gateway_resolver_tests;
 mod gateway_resolver_types;
 pub(crate) mod gateway_runtime;
 mod gateway_schema_validation;
-mod gateway_session;
+pub(crate) mod gateway_session;
 mod gateway_startup;
 mod gateway_tasks;
 #[cfg(test)]
@@ -39,8 +39,8 @@ mod handler_impl;
 #[cfg(test)]
 mod handler_impl_task_hooks_tests;
 pub mod http;
-mod http_oauth;
-mod http_oauth_client;
+pub(crate) mod http_oauth;
+pub(crate) mod http_oauth_client;
 mod http_session;
 mod mcp_tool_calls;
 pub mod pending_requests;

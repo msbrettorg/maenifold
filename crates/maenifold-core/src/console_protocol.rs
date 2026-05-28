@@ -1,15 +1,16 @@
 use std::fmt;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
+use std::sync::Arc;
 
 #[cfg(target_os = "macos")]
 use std::borrow::Cow;
 #[cfg(target_os = "macos")]
+use wry::WebViewBuilder;
+#[cfg(target_os = "macos")]
 use wry::http::header::{CONTENT_TYPE, HeaderValue};
 #[cfg(target_os = "macos")]
 use wry::http::{Response, StatusCode};
-#[cfg(target_os = "macos")]
-use wry::WebViewBuilder;
 
 pub const WINDOW_MAENIFOLD_INIT_SCRIPT: &str = r#"
 (() => {
@@ -33,7 +34,7 @@ pub const WINDOW_MAENIFOLD_INIT_SCRIPT: &str = r#"
       return new Promise((resolve, reject) => {
         const requestId = nextRequestId();
         pending.set(requestId, { resolve, reject });
-        window.ipc.postMessage(JSON.stringify({ type: "invoke", requestId, payload: { tool, args } }));
+        window.ipc.postMessage(JSON.stringify({ type: "invoke", requestId, tool, args }));
       });
     },
     subscribe(channel, cb) {
@@ -52,6 +53,165 @@ pub const WINDOW_MAENIFOLD_INIT_SCRIPT: &str = r#"
   };
 })();
 "#;
+
+#[derive(Debug)]
+pub enum ConsoleIpcError {
+    ParseError(serde_json::Error),
+    UnknownType(String),
+    UnknownTool(String),
+    GatewayError(String),
+}
+
+impl fmt::Display for ConsoleIpcError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ParseError(error) => write!(f, "failed to parse console IPC message: {error}"),
+            Self::UnknownType(message_type) => {
+                write!(f, "unknown console IPC message type: {message_type}")
+            }
+            Self::UnknownTool(tool) => write!(f, "unsupported console IPC tool: {tool}"),
+            Self::GatewayError(message) => write!(f, "console IPC gateway error: {message}"),
+        }
+    }
+}
+
+impl std::error::Error for ConsoleIpcError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::ParseError(error) => Some(error),
+            Self::UnknownType(_) | Self::UnknownTool(_) | Self::GatewayError(_) => None,
+        }
+    }
+}
+
+/// Parsed action from a WRY IPC envelope.
+#[derive(Debug, PartialEq)]
+pub enum ConsoleIpcAction {
+    Invoke {
+        request_id: String,
+        tool: String,
+        args: serde_json::Value,
+    },
+    /// `subscribe` / `unsubscribe` — T-251.14 owns live updates;
+    /// for now we acknowledge silently so the shim's auto-posted
+    /// subscription messages don't error out.
+    SubscriptionStub,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct EnvelopeDiscriminator {
+    r#type: String,
+    request_id: String,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct InvokePayload {
+    tool: String,
+    #[serde(default)]
+    args: serde_json::Value,
+}
+
+/// Synchronous parse of a WRY ipc message body. Pure function, no I/O,
+/// safe to call from any thread or test context.
+pub fn parse_console_ipc(message: &str) -> Result<ConsoleIpcAction, ConsoleIpcError> {
+    let raw: serde_json::Value =
+        serde_json::from_str(message).map_err(ConsoleIpcError::ParseError)?;
+    let envelope: EnvelopeDiscriminator =
+        serde_json::from_value(raw.clone()).map_err(ConsoleIpcError::ParseError)?;
+
+    match envelope.r#type.as_str() {
+        "invoke" => {
+            let payload: InvokePayload =
+                serde_json::from_value(raw).map_err(ConsoleIpcError::ParseError)?;
+            Ok(ConsoleIpcAction::Invoke {
+                request_id: envelope.request_id,
+                tool: payload.tool,
+                args: payload.args,
+            })
+        }
+        "subscribe" | "unsubscribe" => Ok(ConsoleIpcAction::SubscriptionStub),
+        other => Err(ConsoleIpcError::UnknownType(other.to_string())),
+    }
+}
+
+/// Forward an Invoke action to the gateway and produce the JS dispatch
+/// script that should be injected back into the WebView.
+pub(crate) async fn dispatch_console_invoke(
+    request_id: String,
+    tool: String,
+    args: serde_json::Value,
+    gateway: Arc<crate::mcp::gateway_runtime::GatewayState>,
+) -> String {
+    if tool != "GatewayExecute" {
+        let payload = serde_json::json!({
+            "requestId": request_id,
+            "error": { "message": ConsoleIpcError::UnknownTool(tool).to_string() },
+        });
+        return format!("window.__maenifoldDispatch({payload});");
+    }
+
+    let payload = match gateway.handle_gateway_execute(args).await {
+        Ok(result) => {
+            let is_error = result.is_error.unwrap_or(false);
+            match tool_result_value(result) {
+                Ok(value) if is_error => serde_json::json!({
+                    "requestId": request_id,
+                    "error": value,
+                }),
+                Ok(value) => serde_json::json!({
+                    "requestId": request_id,
+                    "result": value,
+                }),
+                Err(error) => serde_json::json!({
+                    "requestId": request_id,
+                    "error": { "message": error.to_string() },
+                }),
+            }
+        }
+        Err(error) => serde_json::json!({
+            "requestId": request_id,
+            "error": {
+                "message": error.message.to_string(),
+                "code": error.code.0,
+            },
+        }),
+    };
+
+    format!("window.__maenifoldDispatch({payload});")
+}
+
+/// Synchronously parse the incoming WRY ipc message body, dispatch the
+/// requested gateway call via `tokio_handle.spawn(...)`, and post the
+/// result back to the WebView's JS context via `evaluate_script` →
+/// `window.__maenifoldDispatch({requestId, result|error})`.
+pub(crate) fn handle_console_ipc<F>(
+    message: &str,
+    tokio_handle: &tokio::runtime::Handle,
+    gateway: Arc<crate::mcp::gateway_runtime::GatewayState>,
+    dispatch_script: F,
+) -> Result<(), ConsoleIpcError>
+where
+    F: Fn(String) + Send + Sync + 'static,
+{
+    let action = parse_console_ipc(message)?;
+    match action {
+        ConsoleIpcAction::Invoke {
+            request_id,
+            tool,
+            args,
+        } => {
+            let dispatch_script = Arc::new(dispatch_script);
+            tokio_handle.spawn(async move {
+                let script = dispatch_console_invoke(request_id, tool, args, gateway).await;
+                dispatch_script(script);
+            });
+            Ok(())
+        }
+        ConsoleIpcAction::SubscriptionStub => Ok(()),
+    }
+}
 
 #[derive(Debug)]
 pub enum ConsoleProtocolError {
@@ -80,13 +240,31 @@ impl std::error::Error for ConsoleProtocolError {
 }
 
 #[cfg(target_os = "macos")]
-pub fn register_console_protocol<'a>(builder: WebViewBuilder<'a>, console_root: PathBuf) -> WebViewBuilder<'a> {
+pub fn register_console_protocol<'a>(
+    builder: WebViewBuilder<'a>,
+    console_root: PathBuf,
+) -> WebViewBuilder<'a> {
     builder.with_custom_protocol("console".into(), move |_id, request| {
         let request_path = request.uri().path().trim_start_matches('/');
-        match resolve_console_asset(&console_root, if request_path.is_empty() { "index.html" } else { request_path }) {
+        match resolve_console_asset(
+            &console_root,
+            if request_path.is_empty() {
+                "index.html"
+            } else {
+                request_path
+            },
+        ) {
             Ok((bytes, mime_type)) => build_response(StatusCode::OK, mime_type, Cow::Owned(bytes)),
-            Err(ConsoleProtocolError::NotFound) => build_response(StatusCode::NOT_FOUND, "text/plain", Cow::Borrowed(b"Not Found")),
-            Err(ConsoleProtocolError::PathTraversal) => build_response(StatusCode::FORBIDDEN, "text/plain", Cow::Borrowed(b"Forbidden")),
+            Err(ConsoleProtocolError::NotFound) => build_response(
+                StatusCode::NOT_FOUND,
+                "text/plain",
+                Cow::Borrowed(b"Not Found"),
+            ),
+            Err(ConsoleProtocolError::PathTraversal) => build_response(
+                StatusCode::FORBIDDEN,
+                "text/plain",
+                Cow::Borrowed(b"Forbidden"),
+            ),
             Err(ConsoleProtocolError::Io(error)) => build_response(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "text/plain",
@@ -96,23 +274,29 @@ pub fn register_console_protocol<'a>(builder: WebViewBuilder<'a>, console_root: 
     })
 }
 
-pub fn resolve_console_asset(console_root: &Path, request_path: &str) -> Result<(Vec<u8>, &'static str), ConsoleProtocolError> {
+pub fn resolve_console_asset(
+    console_root: &Path,
+    request_path: &str,
+) -> Result<(Vec<u8>, &'static str), ConsoleProtocolError> {
     let mut relative_path = PathBuf::new();
     for component in Path::new(request_path.trim_start_matches('/')).components() {
         match component {
             Component::Normal(segment) => relative_path.push(segment),
             Component::CurDir => {}
             Component::ParentDir | Component::RootDir | Component::Prefix(_) => {
-                return Err(ConsoleProtocolError::PathTraversal)
+                return Err(ConsoleProtocolError::PathTraversal);
             }
         }
     }
     let asset_path = console_root.join(&relative_path);
-    let canonical_console_root = fs::canonicalize(console_root).map_err(ConsoleProtocolError::Io)?;
-    let canonical_asset_path = asset_path.canonicalize().map_err(|error| match error.kind() {
-        std::io::ErrorKind::NotFound => ConsoleProtocolError::NotFound,
-        _ => ConsoleProtocolError::Io(error),
-    })?;
+    let canonical_console_root =
+        fs::canonicalize(console_root).map_err(ConsoleProtocolError::Io)?;
+    let canonical_asset_path = asset_path
+        .canonicalize()
+        .map_err(|error| match error.kind() {
+            std::io::ErrorKind::NotFound => ConsoleProtocolError::NotFound,
+            _ => ConsoleProtocolError::Io(error),
+        })?;
     if !canonical_asset_path.starts_with(&canonical_console_root) {
         return Err(ConsoleProtocolError::PathTraversal);
     }
@@ -134,6 +318,29 @@ fn mime_type_for(path: &Path) -> &'static str {
         Some("json") => "application/json",
         _ => "application/octet-stream",
     }
+}
+
+fn tool_result_value(result: rmcp::model::CallToolResult) -> serde_json::Result<serde_json::Value> {
+    let rmcp::model::CallToolResult {
+        content,
+        structured_content,
+        ..
+    } = result;
+    if let Some(value) = structured_content {
+        return Ok(value);
+    }
+
+    let rendered = if content.len() == 1 {
+        content
+            .first()
+            .and_then(|content| content.raw.as_text())
+            .map(|text| text.text.clone())
+            .unwrap_or_else(|| serde_json::to_string(&content).unwrap_or_else(|_| "[]".to_string()))
+    } else {
+        serde_json::to_string(&content)?
+    };
+
+    Ok(serde_json::from_str(&rendered).unwrap_or(serde_json::Value::String(rendered)))
 }
 
 #[cfg(target_os = "macos")]

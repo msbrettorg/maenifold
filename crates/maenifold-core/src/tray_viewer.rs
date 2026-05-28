@@ -1,4 +1,5 @@
 use crate::error::{MaenifoldError, Result};
+use std::sync::Arc;
 use tray_icon::menu::MenuId;
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 #[cfg(target_os = "macos")]
@@ -15,6 +16,16 @@ const GATE_VIEWER_TITLE: &str = "Gate Board";
 pub(crate) enum TrayViewerEvent {
     ClosePipelineViewer,
     CloseGateViewer,
+    DispatchScript {
+        target: ViewerTarget,
+        script: String,
+    },
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum ViewerTarget {
+    Pipeline,
+    Gate,
 }
 
 pub(crate) fn is_pipeline_viewer_event(
@@ -41,6 +52,11 @@ impl PipelineViewer {
     #[cfg(target_os = "macos")]
     pub(crate) fn window_id(&self) -> WindowId {
         self.window.id()
+    }
+
+    #[cfg(target_os = "macos")]
+    pub(crate) fn webview(&self) -> &wry::WebView {
+        &self._webview
     }
 
     #[cfg(not(target_os = "macos"))]
@@ -72,6 +88,11 @@ pub(crate) fn open_pipeline_viewer(
 
     let console_root = crate::config::Config::current().assets_path.join("console");
     let proxy = event_proxy.clone();
+    let runtime_context =
+        crate::mcp::resources::tokio_handle().zip(crate::mcp::resources::gateway_state());
+    if runtime_context.is_none() {
+        tracing::warn!("pipeline viewer IPC unavailable: gateway runtime not initialized");
+    }
     let webview =
         crate::console_protocol::register_console_protocol(WebViewBuilder::new(), console_root)
             .with_initialization_script(crate::console_protocol::WINDOW_MAENIFOLD_INIT_SCRIPT)
@@ -80,10 +101,36 @@ pub(crate) fn open_pipeline_viewer(
                 if request.body() == PIPELINE_VIEWER_CLOSE_MESSAGE {
                     let _ = proxy.send_event(TrayViewerEvent::ClosePipelineViewer);
                 } else {
-                    tracing::debug!(
-                        message = request.body(),
-                        "dropping unhandled Pipeline viewer IPC message"
-                    );
+                    match runtime_context.as_ref() {
+                        Some((tokio_handle, gateway)) => {
+                            let proxy = proxy.clone();
+                            let gateway = Arc::clone(gateway);
+                            if let Err(err) = crate::console_protocol::handle_console_ipc(
+                                request.body(),
+                                tokio_handle,
+                                gateway,
+                                move |script| {
+                                    if let Err(err) =
+                                        proxy.send_event(TrayViewerEvent::DispatchScript {
+                                            target: ViewerTarget::Pipeline,
+                                            script,
+                                        })
+                                    {
+                                        tracing::warn!(
+                                            error = %err,
+                                            "failed to dispatch script to pipeline viewer"
+                                        );
+                                    }
+                                },
+                            ) {
+                                tracing::warn!("console ipc error: {err}");
+                            }
+                        }
+                        None => tracing::warn!(
+                            message = request.body(),
+                            "dropping pipeline viewer IPC message before gateway runtime init"
+                        ),
+                    }
                 }
             })
             .build(&window)
@@ -130,6 +177,11 @@ pub(crate) fn open_gate_viewer(
 
     let console_root = crate::config::Config::current().assets_path.join("console");
     let proxy = event_proxy.clone();
+    let runtime_context =
+        crate::mcp::resources::tokio_handle().zip(crate::mcp::resources::gateway_state());
+    if runtime_context.is_none() {
+        tracing::warn!("gate viewer IPC unavailable: gateway runtime not initialized");
+    }
     let webview =
         crate::console_protocol::register_console_protocol(WebViewBuilder::new(), console_root)
             .with_initialization_script(crate::console_protocol::WINDOW_MAENIFOLD_INIT_SCRIPT)
@@ -138,10 +190,36 @@ pub(crate) fn open_gate_viewer(
                 if request.body() == GATE_VIEWER_CLOSE_MESSAGE {
                     let _ = proxy.send_event(TrayViewerEvent::CloseGateViewer);
                 } else {
-                    tracing::debug!(
-                        message = request.body(),
-                        "dropping unhandled Gate viewer IPC message"
-                    );
+                    match runtime_context.as_ref() {
+                        Some((tokio_handle, gateway)) => {
+                            let proxy = proxy.clone();
+                            let gateway = Arc::clone(gateway);
+                            if let Err(err) = crate::console_protocol::handle_console_ipc(
+                                request.body(),
+                                tokio_handle,
+                                gateway,
+                                move |script| {
+                                    if let Err(err) =
+                                        proxy.send_event(TrayViewerEvent::DispatchScript {
+                                            target: ViewerTarget::Gate,
+                                            script,
+                                        })
+                                    {
+                                        tracing::warn!(
+                                            error = %err,
+                                            "failed to dispatch script to gate viewer"
+                                        );
+                                    }
+                                },
+                            ) {
+                                tracing::warn!("console ipc error: {err}");
+                            }
+                        }
+                        None => tracing::warn!(
+                            message = request.body(),
+                            "dropping gate viewer IPC message before gateway runtime init"
+                        ),
+                    }
                 }
             })
             .build(&window)

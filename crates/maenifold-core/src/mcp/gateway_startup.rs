@@ -27,6 +27,7 @@ pub(super) async fn build_gateway_with_registry(
     config: &Config,
     pending_registry: Arc<PendingRequestRegistry>,
 ) -> Result<GatewayStartup> {
+    resources::set_tokio_handle(tokio::runtime::Handle::current());
     let agents_config = match AgentsConfig::load(&config.maenifold_root) {
         Ok(config) => config,
         Err(error) => {
@@ -135,17 +136,19 @@ pub(super) async fn build_gateway_with_registry(
                         }
                     };
                     let domain_count = registry.domains().len();
-                    resources::set_gateway_registry(Arc::new(registry.clone()));
-                    info!(
-                        "Gateway registry indexed {domain_count} domains from native + upstream sources"
-                    );
-                    Ok(GatewayStartup::Ready(Arc::new(GatewayState::new(
+                    let gateway = Arc::new(GatewayState::new(
                         Arc::clone(&pool),
                         Arc::new(resource_routing),
                         registry,
                         config.settings.gateway.intent_resolver.clone(),
                         config.maenifold_root.clone(),
-                    ))))
+                    ));
+                    resources::set_gateway_registry(Arc::new(gateway.registry().clone()));
+                    resources::set_gateway_state(Arc::clone(&gateway));
+                    info!(
+                        "Gateway registry indexed {domain_count} domains from native + upstream sources"
+                    );
+                    Ok(GatewayStartup::Ready(gateway))
                 }
                 Err(error) => {
                     tracing::error!(
@@ -180,17 +183,19 @@ async fn native_only_gateway(
     let resource_routing = ResourceRoutingRegistry::build(pool.as_ref())?;
     let registry = GatewayRegistry::build(Vec::new(), &pool.all_gateway_descriptions())?;
     let domain_count = registry.domains().len();
-    resources::set_gateway_registry(Arc::new(registry.clone()));
-    info!(
-        "Gateway registry indexed {domain_count} native domains (no upstream servers configured)"
-    );
-    Ok(GatewayStartup::Ready(Arc::new(GatewayState::new(
+    let gateway = Arc::new(GatewayState::new(
         pool,
         Arc::new(resource_routing),
         registry,
         config.settings.gateway.intent_resolver.clone(),
         config.maenifold_root.clone(),
-    ))))
+    ));
+    resources::set_gateway_registry(Arc::new(gateway.registry().clone()));
+    resources::set_gateway_state(Arc::clone(&gateway));
+    info!(
+        "Gateway registry indexed {domain_count} native domains (no upstream servers configured)"
+    );
+    Ok(GatewayStartup::Ready(gateway))
 }
 
 async fn degraded_gateway(
@@ -210,6 +215,7 @@ async fn degraded_gateway(
         error.clone(),
     )?);
     resources::set_gateway_registry(Arc::new(gateway.registry().clone()));
+    resources::set_gateway_state(Arc::clone(&gateway));
     Ok(GatewayStartup::Failed {
         gateway,
         diagnostics: Some(pool),

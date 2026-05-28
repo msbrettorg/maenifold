@@ -139,7 +139,9 @@ describe("usePolledQuery", () => {
   it("ignores an in-flight result after unmounting mid-request", async () => {
     const deferred = createDeferred<string>();
     const queryFn = vi.fn(() => deferred.promise);
-    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     const { unmount } = renderHook(() =>
       usePolledQuery("pipeline", queryFn, { intervalMs: 2_000 }),
     );
@@ -182,5 +184,89 @@ describe("usePolledQuery", () => {
     });
 
     expect(queryFn).not.toHaveBeenCalled();
+  });
+});
+
+describe("stability under re-render with unstable queryFn", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2024-01-01T00:00:00.000Z"));
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it("does not restart initial loading or polling when only queryFn identity changes", async () => {
+    const firstDeferred = createDeferred<string>();
+    const secondDeferred = createDeferred<string>();
+    let invocations = 0;
+
+    const { result, rerender } = renderHook(
+      ({ tick }: { tick: number }) => {
+        const queryFn = () => {
+          invocations += 1;
+
+          if (invocations === 1) {
+            return firstDeferred.promise;
+          }
+
+          if (invocations === 2) {
+            return secondDeferred.promise;
+          }
+
+          return Promise.resolve(`extra-${tick}-${invocations}`);
+        };
+
+        return usePolledQuery("pipeline", queryFn, { intervalMs: 2_000 });
+      },
+      { initialProps: { tick: 0 } },
+    );
+
+    expect(invocations).toBe(1);
+    expect(result.current.isLoading).toBe(true);
+
+    act(() => {
+      rerender({ tick: 1 });
+      rerender({ tick: 2 });
+    });
+
+    expect(invocations).toBe(1);
+
+    await act(async () => {
+      firstDeferred.resolve("initial");
+      await firstDeferred.promise;
+    });
+
+    expect(result.current.data).toBe("initial");
+    expect(result.current.isLoading).toBe(false);
+
+    act(() => {
+      rerender({ tick: 3 });
+    });
+
+    expect(result.current.isLoading).toBe(false);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_500);
+    });
+
+    expect(invocations).toBe(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(invocations).toBe(2);
+    expect(result.current.isRefreshing).toBe(true);
+
+    await act(async () => {
+      secondDeferred.resolve("refreshed");
+      await secondDeferred.promise;
+    });
+
+    expect(result.current.data).toBe("refreshed");
+    expect(result.current.isRefreshing).toBe(false);
   });
 });

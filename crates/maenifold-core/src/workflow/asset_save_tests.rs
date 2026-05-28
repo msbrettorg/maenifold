@@ -5,6 +5,14 @@ use crate::util::json::OutputFormat;
 use serde_json::json;
 use serial_test::serial;
 use std::fs;
+use std::path::PathBuf;
+
+fn repo_assets_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("assets")
+}
 
 // ── ID validation ──────────────────────────────────────────────────────
 
@@ -151,4 +159,30 @@ fn save_workflow_asset_rejects_id_mismatch() {
         "content": r#"{"id":"other-flow"}"#
     });
     assert!(save_workflow_asset(&ctx, &payload).is_err());
+}
+
+#[test]
+#[serial]
+fn save_workflow_asset_learn_returns_help_without_required_fields() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    Config::override_root(dir.path());
+    Config::set_database_path(dir.path().join("memory.db"));
+    let config = Config::current();
+    config.ensure_directories().expect("ensure directories");
+    std::fs::write(
+        config.maenifold_root.join("maenifold.json"),
+        r#"{"agents":{},"settings":{}}"#,
+    )
+    .expect("write config");
+    let mut config = config;
+    config.assets_path = repo_assets_path();
+    let ctx = ToolContext::new(config, OutputFormat::Markdown);
+    let _guard = crate::test_util::ConfigResetGuard;
+
+    let output =
+        save_workflow_asset(&ctx, &json!({ "learn": true })).expect("learn should return help");
+
+    assert!(output.starts_with("# SaveWorkflowAsset"), "{output}");
+    assert!(output.contains("- id (string, required)"), "{output}");
+    assert!(output.contains("- content (string, required)"), "{output}");
 }

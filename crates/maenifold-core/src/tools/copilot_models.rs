@@ -1,15 +1,12 @@
 use super::context::{ToolContext, load_help_doc, render};
 use crate::error::{MaenifoldError, Result};
+use crate::memory::learn_requested;
 use crate::util::json::OutputFormat;
 use serde_json::{Value, json};
 use tokio::runtime::{Builder, Handle, RuntimeFlavor};
 
 pub fn get_copilot_models(context: &ToolContext, payload: &Value) -> Result<String> {
-    let learn = payload
-        .get("learn")
-        .and_then(Value::as_bool)
-        .unwrap_or(false);
-    if learn {
+    if learn_requested(payload) {
         let help = load_help_doc(&context.config.assets_path, "GetCopilotModels")
             .unwrap_or_else(|| "ERROR: Help file not found for GetCopilotModels".to_string());
         return Ok(match context.output_format {
@@ -80,3 +77,7 @@ fn map_copilot_models_error(
     };
     MaenifoldError::Message(message)
 }
+
+#[cfg(test)]
+#[path = "copilot_models_tests.rs"]
+mod tests;

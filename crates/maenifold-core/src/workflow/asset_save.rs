@@ -1,4 +1,6 @@
 use crate::error::{MaenifoldError, Result};
+use crate::memory::learn_requested;
+use crate::sessions::load_help_doc;
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, from_str_safe, success};
 use regex::Regex;
@@ -16,6 +18,15 @@ static WORKFLOW_ID_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 pub fn save_workflow_asset(context: &ToolContext, payload: &Value) -> Result<String> {
+    if learn_requested(payload) {
+        let help = load_help_doc(&context.config.assets_path, "SaveWorkflowAsset")
+            .unwrap_or_else(|| "ERROR: Help file not found for SaveWorkflowAsset".to_string());
+        return Ok(match context.output_format {
+            OutputFormat::Json => success(help),
+            OutputFormat::Markdown => help,
+        });
+    }
+
     let id = payload
         .get("id")
         .and_then(Value::as_str)

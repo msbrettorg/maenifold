@@ -66,40 +66,32 @@ impl PipelineViewer {
 }
 
 #[cfg(target_os = "macos")]
-pub(crate) fn open_pipeline_viewer(
-    event_loop: &ActiveEventLoop,
+fn build_viewer_webview(
+    window: winit::window::Window,
     event_proxy: EventLoopProxy<TrayViewerEvent>,
+    initial_url: &'static str,
+    close_message: &'static str,
+    close_event: fn() -> TrayViewerEvent,
+    target: ViewerTarget,
+    viewer_label: &'static str,
 ) -> Result<PipelineViewer> {
-    use winit::dpi::LogicalSize;
-    use winit::window::Window;
     use wry::WebViewBuilder;
-
-    let window = event_loop
-        .create_window(
-            Window::default_attributes()
-                .with_title(PIPELINE_VIEWER_TITLE)
-                .with_inner_size(LogicalSize::new(920.0, 640.0))
-                .with_min_inner_size(LogicalSize::new(520.0, 360.0))
-                .with_decorations(true)
-                .with_title_hidden(true)
-                .with_visible(true),
-        )
-        .map_err(|err| MaenifoldError::Message(format!("failed to create viewer window: {err}")))?;
 
     let console_root = crate::config::Config::current().assets_path.join("console");
     let proxy = event_proxy.clone();
     let runtime_context =
         crate::mcp::resources::tokio_handle().zip(crate::mcp::resources::gateway_state());
     if runtime_context.is_none() {
-        tracing::warn!("pipeline viewer IPC unavailable: gateway runtime not initialized");
+        tracing::warn!("{viewer_label} IPC unavailable: gateway runtime not initialized");
     }
+
     let webview =
         crate::console_protocol::register_console_protocol(WebViewBuilder::new(), console_root)
             .with_initialization_script(crate::console_protocol::WINDOW_MAENIFOLD_INIT_SCRIPT)
-            .with_url("console://maenifold/index.html?surface=pipeline")
+            .with_url(initial_url)
             .with_ipc_handler(move |request| {
-                if request.body() == PIPELINE_VIEWER_CLOSE_MESSAGE {
-                    let _ = proxy.send_event(TrayViewerEvent::ClosePipelineViewer);
+                if request.body() == close_message {
+                    let _ = proxy.send_event(close_event());
                 } else {
                     match runtime_context.as_ref() {
                         Some((tokio_handle, gateway)) => {
@@ -112,13 +104,13 @@ pub(crate) fn open_pipeline_viewer(
                                 move |script| {
                                     if let Err(err) =
                                         proxy.send_event(TrayViewerEvent::DispatchScript {
-                                            target: ViewerTarget::Pipeline,
+                                            target,
                                             script,
                                         })
                                     {
                                         tracing::warn!(
                                             error = %err,
-                                            "failed to dispatch script to pipeline viewer"
+                                            "failed to dispatch script to {viewer_label}"
                                         );
                                     }
                                 },
@@ -128,7 +120,7 @@ pub(crate) fn open_pipeline_viewer(
                         }
                         None => tracing::warn!(
                             message = request.body(),
-                            "dropping pipeline viewer IPC message before gateway runtime init"
+                            "dropping {viewer_label} IPC message before gateway runtime init"
                         ),
                     }
                 }
@@ -142,6 +134,37 @@ pub(crate) fn open_pipeline_viewer(
         window,
         _webview: webview,
     })
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn open_pipeline_viewer(
+    event_loop: &ActiveEventLoop,
+    event_proxy: EventLoopProxy<TrayViewerEvent>,
+) -> Result<PipelineViewer> {
+    use winit::dpi::LogicalSize;
+    use winit::window::Window;
+
+    let window = event_loop
+        .create_window(
+            Window::default_attributes()
+                .with_title(PIPELINE_VIEWER_TITLE)
+                .with_inner_size(LogicalSize::new(920.0, 640.0))
+                .with_min_inner_size(LogicalSize::new(520.0, 360.0))
+                .with_decorations(true)
+                .with_title_hidden(true)
+                .with_visible(true),
+        )
+        .map_err(|err| MaenifoldError::Message(format!("failed to create viewer window: {err}")))?;
+
+    build_viewer_webview(
+        window,
+        event_proxy,
+        "console://maenifold/index.html?surface=pipeline",
+        PIPELINE_VIEWER_CLOSE_MESSAGE,
+        || TrayViewerEvent::ClosePipelineViewer,
+        ViewerTarget::Pipeline,
+        "pipeline viewer",
+    )
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -161,7 +184,6 @@ pub(crate) fn open_gate_viewer(
 ) -> Result<PipelineViewer> {
     use winit::dpi::LogicalSize;
     use winit::window::Window;
-    use wry::WebViewBuilder;
 
     let window = event_loop
         .create_window(
@@ -175,62 +197,15 @@ pub(crate) fn open_gate_viewer(
         )
         .map_err(|err| MaenifoldError::Message(format!("failed to create viewer window: {err}")))?;
 
-    let console_root = crate::config::Config::current().assets_path.join("console");
-    let proxy = event_proxy.clone();
-    let runtime_context =
-        crate::mcp::resources::tokio_handle().zip(crate::mcp::resources::gateway_state());
-    if runtime_context.is_none() {
-        tracing::warn!("gate viewer IPC unavailable: gateway runtime not initialized");
-    }
-    let webview =
-        crate::console_protocol::register_console_protocol(WebViewBuilder::new(), console_root)
-            .with_initialization_script(crate::console_protocol::WINDOW_MAENIFOLD_INIT_SCRIPT)
-            .with_url("console://maenifold/index.html?surface=gate")
-            .with_ipc_handler(move |request| {
-                if request.body() == GATE_VIEWER_CLOSE_MESSAGE {
-                    let _ = proxy.send_event(TrayViewerEvent::CloseGateViewer);
-                } else {
-                    match runtime_context.as_ref() {
-                        Some((tokio_handle, gateway)) => {
-                            let proxy = proxy.clone();
-                            let gateway = Arc::clone(gateway);
-                            if let Err(err) = crate::console_protocol::handle_console_ipc(
-                                request.body(),
-                                tokio_handle,
-                                gateway,
-                                move |script| {
-                                    if let Err(err) =
-                                        proxy.send_event(TrayViewerEvent::DispatchScript {
-                                            target: ViewerTarget::Gate,
-                                            script,
-                                        })
-                                    {
-                                        tracing::warn!(
-                                            error = %err,
-                                            "failed to dispatch script to gate viewer"
-                                        );
-                                    }
-                                },
-                            ) {
-                                tracing::warn!("console ipc error: {err}");
-                            }
-                        }
-                        None => tracing::warn!(
-                            message = request.body(),
-                            "dropping gate viewer IPC message before gateway runtime init"
-                        ),
-                    }
-                }
-            })
-            .build(&window)
-            .map_err(|err| {
-                MaenifoldError::Message(format!("failed to create viewer webview: {err}"))
-            })?;
-
-    Ok(PipelineViewer {
+    build_viewer_webview(
         window,
-        _webview: webview,
-    })
+        event_proxy,
+        "console://maenifold/index.html?surface=gate",
+        GATE_VIEWER_CLOSE_MESSAGE,
+        || TrayViewerEvent::CloseGateViewer,
+        ViewerTarget::Gate,
+        "gate viewer",
+    )
 }
 
 #[cfg(not(target_os = "macos"))]

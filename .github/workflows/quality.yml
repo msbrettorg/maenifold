@@ -2,16 +2,16 @@
 name: Quality Metrics
 
 on:
-  push:
-    branches: [main, dev]
   pull_request:
-    branches: [main, dev]
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   quality:
+    if: github.event.pull_request.head.ref == 'dev' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4

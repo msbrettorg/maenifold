@@ -2,28 +2,29 @@
 name: Release
 
 on:
-  push:
-    tags: ['v*']
-  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
+    if: github.event.pull_request.head.ref == 'dev' && github.event.pull_request.head.repo.full_name == github.repository
     name: Build ${{ matrix.artifact }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          # T-9.5: RTM FR-9 (RTM-062) — Apple Silicon
+          # T-9.5: RTM FR-9 (RTM-062) - Apple Silicon
           - os: macos-latest
             target: aarch64-apple-darwin
             artifact: maenifold-osx-arm64
-          # T-9.5: RTM FR-9 (RTM-063) — Linux x64
+          # T-9.5: RTM FR-9 (RTM-063) - Linux x64
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             artifact: maenifold-linux-x64
@@ -32,7 +33,7 @@ jobs:
             target: aarch64-unknown-linux-gnu
             artifact: maenifold-linux-arm64
             cross: true
-          # T-9.5: RTM FR-9 (RTM-064) — Windows x64
+          # T-9.5: RTM FR-9 (RTM-064) - Windows x64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             artifact: maenifold-win-x64
@@ -71,7 +72,7 @@ jobs:
           mkdir -p staging
           cp "target/${{ matrix.target }}/release/maenifold" staging/
           cp "target/${{ matrix.target }}/release/maenifold-pipeline-driver" staging/
-          # T-9.5: RTM FR-9 (RTM-065) — bundle release assets but exclude ONNX models
+          # T-9.5: RTM FR-9 (RTM-065) - bundle release assets but exclude ONNX models
           rsync -a --exclude='*.onnx' assets/ staging/assets/
           for f in readme.md CHANGELOG.md AGENTS.md; do
             if [ -f "$f" ]; then cp "$f" staging/; fi
@@ -86,7 +87,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path staging | Out-Null
           Copy-Item "target/${{ matrix.target }}/release/maenifold.exe" staging/
           Copy-Item "target/${{ matrix.target }}/release/maenifold-pipeline-driver.exe" staging/
-          # T-9.5: RTM FR-9 (RTM-065) — bundle release assets but exclude ONNX models
+          # T-9.5: RTM FR-9 (RTM-065) - bundle release assets but exclude ONNX models
           $source = "assets"
           $dest = "staging/assets"
           Get-ChildItem -Path $source -Recurse -File | Where-Object { $_.Extension -ne '.onnx' } | ForEach-Object {
@@ -120,30 +121,3 @@ jobs:
           name: ${{ matrix.artifact }}
           path: ${{ matrix.artifact }}.zip
           if-no-files-found: error
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Generate SHA256 checksums
-        run: |
-          set -euo pipefail
-          cd artifacts
-          find . -name '*.zip' -exec sha256sum {} \; > ../SHA256SUMS.txt
-          cd ..
-          cat SHA256SUMS.txt
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-          files: |
-            artifacts/**/*.zip
-            SHA256SUMS.txt

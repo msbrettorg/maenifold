@@ -27,7 +27,6 @@ pub(super) async fn build_gateway_with_registry(
     config: &Config,
     pending_registry: Arc<PendingRequestRegistry>,
 ) -> Result<GatewayStartup> {
-    resources::set_tokio_handle(tokio::runtime::Handle::current());
     let agents_config = match AgentsConfig::load(&config.maenifold_root) {
         Ok(config) => config,
         Err(error) => {
@@ -144,7 +143,6 @@ pub(super) async fn build_gateway_with_registry(
                         config.maenifold_root.clone(),
                     ));
                     resources::set_gateway_registry(Arc::new(gateway.registry().clone()));
-                    resources::set_gateway_state(Arc::clone(&gateway));
                     info!(
                         "Gateway registry indexed {domain_count} domains from native + upstream sources"
                     );
@@ -191,7 +189,6 @@ async fn native_only_gateway(
         config.maenifold_root.clone(),
     ));
     resources::set_gateway_registry(Arc::new(gateway.registry().clone()));
-    resources::set_gateway_state(Arc::clone(&gateway));
     info!(
         "Gateway registry indexed {domain_count} native domains (no upstream servers configured)"
     );
@@ -215,7 +212,6 @@ async fn degraded_gateway(
         error.clone(),
     )?);
     resources::set_gateway_registry(Arc::new(gateway.registry().clone()));
-    resources::set_gateway_state(Arc::clone(&gateway));
     Ok(GatewayStartup::Failed {
         gateway,
         diagnostics: Some(pool),

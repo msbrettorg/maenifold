@@ -42,8 +42,6 @@ pub struct TrayMenuState<State> {
 
 pub(crate) struct CoreTrayMenuState {
     pub help_id: MenuId,
-    pub gate_viewer_id: MenuId,
-    pub pipeline_viewer_id: MenuId,
     pub login_id: MenuId,
     pub restart_id: Option<MenuId>,
     pub login_item: MenuItem,
@@ -58,12 +56,6 @@ pub(crate) fn build_tray_menu() -> TrayMenuState<CoreTrayMenuState> {
     #[cfg(not(target_os = "macos"))]
     let login_item = MenuItem::new(login_menu_text(login_enabled), false, None);
     let _ = menu.append(&login_item);
-
-    let pipeline_viewer_item =
-        MenuItem::new(crate::tray_viewer::PIPELINE_VIEWER_MENU_TEXT, true, None);
-    let _ = menu.append(&pipeline_viewer_item);
-    let gate_viewer_item = MenuItem::new(crate::tray_viewer::GATE_VIEWER_MENU_TEXT, true, None);
-    let _ = menu.append(&gate_viewer_item);
 
     let help_item = MenuItem::new("Help", true, None);
     let _ = menu.append(&help_item);
@@ -86,8 +78,6 @@ pub(crate) fn build_tray_menu() -> TrayMenuState<CoreTrayMenuState> {
         quit_id: quit_item.id().clone(),
         state: CoreTrayMenuState {
             help_id: help_item.id().clone(),
-            gate_viewer_id: gate_viewer_item.id().clone(),
-            pipeline_viewer_id: pipeline_viewer_item.id().clone(),
             login_id: login_item.id().clone(),
             restart_id: restart_item.map(|item| item.id().clone()),
             login_item,

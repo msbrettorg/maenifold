@@ -1,9 +1,7 @@
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::gateway_registry::GatewayRegistry;
-use crate::mcp::gateway_runtime::GatewayState;
 use crate::mcp::stdio_pool::StdioPool;
-use once_cell::sync::OnceCell;
 use rmcp::RoleServer;
 use rmcp::model::{ListResourceTemplatesResult, ListResourcesResult, ReadResourceResult};
 use rmcp::service::RequestContext;
@@ -23,8 +21,6 @@ pub mod workflow;
 pub use subscription::{AssetWatcherState, notify_resource_updated, start_asset_watcher};
 
 static GATEWAY_REGISTRY: RwLock<Option<Arc<GatewayRegistry>>> = RwLock::new(None);
-static GATEWAY_STATE: OnceCell<Arc<GatewayState>> = OnceCell::new();
-static TOKIO_HANDLE: OnceCell<tokio::runtime::Handle> = OnceCell::new();
 
 pub(crate) fn set_gateway_registry(registry: Arc<GatewayRegistry>) {
     if let Ok(mut guard) = GATEWAY_REGISTRY.write() {
@@ -34,26 +30,6 @@ pub(crate) fn set_gateway_registry(registry: Arc<GatewayRegistry>) {
 
 pub(crate) fn gateway_registry() -> Option<Arc<GatewayRegistry>> {
     GATEWAY_REGISTRY.read().ok().and_then(|guard| guard.clone())
-}
-
-pub(crate) fn set_gateway_state(state: Arc<GatewayState>) {
-    if GATEWAY_STATE.set(state).is_err() {
-        tracing::warn!("gateway state already initialized; ignoring re-init");
-    }
-}
-
-pub(crate) fn gateway_state() -> Option<Arc<GatewayState>> {
-    GATEWAY_STATE.get().cloned()
-}
-
-pub(crate) fn set_tokio_handle(handle: tokio::runtime::Handle) {
-    if TOKIO_HANDLE.set(handle).is_err() {
-        tracing::warn!("tokio handle already initialized; ignoring re-init");
-    }
-}
-
-pub(crate) fn tokio_handle() -> Option<tokio::runtime::Handle> {
-    TOKIO_HANDLE.get().cloned()
 }
 
 // T-12.8: RTM FR-11 — resources/list assembly now lives in mcp/resources.

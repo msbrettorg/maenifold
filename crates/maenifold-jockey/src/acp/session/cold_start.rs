@@ -45,8 +45,11 @@ pub(crate) async fn cold_start(
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
-        .kill_on_drop(true)
-        .process_group(0);
+        .kill_on_drop(true);
+    #[cfg(unix)]
+    {
+        cmd.process_group(0);
+    }
     for (k, v) in env_pairs {
         cmd.env(k, v);
     }

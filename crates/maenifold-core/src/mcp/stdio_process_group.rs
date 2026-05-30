@@ -1,5 +1,7 @@
+#[cfg(unix)]
 use std::time::Duration;
 
+#[cfg(unix)]
 const PROCESS_GROUP_TERM_WAIT: Duration = Duration::from_millis(200);
 
 #[cfg(unix)]

@@ -28,7 +28,7 @@ use std::sync::OnceLock;
 use crate::error::Result;
 use crate::mcp::McpToolDefinition;
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{Map, Value, json};
 
 pub(crate) use params::{
     AcpExecContextBlock, AcpExecImageContext, AcpExecResourceContext, AcpExecTextContext,
@@ -46,6 +46,7 @@ pub(crate) fn mcp_tool_from_registry_name(registry_name: &str) -> Result<McpTool
                 description: "Gateway tool (use learn=true for details)".to_string(),
                 input_schema: json!({ "type": "object" }),
                 execution: None,
+                meta: None,
             }
         }))
 }
@@ -76,17 +77,25 @@ struct ToolManifestEntry {
     input_schema: serde_json::Value,
     #[serde(default)]
     execution: Option<rmcp::model::ToolExecution>,
+    #[serde(rename = "_meta", default)]
+    meta: Option<Map<String, Value>>,
 }
 
 impl ToolManifestEntry {
     fn into_definition(self) -> McpToolDefinition {
+        let meta = self.meta.or_else(|| default_tool_meta(&self.name));
         McpToolDefinition {
             name: self.name,
             description: self.description,
             input_schema: self.input_schema,
             execution: self.execution,
+            meta,
         }
     }
+}
+
+fn default_tool_meta(_name: &str) -> Option<Map<String, Value>> {
+    None
 }
 
 #[cfg(test)]

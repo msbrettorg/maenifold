@@ -131,6 +131,7 @@ fn command(name: &str, description: &str, schema: Value, safety_class: &str) -> 
         description: description.to_string(),
         schema,
         safety_class: safety_class.to_string(),
+        meta: None,
     }
 }
 

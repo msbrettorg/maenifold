@@ -2,6 +2,7 @@ use crate::error::{MaenifoldError, Result};
 use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
 use rmcp::{service::ServiceError, transport::TokioChildProcess};
 use serde_json::Value;
+#[cfg(unix)]
 use std::io;
 use std::process::Stdio;
 use std::sync::{Arc, Mutex as StdMutex, MutexGuard};

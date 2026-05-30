@@ -163,6 +163,7 @@ impl ServerHandler for MaenifoldHandler {
             }
             if uri.starts_with("ui://")
                 && let Some(gateway) = gateway
+                && gateway.owns_resource_uri(&uri)
             {
                 return gateway.read_resource(&uri).await;
             }

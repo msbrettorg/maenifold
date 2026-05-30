@@ -1,7 +1,7 @@
 mod mcp {
     use rmcp::model::ToolExecution;
     use serde::{Deserialize, Serialize};
-    use serde_json::Value;
+    use serde_json::{Map, Value};
 
     #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
     pub struct McpToolDefinition {
@@ -10,6 +10,8 @@ mod mcp {
         pub input_schema: Value,
         #[serde(skip_serializing_if = "Option::is_none", default)]
         pub execution: Option<ToolExecution>,
+        #[serde(rename = "_meta", skip_serializing_if = "Option::is_none", default)]
+        pub meta: Option<Map<String, Value>>,
     }
 }
 
@@ -249,6 +251,8 @@ struct ManifestTool {
     input_schema: Value,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     execution: Option<ToolExecution>,
+    #[serde(rename = "_meta", skip_serializing_if = "Option::is_none", default)]
+    meta: Option<serde_json::Map<String, Value>>,
 }
 
 impl From<McpToolDefinition> for ManifestTool {
@@ -258,6 +262,7 @@ impl From<McpToolDefinition> for ManifestTool {
             description: tool.description,
             input_schema: tool.input_schema,
             execution: tool.execution,
+            meta: tool.meta,
         }
     }
 }
@@ -269,6 +274,7 @@ impl ManifestTool {
             description: self.description,
             input_schema: self.input_schema,
             execution: self.execution,
+            meta: self.meta,
         }
     }
 }

@@ -7,7 +7,7 @@ fn create_task_with_mcp_action_persists() {
     let mut payload = create_payload("mcp-create", false);
     payload["mcp_action"] = json!("maenifold.gate.gate_Status");
     payload["mcp_parameters"] = json!({"root": "/workspace"});
-    let fake_bin = PathBuf::from("/nonexistent/binary");
+    let fake_bin = fake_bin_in(&temp);
 
     create_task_with_bin(&context, &payload, &fake_bin).expect("create mcp schedule");
 
@@ -30,7 +30,7 @@ fn create_task_invalid_mcp_action_format_rejected() {
     let context = test_context(&temp);
     let mut payload = create_payload("mcp-invalid", false);
     payload["mcp_action"] = json!("no-dot-here");
-    let fake_bin = PathBuf::from("/nonexistent/binary");
+    let fake_bin = fake_bin_in(&temp);
 
     let result = create_task_with_bin(&context, &payload, &fake_bin);
 
@@ -47,7 +47,7 @@ fn update_task_clears_mcp_action_when_null() {
     let mut payload = create_payload("mcp-clear", false);
     payload["mcp_action"] = json!("maenifold.gate.gate_Status");
     payload["mcp_parameters"] = json!({"root": "/workspace"});
-    let fake_bin = PathBuf::from("/nonexistent/binary");
+    let fake_bin = fake_bin_in(&temp);
     create_task_with_bin(&context, &payload, &fake_bin).expect("create mcp schedule");
 
     update_task(
@@ -70,7 +70,7 @@ fn parameters_must_be_object_when_present() {
     let mut payload = create_payload("mcp-array", false);
     payload["mcp_action"] = json!("maenifold.gate.gate_Status");
     payload["mcp_parameters"] = json!([1, 2, 3]);
-    let fake_bin = PathBuf::from("/nonexistent/binary");
+    let fake_bin = fake_bin_in(&temp);
 
     let result = create_task_with_bin(&context, &payload, &fake_bin);
 
@@ -87,7 +87,7 @@ fn create_task_rejects_unallowed_mcp_action() {
     let context = test_context(&temp);
     let mut payload = create_payload("mcp-acp", false);
     payload["mcp_action"] = json!("maenifold.acp.AcpExec");
-    let fake_bin = PathBuf::from("/nonexistent/binary");
+    let fake_bin = fake_bin_in(&temp);
 
     let result = create_task_with_bin(&context, &payload, &fake_bin);
 
@@ -103,7 +103,7 @@ fn create_task_rejects_unallowed_mcp_action() {
 fn create_task_rejects_inference_actions() {
     let temp = TempDir::new().expect("temp dir");
     let context = test_context(&temp);
-    let fake_bin = PathBuf::from("/nonexistent/binary");
+    let fake_bin = fake_bin_in(&temp);
 
     for action in [
         "maenifold.thinking.SequentialThinking",

@@ -1,5 +1,7 @@
 use crate::error::{MaenifoldError, Result};
 use crate::markdown::read_markdown;
+use crate::memory::learn_requested;
+use crate::sessions::load_help_doc;
 use crate::sessions::pipeline_session_uri;
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
@@ -17,6 +19,15 @@ static WORKFLOW_ASSET_NAME: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^[a-z0-9]+(?:-[a-z0-9]+)*$").expect("workflow asset name regex must compile")
 });
 pub(crate) fn delete_workflow_asset(context: &ToolContext, payload: &Value) -> Result<String> {
+    if learn_requested(payload) {
+        let help = load_help_doc(&context.config.assets_path, "DeleteWorkflowAsset")
+            .unwrap_or_else(|| "ERROR: Help file not found for DeleteWorkflowAsset".to_string());
+        return Ok(match context.output_format {
+            OutputFormat::Json => success(help),
+            OutputFormat::Markdown => help,
+        });
+    }
+
     let name = parse_workflow_asset_name(payload)?;
     // asset-store lock — held across ref-check+unlink, NOT across resource notification,
     // NOT while holding a pipeline lease.

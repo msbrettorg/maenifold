@@ -10,6 +10,7 @@ use crate::mcp::schema::gateway_tools::{
     gateway_index_tool, gateway_intent_tool,
 };
 use crate::mcp::stdio_pool::StdioPool;
+use crate::memory::learn_requested;
 use rmcp::RoleServer;
 use rmcp::model::{CallToolResult, Content, ReadResourceResult, Resource, Tool};
 use rmcp::service::Peer;
@@ -226,8 +227,10 @@ impl GatewayState {
         let command_ref = format!("{}/{}", args.domain, args.command);
         match command_record.target.clone() {
             CommandTarget::Native { tool_name } => {
-                validate_parameters(&command_ref, &parameters, &command_record.entry.schema)
-                    .map_err(|err| rmcp::ErrorData::invalid_params(err.to_string(), None))?;
+                if !learn_requested(&parameters) {
+                    validate_parameters(&command_ref, &parameters, &command_record.entry.schema)
+                        .map_err(|err| rmcp::ErrorData::invalid_params(err.to_string(), None))?;
+                }
                 support::invoke_native(tool_name, parameters).await
             }
             CommandTarget::Gate { command } => invoke_gate(command, parameters).await,

@@ -5,13 +5,74 @@ use anyhow::{Context, Result, bail};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::Arc;
 use systemd_cron::cron_to_oncalendar;
+
 const UNIT_PREFIX: &str = "maenifold-schedule-";
 const DEFAULT_PATH: &str = "/usr/local/bin:/usr/bin:/bin";
+
+pub trait SystemctlBackend: Send + Sync {
+    fn daemon_reload(&self) -> Result<()>;
+    fn enable(&self, unit: &str) -> Result<()>;
+    fn disable(&self, unit: &str) -> Result<()>;
+}
+
+pub struct RealSystemctlBackend;
+
+impl SystemctlBackend for RealSystemctlBackend {
+    fn daemon_reload(&self) -> Result<()> {
+        run_systemctl(["--user", "daemon-reload"], "daemon-reload")
+    }
+
+    fn enable(&self, unit: &str) -> Result<()> {
+        run_systemctl(["--user", "enable", "--now", unit], "enable")
+    }
+
+    fn disable(&self, unit: &str) -> Result<()> {
+        run_systemctl(["--user", "disable", "--now", unit], "disable")
+    }
+}
+
+#[cfg(all(test, target_os = "linux"))]
+pub(crate) struct NoopSystemctlBackend;
+
+#[cfg(all(test, target_os = "linux"))]
+impl SystemctlBackend for NoopSystemctlBackend {
+    fn daemon_reload(&self) -> Result<()> {
+        Ok(())
+    }
+
+    fn enable(&self, _unit: &str) -> Result<()> {
+        Ok(())
+    }
+
+    fn disable(&self, _unit: &str) -> Result<()> {
+        Ok(())
+    }
+}
+
+#[cfg(all(test, target_os = "linux"))]
+pub(crate) struct FailingSystemctlBackend;
+
+#[cfg(all(test, target_os = "linux"))]
+impl SystemctlBackend for FailingSystemctlBackend {
+    fn daemon_reload(&self) -> Result<()> {
+        bail!("simulated systemctl failure for test")
+    }
+
+    fn enable(&self, _unit: &str) -> Result<()> {
+        bail!("simulated systemctl failure for test")
+    }
+
+    fn disable(&self, _unit: &str) -> Result<()> {
+        bail!("simulated systemctl failure for test")
+    }
+}
 
 pub struct SystemdManager {
     units_dir: PathBuf,
     maenifold_bin: PathBuf,
+    backend: Arc<dyn SystemctlBackend>,
 }
 
 impl SystemdManager {
@@ -30,9 +91,29 @@ impl SystemdManager {
                 maenifold_bin.display()
             );
         }
-        Ok(Self {
-            units_dir: PathBuf::from(home).join(".config/systemd/user"),
+        Self::new_with(
+            PathBuf::from(home).join(".config/systemd/user"),
             maenifold_bin,
+            Arc::new(RealSystemctlBackend),
+        )
+    }
+
+    pub(crate) fn new_with(
+        units_dir: PathBuf,
+        maenifold_bin: PathBuf,
+        backend: Arc<dyn SystemctlBackend>,
+    ) -> Result<Self> {
+        let maenifold_bin = if maenifold_bin.is_absolute() {
+            maenifold_bin
+        } else {
+            std::env::current_dir()
+                .context("failed to resolve current directory")?
+                .join(maenifold_bin)
+        };
+        Ok(Self {
+            units_dir,
+            maenifold_bin,
+            backend,
         })
     }
 
@@ -44,7 +125,7 @@ impl SystemdManager {
                 self.units_dir.display()
             )
         })?;
-        match systemctl_disable(&timer_unit_name(&task.id)) {
+        match self.backend.disable(&timer_unit_name(&task.id)) {
             Ok(()) => {}
             Err(error) if is_unit_not_found(&error) => {}
             Err(error) => return Err(error),
@@ -56,8 +137,8 @@ impl SystemdManager {
         .with_context(|| format!("failed to write service unit for '{}'", task.id))?;
         fs::write(self.timer_path(&task.id), render_timer(task)?)
             .with_context(|| format!("failed to write timer unit for '{}'", task.id))?;
-        systemctl_daemon_reload()?;
-        systemctl_enable(&timer_unit_name(&task.id))
+        self.backend.daemon_reload()?;
+        self.backend.enable(&timer_unit_name(&task.id))
     }
 
     pub fn uninstall(&self, task_id: &str) -> Result<()> {
@@ -67,7 +148,7 @@ impl SystemdManager {
         if !timer_path.exists() && !service_path.exists() {
             return Ok(());
         }
-        systemctl_disable(&timer_unit_name(task_id))?;
+        self.backend.disable(&timer_unit_name(task_id))?;
         if timer_path.exists() {
             fs::remove_file(&timer_path).with_context(|| {
                 format!("failed to remove timer unit '{}'", timer_path.display())
@@ -78,7 +159,7 @@ impl SystemdManager {
                 format!("failed to remove service unit '{}'", service_path.display())
             })?;
         }
-        systemctl_daemon_reload()
+        self.backend.daemon_reload()
     }
 
     pub fn is_installed(&self, task_id: &str) -> bool {
@@ -147,15 +228,7 @@ fn default_log_path(task_id: &str) -> Result<PathBuf> {
     let home = std::env::var_os("HOME").context("HOME is not set")?;
     Ok(PathBuf::from(home).join(format!(".local/state/maenifold/schedule-{task_id}.log")))
 }
-fn systemctl_enable(unit: &str) -> Result<()> {
-    run_systemctl(["--user", "enable", "--now", unit], "enable")
-}
-fn systemctl_disable(unit: &str) -> Result<()> {
-    run_systemctl(["--user", "disable", "--now", unit], "disable")
-}
-fn systemctl_daemon_reload() -> Result<()> {
-    run_systemctl(["--user", "daemon-reload"], "daemon-reload")
-}
+
 fn run_systemctl<const N: usize>(args: [&str; N], action: &str) -> Result<()> {
     let output = Command::new("systemctl")
         .args(args)
@@ -188,23 +261,5 @@ fn service_unit_name(task_id: &str) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::cron_to_oncalendar;
-
-    #[test]
-    fn converts_weekday_schedule() {
-        let calendar = cron_to_oncalendar("0 9 * * 1-5").expect("cron should convert");
-        assert_eq!(calendar, "Mon..Fri *-*-* 09:00:00");
-    }
-
-    #[test]
-    fn converts_daily_midnight_schedule() {
-        let calendar = cron_to_oncalendar("0 0 * * *").expect("cron should convert");
-        assert_eq!(calendar, "*-*-* 00:00:00");
-    }
-    #[test]
-    fn converts_monthly_schedule() {
-        let calendar = cron_to_oncalendar("0 12 1 * *").expect("cron should convert");
-        assert_eq!(calendar, "*-*-01 12:00:00");
-    }
-}
+#[path = "systemd_tests.rs"]
+mod tests;

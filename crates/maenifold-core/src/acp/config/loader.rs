@@ -2,6 +2,7 @@
 // each module ≤300 LOC. No behavioural changes.
 
 use std::collections::HashMap;
+#[cfg(unix)]
 use std::ffi::CString;
 use std::fs;
 use std::path::Path;
@@ -212,28 +213,33 @@ pub(crate) fn validate_agent_entry(name: &str, entry: &AgentEntry) -> bool {
         }
     };
 
-    let c_path = match CString::new(command_path.as_os_str().as_encoded_bytes()) {
-        Ok(path) => path,
-        Err(_) => {
+    #[cfg(unix)]
+    {
+        use std::os::unix::ffi::OsStrExt;
+
+        let c_path = match CString::new(command_path.as_os_str().as_bytes()) {
+            Ok(path) => path,
+            Err(_) => {
+                warn!(
+                    agent = name,
+                    command = %entry.command,
+                    "excluding agent: command path contains interior NUL"
+                );
+                return false;
+            }
+        };
+
+        // SAFETY: c_path is a valid NUL-terminated C string that lives for the duration
+        // of the call, and libc::access is a read-only POSIX syscall.
+        let accessible = unsafe { libc::access(c_path.as_ptr(), libc::X_OK) };
+        if accessible != 0 {
             warn!(
                 agent = name,
                 command = %entry.command,
-                "excluding agent: command path contains interior NUL"
+                "excluding agent: command is not executable by the current user"
             );
             return false;
         }
-    };
-
-    // SAFETY: c_path is a valid NUL-terminated C string that lives for the duration of
-    // the call, and libc::access is a read-only POSIX syscall with no memory side-effects.
-    let accessible = unsafe { libc::access(c_path.as_ptr(), libc::X_OK) };
-    if accessible != 0 {
-        warn!(
-            agent = name,
-            command = %entry.command,
-            "excluding agent: command is not executable by the current user"
-        );
-        return false;
     }
 
     true

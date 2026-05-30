@@ -316,6 +316,7 @@ fn terminate_child(child: &mut Child) -> Result<()> {
     let _ = child.wait();
     Ok(())
 }
+#[cfg(unix)]
 fn wait_for_exit(child: &mut Child, timeout: Duration) -> Result<bool> {
     let started = Instant::now();
     while started.elapsed() <= timeout {

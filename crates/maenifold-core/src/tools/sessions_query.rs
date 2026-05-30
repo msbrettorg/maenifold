@@ -69,8 +69,11 @@ async fn list_agent_sessions_local(
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::null())
-        .kill_on_drop(true)
-        .process_group(0);
+        .kill_on_drop(true);
+    #[cfg(unix)]
+    {
+        command.process_group(0);
+    }
     for (key, value) in &adapter.env {
         command.env(key, value);
     }

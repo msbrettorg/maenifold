@@ -130,6 +130,7 @@ fn parse_args() -> Result<(String, String)> {
 
 /// Returns the machine hostname for the lock-file holder string.
 /// Falls back to "unknown" if the hostname cannot be determined.
+#[cfg(unix)]
 fn hostname_string() -> String {
     let mut buf = [0u8; 256];
     let result = unsafe { libc::gethostname(buf.as_mut_ptr() as *mut libc::c_char, buf.len()) };
@@ -138,6 +139,15 @@ fn hostname_string() -> String {
     }
     let nul = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
     String::from_utf8_lossy(&buf[..nul]).into_owned()
+}
+
+#[cfg(not(unix))]
+fn hostname_string() -> String {
+    std::env::var("COMPUTERNAME")
+        .or_else(|_| std::env::var("HOSTNAME"))
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "unknown".to_string())
 }
 
 async fn wait_for_shutdown_signal(session_id: &str) {

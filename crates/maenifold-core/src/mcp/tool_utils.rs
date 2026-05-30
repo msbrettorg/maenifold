@@ -5,9 +5,10 @@
 use super::schema::mcp_tool_from_registry_name;
 use crate::error::{MaenifoldError, Result};
 use crate::registry::ToolRegistry;
-use rmcp::model::ToolExecution;
+use rmcp::model::{Meta, Tool, ToolExecution};
 use serde::Serialize;
-use serde_json::Value;
+use serde_json::{Map, Value};
+use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -17,6 +18,21 @@ pub struct McpToolDefinition {
     pub input_schema: Value,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub execution: Option<ToolExecution>,
+    #[serde(rename = "_meta", skip_serializing_if = "Option::is_none")]
+    pub meta: Option<Map<String, Value>>,
+}
+
+impl McpToolDefinition {
+    pub(crate) fn into_rmcp_tool(self) -> Tool {
+        let schema = match self.input_schema {
+            Value::Object(map) => map,
+            _ => Map::new(),
+        };
+        let mut tool = Tool::new(self.name, self.description, Arc::new(schema));
+        tool.execution = self.execution;
+        tool.meta = self.meta.map(Meta);
+        tool
+    }
 }
 
 // T-5.2: RTM FR-22.4 maps the registry's canonical tool set into MCP tools/list metadata.

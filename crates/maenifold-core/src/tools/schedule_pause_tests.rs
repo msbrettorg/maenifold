@@ -24,7 +24,7 @@ fn pause_all_snapshots_prior_enabled() {
     for (id, en) in [(&alpha, true), (&beta, true), (&gamma, false)] {
         create_direct(&c, id, en);
     }
-    let p = action(&c, "pause_all");
+    let p = action_with_test_launchd(&temp, &c, "pause_all");
     assert_eq!(p["ok"], true);
     assert!(
         schedule_store(&c)
@@ -47,11 +47,11 @@ fn pause_all_idempotent() {
     let (temp, c) = ctx();
     let alpha = scoped_id(&temp, "alpha");
     create_direct(&c, &alpha, true);
-    action(&c, "pause_all");
+    action_with_test_launchd(&temp, &c, "pause_all");
     schedule_store(&c)
         .update(&direct_task(&alpha, false))
         .expect("manual");
-    let p = action(&c, "pause_all");
+    let p = action_with_test_launchd(&temp, &c, "pause_all");
     assert_eq!(p["alreadyPaused"], true);
     assert_eq!(pause_snapshot(&c).get(&alpha), Some(&true));
 }
@@ -61,11 +61,17 @@ fn pause_all_uninstalls_disabled_with_discrepancy() {
     let (temp, c) = ctx();
     let disabled_discrepancy = scoped_id(&temp, "disabled-discrepancy");
     let bin = resolve_maenifold_bin().expect("bin");
-    create_task_with_bin(&c, &create_payload(&disabled_discrepancy, true), &bin).expect("install");
+    create_task_with_test_launchd(
+        &temp,
+        &c,
+        &create_payload(&disabled_discrepancy, true),
+        &bin,
+    )
+    .expect("install");
     let mut task = direct_task(&disabled_discrepancy, false);
     task.enabled = false;
     schedule_store(&c).update(&task).expect("disable json");
-    action(&c, "pause_all");
+    action_with_test_launchd(&temp, &c, "pause_all");
     let p = parse(
         &schedule(
             &c,
@@ -83,7 +89,7 @@ fn pause_all_partial_os_failure() {
     create_direct(&c, &alpha, true);
     create_direct(&c, &beta, false);
     let p = parse(
-        &schedule_batch::pause_all_with_bin(&c, &PathBuf::from("/nonexistent/binary"))
+        &schedule_batch::pause_all_with_bin(&c, &temp.path().join("missing-maenifold"))
             .expect("partial"),
     );
     assert_eq!(p["ok"], false);
@@ -98,19 +104,19 @@ fn resume_all_restores_prior() {
     let beta = scoped_id(&temp, "beta");
     create_direct(&c, &alpha, true);
     create_direct(&c, &beta, false);
-    action(&c, "pause_all");
+    action_with_test_launchd(&temp, &c, "pause_all");
     let mut beta_task = schedule_store(&c).read(&beta).expect("beta");
     beta_task.enabled = true;
     schedule_store(&c).update(&beta_task).expect("flip");
-    let p = action(&c, "resume_all");
+    let p = action_with_test_launchd(&temp, &c, "resume_all");
     assert_eq!(p["ok"], true);
     assert!(schedule_store(&c).read(&alpha).expect("alpha").enabled);
     assert!(!schedule_store(&c).read(&beta).expect("beta").enabled);
 }
 #[test]
 fn resume_all_when_not_paused_noop() {
-    let (_t, c) = ctx();
-    let p = action(&c, "resume_all");
+    let (temp, c) = ctx();
+    let p = action_with_test_launchd(&temp, &c, "resume_all");
     assert_eq!(p["ok"], true);
     assert_eq!(p["message"], "Schedules were not paused.");
 }
@@ -121,9 +127,9 @@ fn resume_all_skips_deleted() {
     let beta = scoped_id(&temp, "beta");
     create_direct(&c, &alpha, true);
     create_direct(&c, &beta, true);
-    action(&c, "pause_all");
+    action_with_test_launchd(&temp, &c, "pause_all");
     schedule_store(&c).delete(&beta).expect("delete");
-    let p = action(&c, "resume_all");
+    let p = action_with_test_launchd(&temp, &c, "resume_all");
     assert_eq!(p["ok"], true);
     assert_eq!(p["missingSchedules"], json!([beta]));
     assert!(!crate::schedule::pause_state::path(&c.config.maenifold_root).exists());
@@ -133,9 +139,9 @@ fn resume_all_partial_os_failure_preserves_snapshot() {
     let (temp, c) = ctx();
     let alpha = scoped_id(&temp, "alpha");
     create_direct(&c, &alpha, true);
-    action(&c, "pause_all");
+    action_with_test_launchd(&temp, &c, "pause_all");
     let p = parse(
-        &schedule_batch::resume_all_with_bin(&c, &PathBuf::from("/nonexistent/binary"))
+        &schedule_batch::resume_all_with_bin(&c, &temp.path().join("missing-maenifold"))
             .expect("partial"),
     );
     assert_eq!(p["ok"], false);
@@ -147,7 +153,7 @@ fn set_all_enabled_rejects_during_pause() {
     let (temp, c) = ctx();
     let alpha = scoped_id(&temp, "alpha");
     create_direct(&c, &alpha, false);
-    action(&c, "pause_all");
+    action_with_test_launchd(&temp, &c, "pause_all");
     let r = schedule(&c, &json!({"action":"set_all_enabled","enabled":false}));
     assert!(
         matches!(r,Err(MaenifoldError::InvalidArgument(message)) if message=="Cannot bulk-toggle schedules while pause-all is active. Use Schedule action=resume_all to clear pause state first.")
@@ -162,8 +168,7 @@ fn set_all_enabled_changes_only_diff() {
     for (id, en) in [(&alpha, true), (&beta, true), (&gamma, false)] {
         create_direct(&c, id, en);
     }
-    let p =
-        parse(&schedule(&c, &json!({"action":"set_all_enabled","enabled":false})).expect("set"));
+    let p = action_with_test_launchd(&temp, &c, "set_all_enabled");
     assert_eq!(p["ok"], true);
     assert_eq!(p["changedSchedules"], json!([alpha, beta]));
     assert_eq!(p["unchangedSchedules"], json!([gamma]));
@@ -175,7 +180,7 @@ fn pause_status_when_paused() {
     let beta = scoped_id(&temp, "beta");
     create_direct(&c, &alpha, true);
     create_direct(&c, &beta, false);
-    action(&c, "pause_all");
+    action_with_test_launchd(&temp, &c, "pause_all");
     let p = action(&c, "pause_status");
     assert_eq!(p["paused"], true);
     assert_eq!(p["schedulesPaused"], 2);
@@ -197,7 +202,7 @@ fn create_rejects_enabled_during_pause() {
     let explicit_enabled = scoped_id(&temp, "explicit-enabled");
     let disabled = scoped_id(&temp, "disabled");
     create_direct(&c, &seed, false);
-    action(&c, "pause_all");
+    action_with_test_launchd(&temp, &c, "pause_all");
     let implicit = schedule(
         &c,
         &json!({"action":"create","id": implicit_enabled,"schedule":"every weekday at 9am","agent":"swe","prompt":"Run scheduled maintenance"}),
@@ -219,14 +224,16 @@ fn update_rejects_enabling_during_pause() {
     let beta = scoped_id(&temp, "beta");
     create_direct(&c, &alpha, false);
     create_direct(&c, &beta, true);
-    action(&c, "pause_all");
+    action_with_test_launchd(&temp, &c, "pause_all");
     let enable = schedule(&c, &json!({"action":"update","id": &alpha,"enabled":true}));
     schedule_store(&c)
         .update(&direct_task(&beta, true))
         .expect("force");
-    let inherit_true = update_task(
+    let inherit_true = update_task_with_test_launchd(
+        &temp,
         &c,
         &json!({"action":"update","id": &beta,"description":"still enabled"}),
+        &fake_bin_in(&temp),
     );
     let disabled = schedule(&c, &json!({"action":"update","id": &alpha,"enabled":false}));
     assert!(
@@ -244,9 +251,9 @@ fn create_enabled_unsupported_platform_is_blocked_before_persisting() {
     let context = test_context(&temp);
     let unsupported_enabled = scoped_id(&temp, "unsupported-enabled");
     let payload = create_payload(&unsupported_enabled, true);
-    let fake_bin = PathBuf::from("/nonexistent/binary");
+    let fake_bin = fake_bin_in(&temp);
 
-    let result = create_task_with_bin(&context, &payload, &fake_bin);
+    let result = create_task_with_test_launchd(&temp, &context, &payload, &fake_bin);
 
     assert!(matches!(result, Err(MaenifoldError::InvalidArgument(_))));
     let persisted = schedule_store(&context).list().expect("list schedules");

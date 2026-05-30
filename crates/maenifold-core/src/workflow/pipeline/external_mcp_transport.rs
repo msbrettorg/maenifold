@@ -9,12 +9,13 @@ use std::{
 use tokio::process::Command;
 use tracing::{error, info};
 
+use super::external_mcp::finalize_external_tool_result;
 use crate::{
     error::{MaenifoldError, Result},
+    mcp::gateway_session::HttpServerConfig,
+    mcp::http_oauth::prepare_http_client,
     mcp::stdio_pool::StdioPool,
 };
-
-use super::external_mcp::finalize_external_tool_result;
 
 pub(super) async fn invoke_via_stdio(
     server_name: &str,
@@ -123,10 +124,27 @@ pub(super) async fn invoke_via_stdio_fallback(
     finalize_external_tool_result(server_name, call_result, close_result)
 }
 
+impl HttpServerConfig {
+    fn auth_discovery_config(&self) -> Result<Self> {
+        let mut discovery_url = reqwest::Url::parse(&self.url).map_err(|error| {
+            MaenifoldError::Message(format!(
+                "invalid HTTP MCP URL for gateway server '{}': {error}",
+                self.name
+            ))
+        })?;
+        discovery_url.set_path("");
+        discovery_url.set_query(None);
+        discovery_url.set_fragment(None);
+        Ok(Self {
+            url: discovery_url.to_string(),
+            ..self.clone()
+        })
+    }
+}
+
 pub(super) async fn invoke_via_http(
-    server_name: &str,
+    config: &HttpServerConfig,
     remote_tool_name: &str,
-    url: &str,
     arguments: Option<JsonMap<String, JsonValue>>,
 ) -> Result<String> {
     use rmcp::transport::{
@@ -137,45 +155,58 @@ pub(super) async fn invoke_via_http(
     // rustls is activated transitively via rmcp's `reqwest` feature flag
     // (`reqwest?/rustls`), so this client is rustls-capable for HTTPS endpoints.
     let http_client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(30))
+        .timeout(config.timeout)
         .build()
         .map_err(|error| {
             MaenifoldError::Message(format!(
-                "Failed to build HTTP client for MCP server '{server_name}': {error}"
+                "Failed to build HTTP client for MCP server '{}': {error}",
+                config.name
             ))
         })?;
-    let config = StreamableHttpClientTransportConfig::with_uri(url);
-    let transport = StreamableHttpClientTransport::with_client(http_client, config);
+    let auth_config = config.auth_discovery_config()?;
+    let prepared_client = prepare_http_client(&auth_config, http_client).await?;
+    let mut transport_config = StreamableHttpClientTransportConfig::with_uri(config.url.clone())
+        .custom_headers(config.custom_headers()?);
+    if let Some(auth_header) = prepared_client.auth_header {
+        transport_config = transport_config.auth_header(auth_header);
+    }
+    let transport =
+        StreamableHttpClientTransport::with_client(prepared_client.client, transport_config);
 
     let mut client = ().serve(transport).await.map_err(|error| {
         MaenifoldError::Message(format!(
-            "Failed to connect to external MCP server '{server_name}' at {url}: {error}"
+            "Failed to connect to external MCP server '{}' at {}: {error}",
+            config.name, config.url
         ))
     })?;
 
     let request = build_call_request(remote_tool_name, arguments);
     info!(
-        server_name,
-        remote_tool_name, url, "calling external MCP tool via HTTP"
+        server_name = config.name,
+        remote_tool_name,
+        url = config.url,
+        "calling external MCP tool via HTTP"
     );
     let call_result = client.call_tool(request).await.map_err(|error| {
         MaenifoldError::Message(format!(
-            "Failed to invoke external MCP tool '{server_name}.{remote_tool_name}': {error}"
+            "Failed to invoke external MCP tool '{}.{remote_tool_name}': {error}",
+            config.name
         ))
     });
     if call_result.is_ok() {
         info!(
-            server_name,
+            server_name = config.name,
             remote_tool_name, "external MCP HTTP tool call succeeded"
         );
     }
     let close_result = client.close().await.map_err(|error| {
         MaenifoldError::Message(format!(
-            "Failed to close external MCP server '{server_name}': {error}"
+            "Failed to close external MCP server '{}': {error}",
+            config.name
         ))
     });
 
-    finalize_external_tool_result(server_name, call_result, close_result)
+    finalize_external_tool_result(&config.name, call_result, close_result)
 }
 
 fn build_call_request(

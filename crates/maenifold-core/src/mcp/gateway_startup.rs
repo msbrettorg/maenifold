@@ -85,13 +85,19 @@ pub(super) async fn build_gateway_with_registry(
                 })
             }
             McpServerEntry::Http {
-                url, headers, auth, ..
+                url,
+                headers,
+                auth,
+                timeout,
+                ..
             } => GatewayServerConfig::Http(HttpServerConfig {
                 name: (*name).clone(),
                 url: url.clone(),
                 headers: headers.clone(),
                 auth: auth.clone(),
-                timeout: std::time::Duration::from_secs(60),
+                timeout: timeout
+                    .map(std::time::Duration::from_secs)
+                    .unwrap_or(std::time::Duration::from_secs(60)),
             }),
         })
         .collect();
@@ -129,17 +135,18 @@ pub(super) async fn build_gateway_with_registry(
                         }
                     };
                     let domain_count = registry.domains().len();
-                    resources::set_gateway_registry(Arc::new(registry.clone()));
-                    info!(
-                        "Gateway registry indexed {domain_count} domains from native + upstream sources"
-                    );
-                    Ok(GatewayStartup::Ready(Arc::new(GatewayState::new(
+                    let gateway = Arc::new(GatewayState::new(
                         Arc::clone(&pool),
                         Arc::new(resource_routing),
                         registry,
                         config.settings.gateway.intent_resolver.clone(),
                         config.maenifold_root.clone(),
-                    ))))
+                    ));
+                    resources::set_gateway_registry(Arc::new(gateway.registry().clone()));
+                    info!(
+                        "Gateway registry indexed {domain_count} domains from native + upstream sources"
+                    );
+                    Ok(GatewayStartup::Ready(gateway))
                 }
                 Err(error) => {
                     tracing::error!(
@@ -174,17 +181,18 @@ async fn native_only_gateway(
     let resource_routing = ResourceRoutingRegistry::build(pool.as_ref())?;
     let registry = GatewayRegistry::build(Vec::new(), &pool.all_gateway_descriptions())?;
     let domain_count = registry.domains().len();
-    resources::set_gateway_registry(Arc::new(registry.clone()));
-    info!(
-        "Gateway registry indexed {domain_count} native domains (no upstream servers configured)"
-    );
-    Ok(GatewayStartup::Ready(Arc::new(GatewayState::new(
+    let gateway = Arc::new(GatewayState::new(
         pool,
         Arc::new(resource_routing),
         registry,
         config.settings.gateway.intent_resolver.clone(),
         config.maenifold_root.clone(),
-    ))))
+    ));
+    resources::set_gateway_registry(Arc::new(gateway.registry().clone()));
+    info!(
+        "Gateway registry indexed {domain_count} native domains (no upstream servers configured)"
+    );
+    Ok(GatewayStartup::Ready(gateway))
 }
 
 async fn degraded_gateway(

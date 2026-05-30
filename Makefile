@@ -40,11 +40,11 @@ quality-tools:
 
 quality-coverage:
 	mkdir -p $(QUALITY_COVERAGE_DIR)
-	MAENIFOLD_FULL_SUITE=1 cargo llvm-cov --workspace --lcov --summary-only --output-path $(QUALITY_COVERAGE_DIR)/lcov.info --ignore-filename-regex '(^|/)(tests|target|vendor)/'
+	MAENIFOLD_TOOL_DISPATCH_TIMEOUT_SECS=120 MAENIFOLD_FULL_SUITE=1 cargo llvm-cov --workspace --lcov --summary-only --output-path $(QUALITY_COVERAGE_DIR)/lcov.info --ignore-filename-regex '(^|/)(tests|target|vendor)/'
 
 quality-coverage-html:
 	mkdir -p $(QUALITY_COVERAGE_DIR)
-	MAENIFOLD_FULL_SUITE=1 cargo llvm-cov --workspace --html --output-dir $(QUALITY_COVERAGE_DIR)/html --ignore-filename-regex '(^|/)(tests|target|vendor)/'
+	MAENIFOLD_TOOL_DISPATCH_TIMEOUT_SECS=120 MAENIFOLD_FULL_SUITE=1 cargo llvm-cov --workspace --html --output-dir $(QUALITY_COVERAGE_DIR)/html --ignore-filename-regex '(^|/)(tests|target|vendor)/'
 
 quality-metrics:
 	mkdir -p $(QUALITY_METRICS_DIR)

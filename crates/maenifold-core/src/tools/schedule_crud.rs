@@ -5,10 +5,16 @@ use super::{
     validate_and_parse_schedule, validate_mcp_action,
 };
 use crate::error::{MaenifoldError, Result};
+#[cfg(all(test, target_os = "macos"))]
+use crate::schedule::LaunchctlBackend;
 use crate::schedule::{ScheduledTask, Supervisor};
 use chrono::Utc;
 use serde_json::{Value, json};
 use std::path::Path;
+#[cfg(all(test, target_os = "macos"))]
+use std::path::PathBuf;
+#[cfg(all(test, target_os = "macos"))]
+use std::sync::Arc;
 use tracing::warn;
 
 pub(super) fn create_task(context: &ToolContext, payload: &Value) -> Result<String> {
@@ -21,6 +27,63 @@ pub(super) fn create_task_with_bin(
     payload: &Value,
     bin: &Path,
 ) -> Result<String> {
+    create_task_with_scheduler(
+        context,
+        payload,
+        |task| super::schedule_os::sync_os_scheduler(task, bin),
+        |task_id| super::schedule_os::uninstall_os_scheduler(task_id, bin),
+    )
+}
+
+#[cfg(all(test, target_os = "macos"))]
+pub(super) fn create_task_with_bin_for_test(
+    context: &ToolContext,
+    payload: &Value,
+    bin: &Path,
+    agents_dir: PathBuf,
+    backend: Arc<dyn LaunchctlBackend>,
+) -> Result<String> {
+    create_task_with_scheduler(
+        context,
+        payload,
+        |task| {
+            super::schedule_os::sync_os_scheduler_for_test(
+                task,
+                bin,
+                agents_dir.clone(),
+                backend.clone(),
+            )
+        },
+        |task_id| {
+            super::schedule_os::uninstall_os_scheduler_for_test(
+                task_id,
+                bin,
+                agents_dir.clone(),
+                backend.clone(),
+            )
+        },
+    )
+}
+
+#[cfg(all(test, not(target_os = "macos")))]
+pub(super) fn create_task_with_bin_for_test(
+    context: &ToolContext,
+    payload: &Value,
+    bin: &Path,
+) -> Result<String> {
+    create_task_with_bin(context, payload, bin)
+}
+
+fn create_task_with_scheduler<SyncFn, UninstallFn>(
+    context: &ToolContext,
+    payload: &Value,
+    sync_scheduler: SyncFn,
+    uninstall_scheduler: UninstallFn,
+) -> Result<String>
+where
+    SyncFn: Fn(&ScheduledTask) -> Result<()>,
+    UninstallFn: Fn(&str) -> Result<()>,
+{
     let id = required_string(payload, "id")?;
     let parsed = validate_and_parse_schedule(required_string(payload, "schedule")?)?;
     let task = ScheduledTask {
@@ -50,11 +113,11 @@ pub(super) fn create_task_with_bin(
     validate_mcp_action(task.mcp_action.as_deref(), task.mcp_parameters.as_ref())?;
     reject_enabled_while_paused(context, task.enabled)?;
     if task.enabled {
-        super::schedule_os::sync_os_scheduler(&task, bin)?;
+        sync_scheduler(&task)?;
     }
     if let Err(error) = store.create(&task) {
         if task.enabled
-            && let Err(rollback_error) = super::schedule_os::uninstall_os_scheduler(&task.id, bin)
+            && let Err(rollback_error) = uninstall_scheduler(&task.id)
         {
             return Err(MaenifoldError::Message(format!(
                 "failed to persist scheduled task '{}' after OS scheduler install; rollback uninstall also failed: {}; original store error: {}",
@@ -70,6 +133,38 @@ pub(super) fn create_task_with_bin(
 }
 
 pub(super) fn update_task(context: &ToolContext, payload: &Value) -> Result<String> {
+    let bin = resolve_maenifold_bin()?;
+    update_task_with_scheduler(context, payload, |task| {
+        super::schedule_os::sync_os_scheduler(task, &bin)
+    })
+}
+
+#[cfg(all(test, target_os = "macos"))]
+pub(super) fn update_task_for_test(
+    context: &ToolContext,
+    payload: &Value,
+    bin: &Path,
+    agents_dir: PathBuf,
+    backend: Arc<dyn LaunchctlBackend>,
+) -> Result<String> {
+    update_task_with_scheduler(context, payload, |task| {
+        super::schedule_os::sync_os_scheduler_for_test(
+            task,
+            bin,
+            agents_dir.clone(),
+            backend.clone(),
+        )
+    })
+}
+
+fn update_task_with_scheduler<SyncFn>(
+    context: &ToolContext,
+    payload: &Value,
+    sync_scheduler: SyncFn,
+) -> Result<String>
+where
+    SyncFn: Fn(&ScheduledTask) -> Result<()>,
+{
     let id = required_string(payload, "id")?;
     let store = schedule_store(context);
     let original = store
@@ -127,8 +222,7 @@ pub(super) fn update_task(context: &ToolContext, payload: &Value) -> Result<Stri
     let task = store
         .read(id)
         .map_err(|error| MaenifoldError::Message(error.to_string()))?;
-    let bin = resolve_maenifold_bin()?;
-    if let Err(error) = super::schedule_os::sync_os_scheduler(&task, &bin) {
+    if let Err(error) = sync_scheduler(&task) {
         // CAS-style rollback: restore only if the file still contains the failed update.
         // If another writer changed the task after our failed OS sync, avoid clobbering it.
         if let Err(rollback_error) = store.restore_snapshot_if_current(&original, &task) {

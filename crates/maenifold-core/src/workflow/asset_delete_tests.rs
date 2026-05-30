@@ -9,7 +9,15 @@ use serde_json::{Value, json};
 use serde_yml::Value as YamlValue;
 use serial_test::serial;
 use std::fs::OpenOptions;
+use std::path::PathBuf;
 use tempfile::TempDir;
+
+fn repo_assets_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("assets")
+}
 
 fn test_context() -> (TempDir, ToolContext, ConfigResetGuard) {
     let tmp = TempDir::new().expect("temp dir");
@@ -206,4 +214,29 @@ fn delete_workflow_asset_rejects_missing_name() {
         error.to_string().contains("Required property 'name'"),
         "unexpected error: {error}"
     );
+}
+
+#[test]
+#[serial]
+fn delete_workflow_asset_learn_returns_help_without_name() {
+    let tmp = TempDir::new().expect("temp dir");
+    Config::override_root(tmp.path());
+    Config::set_database_path(tmp.path().join("memory.db"));
+    let config = Config::current();
+    config.ensure_directories().expect("ensure directories");
+    std::fs::write(
+        config.maenifold_root.join("maenifold.json"),
+        r#"{"agents":{},"settings":{}}"#,
+    )
+    .expect("write config");
+    let mut config = config;
+    config.assets_path = repo_assets_path();
+    let context = ToolContext::new(config, OutputFormat::Markdown);
+    let _guard = ConfigResetGuard;
+
+    let output = delete_workflow_asset(&context, &json!({ "learn": true }))
+        .expect("learn should return help");
+
+    assert!(output.starts_with("# DeleteWorkflowAsset"), "{output}");
+    assert!(output.contains("- name (string, required)"), "{output}");
 }

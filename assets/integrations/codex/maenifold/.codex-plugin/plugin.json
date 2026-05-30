@@ -1,0 +1,36 @@
+{
+  "name": "maenifold",
+  "version": "0.1.0",
+  "description": "Maenifold loop agents and shared skills for Codex.",
+  "author": {
+    "name": "msbrettorg",
+    "url": "https://github.com/msbrettorg"
+  },
+  "homepage": "https://github.com/msbrettorg/maenifold",
+  "repository": "https://github.com/msbrettorg/maenifold",
+  "license": "Apache-2.0",
+  "keywords": [
+    "maenifold",
+    "gate",
+    "memory",
+    "workflow",
+    "agents"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Maenifold",
+    "shortDescription": "Use Maenifold loop agents and shared skills.",
+    "longDescription": "Maenifold packages Codex-facing inner-loop and outer-loop agents together with symlinks to the shared local Maenifold skill set.",
+    "developerName": "msbrettorg",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "brandColor": "#0969DA",
+    "defaultPrompt": [
+      "Use the Maenifold loop agents and shared skills."
+    ]
+  }
+}

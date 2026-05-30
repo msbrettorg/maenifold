@@ -40,7 +40,6 @@ indexmap = { version = "2", features = ["serde"] }
 jsonschema = { version = "0.28", default-features = false }
 sha2.workspace = true
 slug.workspace = true
-rust-embed.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 tracing-appender.workspace = true

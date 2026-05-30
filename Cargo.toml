@@ -52,7 +52,6 @@ tokenizers = "0.22.2"
 tray-icon = { version = "0.24", default-features = false }
 wry = { version = "0.55.1", default-features = false, features = ["os-webview", "protocol"] }
 notify = { version = "7", features = ["macos_fsevent"] }
-rust-embed = "8"
 tempfile = "3.23.0"
 fd-lock = "4"
 assert_cmd = "2.1.1"

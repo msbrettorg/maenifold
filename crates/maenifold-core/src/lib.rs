@@ -5,7 +5,6 @@ pub mod assets;
 pub mod benchmark;
 pub mod cli;
 pub mod community;
-pub mod console_protocol;
 pub mod config;
 pub mod db;
 pub mod decay;
@@ -42,8 +41,6 @@ pub mod tray;
 pub(crate) mod tray_helpers;
 #[cfg(feature = "app")]
 pub mod tray_menu;
-#[cfg(feature = "app")]
-pub(crate) mod tray_viewer;
 pub mod vector;
 pub mod workflow;
 

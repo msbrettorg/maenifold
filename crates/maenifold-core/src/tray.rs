@@ -13,17 +13,13 @@ use crate::tray_helpers::{
     build_icon, open_url, resolve_open_url, spawn_restart_process, spawn_server_thread,
 };
 use crate::tray_menu::{CoreTrayMenuState, build_tray_menu, toggle_login_item};
-use crate::tray_viewer::{
-    PipelineViewer, TrayViewerEvent, ViewerTarget, is_gate_viewer_event, is_pipeline_viewer_event,
-    open_gate_viewer, open_pipeline_viewer,
-};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 use tray_icon::TrayIconBuilder;
 use tray_icon::menu::{MenuEvent, MenuId, MenuItem};
 use winit::application::ApplicationHandler;
 use winit::event::StartCause;
-use winit::event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy};
+use winit::event_loop::{ActiveEventLoop, EventLoop};
 #[cfg(target_os = "macos")]
 use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 
@@ -61,11 +57,6 @@ pub struct TrayApp<Mode, State> {
 #[derive(Default)]
 struct CoreTrayState {
     help_id: Option<MenuId>,
-    gate_viewer_id: Option<MenuId>,
-    pipeline_viewer_id: Option<MenuId>,
-    gate_viewer: Option<PipelineViewer>,
-    pipeline_viewer: Option<PipelineViewer>,
-    viewer_event_proxy: Option<EventLoopProxy<TrayViewerEvent>>,
     login_id: Option<MenuId>,
     restart_id: Option<MenuId>,
     login_item: Option<MenuItem>,
@@ -77,16 +68,12 @@ impl TrayApp<ServerMode, CoreTrayState> {
         let menu_state = build_tray_menu();
         let CoreTrayMenuState {
             help_id,
-            gate_viewer_id,
-            pipeline_viewer_id,
             login_id,
             restart_id,
             login_item,
         } = menu_state.state;
         self.quit_id = Some(menu_state.quit_id);
         self.state.help_id = Some(help_id);
-        self.state.gate_viewer_id = Some(gate_viewer_id);
-        self.state.pipeline_viewer_id = Some(pipeline_viewer_id);
         self.state.login_id = Some(login_id);
         self.state.restart_id = restart_id;
         self.state.login_item = Some(login_item);
@@ -131,40 +118,6 @@ impl TrayApp<ServerMode, CoreTrayState> {
             return;
         }
 
-        if is_pipeline_viewer_event(&event.id, self.state.pipeline_viewer_id.as_ref()) {
-            match self.state.viewer_event_proxy.clone() {
-                Some(proxy) => match open_pipeline_viewer(event_loop, proxy) {
-                    Ok(viewer) => {
-                        self.state.pipeline_viewer = Some(viewer);
-                    }
-                    Err(err) => {
-                        error!(error = %err, "failed to open Pipeline viewer");
-                    }
-                },
-                None => {
-                    error!("failed to open Pipeline viewer: viewer event proxy is not initialized");
-                }
-            }
-            return;
-        }
-
-        if is_gate_viewer_event(&event.id, self.state.gate_viewer_id.as_ref()) {
-            match self.state.viewer_event_proxy.clone() {
-                Some(proxy) => match open_gate_viewer(event_loop, proxy) {
-                    Ok(viewer) => {
-                        self.state.gate_viewer = Some(viewer);
-                    }
-                    Err(err) => {
-                        error!(error = %err, "failed to open Gate viewer");
-                    }
-                },
-                None => {
-                    error!("failed to open Gate viewer: viewer event proxy is not initialized");
-                }
-            }
-            return;
-        }
-
         if let Some(url) = resolve_open_url(&event.id, self.state.help_id.as_ref(), self.mode) {
             if let Err(err) = open_url(&url) {
                 error!(label = "help", error = %err, "failed to open tray URL");
@@ -197,7 +150,7 @@ impl TrayApp<ServerMode, CoreTrayState> {
     }
 }
 
-impl ApplicationHandler<TrayViewerEvent> for TrayApp<ServerMode, CoreTrayState> {
+impl ApplicationHandler for TrayApp<ServerMode, CoreTrayState> {
     fn new_events(&mut self, event_loop: &ActiveEventLoop, cause: StartCause) {
         if matches!(cause, StartCause::Init) {
             self.initialize_tray(event_loop);
@@ -217,66 +170,12 @@ impl ApplicationHandler<TrayViewerEvent> for TrayApp<ServerMode, CoreTrayState> 
         // No windows — nothing to do.
     }
 
-    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: TrayViewerEvent) {
-        match event {
-            TrayViewerEvent::ClosePipelineViewer => {
-                self.state.pipeline_viewer.take();
-            }
-            TrayViewerEvent::CloseGateViewer => {
-                self.state.gate_viewer.take();
-            }
-            TrayViewerEvent::DispatchScript { target, script } => {
-                let viewer = match target {
-                    ViewerTarget::Pipeline => self.state.pipeline_viewer.as_ref(),
-                    ViewerTarget::Gate => self.state.gate_viewer.as_ref(),
-                };
-                #[cfg(target_os = "macos")]
-                {
-                    if let Some(viewer) = viewer {
-                        if let Err(err) = viewer.webview().evaluate_script(&script) {
-                            warn!(error = %err, ?target, "failed to evaluate viewer script");
-                        }
-                    } else {
-                        info!(?target, "dropping dispatched script for closed viewer");
-                    }
-                }
-                #[cfg(not(target_os = "macos"))]
-                {
-                    let _ = viewer;
-                    let _ = script;
-                    info!(
-                        ?target,
-                        "dropping dispatched script on unsupported platform"
-                    );
-                }
-            }
-        }
-    }
-
     fn window_event(
         &mut self,
         _event_loop: &ActiveEventLoop,
-        window_id: winit::window::WindowId,
-        event: winit::event::WindowEvent,
+        _window_id: winit::window::WindowId,
+        _event: winit::event::WindowEvent,
     ) {
-        if self
-            .state
-            .pipeline_viewer
-            .as_ref()
-            .is_some_and(|viewer| viewer.window_id() == window_id)
-            && matches!(event, winit::event::WindowEvent::CloseRequested)
-        {
-            self.state.pipeline_viewer.take();
-        }
-        if self
-            .state
-            .gate_viewer
-            .as_ref()
-            .is_some_and(|viewer| viewer.window_id() == window_id)
-            && matches!(event, winit::event::WindowEvent::CloseRequested)
-        {
-            self.state.gate_viewer.take();
-        }
     }
 }
 
@@ -306,7 +205,7 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
     let server_handle = spawn_server_thread(port, shutdown_token.clone());
 
     // ── Build winit event loop & run ───────────────────────────────────
-    let mut builder = EventLoop::<TrayViewerEvent>::with_user_event();
+    let mut builder = EventLoop::builder();
     #[cfg(target_os = "macos")]
     builder.with_activation_policy(ActivationPolicy::Accessory);
     let event_loop = builder
@@ -319,10 +218,7 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
         tray_icon: None,
         quit_id: None,
         exit_code: 0,
-        state: CoreTrayState {
-            viewer_event_proxy: Some(event_loop.create_proxy()),
-            ..CoreTrayState::default()
-        },
+        state: CoreTrayState::default(),
     };
 
     if let Err(err) = event_loop.run_app(&mut app) {

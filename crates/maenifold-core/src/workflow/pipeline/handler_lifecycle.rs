@@ -94,7 +94,7 @@ fn find_driver_binary() -> Result<std::path::PathBuf> {
             MaenifoldError::Message("Cannot determine executable directory".to_string())
         })?
         .to_path_buf();
-    let driver = exe_dir.join("maenifold-pipeline-driver");
+    let driver = exe_dir.join(format!("maenifold-pipeline-driver{}", std::env::consts::EXE_SUFFIX));
     if driver.exists() {
         return Ok(driver);
     }
@@ -200,18 +200,18 @@ fn cancel_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
                 "Failed to send SIGTERM to pipeline driver (PID {pid}): {errno}"
             )));
         }
+
+        Ok(format!(
+            "Pipeline {session_id} cancellation requested (SIGTERM sent to PID {pid})"
+        ))
     }
 
     #[cfg(not(unix))]
     {
-        return Err(MaenifoldError::Message(
+        Err(MaenifoldError::Message(
             "Pipeline cancel via signal is only supported on Unix".to_string(),
-        ));
+        ))
     }
-
-    Ok(format!(
-        "Pipeline {session_id} cancellation requested (SIGTERM sent to PID {pid})"
-    ))
 }
 
 fn cancel_orphan_pipeline(context: &ToolContext, session_id: &str, reason: &str) -> Result<String> {

@@ -4,6 +4,7 @@ name: Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -13,18 +14,25 @@ env:
 
 jobs:
   build:
+    name: Build ${{ matrix.artifact }}
     strategy:
+      fail-fast: false
       matrix:
         include:
-          # T-9.5: RTM FR-9 (RTM-062)
+          # T-9.5: RTM FR-9 (RTM-062) — Apple Silicon
           - os: macos-latest
             target: aarch64-apple-darwin
             artifact: maenifold-osx-arm64
-          # T-9.5: RTM FR-9 (RTM-063)
+          # T-9.5: RTM FR-9 (RTM-063) — Linux x64
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             artifact: maenifold-linux-x64
-          # T-9.5: RTM FR-9 (RTM-064)
+          # Linux arm64 (cross-compiled)
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            artifact: maenifold-linux-arm64
+            cross: true
+          # T-9.5: RTM FR-9 (RTM-064) — Windows x64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             artifact: maenifold-win-x64
@@ -39,24 +47,45 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Build release
+      - name: Install aarch64 cross-compiler (Linux arm64 only)
+        if: matrix.cross
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          mkdir -p .cargo
+          cat >> .cargo/config.toml <<'EOF'
+          [target.aarch64-unknown-linux-gnu]
+          linker = "aarch64-linux-gnu-gcc"
+          EOF
+
+      - name: Build maenifold-cli
         run: cargo build --release --target ${{ matrix.target }} -p maenifold-cli
+
+      - name: Build maenifold-pipeline-driver
+        run: cargo build --release --target ${{ matrix.target }} -p maenifold-pipeline-driver
 
       - name: Package (Unix)
         if: runner.os != 'Windows'
         run: |
+          set -euo pipefail
           mkdir -p staging
-          cp target/${{ matrix.target }}/release/maenifold staging/
+          cp "target/${{ matrix.target }}/release/maenifold" staging/
+          cp "target/${{ matrix.target }}/release/maenifold-pipeline-driver" staging/
           # T-9.5: RTM FR-9 (RTM-065) — bundle release assets but exclude ONNX models
           rsync -a --exclude='*.onnx' assets/ staging/assets/
-          cd staging && zip -r ../${{ matrix.artifact }}.zip .
+          for f in readme.md CHANGELOG.md AGENTS.md; do
+            if [ -f "$f" ]; then cp "$f" staging/; fi
+          done
+          cd staging && zip -r "../${{ matrix.artifact }}.zip" .
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force -Path staging | Out-Null
           Copy-Item "target/${{ matrix.target }}/release/maenifold.exe" staging/
+          Copy-Item "target/${{ matrix.target }}/release/maenifold-pipeline-driver.exe" staging/
           # T-9.5: RTM FR-9 (RTM-065) — bundle release assets but exclude ONNX models
           $source = "assets"
           $dest = "staging/assets"
@@ -67,17 +96,35 @@ jobs:
             New-Item -ItemType Directory -Force -Path $destDir | Out-Null
             Copy-Item $_.FullName $destPath
           }
-          Compress-Archive -Path staging/* -DestinationPath "${{ matrix.artifact }}.zip"
+          foreach ($f in @('readme.md', 'CHANGELOG.md', 'AGENTS.md')) {
+            if (Test-Path $f) { Copy-Item $f staging/ }
+          }
+          Compress-Archive -Path staging/* -DestinationPath "${{ matrix.artifact }}.zip" -Force
+
+      - name: Smoke test binaries (native targets only)
+        if: '!matrix.cross'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            ./staging/maenifold.exe --version || ./staging/maenifold.exe --help | head -n 1
+            ./staging/maenifold-pipeline-driver.exe --help 2>&1 | head -n 1 || true
+          else
+            ./staging/maenifold --version || ./staging/maenifold --help | head -n 1
+            ./staging/maenifold-pipeline-driver --help 2>&1 | head -n 1 || true
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: ${{ matrix.artifact }}.zip
+          if-no-files-found: error
 
   release:
     needs: build
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
       - name: Download all artifacts
@@ -85,8 +132,18 @@ jobs:
         with:
           path: artifacts
 
+      - name: Generate SHA256 checksums
+        run: |
+          set -euo pipefail
+          cd artifacts
+          find . -name '*.zip' -exec sha256sum {} \; > ../SHA256SUMS.txt
+          cd ..
+          cat SHA256SUMS.txt
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: artifacts/**/*.zip
+          files: |
+            artifacts/**/*.zip
+            SHA256SUMS.txt

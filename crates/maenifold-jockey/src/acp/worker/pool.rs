@@ -49,13 +49,7 @@ pub struct TrackedSessionReap {
 impl Drop for LiveConnection {
     fn drop(&mut self) {
         if let Some(pid) = self.child_pid {
-            unsafe {
-                let pgid = -(pid as i32);
-                let _ = libc::kill(pgid, libc::SIGTERM);
-                let _ = libc::kill(pgid, libc::SIGKILL);
-                let _ = libc::kill(pid as i32, libc::SIGTERM);
-                let _ = libc::kill(pid as i32, libc::SIGKILL);
-            }
+            terminate_child_process(pid);
             unregister_child_pid(pid);
             // T-328.16 v2 — purge cross-thread pool→pid index for any entry
             // whose pid matches (handles PID reuse safely; O(N) over the
@@ -153,21 +147,38 @@ pub(crate) fn register_pool_pid(pool_key: &str, pid: u32) {
     }
 }
 
-/// Synchronously SIGKILL the ACP child process for the given pool slot.
-/// Safe to call from any thread — performs only a Mutex lock and libc::kill,
-/// no channel hop and no await. Returns true if a pid was found and a kill
-/// syscall was issued (signal delivery is asynchronous from the kernel side).
+#[cfg(unix)]
+pub(crate) fn terminate_child_process(pid: u32) {
+    unsafe {
+        let pgid = -(pid as i32);
+        let _ = libc::kill(pgid, libc::SIGTERM);
+        let _ = libc::kill(pgid, libc::SIGKILL);
+        let _ = libc::kill(pid as i32, libc::SIGTERM);
+        let _ = libc::kill(pid as i32, libc::SIGKILL);
+    }
+}
+
+#[cfg(windows)]
+pub(crate) fn terminate_child_process(pid: u32) {
+    let _ = std::process::Command::new("taskkill")
+        .args(["/PID", &pid.to_string(), "/T", "/F"])
+        .status();
+}
+
+#[cfg(not(any(unix, windows)))]
+pub(crate) fn terminate_child_process(_pid: u32) {}
+
+/// Synchronously terminate the ACP child process for the given pool slot.
+/// Safe to call from any thread — performs only a Mutex lock and a platform
+/// process termination call, no channel hop and no await. Returns true if a pid
+/// was found and termination was attempted.
 pub fn kill_pool_child_direct(pool_key: &str) -> bool {
     let pid_opt = pool_pids()
         .lock()
         .ok()
         .and_then(|g| g.get(pool_key).copied());
     if let Some(pid) = pid_opt {
-        unsafe {
-            let pgid = -(pid as i32);
-            let _ = libc::kill(pgid, libc::SIGKILL);
-            let _ = libc::kill(pid as i32, libc::SIGKILL);
-        }
+        terminate_child_process(pid);
         true
     } else {
         false

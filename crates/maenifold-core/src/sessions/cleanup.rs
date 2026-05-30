@@ -6,6 +6,7 @@ use crate::markdown::{read_markdown, write_markdown};
 use chrono::{DateTime, Utc};
 use serde_yml::Value as YamlValue;
 use std::fs;
+#[cfg(unix)]
 use std::time::{Duration, UNIX_EPOCH};
 
 pub fn cleanup_abandoned_sessions(config: &Config) -> Result<usize> {

@@ -6,7 +6,7 @@ use super::super::runtime_state::clear_all as clear_runtime_state_fn;
 use super::super::session::cold_start;
 use super::pool::{
     CANCEL_HANDLES, CONN_MAP, PROMPT_LOCKS, child_pids, find_session_key, pool_key,
-    remove_session_index, remove_session_index_for_pool_key,
+    remove_session_index, remove_session_index_for_pool_key, terminate_child_process,
 };
 
 // Re-exports from extracted modules
@@ -64,9 +64,7 @@ pub(crate) async fn shutdown_worker_state() {
 
     let remaining_pids: Vec<u32> = child_pids().iter().map(|r| *r).collect();
     for pid in &remaining_pids {
-        unsafe {
-            libc::kill(-(*pid as i32), libc::SIGKILL);
-        }
+        terminate_child_process(*pid);
         child_pids().remove(pid);
     }
 
@@ -159,13 +157,7 @@ pub(crate) fn handle_force_kill(runtime_key: String, role_name: String, app_sess
             "force_kill.sending",
             json!({ "runtime": &runtime_key, "role": role_name, "pid": pid }),
         );
-        unsafe {
-            // Kill the whole process group first (covers child-of-child),
-            // then the leader directly as a fallback.
-            let pgid = -(pid as i32);
-            let _ = libc::kill(pgid, libc::SIGKILL);
-            let _ = libc::kill(pid as i32, libc::SIGKILL);
-        }
+        terminate_child_process(pid);
     } else {
         acp_log(
             "force_kill.no_active_session",

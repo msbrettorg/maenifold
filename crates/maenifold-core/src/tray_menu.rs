@@ -51,9 +51,9 @@ pub(crate) fn build_tray_menu() -> TrayMenuState<CoreTrayMenuState> {
     let menu = Menu::new();
     let login_enabled = is_login_enabled();
 
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     let login_item = MenuItem::new(login_menu_text(login_enabled), true, None);
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     let login_item = MenuItem::new(login_menu_text(login_enabled), false, None);
     let _ = menu.append(&login_item);
 
@@ -61,13 +61,13 @@ pub(crate) fn build_tray_menu() -> TrayMenuState<CoreTrayMenuState> {
     let _ = menu.append(&help_item);
     let _ = menu.append(&PredefinedMenuItem::separator());
 
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     let restart_item = {
         let item = MenuItem::new("Restart", true, None);
         let _ = menu.append(&item);
         Some(item)
     };
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     let restart_item: Option<MenuItem> = None;
 
     let quit_item = MenuItem::new("Quit", true, None);
@@ -107,7 +107,23 @@ pub(crate) fn toggle_login_item(port: u16, login_item: Option<&MenuItem>) {
             item.set_text(login_menu_text(is_login_enabled()));
         }
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "windows")]
+    {
+        let result = if is_login_enabled() {
+            disable_login_run_key()
+        } else {
+            enable_login_run_key(port)
+        };
+
+        if let Err(err) = result {
+            eprintln!("Warning: failed to toggle Run registry entry: {err}");
+        }
+
+        if let Some(item) = login_item {
+            item.set_text(login_menu_text(is_login_enabled()));
+        }
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         let _ = (port, login_item);
     }
@@ -154,6 +170,7 @@ fn bootout_launch_agent() {
     }
 }
 
+#[cfg(target_os = "macos")]
 fn launch_agent_path() -> std::path::PathBuf {
     std::env::var_os("HOME")
         .map(std::path::PathBuf::from)
@@ -171,8 +188,19 @@ pub(crate) fn launchd_service_target() -> String {
     String::new()
 }
 
+#[cfg(target_os = "macos")]
 fn is_login_enabled() -> bool {
     launch_agent_path().exists()
+}
+
+#[cfg(target_os = "windows")]
+fn is_login_enabled() -> bool {
+    run_key_entry_exists()
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+fn is_login_enabled() -> bool {
+    false
 }
 
 fn login_menu_text(enabled: bool) -> &'static str {
@@ -242,6 +270,65 @@ fn xml_escape(value: &str) -> String {
         .replace('\'', "&apos;")
 }
 
+// ── Windows: "Open at Login" via the HKCU Run registry key ────────────
+// Mirrors the macOS launchd approach but shells out to `reg.exe`, keeping
+// this dependency-free and consistent with the launchctl shell-out pattern
+// above. The current user's Run key starts the tray (`--http`) at logon.
+#[cfg(target_os = "windows")]
+const RUN_KEY: &str = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run";
+
+#[cfg(target_os = "windows")]
+fn login_run_command_value(exe_display: &str, port: u16) -> String {
+    format!("\"{exe_display}\" --http --port {port}")
+}
+
+#[cfg(target_os = "windows")]
+fn run_key_entry_exists() -> bool {
+    std::process::Command::new("reg")
+        .args(["query", RUN_KEY, "/v", SERVICE_LABEL])
+        .output()
+        .map(|output| output.status.success())
+        .unwrap_or(false)
+}
+
+#[cfg(target_os = "windows")]
+fn enable_login_run_key(port: u16) -> std::io::Result<()> {
+    let exe_path = std::env::current_exe()?;
+    let value = login_run_command_value(&exe_path.display().to_string(), port);
+    let output = std::process::Command::new("reg")
+        .args([
+            "add", RUN_KEY, "/v", SERVICE_LABEL, "/t", "REG_SZ", "/d", &value, "/f",
+        ])
+        .output()?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(std::io::Error::other(format!(
+            "reg add failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        )))
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn disable_login_run_key() -> std::io::Result<()> {
+    let output = std::process::Command::new("reg")
+        .args(["delete", RUN_KEY, "/v", SERVICE_LABEL, "/f"])
+        .output()?;
+    if output.status.success() {
+        return Ok(());
+    }
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    // "unable to find" → entry already absent; treat as success (idempotent).
+    if stderr.contains("unable to find") {
+        return Ok(());
+    }
+    Err(std::io::Error::other(format!(
+        "reg delete failed: {}",
+        stderr.trim()
+    )))
+}
+
 #[cfg(test)]
 mod tests {
     use super::login_menu_text;
@@ -250,5 +337,15 @@ mod tests {
     fn login_menu_text_reflects_enabled_state() {
         assert_eq!(login_menu_text(true), "✓ Open at Login");
         assert_eq!(login_menu_text(false), "Open at Login");
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn login_run_command_value_quotes_exe_and_sets_http_port() {
+        use super::login_run_command_value;
+        assert_eq!(
+            login_run_command_value(r"C:\Program Files\maenifold\maenifold.exe", 8080),
+            "\"C:\\Program Files\\maenifold\\maenifold.exe\" --http --port 8080"
+        );
     }
 }

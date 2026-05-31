@@ -1,6 +1,6 @@
 # maenifold — Constitution
 
-One product, one Rust workspace. `crates/` = backend (CLI + MCP server + pipeline driver + ACP runtime). No in-tree frontend; clients reach maenifold through MCP.
+One product, one Rust workspace. `crates/` = backend (CLI + MCP server + pipeline driver + ACP runtime); clients reach the backend through MCP. `ui/` holds a standalone, vendored ACP UI (copy-and-own, decoupled from maenifold internals) used as a convenience client; it is not part of the backend and must not be wired into MCP/ACP/inferencing resolver paths.
 
 ## Key Documents
 
@@ -16,15 +16,15 @@ One product, one Rust workspace. `crates/` = backend (CLI + MCP server + pipelin
 1. **"trio"** — The operating model is **duo** (two architects). Any reference to a trio is contamination.
 2. **"deferral"** — We do not defer. Do it now or escalate.
 3. **"Architect Alpha" / "Architect Beta" / "Architect Gamma"** — Named architect roles are banned.
-4. **Re-introducing an in-tree frontend** — `apps/desktop/` was ripped to return maenifold to a vanilla MCP server baseline. Do not re-add an Electron/Vue/SPA frontend, `apps/` directory, or `npm`/`vue-tsc`/`vitest` toolchain without explicit user direction.
-5. **Cargo-cult security** — Adding unrequested auth, OAuth, bearer tokens, CSRF, rate limiting, etc. The security boundary is APIM at the edge. The Rust backend is localhost loopback that trusts its caller. If you reach for `axum::middleware`, `Authorization` headers, or any crate with "auth" in its name — stop. (8 sprints burned 3 days on this; all ripped out.)
-6. **Hidden inference / invisible ACP sessions** — Any inference path the operator can't inspect, pause, and kill. If maenifold is reasoning, the calling MCP client MUST see it via the canonical `sampling://sessions` resource.
-7. **ACP / Jockey inside the MCP gateway path** — Three distinct protocols, three distinct roles:
+4. **Cargo-cult security** — Adding unrequested auth, OAuth, bearer tokens, CSRF, rate limiting, etc. The security boundary is APIM at the edge. The Rust backend is localhost loopback that trusts its caller. If you reach for `axum::middleware`, `Authorization` headers, or any crate with "auth" in its name — stop. (8 sprints burned 3 days on this; all ripped out.)
+5. **Hidden inference / invisible ACP sessions** — Any inference path the operator can't inspect, pause, and kill. If maenifold is reasoning, the calling MCP client MUST see it via the canonical `sampling://sessions` resource.
+6. **ACP / Jockey inside the MCP gateway path** — Three distinct protocols, three distinct roles:
    - **MCP** = universal client interface into the daemon.
    - **ACP/Jockey** = product runtime for user-visible CLI agents driven from pipelines/workflows. NOT gateway infrastructure.
    - **Inferencing** = direct LLM API access for gateway tools when the client lacks `sampling/createMessage`.
    
    `GatewayIntent` has exactly two resolver paths: (a) MCP client sampling, (b) direct inferencing. There is no third path. If you reach for `AgentsConfig::load`, `jockey::acp::execute_runtime`, or any path requiring a `maenifold.json` agent entry to resolve a GatewayIntent — stop.
+7. **WSL on Windows** — This repo is developed on **native Windows**. NO WSL. Never invoke `wsl`, `C:\Windows\System32\bash.exe`, or any `/mnt/c/...` path-based tooling. The bash helper scripts under `ralph/scripts/*.sh` are Unix-only and MUST NOT be run on Windows (e.g. `worktree-create.sh` via system32 bash produces a worktree with a `/mnt/c/...` gitdir that native git cannot open). On Windows use the native toolchain only: PowerShell, `git worktree add`, `mklink /J` for junctions, `rebuild.ps1`, and the MSVC Rust toolchain. If a task can only be done via WSL/bash, stop and escalate — do not reach for WSL.
 
 **Violation response:** Stop all work. Identify the source. Purge the reference. Report to PM. Resume only after confirmed removed.
 

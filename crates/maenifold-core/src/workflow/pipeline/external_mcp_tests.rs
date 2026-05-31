@@ -50,6 +50,7 @@ fn config_with_global_and_agents(
                     agent_name.to_string(),
                     crate::acp_config::AgentEntry {
                         command: "/usr/bin/env true".to_string(),
+                        args: None,
                         env: HashMap::new(),
                         env_from_file: HashMap::new(),
                         env_from_command: HashMap::new(),

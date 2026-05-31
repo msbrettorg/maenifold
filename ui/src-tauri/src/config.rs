@@ -75,6 +75,13 @@ impl AgentConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentsConfig {
     pub agents: IndexMap<String, AgentConfig>,
+    /// Daemon-owned settings block. Stored as a free-form JSON object so
+    /// the UI doesn't have to track every field the daemon ships -- only
+    /// the keys the UI actually reads (today: `defaultAgent`) need explicit
+    /// extraction at the call site. Round-tripped unchanged on save so we
+    /// don't lose daemon-only keys.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub settings: Option<serde_json::Map<String, serde_json::Value>>,
 }
 
 impl Default for AgentsConfig {
@@ -87,6 +94,7 @@ impl Default for AgentsConfig {
         // `save_config`) writes the populated file.
         AgentsConfig {
             agents: IndexMap::new(),
+            settings: None,
         }
     }
 }
@@ -256,7 +264,17 @@ fn parse_maenifold_config(content: &str) -> Result<AgentsConfig, String> {
         let entry = agent_from_value(&name, &raw)?;
         agents.insert(name, entry);
     }
-    Ok(AgentsConfig { agents })
+
+    // Tunnel the entire `settings` block through to the frontend so
+    // settings-driven UI behavior (e.g. `defaultAgent` for the picker)
+    // works without code changes when new keys land. Unknown sub-keys
+    // are preserved as opaque JSON.
+    let settings = value
+        .get("settings")
+        .and_then(|v| v.as_object())
+        .cloned();
+
+    Ok(AgentsConfig { agents, settings })
 }
 
 fn agent_from_value(name: &str, raw: &serde_json::Value) -> Result<AgentConfig, String> {
@@ -539,6 +557,7 @@ mod tests {
 
         let mut config = AgentsConfig {
             agents: IndexMap::new(),
+            settings: None,
         };
         config.agents.insert(
             "New".to_string(),

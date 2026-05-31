@@ -16,6 +16,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use super::loader::AgentsConfig;
+use super::settings::MaenifoldSettings;
 use super::types::AgentEntry;
 
 /// Build the default agents config that ships on first run.
@@ -27,8 +28,15 @@ pub fn default_agents_config() -> AgentsConfig {
     let npx = locate_npx().unwrap_or_else(|| PathBuf::from("npx"));
     let npx_str = npx.to_string_lossy().into_owned();
 
-    let stdio = |trailing_args: &str, env: HashMap<String, String>| AgentEntry {
-        command: format!("{npx_str} {trailing_args}"),
+    let stdio = |args: Vec<&str>, env: HashMap<String, String>| AgentEntry {
+        // Single-binary `command` + explicit `args` is the canonical form
+        // -- the daemon's `validate_agent_entry` and `command_parts()`
+        // both treat `command` as ONE absolute path. Splitting on
+        // whitespace fails when the binary path contains spaces (e.g.
+        // `C:\Program Files\nodejs\npx.cmd`), which is the default Node
+        // install location on Windows.
+        command: npx_str.clone(),
+        args: Some(args.into_iter().map(String::from).collect()),
         env,
         env_from_file: HashMap::new(),
         env_from_command: HashMap::new(),
@@ -37,41 +45,45 @@ pub fn default_agents_config() -> AgentsConfig {
 
     let mut agents: HashMap<String, AgentEntry> = HashMap::new();
     agents.insert(
+        "Copilot CLI".to_string(),
+        stdio(vec!["@github/copilot@latest", "--acp"], HashMap::new()),
+    );
+    agents.insert(
         "GitHub Copilot".to_string(),
         stdio(
-            "@github/copilot-language-server@latest --acp",
+            vec!["@github/copilot-language-server@latest", "--acp"],
             HashMap::new(),
         ),
     );
     agents.insert(
         "Claude Code".to_string(),
         stdio(
-            "@agentclientprotocol/claude-agent-acp@latest",
+            vec!["@agentclientprotocol/claude-agent-acp@latest"],
             HashMap::new(),
         ),
     );
     agents.insert(
         "Gemini CLI".to_string(),
         stdio(
-            "@google/gemini-cli@latest --experimental-acp",
+            vec!["@google/gemini-cli@latest", "--experimental-acp"],
             HashMap::new(),
         ),
     );
     agents.insert(
         "Codex CLI".to_string(),
-        stdio("@zed-industries/codex-acp@latest", HashMap::new()),
+        stdio(vec!["@zed-industries/codex-acp@latest"], HashMap::new()),
     );
     agents.insert(
         "Qwen Code".to_string(),
         stdio(
-            "@qwen-code/qwen-code@latest --acp --experimental-skills",
+            vec!["@qwen-code/qwen-code@latest", "--acp", "--experimental-skills"],
             HashMap::new(),
         ),
     );
     agents.insert(
         "Auggie CLI".to_string(),
         stdio(
-            "@augmentcode/auggie@latest --acp",
+            vec!["@augmentcode/auggie@latest", "--acp"],
             HashMap::from([(
                 "AUGMENT_DISABLE_AUTO_UPDATE".to_string(),
                 "1".to_string(),
@@ -80,21 +92,27 @@ pub fn default_agents_config() -> AgentsConfig {
     );
     agents.insert(
         "Qoder CLI".to_string(),
-        stdio("@qoder-ai/qodercli@latest --acp", HashMap::new()),
+        stdio(vec!["@qoder-ai/qodercli@latest", "--acp"], HashMap::new()),
     );
     agents.insert(
         "OpenCode".to_string(),
-        stdio("opencode-ai@latest acp", HashMap::new()),
+        stdio(vec!["opencode-ai@latest", "acp"], HashMap::new()),
     );
     agents.insert(
         "OpenClaw".to_string(),
-        stdio("openclaw acp", HashMap::new()),
+        stdio(vec!["openclaw", "acp"], HashMap::new()),
     );
 
     AgentsConfig {
         mcp_servers: HashMap::new(),
         agents,
-        settings: None,
+        // Ship a UI default selection in the bootstrap so the picker
+        // doesn't render with whatever HashMap ordering happens to land
+        // first. Users can edit this freely in maenifold.json.
+        settings: Some(MaenifoldSettings {
+            default_agent: Some("Copilot CLI".to_string()),
+            ..MaenifoldSettings::default()
+        }),
     }
 }
 
@@ -131,8 +149,10 @@ mod tests {
     #[test]
     fn default_config_contains_expected_agents() {
         let config = default_agents_config();
-        // The 9 ACP agents the UI used to hardcode.
+        // The 10 ACP agents shipped on first run. "Copilot CLI" is the
+        // preferred default; see AgentSelector.vue auto-selection logic.
         for name in [
+            "Copilot CLI",
             "GitHub Copilot",
             "Claude Code",
             "Gemini CLI",
@@ -148,12 +168,15 @@ mod tests {
                 "default config missing agent: {name}"
             );
         }
-        assert_eq!(config.agents.len(), 9);
+        assert_eq!(config.agents.len(), 10);
         assert!(config.mcp_servers.is_empty());
-        // Settings stays unset so the daemon's normal defaulting path
-        // (see `MaenifoldSettings::default`) drives runtime tuning rather
-        // than the bootstrap freezing in stale numbers.
-        assert!(config.settings.is_none());
+        // Bootstrap sets a UI default selection so the picker isn't at
+        // the mercy of HashMap iteration order. See the
+        // `defaultAgent` field on MaenifoldSettings for the contract.
+        assert_eq!(
+            config.settings.as_ref().and_then(|s| s.default_agent.as_deref()),
+            Some("Copilot CLI"),
+        );
     }
 
     #[test]

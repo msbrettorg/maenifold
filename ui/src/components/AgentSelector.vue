@@ -14,6 +14,11 @@ const selectedAgent = defineModel<string>('selected', { default: '' });
 const agents = computed(() => configStore.agentNames);
 const hasAgents = computed(() => configStore.hasAgents);
 const configPath = computed(() => configStore.configPath);
+// Preferred default agent name from `settings.defaultAgent` in
+// `~/maenifold/maenifold.json`. The store returns `undefined` when
+// unset or pointing at an unknown agent so we fall back to the first
+// agent in config order.
+const defaultAgentName = computed<string | undefined>(() => configStore.defaultAgentName);
 // On mobile / web the config-file path is not actionable (sandbox /
 // localStorage). Point users at the Settings dialog instead of the path.
 const restricted = restrictedTransports();
@@ -29,11 +34,18 @@ const agentLabels = computed<Record<string, string>>(() => {
   return out;
 });
 
-// Auto-select first agent when agents are available and none selected
+// Auto-select the preferred default agent when none is selected yet.
+// The preferred name comes from `settings.defaultAgent` in
+// `~/maenifold/maenifold.json` -- no hardcoded fallback. If the
+// configured default isn't installed (or no default is set), fall back
+// to the first agent in config order so the picker is never empty.
 watch(agents, (newAgents) => {
   if (newAgents.length > 0 && !selectedAgent.value) {
-    selectedAgent.value = newAgents[0];
-    emit('select', newAgents[0]);
+    const preferred = defaultAgentName.value && newAgents.includes(defaultAgentName.value)
+      ? defaultAgentName.value
+      : newAgents[0];
+    selectedAgent.value = preferred;
+    emit('select', preferred);
   }
 }, { immediate: true });
 

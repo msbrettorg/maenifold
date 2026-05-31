@@ -28,6 +28,31 @@ export interface AgentConfig {
 
 export interface AgentsConfig {
   agents: Record<string, AgentConfig>;
+  /**
+   * Optional UI settings the daemon owns. The Tauri loader passes the
+   * whole settings object through; the UI only reads
+   * `settings.defaultAgent` today.
+   */
+  settings?: MaenifoldSettings;
+}
+
+/**
+ * Subset of `MaenifoldSettings` (from `crates/maenifold-core::acp::config::settings`)
+ * the UI cares about. Defined as `Record<string, unknown>` for the bag of
+ * daemon-owned fields the UI doesn't touch, with explicit typing for the
+ * fields the UI actually reads.
+ */
+export interface MaenifoldSettings {
+  /**
+   * Preferred default agent name for the picker. When present and the
+   * named agent exists in `agents`, AgentSelector auto-selects it. When
+   * unset or pointing at an unknown agent, the picker falls back to the
+   * first agent. Edit this in `~/maenifold/maenifold.json` under
+   * `settings.defaultAgent`.
+   */
+  defaultAgent?: string;
+  // Other daemon-owned settings tunnelled through unchanged.
+  [key: string]: unknown;
 }
 
 /** Returns the effective transport kind for an agent config. */

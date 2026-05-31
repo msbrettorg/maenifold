@@ -135,6 +135,7 @@ mod tests {
     fn infer_runtime_kind_maps_command_binary() {
         let entry = AgentEntry {
             command: "/usr/local/bin/claude --print".to_string(),
+            args: None,
             env: HashMap::new(),
             env_from_file: HashMap::new(),
             env_from_command: HashMap::new(),
@@ -151,6 +152,7 @@ mod tests {
     fn infer_runtime_kind_rejects_empty_command() {
         let entry = AgentEntry {
             command: "  ".to_string(),
+            args: None,
             env: HashMap::new(),
             env_from_file: HashMap::new(),
             env_from_command: HashMap::new(),
@@ -168,6 +170,7 @@ mod tests {
     fn infer_runtime_kind_rejects_mock_runtime() {
         let entry = AgentEntry {
             command: "mock".to_string(),
+            args: None,
             env: HashMap::new(),
             env_from_file: HashMap::new(),
             env_from_command: HashMap::new(),

@@ -570,27 +570,68 @@ export const useSessionStore = defineStore('session', () => {
     isLoading.value = true;
     error.value = null;
 
+    // Tear down any stale acpClient before standing up a new one.
+    // Without this, double-clicking a saved session (or resuming after a
+    // dropped connection) leaks the prior subprocess and races two
+    // initialize() requests on different transports.
+    if (acpClient) {
+      try {
+        await acpClient.disconnect();
+      } catch (cleanupErr) {
+        console.warn('disconnect of stale client during resume failed:', cleanupErr);
+      }
+      acpClient = null;
+    }
+    // Reset replay buffers up-front so the agent's session/load replay
+    // streams into a clean slate instead of duplicating history.
+    messages.value = [];
+    toolCalls.value.clear();
+    configOptions.value = [];
+    availableCommands.value = [];
+
+    const configStore = useConfigStore();
+    const agentConfig: AgentConfig | undefined = configStore.getAgent(savedSession.agentName);
+    const transportKind = agentConfig
+      ? getTransportKind(agentConfig)
+      : 'stdio';
+    const isRemote = transportKind !== 'stdio';
+
+    // Stdio agents emit startup diagnostics on stderr (npm download
+    // progress, agent boot errors, OAuth prompts, etc.). createSession
+    // already captures them; resumeSession used to ignore them and
+    // surface a useless "transport closed: agent process exited" when
+    // the agent died at startup. Capture them here too so the user gets
+    // an actionable error.
+    let spawnedInstance: { id: string } | null = null;
+
     try {
-      const configStore = useConfigStore();
-      const agentConfig: AgentConfig | undefined = configStore.getAgent(savedSession.agentName);
       if (!agentConfig) {
         throw new Error(`Agent '${savedSession.agentName}' not found in config`);
       }
 
-      // Create ACP client bridge (transport selected based on agent config).
-      acpClient = await createAcpClient({
-        name: savedSession.agentName,
-        config: agentConfig,
-      });
+      if (!isRemote) {
+        const agentInstance = await spawnAgent(savedSession.agentName);
+        spawnedInstance = agentInstance;
+
+        stderrUnlisten = await onAgentStderr((stderr) => {
+          if (stderr.agent_id !== agentInstance.id) return;
+          startupLogs.value.push(stderr.line);
+        }) as unknown as () => void;
+
+        acpClient = await createAcpClient(agentInstance);
+        spawnedInstance = null;
+      } else {
+        acpClient = await createAcpClient({
+          name: savedSession.agentName,
+          config: agentConfig,
+        });
+      }
+
       acpClient.onSessionUpdate = handleSessionUpdate;
-      // Surface unexpected transport closes (e.g. WebSocket dropped while idle,
-      // local agent process crashed) so the UI doesn't sit on a stale
-      // "connected" view forever.
       acpClient.onTransportClose = (reason) => {
         handleUnexpectedClose(reason);
       };
 
-      // Sync bridge's pendingPermissionRequest to store's pendingPermission
       watch(
         () => acpClient?.pendingPermissionRequest.value,
         (newValue) => {
@@ -622,34 +663,32 @@ export const useSessionStore = defineStore('session', () => {
       // Store available auth methods for potential retry
       const availableAuthMethods = initResponse.authMethods || [];
 
-      // Clear messages BEFORE loadSession - the agent will stream replay via notifications
-      messages.value = [];
-      toolCalls.value.clear();
-
-      // Try to load existing session - may fail with auth_required
+      // Try to load existing session — may fail with auth_required.
+      // The agent replays the conversation via session/update notifications
+      // during this call; handleSessionUpdate above appends them to
+      // `messages` so the history is visible by the time we return.
+      let loadResponse;
       try {
-        await acpClient.loadSession({
+        loadResponse = await acpClient.loadSession({
           sessionId: savedSession.sessionId,
           cwd: savedSession.cwd,
           mcpServers: [],
         });
       } catch (sessionError: unknown) {
-        // Check if auth is required (error code -32000)
         const errorMessage = sessionError instanceof Error ? sessionError.message : String(sessionError);
         const isAuthRequired = errorMessage.toLowerCase().includes('authentication required') ||
                                errorMessage.includes('-32000');
-        
+
         if (isAuthRequired && availableAuthMethods.length > 0) {
           console.log('Authentication required, available methods:', availableAuthMethods);
-          
-          // Prompt user to select auth method
+
           const selectedMethodId = await promptForAuthMethod(availableAuthMethods, savedSession.agentName);
-          
+
           if (!selectedMethodId) {
             await acpClient.disconnect();
             throw new Error('Authentication cancelled by user');
           }
-          
+
           console.log('Authenticating with method:', selectedMethodId);
           const authResponse = await acpClient.authenticate({
             methodId: selectedMethodId,
@@ -657,7 +696,7 @@ export const useSessionStore = defineStore('session', () => {
           console.log('Authentication successful:', authResponse);
 
           // Retry loading session after auth
-          await acpClient.loadSession({
+          loadResponse = await acpClient.loadSession({
             sessionId: savedSession.sessionId,
             cwd: savedSession.cwd,
             mcpServers: [],
@@ -667,9 +706,18 @@ export const useSessionStore = defineStore('session', () => {
         }
       }
 
+      // Hydrate session config options from the LoadSessionResponse. The
+      // resume path used to discard this — leaving the top-right picker
+      // row empty after every resume even when the agent returned the
+      // canonical configOptions snapshot. See:
+      //   https://agentclientprotocol.com/protocol/session-config-options
+      const respConfigOptions = (loadResponse as unknown as { configOptions?: unknown[] }).configOptions;
+      if (Array.isArray(respConfigOptions)) {
+        configOptions.value = respConfigOptions as SessionConfigOption[];
+      }
+
       currentSession.value = savedSession;
       isConnected.value = true;
-      // Messages already populated by session/update notifications during loadSession
 
       // Track successful session resume
       trackEvent('SessionResumed', { agentName: savedSession.agentName, success: 'true' });
@@ -679,7 +727,33 @@ export const useSessionStore = defineStore('session', () => {
       await saveSessionsToStore();
 
     } catch (e) {
-      error.value = e instanceof Error ? e.message : String(e);
+      // Detect "session not found" responses from the agent. The saved
+      // sessionId persists in localStorage across UI launches, but many
+      // ACP agents (e.g. GitHub Copilot) keep session state in-process
+      // only — so a saved session from a prior agent run is permanently
+      // dead. Remove it from the saved list so it stops cluttering the
+      // resume picker, and surface an actionable message instead of the
+      // raw JSON-RPC error.
+      const baseMessage = e instanceof Error ? e.message : String(e);
+      const isStaleSession = /resource not found|session.*not found|-32002/i.test(baseMessage);
+      if (isStaleSession) {
+        try {
+          await deleteSession(savedSession.id);
+        } catch (delErr) {
+          console.warn('deleteSession after stale-resume cleanup failed:', delErr);
+        }
+      }
+
+      // Stitch any captured stderr into the error so the user sees what
+      // actually broke instead of just "transport closed".
+      const stderrTail = startupLogs.value.slice(-5).filter((l) => l.trim().length > 0);
+      const composedMessage = isStaleSession
+        ? `Session is no longer available on the agent (it was pruned). Removed from saved sessions — start a new one.`
+        : (stderrTail.length > 0
+            ? `${baseMessage}\nAgent stderr (last ${stderrTail.length} lines):\n${stderrTail.join('\n')}`
+            : baseMessage);
+      error.value = composedMessage;
+
       // Disconnect the bridge if it was created — otherwise we leak the
       // spawned stdio process or open WebSocket on initialize/loadSession
       // failure.
@@ -690,13 +764,22 @@ export const useSessionStore = defineStore('session', () => {
           console.warn('disconnect during resumeSession cleanup failed:', cleanupErr);
         }
         acpClient = null;
+      } else if (spawnedInstance) {
+        try {
+          await killAgent(spawnedInstance.id);
+        } catch (cleanupErr) {
+          console.warn('killAgent during resumeSession cleanup failed:', cleanupErr);
+        }
       }
-      // Track session resume failure
       trackEvent('SessionResumed', { agentName: savedSession.agentName, success: 'false' });
       trackError(e instanceof Error ? e : new Error(String(e)));
       throw e;
     } finally {
       isLoading.value = false;
+      if (stderrUnlisten) {
+        stderrUnlisten();
+        stderrUnlisten = null;
+      }
     }
   }
 

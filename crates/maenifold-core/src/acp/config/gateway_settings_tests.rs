@@ -8,6 +8,7 @@ fn config_with_agent(name: &str) -> AgentsConfig {
         name.to_string(),
         AgentEntry {
             command: "/bin/echo".to_string(),
+            args: None,
             env: HashMap::new(),
             env_from_file: HashMap::new(),
             env_from_command: HashMap::new(),

@@ -472,8 +472,10 @@ function clearError() {
               >
                 <span class="welcome-action-icon">💬</span>
                 <span class="welcome-action-label">
-                  <strong>New session</strong>
-                  <small>{{ selectedAgent ? `with ${selectedAgent}` : 'select an agent first' }}</small>
+                  <strong>Start session</strong>
+                  <small>{{ selectedAgent
+                      ? `Open a new conversation`
+                      : 'Choose an agent in the sidebar first' }}</small>
                 </span>
               </button>
               <button

@@ -26,6 +26,19 @@ export const useConfigStore = defineStore('config', () => {
 
   const hasAgents = computed(() => agentNames.value.length > 0);
 
+  /**
+   * Preferred default agent name from `settings.defaultAgent` in
+   * maenifold.json. Returns `undefined` when unset OR when the named
+   * agent isn't in the agents map (so callers can fall back to first).
+   * Single source of truth for the picker's auto-selection logic --
+   * keeps the choice configurable without code edits.
+   */
+  const defaultAgentName = computed<string | undefined>(() => {
+    const name = config.value.settings?.defaultAgent;
+    if (!name || typeof name !== 'string') return undefined;
+    return agentNames.value.includes(name) ? name : undefined;
+  });
+
   /** Transport kind for an agent (defaults to 'stdio' for unknown names). */
   function getAgentTransportKind(name: string): AgentTransportKind {
     const c = config.value.agents[name];
@@ -101,6 +114,7 @@ export const useConfigStore = defineStore('config', () => {
     stdioAgentNames,
     remoteAgentNames,
     hasAgents,
+    defaultAgentName,
     getAgentTransportKind,
     loadConfig,
     reload,

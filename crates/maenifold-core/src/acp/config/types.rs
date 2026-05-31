@@ -181,6 +181,13 @@ pub struct EnvFromCommand {
 #[serde(rename_all = "camelCase")]
 pub struct AgentEntry {
     pub command: String,
+    /// Optional explicit argv. When present, `command_parts()` returns
+    /// these directly instead of whitespace-splitting `command`. Required
+    /// when the binary path contains spaces (e.g. Windows
+    /// `C:\Program Files\nodejs\npx.cmd`) — splitting on whitespace would
+    /// otherwise produce `C:\Program` as the binary and fail to spawn.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub args: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub env: HashMap<String, String>,
     #[serde(
@@ -201,6 +208,12 @@ pub struct AgentEntry {
 
 impl AgentEntry {
     pub fn command_parts(&self) -> (&str, Vec<&str>) {
+        if let Some(args) = self.args.as_ref() {
+            return (
+                self.command.as_str(),
+                args.iter().map(String::as_str).collect(),
+            );
+        }
         let mut parts = self.command.split_whitespace();
         let binary = parts.next().unwrap_or("");
         let args = parts.collect();

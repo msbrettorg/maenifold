@@ -3,8 +3,7 @@ import { ref, computed, nextTick, watch } from 'vue';
 import { marked } from 'marked';
 import { useSessionStore } from '../stores/session';
 import { isMobile } from '../lib/platform';
-import ModePicker from './ModePicker.vue';
-import ModelPicker from './ModelPicker.vue';
+import ConfigOptionPicker from './ConfigOptionPicker.vue';
 import CommandPalette from './CommandPalette.vue';
 import type { SlashCommand } from '../lib/types';
 
@@ -25,10 +24,7 @@ const messages = computed(() => sessionStore.messageList);
 const isLoading = computed(() => sessionStore.isLoading);
 const isReconnecting = computed(() => sessionStore.isReconnecting);
 const currentSession = computed(() => sessionStore.currentSession);
-const availableModes = computed(() => sessionStore.availableModes);
-const currentModeId = computed(() => sessionStore.currentModeId);
-const availableModels = computed(() => sessionStore.availableModels);
-const currentModelId = computed(() => sessionStore.currentModelId);
+const configOptions = computed(() => sessionStore.configOptions);
 const availableCommands = computed(() => sessionStore.availableCommands);
 
 // Slash command state
@@ -102,19 +98,11 @@ function handleCancel() {
   sessionStore.cancelOperation();
 }
 
-async function handleModeChange(modeId: string) {
+async function handleConfigOptionChange(configId: string, value: string | boolean): Promise<void> {
   try {
-    await sessionStore.setMode(modeId);
+    await sessionStore.setConfigOption(configId, value);
   } catch (e) {
-    console.error('Failed to change mode:', e);
-  }
-}
-
-async function handleModelChange(modelId: string) {
-  try {
-    await sessionStore.setModel(modelId);
-  } catch (e) {
-    console.error('Failed to change model:', e);
+    console.error('Failed to change config option:', configId, e);
   }
 }
 
@@ -164,19 +152,15 @@ function getStatusIcon(status: string): string {
     <div class="chat-header">
       <h2>{{ currentSession?.title || 'Chat' }}</h2>
       <div class="header-right">
-        <ModelPicker 
-          v-if="availableModels.length > 0"
-          :models="availableModels"
-          :current-model-id="currentModelId"
+        <!-- Session config option pickers per ACP spec
+             (https://agentclientprotocol.com/protocol/session-config-options).
+             Order follows the Agent's array — earliest options first. -->
+        <ConfigOptionPicker
+          v-for="option in configOptions"
+          :key="option.id"
+          :option="option"
           :disabled="isLoading"
-          @change="handleModelChange"
-        />
-        <ModePicker 
-          v-if="availableModes.length > 0"
-          :modes="availableModes"
-          :current-mode-id="currentModeId"
-          :disabled="isLoading"
-          @change="handleModeChange"
+          @change="(v) => handleConfigOptionChange(option.id, v)"
         />
         <span class="agent-name">{{ currentSession?.agentName }}</span>
       </div>

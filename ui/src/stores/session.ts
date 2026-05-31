@@ -4,7 +4,7 @@ import { ref, computed, watch } from 'vue';
 import { loadKvStore, type KVStore } from '../lib/host/storage';
 import { getAppVersion } from '../lib/host';
 import { trackEvent, trackError } from '../lib/telemetry';
-import type { SavedSession, ChatMessage, ToolCallInfo, PermissionRequest, SessionMode, SlashCommand, ModelInfo, AgentConfig } from '../lib/types';
+import type { SavedSession, ChatMessage, ToolCallInfo, PermissionRequest, SlashCommand, SessionConfigOption, AgentConfig } from '../lib/types';
 import { getTransportKind } from '../lib/types';
 import { AcpClientBridge, createAcpClient } from '../lib/acp-bridge';
 import { onAgentStderr, spawnAgent, killAgent } from '../lib/host';
@@ -58,16 +58,15 @@ export const useSessionStore = defineStore('session', () => {
   const pendingAuthAgentName = ref<string>('');
   let authMethodResolver: ((methodId: string | null) => void) | null = null;
   
-  // Session modes
-  const availableModes = ref<SessionMode[]>([]);
-  const currentModeId = ref<string>('');
-  
+  // Session config options — canonical ACP surface (replaces the
+  // deprecated session-modes + session-models pickers). Each option is a
+  // self-describing selector the Agent advertises at session start and
+  // updates via `config_option_update` notifications. See:
+  //   https://agentclientprotocol.com/protocol/session-config-options
+  const configOptions = ref<SessionConfigOption[]>([]);
+
   // Slash commands
   const availableCommands = ref<SlashCommand[]>([]);
-  
-  // Session models
-  const availableModels = ref<ModelInfo[]>([]);
-  const currentModelId = ref<string>('');
   
   // Connection cancellation
   let connectionAborted = false;
@@ -233,9 +232,24 @@ export const useSessionStore = defineStore('session', () => {
         break;
 
       case 'current_mode_update':
-        // Agent changed the mode
+        // Legacy ACP path — agents on configOptions emit `config_option_update`
+        // instead. We still surface the change so a legacy agent (one that
+        // hasn't migrated yet) gets its picker updated, by mapping the
+        // modeId into the `category: "mode"` configOption when present.
         if ('modeId' in update && update.modeId) {
-          currentModeId.value = update.modeId as string;
+          const modeOpt = configOptions.value.find(o => o.category === 'mode' && o.type === 'select');
+          if (modeOpt && modeOpt.type === 'select') {
+            modeOpt.currentValue = update.modeId as string;
+          }
+        }
+        break;
+
+      case 'config_option_update':
+        // Agent advertised the new authoritative configOptions snapshot.
+        // Per spec the `configOptions` array IS the full state — replace
+        // wholesale rather than merging.
+        if ('configOptions' in update && Array.isArray(update.configOptions)) {
+          configOptions.value = update.configOptions as unknown as SessionConfigOption[];
         }
         break;
 
@@ -500,30 +514,16 @@ export const useSessionStore = defineStore('session', () => {
       // Track successful session creation
       trackEvent('SessionCreated', { agentName, success: 'true' });
       
-      // Set up session modes if available
-      if (sessionResponse.modes) {
-        availableModes.value = (sessionResponse.modes.availableModes || []).map(m => ({
-          id: m.id,
-          name: m.name,
-          description: m.description ?? undefined,
-        }));
-        currentModeId.value = sessionResponse.modes.currentModeId || '';
+      // Hydrate session config options from the new ACP surface. Per spec
+      // (https://agentclientprotocol.com/protocol/session-config-options)
+      // `configOptions` is the canonical replacement for `modes` and
+      // `models`; Agents that still emit those legacy fields will also
+      // mirror them under `configOptions`. We only consume the latter.
+      const respConfigOptions = (sessionResponse as unknown as { configOptions?: unknown[] }).configOptions;
+      if (Array.isArray(respConfigOptions)) {
+        configOptions.value = respConfigOptions as SessionConfigOption[];
       } else {
-        availableModes.value = [];
-        currentModeId.value = '';
-      }
-
-      // Set up session models if available
-      if (sessionResponse.models) {
-        availableModels.value = (sessionResponse.models.availableModels || []).map(m => ({
-          modelId: m.modelId,
-          name: m.name,
-          description: m.description ?? undefined,
-        }));
-        currentModelId.value = sessionResponse.models.currentModelId || '';
-      } else {
-        availableModels.value = [];
-        currentModelId.value = '';
+        configOptions.value = [];
       }
 
     } catch (e) {
@@ -816,11 +816,8 @@ export const useSessionStore = defineStore('session', () => {
     isConnected.value = false;
     messages.value = [];
     toolCalls.value.clear();
-    availableModes.value = [];
-    currentModeId.value = '';
     availableCommands.value = [];
-    availableModels.value = [];
-    currentModelId.value = '';
+    configOptions.value = [];
   }
 
   // Delete saved session
@@ -829,34 +826,42 @@ export const useSessionStore = defineStore('session', () => {
     await saveSessionsToStore();
   }
 
-  // Set session mode
-  async function setMode(modeId: string): Promise<void> {
+  /**
+   * Change a session configuration option (the canonical ACP surface that
+   * replaced session/set_mode + session/set_model). The Agent returns the
+   * full updated `configOptions` snapshot; we replace local state with that
+   * authoritative response rather than guessing optimistically.
+   *
+   * `value` is `string` for `type: "select"` options or `boolean` for
+   * `type: "boolean"` options.
+   */
+  async function setConfigOption(configId: string, value: string | boolean): Promise<void> {
     if (!acpClient || !currentSession.value) {
       throw new Error('No active session');
     }
-    
-    await acpClient.setMode({
-      sessionId: currentSession.value.sessionId,
-      modeId,
-    });
-    
-    // Optimistically update the current mode
-    currentModeId.value = modeId;
-  }
 
-  // Set session model
-  async function setModel(modelId: string): Promise<void> {
-    if (!acpClient || !currentSession.value) {
-      throw new Error('No active session');
-    }
-    
-    await acpClient.unstable_setSessionModel({
+    const response = await acpClient.setConfigOption({
       sessionId: currentSession.value.sessionId,
-      modelId,
+      configId,
+      value,
     });
-    
-    // Optimistically update the current model
-    currentModelId.value = modelId;
+
+    if (response && Array.isArray(response.configOptions)) {
+      configOptions.value = response.configOptions as unknown as SessionConfigOption[];
+    } else {
+      // Fall back to optimistic update if the agent's response shape is
+      // incomplete — keep the UI responsive but log so we can debug.
+      console.warn('setConfigOption: agent response missing configOptions, applying optimistic update');
+      const opt = configOptions.value.find((o) => o.id === configId);
+      if (opt) {
+        // Reassign through a typed lane so TS keeps the discriminated union sound.
+        if (opt.type === 'select' && typeof value === 'string') {
+          opt.currentValue = value;
+        } else if (opt.type === 'boolean' && typeof value === 'boolean') {
+          opt.currentValue = value;
+        }
+      }
+    }
   }
 
   function clearError() {
@@ -929,11 +934,8 @@ export const useSessionStore = defineStore('session', () => {
     pendingPermission,
     pendingAuthMethods,
     pendingAuthAgentName,
-    availableModes,
-    currentModeId,
+    configOptions,
     availableCommands,
-    availableModels,
-    currentModelId,
     startupPhase,
     startupLogs,
     startupElapsed,
@@ -957,8 +959,7 @@ export const useSessionStore = defineStore('session', () => {
     cancelAuthSelection,
     disconnect,
     deleteSession,
-    setMode,
-    setModel,
+    setConfigOption,
     clearError,
     tryReconnect,
     

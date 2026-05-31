@@ -341,12 +341,38 @@ export class AcpClientBridge implements Client {
     await this.sendNotification('session/cancel', params);
   }
 
-  async setMode(params: { sessionId: string; modeId: string }): Promise<void> {
-    await this.sendRequest('session/set_mode', params);
-  }
-
-  async unstable_setSessionModel(params: { sessionId: string; modelId: string }): Promise<void> {
-    await this.sendRequest('session/set_model', params);
+  /**
+   * Set a session configuration option (the canonical ACP surface that
+   * replaces the deprecated session/set_mode and session/set_model methods).
+   *
+   * For `type: "select"` options pass `{ value: <string id> }`.
+   * For `type: "boolean"` options pass `{ type: "boolean", value: <bool> }`.
+   * The wire body merges these alternatives with the common envelope per
+   * SetSessionConfigOptionRequest in the ACP schema.
+   *
+   * Returns the agent's authoritative updated `configOptions` snapshot so
+   * callers don't have to optimistically guess. See:
+   *   https://agentclientprotocol.com/protocol/session-config-options
+   */
+  async setConfigOption(params: {
+    sessionId: string;
+    configId: string;
+    value: string | boolean;
+  }): Promise<{ configOptions: unknown[] }> {
+    const body =
+      typeof params.value === 'boolean'
+        ? {
+            sessionId: params.sessionId,
+            configId: params.configId,
+            type: 'boolean',
+            value: params.value,
+          }
+        : {
+            sessionId: params.sessionId,
+            configId: params.configId,
+            value: params.value,
+          };
+    return this.sendRequest('session/set_config_option', body);
   }
 
   async authenticate(params: AuthenticateRequest): Promise<AuthenticateResponse> {

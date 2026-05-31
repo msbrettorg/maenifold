@@ -108,18 +108,6 @@ export interface PermissionOption {
   optionId: string;
 }
 
-// Session Modes
-export interface SessionMode {
-  id: string;
-  name: string;
-  description?: string;
-}
-
-export interface SessionModeState {
-  currentModeId: string;
-  availableModes: SessionMode[];
-}
-
 // Slash Commands
 export interface SlashCommand {
   name: string;
@@ -127,9 +115,65 @@ export interface SlashCommand {
   hint?: string;
 }
 
-// Models
-export interface ModelInfo {
-  modelId: string;
+// Session Config Options — preferred ACP surface, replaces deprecated
+// session-modes and session-models. See:
+//   https://agentclientprotocol.com/protocol/session-config-options
+//
+// Mirrors @agentclientprotocol/sdk's `SessionConfigOption`, but kept
+// independent so the Vue layer doesn't import deep schema types directly.
+
+/** Semantic category — reserved names per spec, plus `_…` for custom. */
+export type ConfigOptionCategory = 'mode' | 'model' | 'thought_level' | string;
+
+export interface ConfigSelectOption {
+  value: string;
   name: string;
   description?: string;
+}
+
+export interface ConfigSelectGroup {
+  group: string;
+  name: string;
+  options: ConfigSelectOption[];
+}
+
+/**
+ * Wire shape from the agent: either a flat list of options or grouped lists.
+ * Helpers should always normalize via `flattenSelectOptions`.
+ */
+export type ConfigSelectOptions = ConfigSelectOption[] | ConfigSelectGroup[];
+
+export interface ConfigOptionBase {
+  id: string;
+  name: string;
+  description?: string;
+  category?: ConfigOptionCategory;
+}
+
+export interface ConfigOptionSelect extends ConfigOptionBase {
+  type: 'select';
+  currentValue: string;
+  options: ConfigSelectOptions;
+}
+
+export interface ConfigOptionBoolean extends ConfigOptionBase {
+  type: 'boolean';
+  currentValue: boolean;
+}
+
+export type SessionConfigOption = ConfigOptionSelect | ConfigOptionBoolean;
+
+/** Set-option request value: select takes a string id, boolean takes a bool. */
+export type SessionConfigValue =
+  | { type: 'select'; value: string }
+  | { type: 'boolean'; value: boolean };
+
+/** Flatten grouped select options for renderers that don't care about groups. */
+export function flattenSelectOptions(opts: ConfigSelectOptions): ConfigSelectOption[] {
+  if (opts.length === 0) return [];
+  // ConfigSelectGroup has `.group`; ConfigSelectOption does not.
+  if ('group' in opts[0]) {
+    return (opts as ConfigSelectGroup[]).flatMap((g) => g.options);
+  }
+  return opts as ConfigSelectOption[];
 }

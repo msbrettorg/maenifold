@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ShieldCheck, GitBranch, Workflow } from '@lucide/vue';
 import { canPickFolder, pickFolder, loadKvStore, type KVStore } from './lib/host';
 import { useConfigStore } from './stores/config';
 import { useSessionStore } from './stores/session';
+import { useAppShellStore } from './stores/appShell';
 import { initTelemetry } from './lib/telemetry';
 import AgentSelector from './components/AgentSelector.vue';
 import SessionList from './components/SessionList.vue';
@@ -12,10 +14,24 @@ import SettingsView from './components/SettingsView.vue';
 import AuthMethodDialog from './components/AuthMethodDialog.vue';
 import TrafficMonitor from './components/TrafficMonitor.vue';
 import StartupProgress from './components/StartupProgress.vue';
+import TabBar from './components/TabBar.vue';
+import HomeView from './components/HomeView.vue';
+import PlaceholderView from './components/PlaceholderView.vue';
 import type { SavedSession } from './lib/types';
 
 const configStore = useConfigStore();
 const sessionStore = useSessionStore();
+const shell = useAppShellStore();
+
+// Keep a live session visible: whenever a session becomes active or starts
+// (re)connecting, surface the Agents tab so the chat / startup progress is
+// never hidden behind the Home landing page.
+watch(
+  () => sessionStore.isConnected || sessionStore.isConnecting || sessionStore.isReconnecting,
+  (active) => {
+    if (active) shell.setActiveTab('agents');
+  }
+);
 
 const selectedAgent = ref('');
 const selectedCwd = ref('');
@@ -267,7 +283,17 @@ function clearError() {
 </script>
 
 <template>
-  <div class="app-container" :class="{ 'narrow-layout': isNarrowLayout }">
+  <div class="app-shell">
+    <TabBar />
+
+    <div class="tab-content">
+    <!-- Agents tab: the full sidebar + main layout. Rendered with v-show so an
+         active session / chat stays mounted while the user visits other tabs. -->
+    <div
+      v-show="shell.activeTab === 'agents'"
+      class="app-container"
+      :class="{ 'narrow-layout': isNarrowLayout }"
+    >
     <!-- Sidebar (slides in as a drawer on narrow viewports) -->
     <aside
       v-show="showSidebar"
@@ -508,7 +534,38 @@ function clearError() {
         <TrafficMonitor @close="showTrafficMonitor = false" />
       </div>
     </div>
-    
+    </div>
+    <!-- /Agents tab -->
+
+      <!-- Home tab -->
+      <HomeView
+        v-if="shell.activeTab === 'home'"
+        :version="APP_VERSION"
+        @new-session="handleNewSession"
+        @resume-session="handleResumeSession"
+      />
+      <!-- Placeholder tabs (infrastructure-only this sprint) -->
+      <PlaceholderView
+        v-else-if="shell.activeTab === 'gate'"
+        :icon="ShieldCheck"
+        title="Gates"
+        description="Track gated delivery tasks and pipeline state at a glance. This surface is coming soon."
+      />
+      <PlaceholderView
+        v-else-if="shell.activeTab === 'pipelines'"
+        :icon="GitBranch"
+        title="Pipelines"
+        description="Compose and run multi-step agent pipelines. This surface is coming soon."
+      />
+      <PlaceholderView
+        v-else-if="shell.activeTab === 'workflows'"
+        :icon="Workflow"
+        title="Workflows"
+        description="Browse and author reusable reasoning workflows. This surface is coming soon."
+      />
+    </div>
+    <!-- /tab-content -->
+
     <!-- Permission Dialog -->
     <PermissionDialog 
       v-if="pendingPermission"
@@ -553,6 +610,7 @@ function clearError() {
   --text-accent: #0066cc;
   --text-code: #abb2bf;
   --border-color: #e0e0e0;
+  --tabbar-height: 52px;
   
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
   font-size: 16px;
@@ -591,9 +649,30 @@ html, body, #app {
 </style>
 
 <style scoped>
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.tab-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Each tab view fills the content area. */
+.tab-content > * {
+  flex: 1;
+  min-width: 0;
+}
+
 .app-container {
   display: flex;
-  height: 100vh;
+  height: 100%;
+  width: 100%;
   overflow: hidden;
 }
 
@@ -1103,7 +1182,7 @@ html, body, #app {
 
   .sidebar.is-drawer {
     position: fixed;
-    top: 0;
+    top: var(--tabbar-height);
     left: 0;
     bottom: 0;
     width: 85vw;
@@ -1117,7 +1196,10 @@ html, body, #app {
   .drawer-backdrop {
     display: block;
     position: fixed;
-    inset: 0;
+    top: var(--tabbar-height);
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: rgba(0, 0, 0, 0.4);
     z-index: 90;
   }
@@ -1132,7 +1214,7 @@ html, body, #app {
     align-items: center;
     justify-content: center;
     position: fixed;
-    top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
+    top: calc(var(--tabbar-height) + env(safe-area-inset-top, 0px) + 0.5rem);
     left: 0.5rem;
     z-index: 50;
     width: 44px;

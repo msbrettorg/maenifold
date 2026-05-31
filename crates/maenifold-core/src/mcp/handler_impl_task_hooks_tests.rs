@@ -48,8 +48,9 @@ fn pipeline_request(name: &str) -> CallToolRequestParams {
 }
 
 async fn enqueue_pipeline(name: &str) -> String {
+    let driver = crate::test_util::fake_exit_zero_binary();
     let previous = std::env::var("MAENIFOLD_PIPELINE_DRIVER").ok();
-    unsafe { std::env::set_var("MAENIFOLD_PIPELINE_DRIVER", "/usr/bin/true") };
+    unsafe { std::env::set_var("MAENIFOLD_PIPELINE_DRIVER", &driver) };
     let result = task_hooks::enqueue_task(pipeline_request(name))
         .await
         .expect("enqueue");

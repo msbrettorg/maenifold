@@ -108,8 +108,9 @@ fn run_pipeline_persists_merged_inputs_before_driver_spawn() {
     )]);
     seed_pipeline_session_with_node_sessions(&context, session_id, definition, node_states, 1);
 
+    let driver = crate::test_util::fake_exit_zero_binary();
     let previous_driver = std::env::var("MAENIFOLD_PIPELINE_DRIVER").ok();
-    unsafe { std::env::set_var("MAENIFOLD_PIPELINE_DRIVER", "/usr/bin/true") };
+    unsafe { std::env::set_var("MAENIFOLD_PIPELINE_DRIVER", &driver) };
     let result = handle_lifecycle_operation(
         &context,
         session_id,

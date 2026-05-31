@@ -13,7 +13,7 @@ const CLEAN_CANCEL_TIMEOUT: Duration = Duration::from_secs(3);
 static TEST_CLEAN_CANCEL_HANGS: std::sync::atomic::AtomicBool =
     std::sync::atomic::AtomicBool::new(false);
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(super) fn set_test_clean_cancel_hangs(hangs: bool) {
     TEST_CLEAN_CANCEL_HANGS.store(hangs, std::sync::atomic::Ordering::SeqCst);
 }

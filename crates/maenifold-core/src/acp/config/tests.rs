@@ -300,18 +300,9 @@ fn agent_entry_env_sources_default_empty() {
     );
 }
 
-#[test]
-fn test_real_maenifold_json_core() {
-    let home = std::env::var("HOME").expect("HOME should be set");
-    let root = std::path::Path::new(&home).join("maenifold");
-    let config = AgentsConfig::load(&root).expect("real maenifold config should load");
-
-    assert!(
-        !config.mcp_servers.is_empty(),
-        "expected at least one top-level mcp server from {}",
-        root.join("maenifold.json").display()
-    );
-}
+// Removed: test_real_maenifold_json_core was a dev-machine smoke test (read
+// developer's actual $HOME/maenifold/maenifold.json). Deleted in favor of
+// proper unit tests that own their fixtures.
 
 #[test]
 fn agents_config_settings_optional() {

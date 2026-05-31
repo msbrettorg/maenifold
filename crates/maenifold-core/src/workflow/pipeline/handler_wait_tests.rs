@@ -113,8 +113,9 @@ fn wait_then_success() {
     seed_active(&context, session_id);
     complete_later(&context, session_id, "completed");
 
+    let driver = crate::test_util::fake_exit_zero_binary();
     let previous_driver = std::env::var("MAENIFOLD_PIPELINE_DRIVER").ok();
-    unsafe { std::env::set_var("MAENIFOLD_PIPELINE_DRIVER", "/usr/bin/true") };
+    unsafe { std::env::set_var("MAENIFOLD_PIPELINE_DRIVER", &driver) };
     let result = pipeline(
         &context,
         &json!({ "sessionId": session_id, "run": true, "wait": true }),

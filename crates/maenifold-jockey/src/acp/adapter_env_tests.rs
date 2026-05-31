@@ -6,7 +6,27 @@ use std::sync::{Mutex, MutexGuard};
 static ENV_LOCK: Mutex<()> = Mutex::new(());
 
 fn lock_env() -> MutexGuard<'static, ()> {
-    ENV_LOCK.lock().expect("lock environment mutex")
+    // The mutex guards a unit `()` — there is no invariant to protect, so
+    // poisoning is purely cosmetic. Recover the guard even when poisoned so a
+    // single panicking test doesn't cascade across the whole adapter-env suite.
+    ENV_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+fn echo_cmd() -> String {
+    crate::test_util::fake_echo_binary().to_string_lossy().to_string()
+}
+
+fn agent_command(suffix: &str) -> String {
+    format!(
+        "{} {suffix}",
+        crate::test_util::fake_echo_binary().display()
+    )
+}
+
+fn always_fail_cmd() -> String {
+    crate::test_util::fake_exit_one_binary().to_string_lossy().to_string()
 }
 
 #[test]
@@ -48,7 +68,7 @@ fn env_from_file_resolves_value() {
         json!({
             "agents": {
                 "codex": {
-                    "command": "/bin/echo adapter",
+                    "command": agent_command("adapter"),
                     "envFromFile": {
                         "AZURE_OPENAI_API_KEY": "~/.tmp-t-324-2-test-key"
                     }
@@ -81,7 +101,7 @@ fn env_from_file_missing_fails_preflight() {
         json!({
             "agents": {
                 "codex": {
-                    "command": "/bin/echo adapter",
+                    "command": agent_command("adapter"),
                     "envFromFile": {
                         "AZURE_OPENAI_API_KEY": missing.to_string_lossy()
                     },
@@ -116,10 +136,10 @@ fn env_from_command_resolves_value() {
         json!({
             "agents": {
                 "codex": {
-                    "command": "/bin/echo adapter",
+                    "command": agent_command("adapter"),
                     "envFromCommand": {
                         "AZURE_OPENAI_API_KEY": {
-                            "command": "/bin/echo",
+                            "command": echo_cmd(),
                             "args": ["command-key"]
                         }
                     }
@@ -145,10 +165,10 @@ fn env_from_command_nonzero_exit_fails_preflight() {
         json!({
             "agents": {
                 "codex": {
-                    "command": "/bin/echo adapter",
+                    "command": agent_command("adapter"),
                     "envFromCommand": {
                         "AZURE_OPENAI_API_KEY": {
-                            "command": "/usr/bin/false",
+                            "command": always_fail_cmd(),
                             "args": []
                         }
                     },
@@ -168,7 +188,7 @@ fn env_from_command_nonzero_exit_fails_preflight() {
 
     assert!(err.contains("preflight"), "{err}");
     assert!(err.contains("AZURE_OPENAI_API_KEY"), "{err}");
-    assert!(err.contains("/usr/bin/false"), "{err}");
+    assert!(err.contains(&always_fail_cmd()), "{err}");
 }
 
 #[test]
@@ -200,17 +220,17 @@ fn precedence_literal_overrides_command_overrides_file_overrides_passthrough() {
             },
             "agents": {
                 "codex": {
-                    "command": "/bin/echo adapter",
+                    "command": agent_command("adapter"),
                     "env": {
                         "T324_LITERAL": "literal-value"
                     },
                     "envFromCommand": {
                         "T324_LITERAL": {
-                            "command": "/bin/echo",
+                            "command": echo_cmd(),
                             "args": ["command-ignored"]
                         },
                         "T324_COMMAND": {
-                            "command": "/bin/echo",
+                            "command": echo_cmd(),
                             "args": ["command-value"]
                         }
                     },
@@ -240,3 +260,4 @@ fn precedence_literal_overrides_command_overrides_file_overrides_passthrough() {
         std::env::remove_var("T324_PASSTHROUGH");
     }
 }
+

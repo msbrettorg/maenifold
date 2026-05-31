@@ -36,6 +36,8 @@ fn expands_multi_value_fields() {
     assert!(xml.contains("<key>Weekday</key><integer>1</integer>"));
     assert!(xml.contains("<key>Weekday</key><integer>5</integer>"));
 }
+/// plutil only ships with macOS; gate the syntactic validity check to macOS.
+#[cfg(target_os = "macos")]
 #[test]
 fn renders_valid_weekday_plist_xml() {
     let plist = render_plist(&task("0 9 * * 1-5"), std::path::Path::new("/bin/maenifold"))

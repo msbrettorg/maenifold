@@ -184,11 +184,19 @@ mod tests {
     #[test]
     fn resolve_agent_maps_codex_display_name_to_runtime_id() {
         let root = tempdir().expect("temp root");
-        std::fs::write(
-            root.path().join("maenifold.json"),
-            r#"{"agents":{"codex-cli":{"command":"/bin/sh codex"}}}"#,
-        )
-        .expect("write config");
+        // Use a real executable path so `validate_agent_entry` (which checks
+        // absolute + exists + executable) accepts the agent on every platform.
+        // The first arg ("codex") drives `infer_runtime_kind` to "codex-cli".
+        let stub = crate::test_util::fake_exit_zero_binary();
+        let config = serde_json::to_string(&serde_json::json!({
+            "agents": {
+                "codex-cli": {
+                    "command": format!("{} codex", stub.display())
+                }
+            }
+        }))
+        .expect("config json");
+        std::fs::write(root.path().join("maenifold.json"), config).expect("write config");
 
         assert_eq!(
             resolve_agent(root.path(), "Codex")

@@ -1,14 +1,18 @@
 use super::ToolContext;
 use super::ort_runtime_catalog::{
-    OrtRuntimeCatalogEntry, load_ort_runtime_catalog_from_str, ort_runtime_dylib_filename,
-    pick_ort_runtime_entry,
+    OrtRuntimeCatalogEntry, load_ort_runtime_catalog_from_str, pick_ort_runtime_entry,
 };
+#[cfg(target_os = "macos")]
+use super::ort_runtime_catalog::ort_runtime_dylib_filename;
 use crate::config::Config;
 use crate::mcp::schema::EmbeddingModelsParams;
 use crate::tools::embedding_models::embedding_models;
 use crate::util::json::OutputFormat;
 use serde_json::json;
-use std::path::{Path, PathBuf};
+#[cfg(target_os = "macos")]
+use std::path::Path;
+#[cfg(target_os = "macos")]
+use std::path::PathBuf;
 
 struct ResetConfigOverrides;
 
@@ -84,6 +88,12 @@ fn ort_runtime_platform_picker_errors_when_platform_missing() {
     );
 }
 
+/// ORT runtime catalog is only consumed on macOS (where the daemon downloads
+/// the runtime on-demand). Windows ships ORT as bundled DLLs in `assets/lib/`
+/// via a different loading path; the catalog has no Windows entry by design.
+/// Linux/aarch64 etc. ship via the same on-demand mechanism so the entry-must-
+/// exist invariant only applies on macOS.
+#[cfg(target_os = "macos")]
 #[test]
 fn ort_runtime_catalog_asset_must_exist_for_host_platform() {
     let catalog_path = repo_root()
@@ -170,6 +180,7 @@ fn fixture_entries() -> Vec<OrtRuntimeCatalogEntry> {
     .expect("fixture catalog")
 }
 
+#[cfg(target_os = "macos")]
 fn repo_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("..")

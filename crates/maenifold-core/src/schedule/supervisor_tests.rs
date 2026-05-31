@@ -1,13 +1,20 @@
+#[cfg(unix)]
 use super::Supervisor;
+#[cfg(unix)]
 use super::apply_env_scrub;
 use super::{build_invocation, build_payload, parse_mcp_action};
-use crate::schedule::{ScheduleStore, ScheduledTask};
+#[cfg(unix)]
+use crate::schedule::ScheduleStore;
+use crate::schedule::ScheduledTask;
 use chrono::Utc;
 use serde_json::{Value, json};
+#[cfg(unix)]
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
+#[cfg(unix)]
 use std::path::{Path, PathBuf};
+#[cfg(unix)]
 use std::process::Command;
 
 fn task() -> ScheduledTask {
@@ -69,6 +76,9 @@ fn payload_threads_explicit_permission_fields() {
     );
 }
 
+/// Uses /usr/bin/env to inspect the actual environment passed to a child
+/// process. Windows has no `env` builtin; the test fixture is unix-specific.
+#[cfg(unix)]
 #[test]
 #[serial_test::serial]
 fn supervisor_run_scrubs_environment() {
@@ -140,6 +150,8 @@ fn parameters_omitted_treated_as_empty_object() {
     assert_eq!(payload["parameters"], json!({}));
 }
 
+/// `supervisor_fixture` writes a `#!/bin/sh` script, so this test is unix-only.
+#[cfg(unix)]
 #[test]
 #[serial_test::serial]
 fn supervisor_run_persists_runrecord_sidecar_json() {
@@ -153,6 +165,8 @@ fn supervisor_run_persists_runrecord_sidecar_json() {
     assert_eq!(sidecar["mcp_action"], Value::Null);
 }
 
+/// `supervisor_fixture` writes a `#!/bin/sh` script, so this test is unix-only.
+#[cfg(unix)]
 #[test]
 #[serial_test::serial]
 fn supervisor_run_with_mcp_action_populates_sidecar_mcp_fields() {
@@ -168,6 +182,7 @@ fn supervisor_run_with_mcp_action_populates_sidecar_mcp_fields() {
     assert_eq!(sidecar["mcp_result"], json!({"ok": true}));
 }
 
+#[cfg(unix)]
 fn supervisor_fixture(
     id: &str,
     stdout: &str,
@@ -179,12 +194,12 @@ fn supervisor_fixture(
         format!("#!/bin/sh\nprintf '{}'\n", stdout.replace('\'', "'\\''")),
     )
     .expect("write fixture");
-    #[cfg(unix)]
     fs::set_permissions(&bin, fs::Permissions::from_mode(0o755)).expect("chmod fixture");
     let store = ScheduleStore::new(temp.path().join("schedules"));
     (temp, store, task_with_id(id), bin)
 }
 
+#[cfg(unix)]
 fn task_with_id(id: &str) -> ScheduledTask {
     let mut task = task();
     task.id = id.to_string();
@@ -192,6 +207,7 @@ fn task_with_id(id: &str) -> ScheduledTask {
     task
 }
 
+#[cfg(unix)]
 fn read_only_sidecar(id: &str, root: &Path) -> Value {
     let logs = root.join("schedules").join(id).join("logs");
     let path = fs::read_dir(logs)

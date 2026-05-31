@@ -4,7 +4,10 @@ use agent_client_protocol_schema::McpServerStdio;
 use serde_json::json;
 use std::time::Duration;
 
-const PYTHON: &str = "/usr/bin/python3";
+fn python() -> String {
+    crate::test_util::locate_python3().to_string_lossy().to_string()
+}
+
 const TIMEOUT_SERVER: &str = r#"
 import json, sys, time
 def read_message():
@@ -30,6 +33,7 @@ while True:
     elif method == "tools/call":
         time.sleep(60)
 "#;
+#[cfg(unix)]
 const GRANDCHILD_TIMEOUT_SERVER: &str = r#"
 import json, subprocess, sys, time
 marker = sys.argv[1]
@@ -61,7 +65,7 @@ while True:
 #[tokio::test]
 async fn stdio_session_timeout_poisoning_blocks_followup_calls() {
     let session = StdioSession::start(
-        &McpServerStdio::new("slow-server".to_string(), PYTHON.to_string()).args(vec![
+        &McpServerStdio::new("slow-server".to_string(), python()).args(vec![
             "-u".to_string(),
             "-c".to_string(),
             TIMEOUT_SERVER.to_string(),
@@ -91,12 +95,17 @@ async fn stdio_session_timeout_poisoning_blocks_followup_calls() {
     session.shutdown().await;
 }
 
+/// On unix this test exercises the SIGKILL-to-process-group path. Windows
+/// uses Job Objects for the same "kill children" semantic but the marker-file
+/// race is harder to observe deterministically without longer sleeps; gate to
+/// unix so we keep coverage where the implementation matters most.
+#[cfg(unix)]
 #[tokio::test]
 async fn stdio_session_timeout_kills_process_group_children() {
     let dir = tempfile::tempdir().expect("tempdir should be created");
     let marker = dir.path().join("grandchild-survived");
     let session = StdioSession::start(
-        &McpServerStdio::new("spawn-server".to_string(), PYTHON.to_string()).args(vec![
+        &McpServerStdio::new("spawn-server".to_string(), python()).args(vec![
             "-u".to_string(),
             "-c".to_string(),
             GRANDCHILD_TIMEOUT_SERVER.to_string(),

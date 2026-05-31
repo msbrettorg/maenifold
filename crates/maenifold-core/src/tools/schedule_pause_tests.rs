@@ -81,6 +81,9 @@ fn pause_all_uninstalls_disabled_with_discrepancy() {
     );
     assert_eq!(p[0]["installed"], false);
 }
+/// launchctl/systemd is required for the partial-failure path; Windows lacks
+/// both. Gate to the platforms that have a real scheduler.
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 #[test]
 fn pause_all_partial_os_failure() {
     let (temp, c) = ctx();
@@ -97,6 +100,7 @@ fn pause_all_partial_os_failure() {
     assert!(crate::schedule::pause_state::path(&c.config.maenifold_root).exists());
     assert!(!schedule_store(&c).read(&beta).expect("beta").enabled);
 }
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 #[test]
 fn resume_all_restores_prior() {
     let (temp, c) = ctx();
@@ -120,6 +124,7 @@ fn resume_all_when_not_paused_noop() {
     assert_eq!(p["ok"], true);
     assert_eq!(p["message"], "Schedules were not paused.");
 }
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 #[test]
 fn resume_all_skips_deleted() {
     let (temp, c) = ctx();
@@ -159,6 +164,7 @@ fn set_all_enabled_rejects_during_pause() {
         matches!(r,Err(MaenifoldError::InvalidArgument(message)) if message=="Cannot bulk-toggle schedules while pause-all is active. Use Schedule action=resume_all to clear pause state first.")
     );
 }
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 #[test]
 fn set_all_enabled_changes_only_diff() {
     let (temp, c) = ctx();

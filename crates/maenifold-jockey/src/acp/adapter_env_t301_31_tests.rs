@@ -85,7 +85,10 @@ fn validate_env_t301_31_fails_when_env_from_command_command_fails() {
 
 #[test]
 fn validate_env_t301_31_passes_when_env_from_command_command_succeeds() {
-    let entry = json!({ "envFromCommand": { "TOKEN": "echo my-token" } });
+    let echo = crate::test_util::fake_echo_binary();
+    let entry = json!({
+        "envFromCommand": { "TOKEN": format!("{} my-token", echo.display()) }
+    });
 
     let env = resolved_map(&entry);
 

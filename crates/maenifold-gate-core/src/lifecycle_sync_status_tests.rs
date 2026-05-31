@@ -143,7 +143,12 @@ fn status_surfaces_malformed_task_id_with_path_expected_and_actual() {
     let row = single_status(root.path());
     assert_eq!(row["state"], "error");
     let issue = row["issue"].as_str().expect("issue string");
-    assert!(issue.contains("todo/T-243.2.0-delta-review.md"));
+    // Normalize path separators so the test passes on both unix (`/`) and Windows (`\`).
+    let issue_normalized = issue.replace('\\', "/");
+    assert!(
+        issue_normalized.contains("todo/T-243.2.0-delta-review.md"),
+        "issue should reference the malformed path; got: {issue}"
+    );
     assert!(issue.contains("expected format T-{sprint}.{N}.md or T-{sprint}.{N}.{M}.md"));
     assert!(issue.contains("actual id 'T-243.2.0'"));
 }

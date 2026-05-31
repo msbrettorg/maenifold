@@ -176,8 +176,8 @@ fn gate_submachine_resume_uses_persisted_target_path() {
         read_markdown(&host_uri, &context.config).expect("read host after register");
     let frontmatter = frontmatter.expect("frontmatter after register");
     assert_eq!(
-        frontmatter_string(&frontmatter, "activeSubmachineTarget"),
-        authoritative_task.to_string_lossy()
+        std::path::Path::new(&frontmatter_string(&frontmatter, "activeSubmachineTarget")),
+        authoritative_task.as_path()
     );
 
     let resumed = maybe_resume_submachine(

@@ -191,7 +191,7 @@ async fn insert_mock_connection(
                 conn: std::rc::Rc::new(client_conn),
                 session_id: acp::SessionId::new("session-1"),
                 resumed: false,
-                cwd: "/".to_string(),
+                cwd: super::super::super::adapter::resolve_cwd("/"),
                 delta_slot: Arc::new(Mutex::new(None)),
                 child_pid: None,
                 _io_task: tokio::task::spawn_local(async {}),

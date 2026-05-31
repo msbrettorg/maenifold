@@ -83,9 +83,12 @@ fn report_writer_uses_sprint_output_directory() {
         levels: Vec::new(),
     };
     let path = write_report(root.path(), &report).expect("report writes");
+    // Compare with forward-slash normalization so the test passes on Windows
+    // (where the path contains `\`) and unix (where it already uses `/`).
+    let path_str = path.to_string_lossy().replace('\\', "/");
     assert!(
-        path.to_string_lossy()
-            .contains("outputs/intent-resolver/sprint-221/experiment-")
+        path_str.contains("outputs/intent-resolver/sprint-221/experiment-"),
+        "report path should be in the sprint directory, got: {path_str}"
     );
     assert!(path.exists());
 }

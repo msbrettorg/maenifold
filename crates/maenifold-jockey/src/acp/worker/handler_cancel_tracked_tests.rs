@@ -1,14 +1,24 @@
+#[cfg(unix)]
 use super::*;
+#[cfg(unix)]
 use agent_client_protocol::{Agent, ByteStreams, Client, ConnectionTo};
+#[cfg(unix)]
 use std::path::PathBuf;
+#[cfg(unix)]
 use std::rc::Rc;
+#[cfg(unix)]
 use std::sync::{Arc, Mutex};
+#[cfg(unix)]
 use std::time::{Duration, Instant};
+#[cfg(unix)]
 use tokio::sync::mpsc;
+#[cfg(unix)]
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 
+#[cfg(unix)]
 use super::super::pool::{CANCEL_HANDLES, CONN_MAP, CancelHandle, LiveConnection};
 
+#[cfg(unix)]
 async fn insert_tracked_connection(key: &str, session_id: acp::SessionId) {
     let (client_stream, agent_stream) = tokio::io::duplex(8192);
     let (client_read, client_write) = tokio::io::split(client_stream);
@@ -125,7 +135,7 @@ async fn insert_tracked_connection(key: &str, session_id: acp::SessionId) {
                 conn: conn.clone(),
                 session_id: session_id.clone(),
                 resumed: false,
-                cwd: "/".to_string(),
+                cwd: super::super::super::adapter::resolve_cwd("/"),
                 delta_slot: Arc::new(Mutex::new(None::<mpsc::Sender<_>>)),
                 child_pid,
                 _io_task: tokio::task::spawn_local(async {}),
@@ -145,6 +155,11 @@ async fn insert_tracked_connection(key: &str, session_id: acp::SessionId) {
     });
 }
 
+/// This test asserts the unix-specific "process-group kill" fallback path
+/// (`outcome.killed_process_group`) and spawns `sleep 30` to have a killable
+/// child. Windows uses Job Objects instead of PGIDs and lacks a `sleep`
+/// binary; gate to unix.
+#[cfg(unix)]
 #[tokio::test(flavor = "current_thread")]
 async fn cancel_tracked_session_falls_through_to_pg_kill_on_timeout() {
     let local = tokio::task::LocalSet::new();

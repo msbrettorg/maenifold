@@ -37,7 +37,7 @@
             "default": null,
             "description": "Optional max turns override",
             "format": "uint32",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": [
               "integer",
               "null"
@@ -85,9 +85,9 @@
           },
           "timeoutSeconds": {
             "default": null,
-            "description": "Optional execution timeout in seconds. When set, cancels the operation if it exceeds this duration. Connection timeout is configured separately in maenifold.json settings.",
+            "description": "Optional execution timeout in seconds. When set, cancels the operation\nif it exceeds this duration. Connection timeout is configured separately\nin maenifold.json settings.",
             "format": "uint32",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": [
               "integer",
               "null"
@@ -105,7 +105,7 @@
             "default": null,
             "description": "Estimated number of thoughts for think mode",
             "format": "uint32",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": [
               "integer",
               "null"
@@ -158,8 +158,8 @@
           }
         },
         "required": [
-          "identifier",
-          "type"
+          "type",
+          "identifier"
         ],
         "title": "AdoptParams",
         "type": "object"
@@ -184,7 +184,7 @@
             "default": 50,
             "description": "Maximum variants to include",
             "format": "uint32",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": "integer"
           }
         },
@@ -317,7 +317,7 @@
             "default": 2,
             "description": "How many graph hops to traverse",
             "format": "uint32",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": "integer"
           },
           "includeContent": {
@@ -329,7 +329,7 @@
             "default": 20,
             "description": "Maximum related entities to return",
             "format": "uint32",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": "integer"
           }
         },
@@ -408,7 +408,7 @@
             "default": null,
             "description": "Expected match count when operation is find_replace",
             "format": "uint32",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": [
               "integer",
               "null"
@@ -455,9 +455,9 @@
           }
         },
         "required": [
-          "content",
           "identifier",
-          "operation"
+          "operation",
+          "content"
         ],
         "title": "EditMemoryParams",
         "type": "object"
@@ -474,52 +474,38 @@
               {
                 "oneOf": [
                   {
+                    "const": "status",
                     "description": "Get current loaded model info",
-                    "enum": [
-                      "status"
-                    ],
                     "type": "string"
                   },
                   {
+                    "const": "list",
                     "description": "List curated models with install/active status",
-                    "enum": [
-                      "list"
-                    ],
                     "type": "string"
                   },
                   {
+                    "const": "download",
                     "description": "Download a model from HuggingFace into the managed catalog (subdir layout)",
-                    "enum": [
-                      "download"
-                    ],
                     "type": "string"
                   },
                   {
+                    "const": "download-runtime",
                     "description": "Download ONNX Runtime dylib into assets/lib for vector embedding sync.",
-                    "enum": [
-                      "download-runtime"
-                    ],
                     "type": "string"
                   },
                   {
+                    "const": "activate",
                     "description": "Set the active model (writes config; daemon restart + sync required to apply)",
-                    "enum": [
-                      "activate"
-                    ],
                     "type": "string"
                   },
                   {
+                    "const": "delete",
                     "description": "Delete an installed model from disk (refuses to delete the active model)",
-                    "enum": [
-                      "delete"
-                    ],
                     "type": "string"
                   },
                   {
+                    "const": "regenerate",
                     "description": "Drop vec0 tables and clear embedding dimensions metadata (rebuild on next sync)",
-                    "enum": [
-                      "regenerate"
-                    ],
                     "type": "string"
                   }
                 ]
@@ -616,7 +602,7 @@
             "default": 10,
             "description": "Maximum number of similar concepts to return",
             "format": "uint32",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": "integer"
           }
         },
@@ -797,8 +783,8 @@
           }
         },
         "required": [
-          "destination",
-          "source"
+          "source",
+          "destination"
         ],
         "title": "MoveMemoryParams",
         "type": "object"
@@ -824,679 +810,657 @@
             "type": "string"
           },
           "definition": {
-            "allOf": [
-              {
-                "additionalProperties": false,
-                "properties": {
-                  "edges": {
-                    "description": "Pipeline edges connecting nodes",
-                    "items": {
-                      "oneOf": [
-                        {
-                          "properties": {
-                            "type": {
-                              "enum": [
-                                "success"
-                              ],
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "type"
-                          ],
-                          "type": "object"
-                        },
-                        {
-                          "properties": {
-                            "type": {
-                              "enum": [
-                                "always"
-                              ],
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "type"
-                          ],
-                          "type": "object"
-                        },
-                        {
-                          "properties": {
-                            "equals": {
-                              "description": "Expected JSON value at `path`"
-                            },
-                            "path": {
-                              "description": "JSON path within upstream output to inspect",
-                              "type": "string"
-                            },
-                            "type": {
-                              "enum": [
-                                "conditional"
-                              ],
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "equals",
-                            "path",
-                            "type"
-                          ],
-                          "type": "object"
-                        }
-                      ],
+            "additionalProperties": false,
+            "description": "Pipeline definition with nodes[] and edges[]",
+            "properties": {
+              "edges": {
+                "description": "Pipeline edges connecting nodes",
+                "items": {
+                  "oneOf": [
+                    {
                       "properties": {
-                        "source": {
-                          "description": "Upstream node identifier",
-                          "type": "string"
-                        },
-                        "target": {
-                          "description": "Downstream node identifier",
+                        "type": {
+                          "const": "success",
                           "type": "string"
                         }
                       },
                       "required": [
-                        "source",
-                        "target"
+                        "type"
                       ],
                       "type": "object"
                     },
-                    "type": "array"
-                  },
-                  "inputs": {
-                    "additionalProperties": true,
-                    "default": null,
-                    "description": "Optional pipeline inputs persisted with the definition and session",
-                    "type": "object"
-                  },
-                  "nodes": {
-                    "description": "Pipeline nodes to execute",
-                    "items": {
-                      "oneOf": [
-                        {
-                          "additionalProperties": false,
-                          "description": "A workflow pipeline node",
-                          "properties": {
-                            "acpClient": {
-                              "description": "Optional ACP client",
-                              "type": "string"
-                            },
-                            "adopt": {
-                              "additionalProperties": false,
-                              "description": "Per-node adoption configuration applied before prompt dispatch",
-                              "properties": {
-                                "color": {
-                                  "description": "Optional color asset identifier to adopt",
-                                  "type": "string"
-                                },
-                                "perspective": {
-                                  "description": "Optional perspective asset identifier to adopt",
-                                  "type": "string"
-                                },
-                                "role": {
-                                  "description": "Optional role asset identifier to adopt",
-                                  "type": "string"
-                                }
-                              },
-                              "type": "object"
-                            },
-                            "cwd": {
-                              "description": "Optional working directory for this node",
-                              "type": "string"
-                            },
-                            "displayLabel": {
-                              "description": "Optional presentation-only label for UI surfaces",
-                              "type": "string"
-                            },
-                            "id": {
-                              "description": "New node identifier",
-                              "type": "string"
-                            },
-                            "inputSchema": {
-                              "additionalProperties": true,
-                              "description": "Optional JSON Schema describing the node input artifact",
-                              "type": "object"
-                            },
-                            "joinPolicy": {
-                              "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
-                              "enum": [
-                                "all",
-                                "any",
-                                "first"
-                              ],
-                              "type": "string"
-                            },
-                            "outputSchema": {
-                              "additionalProperties": true,
-                              "description": "Optional JSON Schema for structured node output",
-                              "type": "object"
-                            },
-                            "prompt": {
-                              "description": "Optional prompt for workflow nodes",
-                              "type": "string"
-                            },
-                            "requiresRole": {
-                              "description": "Optional required role identifier for adopt validation",
-                              "type": "string"
-                            },
-                            "retryBackoffMaxMs": {
-                              "description": "Optional maximum retry backoff in milliseconds",
-                              "format": "uint64",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "retryBackoffMinMs": {
-                              "description": "Optional minimum retry backoff in milliseconds",
-                              "format": "uint64",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "retryJitter": {
-                              "description": "Optional jitter toggle for retry backoff",
-                              "type": "boolean"
-                            },
-                            "retryMaxAttempts": {
-                              "description": "Optional maximum transient retry attempts; 0 means no retry",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "timeout": {
-                              "description": "Optional timeout in seconds",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "type": {
-                              "description": "Workflow node type",
-                              "enum": [
-                                "workflow"
-                              ],
-                              "type": "string"
-                            },
-                            "workflowId": {
-                              "description": "Workflow definition to run",
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "id",
-                            "type",
-                            "workflowId"
-                          ],
-                          "type": "object"
-                        },
-                        {
-                          "additionalProperties": false,
-                          "properties": {
-                            "adopt": {
-                              "additionalProperties": false,
-                              "description": "Per-node adoption configuration applied before prompt dispatch",
-                              "properties": {
-                                "color": {
-                                  "description": "Optional color asset identifier to adopt",
-                                  "type": "string"
-                                },
-                                "perspective": {
-                                  "description": "Optional perspective asset identifier to adopt",
-                                  "type": "string"
-                                },
-                                "role": {
-                                  "description": "Optional role asset identifier to adopt",
-                                  "type": "string"
-                                }
-                              },
-                              "type": "object"
-                            },
-                            "agent": {
-                              "description": "ACP agent for prompt nodes",
-                              "type": "string"
-                            },
-                            "agentConfig": {
-                              "additionalProperties": false,
-                              "description": "Agent configuration for pipeline node execution",
-                              "properties": {
-                                "configOptions": {
-                                  "additionalProperties": true,
-                                  "description": "Arbitrary config options forwarded to the agent session",
-                                  "type": "object"
-                                },
-                                "mode": {
-                                  "description": "Session mode override for the agent session",
-                                  "type": "string"
-                                },
-                                "model": {
-                                  "description": "Model override for the agent session",
-                                  "type": "string"
-                                },
-                                "thoughtLevel": {
-                                  "description": "Thought level override for the agent session",
-                                  "type": "string"
-                                }
-                              },
-                              "type": "object"
-                            },
-                            "allowedTools": {
-                              "description": "Allowed tools override for prompt nodes",
-                              "items": {
-                                "type": "string"
-                              },
-                              "type": "array"
-                            },
-                            "cwd": {
-                              "description": "Optional working directory for this node",
-                              "type": "string"
-                            },
-                            "displayLabel": {
-                              "description": "Optional presentation-only label for UI surfaces",
-                              "type": "string"
-                            },
-                            "id": {
-                              "description": "New node identifier",
-                              "type": "string"
-                            },
-                            "inputSchema": {
-                              "additionalProperties": true,
-                              "description": "Optional JSON Schema describing the node input artifact",
-                              "type": "object"
-                            },
-                            "joinPolicy": {
-                              "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
-                              "enum": [
-                                "all",
-                                "any",
-                                "first"
-                              ],
-                              "type": "string"
-                            },
-                            "maxTurns": {
-                              "description": "Maximum turns for prompt nodes",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "model": {
-                              "description": "Model override for prompt nodes",
-                              "type": "string"
-                            },
-                            "outputSchema": {
-                              "additionalProperties": true,
-                              "description": "Optional JSON Schema for structured node output",
-                              "type": "object"
-                            },
-                            "prompt": {
-                              "description": "Prompt text for prompt nodes",
-                              "type": "string"
-                            },
-                            "requiresRole": {
-                              "description": "Optional required role identifier for adopt validation",
-                              "type": "string"
-                            },
-                            "retryBackoffMaxMs": {
-                              "description": "Optional maximum retry backoff in milliseconds",
-                              "format": "uint64",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "retryBackoffMinMs": {
-                              "description": "Optional minimum retry backoff in milliseconds",
-                              "format": "uint64",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "retryJitter": {
-                              "description": "Optional jitter toggle for retry backoff",
-                              "type": "boolean"
-                            },
-                            "retryMaxAttempts": {
-                              "description": "Optional maximum transient retry attempts; 0 means no retry",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "thoughtLevel": {
-                              "description": "Thought level override for prompt nodes",
-                              "type": "string"
-                            },
-                            "timeout": {
-                              "description": "Optional timeout in seconds",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "toolMode": {
-                              "description": "Tool mode for prompt nodes",
-                              "type": "string"
-                            },
-                            "type": {
-                              "description": "Node type 'prompt'",
-                              "enum": [
-                                "prompt"
-                              ],
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "agent",
-                            "id",
-                            "prompt",
-                            "type"
-                          ],
-                          "type": "object"
-                        },
-                        {
-                          "additionalProperties": false,
-                          "properties": {
-                            "adopt": {
-                              "additionalProperties": false,
-                              "description": "Per-node adoption configuration applied before prompt dispatch",
-                              "properties": {
-                                "color": {
-                                  "description": "Optional color asset identifier to adopt",
-                                  "type": "string"
-                                },
-                                "perspective": {
-                                  "description": "Optional perspective asset identifier to adopt",
-                                  "type": "string"
-                                },
-                                "role": {
-                                  "description": "Optional role asset identifier to adopt",
-                                  "type": "string"
-                                }
-                              },
-                              "type": "object"
-                            },
-                            "agent": {
-                              "description": "ACP agent for sequential thinking nodes",
-                              "type": "string"
-                            },
-                            "agentConfig": {
-                              "additionalProperties": false,
-                              "description": "Agent configuration for pipeline node execution",
-                              "properties": {
-                                "configOptions": {
-                                  "additionalProperties": true,
-                                  "description": "Arbitrary config options forwarded to the agent session",
-                                  "type": "object"
-                                },
-                                "mode": {
-                                  "description": "Session mode override for the agent session",
-                                  "type": "string"
-                                },
-                                "model": {
-                                  "description": "Model override for the agent session",
-                                  "type": "string"
-                                },
-                                "thoughtLevel": {
-                                  "description": "Thought level override for the agent session",
-                                  "type": "string"
-                                }
-                              },
-                              "type": "object"
-                            },
-                            "allowedTools": {
-                              "description": "Allowed tools override for sequential thinking nodes",
-                              "items": {
-                                "type": "string"
-                              },
-                              "type": "array"
-                            },
-                            "cwd": {
-                              "description": "Optional working directory for this node",
-                              "type": "string"
-                            },
-                            "displayLabel": {
-                              "description": "Optional presentation-only label for UI surfaces",
-                              "type": "string"
-                            },
-                            "id": {
-                              "description": "New node identifier",
-                              "type": "string"
-                            },
-                            "inputSchema": {
-                              "additionalProperties": true,
-                              "description": "Optional JSON Schema describing the node input artifact",
-                              "type": "object"
-                            },
-                            "joinPolicy": {
-                              "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
-                              "enum": [
-                                "all",
-                                "any",
-                                "first"
-                              ],
-                              "type": "string"
-                            },
-                            "maxTurns": {
-                              "description": "Maximum turns for sequential thinking nodes",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "model": {
-                              "description": "Model override for sequential thinking nodes",
-                              "type": "string"
-                            },
-                            "outputSchema": {
-                              "additionalProperties": true,
-                              "description": "Optional JSON Schema for structured node output",
-                              "type": "object"
-                            },
-                            "requiresRole": {
-                              "description": "Optional required role identifier for adopt validation",
-                              "type": "string"
-                            },
-                            "retryBackoffMaxMs": {
-                              "description": "Optional maximum retry backoff in milliseconds",
-                              "format": "uint64",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "retryBackoffMinMs": {
-                              "description": "Optional minimum retry backoff in milliseconds",
-                              "format": "uint64",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "retryJitter": {
-                              "description": "Optional jitter toggle for retry backoff",
-                              "type": "boolean"
-                            },
-                            "retryMaxAttempts": {
-                              "description": "Optional maximum transient retry attempts; 0 means no retry",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "thoughtLevel": {
-                              "description": "Thought level override for sequential thinking nodes",
-                              "type": "string"
-                            },
-                            "timeout": {
-                              "description": "Optional timeout in seconds",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "topic": {
-                              "description": "Topic for sequential thinking nodes",
-                              "type": "string"
-                            },
-                            "totalThoughts": {
-                              "description": "Thought count for thinking nodes",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "type": {
-                              "description": "Node type 'sequentialThinking'",
-                              "enum": [
-                                "sequentialThinking"
-                              ],
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "agent",
-                            "id",
-                            "topic",
-                            "totalThoughts",
-                            "type"
-                          ],
-                          "type": "object"
-                        },
-                        {
-                          "additionalProperties": false,
-                          "properties": {
-                            "agent": {
-                              "description": "Optional ACP agent for tool nodes",
-                              "type": "string"
-                            },
-                            "agentConfig": {
-                              "additionalProperties": false,
-                              "description": "Agent configuration for pipeline node execution",
-                              "properties": {
-                                "configOptions": {
-                                  "additionalProperties": true,
-                                  "description": "Arbitrary config options forwarded to the agent session",
-                                  "type": "object"
-                                },
-                                "mode": {
-                                  "description": "Session mode override for the agent session",
-                                  "type": "string"
-                                },
-                                "model": {
-                                  "description": "Model override for the agent session",
-                                  "type": "string"
-                                },
-                                "thoughtLevel": {
-                                  "description": "Thought level override for the agent session",
-                                  "type": "string"
-                                }
-                              },
-                              "type": "object"
-                            },
-                            "allowedTools": {
-                              "description": "Allowed tools override for tool nodes",
-                              "items": {
-                                "type": "string"
-                              },
-                              "type": "array"
-                            },
-                            "cwd": {
-                              "description": "Optional working directory for this node",
-                              "type": "string"
-                            },
-                            "displayLabel": {
-                              "description": "Optional presentation-only label for UI surfaces",
-                              "type": "string"
-                            },
-                            "id": {
-                              "description": "New node identifier",
-                              "type": "string"
-                            },
-                            "inputSchema": {
-                              "additionalProperties": true,
-                              "description": "Optional JSON Schema describing the node input artifact",
-                              "type": "object"
-                            },
-                            "joinPolicy": {
-                              "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
-                              "enum": [
-                                "all",
-                                "any",
-                                "first"
-                              ],
-                              "type": "string"
-                            },
-                            "maxTurns": {
-                              "description": "Maximum turns for tool nodes",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "model": {
-                              "description": "Model override for tool nodes",
-                              "type": "string"
-                            },
-                            "outputSchema": {
-                              "additionalProperties": true,
-                              "description": "Optional JSON Schema for structured node output",
-                              "type": "object"
-                            },
-                            "retryBackoffMaxMs": {
-                              "description": "Optional maximum retry backoff in milliseconds",
-                              "format": "uint64",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "retryBackoffMinMs": {
-                              "description": "Optional minimum retry backoff in milliseconds",
-                              "format": "uint64",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "retryJitter": {
-                              "description": "Optional jitter toggle for retry backoff",
-                              "type": "boolean"
-                            },
-                            "retryMaxAttempts": {
-                              "description": "Optional maximum transient retry attempts; 0 means no retry",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "thoughtLevel": {
-                              "description": "Thought level override for tool nodes",
-                              "type": "string"
-                            },
-                            "timeout": {
-                              "description": "Optional timeout in seconds",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "toolArgs": {
-                              "additionalProperties": true,
-                              "description": "Tool arguments for tool nodes",
-                              "type": "object"
-                            },
-                            "toolName": {
-                              "description": "MCP tool name for tool nodes",
-                              "type": "string"
-                            },
-                            "type": {
-                              "description": "Node type 'tool'",
-                              "enum": [
-                                "tool"
-                              ],
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "id",
-                            "toolName",
-                            "type"
-                          ],
-                          "type": "object"
+                    {
+                      "properties": {
+                        "type": {
+                          "const": "always",
+                          "type": "string"
                         }
-                      ]
+                      },
+                      "required": [
+                        "type"
+                      ],
+                      "type": "object"
                     },
-                    "type": "array"
+                    {
+                      "properties": {
+                        "equals": {
+                          "description": "Expected JSON value at `path`"
+                        },
+                        "path": {
+                          "description": "JSON path within upstream output to inspect",
+                          "type": "string"
+                        },
+                        "type": {
+                          "const": "conditional",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "path",
+                        "equals"
+                      ],
+                      "type": "object"
+                    }
+                  ],
+                  "properties": {
+                    "source": {
+                      "description": "Upstream node identifier",
+                      "type": "string"
+                    },
+                    "target": {
+                      "description": "Downstream node identifier",
+                      "type": "string"
+                    }
                   },
-                  "templateId": {
-                    "default": null,
-                    "description": "Optional template identifier preserved across pipeline round-trips",
-                    "type": "string"
-                  }
+                  "required": [
+                    "source",
+                    "target"
+                  ],
+                  "type": "object"
                 },
-                "required": [
-                  "edges",
-                  "nodes"
-                ],
+                "type": "array"
+              },
+              "inputs": {
+                "additionalProperties": true,
+                "default": null,
+                "description": "Optional pipeline inputs persisted with the definition and session",
                 "type": "object"
+              },
+              "nodes": {
+                "description": "Pipeline nodes to execute",
+                "items": {
+                  "oneOf": [
+                    {
+                      "additionalProperties": false,
+                      "description": "A workflow pipeline node",
+                      "properties": {
+                        "acpClient": {
+                          "description": "Optional ACP client",
+                          "type": "string"
+                        },
+                        "adopt": {
+                          "additionalProperties": false,
+                          "description": "Per-node adoption configuration applied before prompt dispatch",
+                          "properties": {
+                            "color": {
+                              "description": "Optional color asset identifier to adopt",
+                              "type": "string"
+                            },
+                            "perspective": {
+                              "description": "Optional perspective asset identifier to adopt",
+                              "type": "string"
+                            },
+                            "role": {
+                              "description": "Optional role asset identifier to adopt",
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "cwd": {
+                          "description": "Optional working directory for this node",
+                          "type": "string"
+                        },
+                        "displayLabel": {
+                          "description": "Optional presentation-only label for UI surfaces",
+                          "type": "string"
+                        },
+                        "id": {
+                          "description": "New node identifier",
+                          "type": "string"
+                        },
+                        "inputSchema": {
+                          "additionalProperties": true,
+                          "description": "Optional JSON Schema describing the node input artifact",
+                          "type": "object"
+                        },
+                        "joinPolicy": {
+                          "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
+                          "enum": [
+                            "all",
+                            "any",
+                            "first"
+                          ],
+                          "type": "string"
+                        },
+                        "outputSchema": {
+                          "additionalProperties": true,
+                          "description": "Optional JSON Schema for structured node output",
+                          "type": "object"
+                        },
+                        "prompt": {
+                          "description": "Optional prompt for workflow nodes",
+                          "type": "string"
+                        },
+                        "requiresRole": {
+                          "description": "Optional required role identifier for adopt validation",
+                          "type": "string"
+                        },
+                        "retryBackoffMaxMs": {
+                          "description": "Optional maximum retry backoff in milliseconds",
+                          "format": "uint64",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "retryBackoffMinMs": {
+                          "description": "Optional minimum retry backoff in milliseconds",
+                          "format": "uint64",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "retryJitter": {
+                          "description": "Optional jitter toggle for retry backoff",
+                          "type": "boolean"
+                        },
+                        "retryMaxAttempts": {
+                          "description": "Optional maximum transient retry attempts; 0 means no retry",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "timeout": {
+                          "description": "Optional timeout in seconds",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "type": {
+                          "description": "Workflow node type",
+                          "enum": [
+                            "workflow"
+                          ],
+                          "type": "string"
+                        },
+                        "workflowId": {
+                          "description": "Workflow definition to run",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "workflowId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "adopt": {
+                          "additionalProperties": false,
+                          "description": "Per-node adoption configuration applied before prompt dispatch",
+                          "properties": {
+                            "color": {
+                              "description": "Optional color asset identifier to adopt",
+                              "type": "string"
+                            },
+                            "perspective": {
+                              "description": "Optional perspective asset identifier to adopt",
+                              "type": "string"
+                            },
+                            "role": {
+                              "description": "Optional role asset identifier to adopt",
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "agent": {
+                          "description": "ACP agent for prompt nodes",
+                          "type": "string"
+                        },
+                        "agentConfig": {
+                          "additionalProperties": false,
+                          "description": "Agent configuration for pipeline node execution",
+                          "properties": {
+                            "configOptions": {
+                              "additionalProperties": true,
+                              "description": "Arbitrary config options forwarded to the agent session",
+                              "type": "object"
+                            },
+                            "model": {
+                              "description": "Model override for the agent session",
+                              "type": "string"
+                            },
+                            "thoughtLevel": {
+                              "description": "Thought level override for the agent session",
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "allowedTools": {
+                          "description": "Allowed tools override for prompt nodes",
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "cwd": {
+                          "description": "Optional working directory for this node",
+                          "type": "string"
+                        },
+                        "displayLabel": {
+                          "description": "Optional presentation-only label for UI surfaces",
+                          "type": "string"
+                        },
+                        "id": {
+                          "description": "New node identifier",
+                          "type": "string"
+                        },
+                        "inputSchema": {
+                          "additionalProperties": true,
+                          "description": "Optional JSON Schema describing the node input artifact",
+                          "type": "object"
+                        },
+                        "joinPolicy": {
+                          "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
+                          "enum": [
+                            "all",
+                            "any",
+                            "first"
+                          ],
+                          "type": "string"
+                        },
+                        "maxTurns": {
+                          "description": "Maximum turns for prompt nodes",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "model": {
+                          "description": "Model override for prompt nodes",
+                          "type": "string"
+                        },
+                        "outputSchema": {
+                          "additionalProperties": true,
+                          "description": "Optional JSON Schema for structured node output",
+                          "type": "object"
+                        },
+                        "prompt": {
+                          "description": "Prompt text for prompt nodes",
+                          "type": "string"
+                        },
+                        "requiresRole": {
+                          "description": "Optional required role identifier for adopt validation",
+                          "type": "string"
+                        },
+                        "retryBackoffMaxMs": {
+                          "description": "Optional maximum retry backoff in milliseconds",
+                          "format": "uint64",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "retryBackoffMinMs": {
+                          "description": "Optional minimum retry backoff in milliseconds",
+                          "format": "uint64",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "retryJitter": {
+                          "description": "Optional jitter toggle for retry backoff",
+                          "type": "boolean"
+                        },
+                        "retryMaxAttempts": {
+                          "description": "Optional maximum transient retry attempts; 0 means no retry",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "thoughtLevel": {
+                          "description": "Thought level override for prompt nodes",
+                          "type": "string"
+                        },
+                        "timeout": {
+                          "description": "Optional timeout in seconds",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "toolMode": {
+                          "description": "Tool mode for prompt nodes",
+                          "type": "string"
+                        },
+                        "type": {
+                          "description": "Node type 'prompt'",
+                          "enum": [
+                            "prompt"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "prompt",
+                        "agent"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "adopt": {
+                          "additionalProperties": false,
+                          "description": "Per-node adoption configuration applied before prompt dispatch",
+                          "properties": {
+                            "color": {
+                              "description": "Optional color asset identifier to adopt",
+                              "type": "string"
+                            },
+                            "perspective": {
+                              "description": "Optional perspective asset identifier to adopt",
+                              "type": "string"
+                            },
+                            "role": {
+                              "description": "Optional role asset identifier to adopt",
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "agent": {
+                          "description": "ACP agent for sequential thinking nodes",
+                          "type": "string"
+                        },
+                        "agentConfig": {
+                          "additionalProperties": false,
+                          "description": "Agent configuration for pipeline node execution",
+                          "properties": {
+                            "configOptions": {
+                              "additionalProperties": true,
+                              "description": "Arbitrary config options forwarded to the agent session",
+                              "type": "object"
+                            },
+                            "model": {
+                              "description": "Model override for the agent session",
+                              "type": "string"
+                            },
+                            "thoughtLevel": {
+                              "description": "Thought level override for the agent session",
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "allowedTools": {
+                          "description": "Allowed tools override for sequential thinking nodes",
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "cwd": {
+                          "description": "Optional working directory for this node",
+                          "type": "string"
+                        },
+                        "displayLabel": {
+                          "description": "Optional presentation-only label for UI surfaces",
+                          "type": "string"
+                        },
+                        "id": {
+                          "description": "New node identifier",
+                          "type": "string"
+                        },
+                        "inputSchema": {
+                          "additionalProperties": true,
+                          "description": "Optional JSON Schema describing the node input artifact",
+                          "type": "object"
+                        },
+                        "joinPolicy": {
+                          "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
+                          "enum": [
+                            "all",
+                            "any",
+                            "first"
+                          ],
+                          "type": "string"
+                        },
+                        "maxTurns": {
+                          "description": "Maximum turns for sequential thinking nodes",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "model": {
+                          "description": "Model override for sequential thinking nodes",
+                          "type": "string"
+                        },
+                        "outputSchema": {
+                          "additionalProperties": true,
+                          "description": "Optional JSON Schema for structured node output",
+                          "type": "object"
+                        },
+                        "requiresRole": {
+                          "description": "Optional required role identifier for adopt validation",
+                          "type": "string"
+                        },
+                        "retryBackoffMaxMs": {
+                          "description": "Optional maximum retry backoff in milliseconds",
+                          "format": "uint64",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "retryBackoffMinMs": {
+                          "description": "Optional minimum retry backoff in milliseconds",
+                          "format": "uint64",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "retryJitter": {
+                          "description": "Optional jitter toggle for retry backoff",
+                          "type": "boolean"
+                        },
+                        "retryMaxAttempts": {
+                          "description": "Optional maximum transient retry attempts; 0 means no retry",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "thoughtLevel": {
+                          "description": "Thought level override for sequential thinking nodes",
+                          "type": "string"
+                        },
+                        "timeout": {
+                          "description": "Optional timeout in seconds",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "topic": {
+                          "description": "Topic for sequential thinking nodes",
+                          "type": "string"
+                        },
+                        "totalThoughts": {
+                          "description": "Thought count for thinking nodes",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "type": {
+                          "description": "Node type 'sequentialThinking'",
+                          "enum": [
+                            "sequentialThinking"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "topic",
+                        "totalThoughts",
+                        "agent"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "agent": {
+                          "description": "Optional ACP agent for tool nodes",
+                          "type": "string"
+                        },
+                        "agentConfig": {
+                          "additionalProperties": false,
+                          "description": "Agent configuration for pipeline node execution",
+                          "properties": {
+                            "configOptions": {
+                              "additionalProperties": true,
+                              "description": "Arbitrary config options forwarded to the agent session",
+                              "type": "object"
+                            },
+                            "model": {
+                              "description": "Model override for the agent session",
+                              "type": "string"
+                            },
+                            "thoughtLevel": {
+                              "description": "Thought level override for the agent session",
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "allowedTools": {
+                          "description": "Allowed tools override for tool nodes",
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "cwd": {
+                          "description": "Optional working directory for this node",
+                          "type": "string"
+                        },
+                        "displayLabel": {
+                          "description": "Optional presentation-only label for UI surfaces",
+                          "type": "string"
+                        },
+                        "id": {
+                          "description": "New node identifier",
+                          "type": "string"
+                        },
+                        "inputSchema": {
+                          "additionalProperties": true,
+                          "description": "Optional JSON Schema describing the node input artifact",
+                          "type": "object"
+                        },
+                        "joinPolicy": {
+                          "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
+                          "enum": [
+                            "all",
+                            "any",
+                            "first"
+                          ],
+                          "type": "string"
+                        },
+                        "maxTurns": {
+                          "description": "Maximum turns for tool nodes",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "model": {
+                          "description": "Model override for tool nodes",
+                          "type": "string"
+                        },
+                        "outputSchema": {
+                          "additionalProperties": true,
+                          "description": "Optional JSON Schema for structured node output",
+                          "type": "object"
+                        },
+                        "retryBackoffMaxMs": {
+                          "description": "Optional maximum retry backoff in milliseconds",
+                          "format": "uint64",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "retryBackoffMinMs": {
+                          "description": "Optional minimum retry backoff in milliseconds",
+                          "format": "uint64",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "retryJitter": {
+                          "description": "Optional jitter toggle for retry backoff",
+                          "type": "boolean"
+                        },
+                        "retryMaxAttempts": {
+                          "description": "Optional maximum transient retry attempts; 0 means no retry",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "thoughtLevel": {
+                          "description": "Thought level override for tool nodes",
+                          "type": "string"
+                        },
+                        "timeout": {
+                          "description": "Optional timeout in seconds",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "toolArgs": {
+                          "additionalProperties": true,
+                          "description": "Tool arguments for tool nodes",
+                          "type": "object"
+                        },
+                        "toolName": {
+                          "description": "MCP tool name for tool nodes",
+                          "type": "string"
+                        },
+                        "type": {
+                          "description": "Node type 'tool'",
+                          "enum": [
+                            "tool"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "toolName"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              "templateId": {
+                "default": null,
+                "description": "Optional template identifier preserved across pipeline round-trips",
+                "type": "string"
               }
+            },
+            "required": [
+              "nodes",
+              "edges"
             ],
-            "description": "Pipeline definition with nodes[] and edges[]"
+            "type": "object"
           },
           "delete": {
             "default": false,
@@ -1514,37 +1478,33 @@
             "type": "boolean"
           },
           "fork": {
-            "allOf": [
+            "anyOf": [
               {
-                "anyOf": [
+                "description": "Node identifier where the forked subgraph starts",
+                "type": "string"
+              },
+              {
+                "allOf": [
                   {
-                    "description": "Node identifier where the forked subgraph starts",
-                    "type": "string"
-                  },
-                  {
-                    "allOf": [
-                      {
-                        "additionalProperties": false,
-                        "properties": {
-                          "fromNodeId": {
-                            "description": "Node identifier where the forked subgraph starts",
-                            "type": "string"
-                          },
-                          "newSessionId": {
-                            "default": null,
-                            "description": "Optional pipeline session identifier for the forked pipeline",
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "fromNodeId"
-                        ],
-                        "type": "object"
+                    "additionalProperties": false,
+                    "properties": {
+                      "fromNodeId": {
+                        "description": "Node identifier where the forked subgraph starts",
+                        "type": "string"
+                      },
+                      "newSessionId": {
+                        "default": null,
+                        "description": "Optional pipeline session identifier for the forked pipeline",
+                        "type": "string"
                       }
+                    },
+                    "required": [
+                      "fromNodeId"
                     ],
-                    "description": "Structured fork configuration with an optional session identifier override"
+                    "type": "object"
                   }
-                ]
+                ],
+                "description": "Structured fork configuration with an optional session identifier override"
               }
             ],
             "description": "Clone the selected node and downstream subgraph into a new pipeline session"
@@ -1560,668 +1520,646 @@
             "type": "string"
           },
           "graft": {
-            "allOf": [
-              {
-                "additionalProperties": false,
-                "properties": {
-                  "edges": {
-                    "description": "New pipeline edges to add",
-                    "items": {
-                      "oneOf": [
-                        {
-                          "properties": {
-                            "type": {
-                              "enum": [
-                                "success"
-                              ],
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "type"
-                          ],
-                          "type": "object"
-                        },
-                        {
-                          "properties": {
-                            "type": {
-                              "enum": [
-                                "always"
-                              ],
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "type"
-                          ],
-                          "type": "object"
-                        },
-                        {
-                          "properties": {
-                            "equals": {
-                              "description": "Expected JSON value at `path`"
-                            },
-                            "path": {
-                              "description": "JSON path within upstream output to inspect",
-                              "type": "string"
-                            },
-                            "type": {
-                              "enum": [
-                                "conditional"
-                              ],
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "equals",
-                            "path",
-                            "type"
-                          ],
-                          "type": "object"
-                        }
-                      ],
+            "additionalProperties": false,
+            "description": "Add new nodes and edges onto an existing pipeline session",
+            "properties": {
+              "edges": {
+                "description": "New pipeline edges to add",
+                "items": {
+                  "oneOf": [
+                    {
                       "properties": {
-                        "source": {
-                          "description": "Upstream node identifier",
-                          "type": "string"
-                        },
-                        "target": {
-                          "description": "Downstream node identifier",
+                        "type": {
+                          "const": "success",
                           "type": "string"
                         }
                       },
                       "required": [
-                        "source",
-                        "target"
+                        "type"
                       ],
                       "type": "object"
                     },
-                    "type": "array"
-                  },
-                  "nodes": {
-                    "description": "New pipeline nodes to append",
-                    "items": {
-                      "oneOf": [
-                        {
-                          "additionalProperties": false,
-                          "description": "A workflow pipeline node",
-                          "properties": {
-                            "acpClient": {
-                              "description": "Optional ACP client",
-                              "type": "string"
-                            },
-                            "adopt": {
-                              "additionalProperties": false,
-                              "description": "Per-node adoption configuration applied before prompt dispatch",
-                              "properties": {
-                                "color": {
-                                  "description": "Optional color asset identifier to adopt",
-                                  "type": "string"
-                                },
-                                "perspective": {
-                                  "description": "Optional perspective asset identifier to adopt",
-                                  "type": "string"
-                                },
-                                "role": {
-                                  "description": "Optional role asset identifier to adopt",
-                                  "type": "string"
-                                }
-                              },
-                              "type": "object"
-                            },
-                            "cwd": {
-                              "description": "Optional working directory for this node",
-                              "type": "string"
-                            },
-                            "displayLabel": {
-                              "description": "Optional presentation-only label for UI surfaces",
-                              "type": "string"
-                            },
-                            "id": {
-                              "description": "New node identifier",
-                              "type": "string"
-                            },
-                            "inputSchema": {
-                              "additionalProperties": true,
-                              "description": "Optional JSON Schema describing the node input artifact",
-                              "type": "object"
-                            },
-                            "joinPolicy": {
-                              "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
-                              "enum": [
-                                "all",
-                                "any",
-                                "first"
-                              ],
-                              "type": "string"
-                            },
-                            "outputSchema": {
-                              "additionalProperties": true,
-                              "description": "Optional JSON Schema for structured node output",
-                              "type": "object"
-                            },
-                            "prompt": {
-                              "description": "Optional prompt for workflow nodes",
-                              "type": "string"
-                            },
-                            "requiresRole": {
-                              "description": "Optional required role identifier for adopt validation",
-                              "type": "string"
-                            },
-                            "retryBackoffMaxMs": {
-                              "description": "Optional maximum retry backoff in milliseconds",
-                              "format": "uint64",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "retryBackoffMinMs": {
-                              "description": "Optional minimum retry backoff in milliseconds",
-                              "format": "uint64",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "retryJitter": {
-                              "description": "Optional jitter toggle for retry backoff",
-                              "type": "boolean"
-                            },
-                            "retryMaxAttempts": {
-                              "description": "Optional maximum transient retry attempts; 0 means no retry",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "timeout": {
-                              "description": "Optional timeout in seconds",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "type": {
-                              "description": "Workflow node type",
-                              "enum": [
-                                "workflow"
-                              ],
-                              "type": "string"
-                            },
-                            "workflowId": {
-                              "description": "Workflow definition to run",
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "id",
-                            "type",
-                            "workflowId"
-                          ],
-                          "type": "object"
-                        },
-                        {
-                          "additionalProperties": false,
-                          "properties": {
-                            "adopt": {
-                              "additionalProperties": false,
-                              "description": "Per-node adoption configuration applied before prompt dispatch",
-                              "properties": {
-                                "color": {
-                                  "description": "Optional color asset identifier to adopt",
-                                  "type": "string"
-                                },
-                                "perspective": {
-                                  "description": "Optional perspective asset identifier to adopt",
-                                  "type": "string"
-                                },
-                                "role": {
-                                  "description": "Optional role asset identifier to adopt",
-                                  "type": "string"
-                                }
-                              },
-                              "type": "object"
-                            },
-                            "agent": {
-                              "description": "ACP agent for prompt nodes",
-                              "type": "string"
-                            },
-                            "agentConfig": {
-                              "additionalProperties": false,
-                              "description": "Agent configuration for pipeline node execution",
-                              "properties": {
-                                "configOptions": {
-                                  "additionalProperties": true,
-                                  "description": "Arbitrary config options forwarded to the agent session",
-                                  "type": "object"
-                                },
-                                "mode": {
-                                  "description": "Session mode override for the agent session",
-                                  "type": "string"
-                                },
-                                "model": {
-                                  "description": "Model override for the agent session",
-                                  "type": "string"
-                                },
-                                "thoughtLevel": {
-                                  "description": "Thought level override for the agent session",
-                                  "type": "string"
-                                }
-                              },
-                              "type": "object"
-                            },
-                            "allowedTools": {
-                              "description": "Allowed tools override for prompt nodes",
-                              "items": {
-                                "type": "string"
-                              },
-                              "type": "array"
-                            },
-                            "cwd": {
-                              "description": "Optional working directory for this node",
-                              "type": "string"
-                            },
-                            "displayLabel": {
-                              "description": "Optional presentation-only label for UI surfaces",
-                              "type": "string"
-                            },
-                            "id": {
-                              "description": "New node identifier",
-                              "type": "string"
-                            },
-                            "inputSchema": {
-                              "additionalProperties": true,
-                              "description": "Optional JSON Schema describing the node input artifact",
-                              "type": "object"
-                            },
-                            "joinPolicy": {
-                              "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
-                              "enum": [
-                                "all",
-                                "any",
-                                "first"
-                              ],
-                              "type": "string"
-                            },
-                            "maxTurns": {
-                              "description": "Maximum turns for prompt nodes",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "model": {
-                              "description": "Model override for prompt nodes",
-                              "type": "string"
-                            },
-                            "outputSchema": {
-                              "additionalProperties": true,
-                              "description": "Optional JSON Schema for structured node output",
-                              "type": "object"
-                            },
-                            "prompt": {
-                              "description": "Prompt text for prompt nodes",
-                              "type": "string"
-                            },
-                            "requiresRole": {
-                              "description": "Optional required role identifier for adopt validation",
-                              "type": "string"
-                            },
-                            "retryBackoffMaxMs": {
-                              "description": "Optional maximum retry backoff in milliseconds",
-                              "format": "uint64",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "retryBackoffMinMs": {
-                              "description": "Optional minimum retry backoff in milliseconds",
-                              "format": "uint64",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "retryJitter": {
-                              "description": "Optional jitter toggle for retry backoff",
-                              "type": "boolean"
-                            },
-                            "retryMaxAttempts": {
-                              "description": "Optional maximum transient retry attempts; 0 means no retry",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "thoughtLevel": {
-                              "description": "Thought level override for prompt nodes",
-                              "type": "string"
-                            },
-                            "timeout": {
-                              "description": "Optional timeout in seconds",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "toolMode": {
-                              "description": "Tool mode for prompt nodes",
-                              "type": "string"
-                            },
-                            "type": {
-                              "description": "Node type 'prompt'",
-                              "enum": [
-                                "prompt"
-                              ],
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "agent",
-                            "id",
-                            "prompt",
-                            "type"
-                          ],
-                          "type": "object"
-                        },
-                        {
-                          "additionalProperties": false,
-                          "properties": {
-                            "adopt": {
-                              "additionalProperties": false,
-                              "description": "Per-node adoption configuration applied before prompt dispatch",
-                              "properties": {
-                                "color": {
-                                  "description": "Optional color asset identifier to adopt",
-                                  "type": "string"
-                                },
-                                "perspective": {
-                                  "description": "Optional perspective asset identifier to adopt",
-                                  "type": "string"
-                                },
-                                "role": {
-                                  "description": "Optional role asset identifier to adopt",
-                                  "type": "string"
-                                }
-                              },
-                              "type": "object"
-                            },
-                            "agent": {
-                              "description": "ACP agent for sequential thinking nodes",
-                              "type": "string"
-                            },
-                            "agentConfig": {
-                              "additionalProperties": false,
-                              "description": "Agent configuration for pipeline node execution",
-                              "properties": {
-                                "configOptions": {
-                                  "additionalProperties": true,
-                                  "description": "Arbitrary config options forwarded to the agent session",
-                                  "type": "object"
-                                },
-                                "mode": {
-                                  "description": "Session mode override for the agent session",
-                                  "type": "string"
-                                },
-                                "model": {
-                                  "description": "Model override for the agent session",
-                                  "type": "string"
-                                },
-                                "thoughtLevel": {
-                                  "description": "Thought level override for the agent session",
-                                  "type": "string"
-                                }
-                              },
-                              "type": "object"
-                            },
-                            "allowedTools": {
-                              "description": "Allowed tools override for sequential thinking nodes",
-                              "items": {
-                                "type": "string"
-                              },
-                              "type": "array"
-                            },
-                            "cwd": {
-                              "description": "Optional working directory for this node",
-                              "type": "string"
-                            },
-                            "displayLabel": {
-                              "description": "Optional presentation-only label for UI surfaces",
-                              "type": "string"
-                            },
-                            "id": {
-                              "description": "New node identifier",
-                              "type": "string"
-                            },
-                            "inputSchema": {
-                              "additionalProperties": true,
-                              "description": "Optional JSON Schema describing the node input artifact",
-                              "type": "object"
-                            },
-                            "joinPolicy": {
-                              "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
-                              "enum": [
-                                "all",
-                                "any",
-                                "first"
-                              ],
-                              "type": "string"
-                            },
-                            "maxTurns": {
-                              "description": "Maximum turns for sequential thinking nodes",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "model": {
-                              "description": "Model override for sequential thinking nodes",
-                              "type": "string"
-                            },
-                            "outputSchema": {
-                              "additionalProperties": true,
-                              "description": "Optional JSON Schema for structured node output",
-                              "type": "object"
-                            },
-                            "requiresRole": {
-                              "description": "Optional required role identifier for adopt validation",
-                              "type": "string"
-                            },
-                            "retryBackoffMaxMs": {
-                              "description": "Optional maximum retry backoff in milliseconds",
-                              "format": "uint64",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "retryBackoffMinMs": {
-                              "description": "Optional minimum retry backoff in milliseconds",
-                              "format": "uint64",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "retryJitter": {
-                              "description": "Optional jitter toggle for retry backoff",
-                              "type": "boolean"
-                            },
-                            "retryMaxAttempts": {
-                              "description": "Optional maximum transient retry attempts; 0 means no retry",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "thoughtLevel": {
-                              "description": "Thought level override for sequential thinking nodes",
-                              "type": "string"
-                            },
-                            "timeout": {
-                              "description": "Optional timeout in seconds",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "topic": {
-                              "description": "Topic for sequential thinking nodes",
-                              "type": "string"
-                            },
-                            "totalThoughts": {
-                              "description": "Thought count for thinking nodes",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "type": {
-                              "description": "Node type 'sequentialThinking'",
-                              "enum": [
-                                "sequentialThinking"
-                              ],
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "agent",
-                            "id",
-                            "topic",
-                            "totalThoughts",
-                            "type"
-                          ],
-                          "type": "object"
-                        },
-                        {
-                          "additionalProperties": false,
-                          "properties": {
-                            "agent": {
-                              "description": "Optional ACP agent for tool nodes",
-                              "type": "string"
-                            },
-                            "agentConfig": {
-                              "additionalProperties": false,
-                              "description": "Agent configuration for pipeline node execution",
-                              "properties": {
-                                "configOptions": {
-                                  "additionalProperties": true,
-                                  "description": "Arbitrary config options forwarded to the agent session",
-                                  "type": "object"
-                                },
-                                "mode": {
-                                  "description": "Session mode override for the agent session",
-                                  "type": "string"
-                                },
-                                "model": {
-                                  "description": "Model override for the agent session",
-                                  "type": "string"
-                                },
-                                "thoughtLevel": {
-                                  "description": "Thought level override for the agent session",
-                                  "type": "string"
-                                }
-                              },
-                              "type": "object"
-                            },
-                            "allowedTools": {
-                              "description": "Allowed tools override for tool nodes",
-                              "items": {
-                                "type": "string"
-                              },
-                              "type": "array"
-                            },
-                            "cwd": {
-                              "description": "Optional working directory for this node",
-                              "type": "string"
-                            },
-                            "displayLabel": {
-                              "description": "Optional presentation-only label for UI surfaces",
-                              "type": "string"
-                            },
-                            "id": {
-                              "description": "New node identifier",
-                              "type": "string"
-                            },
-                            "inputSchema": {
-                              "additionalProperties": true,
-                              "description": "Optional JSON Schema describing the node input artifact",
-                              "type": "object"
-                            },
-                            "joinPolicy": {
-                              "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
-                              "enum": [
-                                "all",
-                                "any",
-                                "first"
-                              ],
-                              "type": "string"
-                            },
-                            "maxTurns": {
-                              "description": "Maximum turns for tool nodes",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "model": {
-                              "description": "Model override for tool nodes",
-                              "type": "string"
-                            },
-                            "outputSchema": {
-                              "additionalProperties": true,
-                              "description": "Optional JSON Schema for structured node output",
-                              "type": "object"
-                            },
-                            "retryBackoffMaxMs": {
-                              "description": "Optional maximum retry backoff in milliseconds",
-                              "format": "uint64",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "retryBackoffMinMs": {
-                              "description": "Optional minimum retry backoff in milliseconds",
-                              "format": "uint64",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "retryJitter": {
-                              "description": "Optional jitter toggle for retry backoff",
-                              "type": "boolean"
-                            },
-                            "retryMaxAttempts": {
-                              "description": "Optional maximum transient retry attempts; 0 means no retry",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "thoughtLevel": {
-                              "description": "Thought level override for tool nodes",
-                              "type": "string"
-                            },
-                            "timeout": {
-                              "description": "Optional timeout in seconds",
-                              "format": "uint32",
-                              "minimum": 0.0,
-                              "type": "integer"
-                            },
-                            "toolArgs": {
-                              "additionalProperties": true,
-                              "description": "Tool arguments for tool nodes",
-                              "type": "object"
-                            },
-                            "toolName": {
-                              "description": "MCP tool name for tool nodes",
-                              "type": "string"
-                            },
-                            "type": {
-                              "description": "Node type 'tool'",
-                              "enum": [
-                                "tool"
-                              ],
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "id",
-                            "toolName",
-                            "type"
-                          ],
-                          "type": "object"
+                    {
+                      "properties": {
+                        "type": {
+                          "const": "always",
+                          "type": "string"
                         }
-                      ]
+                      },
+                      "required": [
+                        "type"
+                      ],
+                      "type": "object"
                     },
-                    "type": "array"
-                  }
+                    {
+                      "properties": {
+                        "equals": {
+                          "description": "Expected JSON value at `path`"
+                        },
+                        "path": {
+                          "description": "JSON path within upstream output to inspect",
+                          "type": "string"
+                        },
+                        "type": {
+                          "const": "conditional",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "path",
+                        "equals"
+                      ],
+                      "type": "object"
+                    }
+                  ],
+                  "properties": {
+                    "source": {
+                      "description": "Upstream node identifier",
+                      "type": "string"
+                    },
+                    "target": {
+                      "description": "Downstream node identifier",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "source",
+                    "target"
+                  ],
+                  "type": "object"
                 },
-                "required": [
-                  "edges",
-                  "nodes"
-                ],
-                "type": "object"
+                "type": "array"
+              },
+              "nodes": {
+                "description": "New pipeline nodes to append",
+                "items": {
+                  "oneOf": [
+                    {
+                      "additionalProperties": false,
+                      "description": "A workflow pipeline node",
+                      "properties": {
+                        "acpClient": {
+                          "description": "Optional ACP client",
+                          "type": "string"
+                        },
+                        "adopt": {
+                          "additionalProperties": false,
+                          "description": "Per-node adoption configuration applied before prompt dispatch",
+                          "properties": {
+                            "color": {
+                              "description": "Optional color asset identifier to adopt",
+                              "type": "string"
+                            },
+                            "perspective": {
+                              "description": "Optional perspective asset identifier to adopt",
+                              "type": "string"
+                            },
+                            "role": {
+                              "description": "Optional role asset identifier to adopt",
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "cwd": {
+                          "description": "Optional working directory for this node",
+                          "type": "string"
+                        },
+                        "displayLabel": {
+                          "description": "Optional presentation-only label for UI surfaces",
+                          "type": "string"
+                        },
+                        "id": {
+                          "description": "New node identifier",
+                          "type": "string"
+                        },
+                        "inputSchema": {
+                          "additionalProperties": true,
+                          "description": "Optional JSON Schema describing the node input artifact",
+                          "type": "object"
+                        },
+                        "joinPolicy": {
+                          "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
+                          "enum": [
+                            "all",
+                            "any",
+                            "first"
+                          ],
+                          "type": "string"
+                        },
+                        "outputSchema": {
+                          "additionalProperties": true,
+                          "description": "Optional JSON Schema for structured node output",
+                          "type": "object"
+                        },
+                        "prompt": {
+                          "description": "Optional prompt for workflow nodes",
+                          "type": "string"
+                        },
+                        "requiresRole": {
+                          "description": "Optional required role identifier for adopt validation",
+                          "type": "string"
+                        },
+                        "retryBackoffMaxMs": {
+                          "description": "Optional maximum retry backoff in milliseconds",
+                          "format": "uint64",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "retryBackoffMinMs": {
+                          "description": "Optional minimum retry backoff in milliseconds",
+                          "format": "uint64",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "retryJitter": {
+                          "description": "Optional jitter toggle for retry backoff",
+                          "type": "boolean"
+                        },
+                        "retryMaxAttempts": {
+                          "description": "Optional maximum transient retry attempts; 0 means no retry",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "timeout": {
+                          "description": "Optional timeout in seconds",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "type": {
+                          "description": "Workflow node type",
+                          "enum": [
+                            "workflow"
+                          ],
+                          "type": "string"
+                        },
+                        "workflowId": {
+                          "description": "Workflow definition to run",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "workflowId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "adopt": {
+                          "additionalProperties": false,
+                          "description": "Per-node adoption configuration applied before prompt dispatch",
+                          "properties": {
+                            "color": {
+                              "description": "Optional color asset identifier to adopt",
+                              "type": "string"
+                            },
+                            "perspective": {
+                              "description": "Optional perspective asset identifier to adopt",
+                              "type": "string"
+                            },
+                            "role": {
+                              "description": "Optional role asset identifier to adopt",
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "agent": {
+                          "description": "ACP agent for prompt nodes",
+                          "type": "string"
+                        },
+                        "agentConfig": {
+                          "additionalProperties": false,
+                          "description": "Agent configuration for pipeline node execution",
+                          "properties": {
+                            "configOptions": {
+                              "additionalProperties": true,
+                              "description": "Arbitrary config options forwarded to the agent session",
+                              "type": "object"
+                            },
+                            "model": {
+                              "description": "Model override for the agent session",
+                              "type": "string"
+                            },
+                            "thoughtLevel": {
+                              "description": "Thought level override for the agent session",
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "allowedTools": {
+                          "description": "Allowed tools override for prompt nodes",
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "cwd": {
+                          "description": "Optional working directory for this node",
+                          "type": "string"
+                        },
+                        "displayLabel": {
+                          "description": "Optional presentation-only label for UI surfaces",
+                          "type": "string"
+                        },
+                        "id": {
+                          "description": "New node identifier",
+                          "type": "string"
+                        },
+                        "inputSchema": {
+                          "additionalProperties": true,
+                          "description": "Optional JSON Schema describing the node input artifact",
+                          "type": "object"
+                        },
+                        "joinPolicy": {
+                          "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
+                          "enum": [
+                            "all",
+                            "any",
+                            "first"
+                          ],
+                          "type": "string"
+                        },
+                        "maxTurns": {
+                          "description": "Maximum turns for prompt nodes",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "model": {
+                          "description": "Model override for prompt nodes",
+                          "type": "string"
+                        },
+                        "outputSchema": {
+                          "additionalProperties": true,
+                          "description": "Optional JSON Schema for structured node output",
+                          "type": "object"
+                        },
+                        "prompt": {
+                          "description": "Prompt text for prompt nodes",
+                          "type": "string"
+                        },
+                        "requiresRole": {
+                          "description": "Optional required role identifier for adopt validation",
+                          "type": "string"
+                        },
+                        "retryBackoffMaxMs": {
+                          "description": "Optional maximum retry backoff in milliseconds",
+                          "format": "uint64",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "retryBackoffMinMs": {
+                          "description": "Optional minimum retry backoff in milliseconds",
+                          "format": "uint64",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "retryJitter": {
+                          "description": "Optional jitter toggle for retry backoff",
+                          "type": "boolean"
+                        },
+                        "retryMaxAttempts": {
+                          "description": "Optional maximum transient retry attempts; 0 means no retry",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "thoughtLevel": {
+                          "description": "Thought level override for prompt nodes",
+                          "type": "string"
+                        },
+                        "timeout": {
+                          "description": "Optional timeout in seconds",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "toolMode": {
+                          "description": "Tool mode for prompt nodes",
+                          "type": "string"
+                        },
+                        "type": {
+                          "description": "Node type 'prompt'",
+                          "enum": [
+                            "prompt"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "prompt",
+                        "agent"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "adopt": {
+                          "additionalProperties": false,
+                          "description": "Per-node adoption configuration applied before prompt dispatch",
+                          "properties": {
+                            "color": {
+                              "description": "Optional color asset identifier to adopt",
+                              "type": "string"
+                            },
+                            "perspective": {
+                              "description": "Optional perspective asset identifier to adopt",
+                              "type": "string"
+                            },
+                            "role": {
+                              "description": "Optional role asset identifier to adopt",
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "agent": {
+                          "description": "ACP agent for sequential thinking nodes",
+                          "type": "string"
+                        },
+                        "agentConfig": {
+                          "additionalProperties": false,
+                          "description": "Agent configuration for pipeline node execution",
+                          "properties": {
+                            "configOptions": {
+                              "additionalProperties": true,
+                              "description": "Arbitrary config options forwarded to the agent session",
+                              "type": "object"
+                            },
+                            "model": {
+                              "description": "Model override for the agent session",
+                              "type": "string"
+                            },
+                            "thoughtLevel": {
+                              "description": "Thought level override for the agent session",
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "allowedTools": {
+                          "description": "Allowed tools override for sequential thinking nodes",
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "cwd": {
+                          "description": "Optional working directory for this node",
+                          "type": "string"
+                        },
+                        "displayLabel": {
+                          "description": "Optional presentation-only label for UI surfaces",
+                          "type": "string"
+                        },
+                        "id": {
+                          "description": "New node identifier",
+                          "type": "string"
+                        },
+                        "inputSchema": {
+                          "additionalProperties": true,
+                          "description": "Optional JSON Schema describing the node input artifact",
+                          "type": "object"
+                        },
+                        "joinPolicy": {
+                          "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
+                          "enum": [
+                            "all",
+                            "any",
+                            "first"
+                          ],
+                          "type": "string"
+                        },
+                        "maxTurns": {
+                          "description": "Maximum turns for sequential thinking nodes",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "model": {
+                          "description": "Model override for sequential thinking nodes",
+                          "type": "string"
+                        },
+                        "outputSchema": {
+                          "additionalProperties": true,
+                          "description": "Optional JSON Schema for structured node output",
+                          "type": "object"
+                        },
+                        "requiresRole": {
+                          "description": "Optional required role identifier for adopt validation",
+                          "type": "string"
+                        },
+                        "retryBackoffMaxMs": {
+                          "description": "Optional maximum retry backoff in milliseconds",
+                          "format": "uint64",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "retryBackoffMinMs": {
+                          "description": "Optional minimum retry backoff in milliseconds",
+                          "format": "uint64",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "retryJitter": {
+                          "description": "Optional jitter toggle for retry backoff",
+                          "type": "boolean"
+                        },
+                        "retryMaxAttempts": {
+                          "description": "Optional maximum transient retry attempts; 0 means no retry",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "thoughtLevel": {
+                          "description": "Thought level override for sequential thinking nodes",
+                          "type": "string"
+                        },
+                        "timeout": {
+                          "description": "Optional timeout in seconds",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "topic": {
+                          "description": "Topic for sequential thinking nodes",
+                          "type": "string"
+                        },
+                        "totalThoughts": {
+                          "description": "Thought count for thinking nodes",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "type": {
+                          "description": "Node type 'sequentialThinking'",
+                          "enum": [
+                            "sequentialThinking"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "topic",
+                        "totalThoughts",
+                        "agent"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "agent": {
+                          "description": "Optional ACP agent for tool nodes",
+                          "type": "string"
+                        },
+                        "agentConfig": {
+                          "additionalProperties": false,
+                          "description": "Agent configuration for pipeline node execution",
+                          "properties": {
+                            "configOptions": {
+                              "additionalProperties": true,
+                              "description": "Arbitrary config options forwarded to the agent session",
+                              "type": "object"
+                            },
+                            "model": {
+                              "description": "Model override for the agent session",
+                              "type": "string"
+                            },
+                            "thoughtLevel": {
+                              "description": "Thought level override for the agent session",
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "allowedTools": {
+                          "description": "Allowed tools override for tool nodes",
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "cwd": {
+                          "description": "Optional working directory for this node",
+                          "type": "string"
+                        },
+                        "displayLabel": {
+                          "description": "Optional presentation-only label for UI surfaces",
+                          "type": "string"
+                        },
+                        "id": {
+                          "description": "New node identifier",
+                          "type": "string"
+                        },
+                        "inputSchema": {
+                          "additionalProperties": true,
+                          "description": "Optional JSON Schema describing the node input artifact",
+                          "type": "object"
+                        },
+                        "joinPolicy": {
+                          "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes.",
+                          "enum": [
+                            "all",
+                            "any",
+                            "first"
+                          ],
+                          "type": "string"
+                        },
+                        "maxTurns": {
+                          "description": "Maximum turns for tool nodes",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "model": {
+                          "description": "Model override for tool nodes",
+                          "type": "string"
+                        },
+                        "outputSchema": {
+                          "additionalProperties": true,
+                          "description": "Optional JSON Schema for structured node output",
+                          "type": "object"
+                        },
+                        "retryBackoffMaxMs": {
+                          "description": "Optional maximum retry backoff in milliseconds",
+                          "format": "uint64",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "retryBackoffMinMs": {
+                          "description": "Optional minimum retry backoff in milliseconds",
+                          "format": "uint64",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "retryJitter": {
+                          "description": "Optional jitter toggle for retry backoff",
+                          "type": "boolean"
+                        },
+                        "retryMaxAttempts": {
+                          "description": "Optional maximum transient retry attempts; 0 means no retry",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "thoughtLevel": {
+                          "description": "Thought level override for tool nodes",
+                          "type": "string"
+                        },
+                        "timeout": {
+                          "description": "Optional timeout in seconds",
+                          "format": "uint32",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "toolArgs": {
+                          "additionalProperties": true,
+                          "description": "Tool arguments for tool nodes",
+                          "type": "object"
+                        },
+                        "toolName": {
+                          "description": "MCP tool name for tool nodes",
+                          "type": "string"
+                        },
+                        "type": {
+                          "description": "Node type 'tool'",
+                          "enum": [
+                            "tool"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "toolName"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "type": "array"
               }
+            },
+            "required": [
+              "nodes",
+              "edges"
             ],
-            "description": "Add new nodes and edges onto an existing pipeline session"
+            "type": "object"
           },
           "inputs": {
             "additionalProperties": true,
@@ -2230,97 +2168,87 @@
             "type": "object"
           },
           "join": {
-            "allOf": [
-              {
-                "additionalProperties": false,
-                "properties": {
-                  "edges": {
-                    "description": "Edges that connect the source pipeline into the target pipeline",
-                    "items": {
-                      "oneOf": [
-                        {
-                          "properties": {
-                            "type": {
-                              "enum": [
-                                "success"
-                              ],
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "type"
-                          ],
-                          "type": "object"
-                        },
-                        {
-                          "properties": {
-                            "type": {
-                              "enum": [
-                                "always"
-                              ],
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "type"
-                          ],
-                          "type": "object"
-                        },
-                        {
-                          "properties": {
-                            "equals": {
-                              "description": "Expected JSON value at `path`"
-                            },
-                            "path": {
-                              "description": "JSON path within upstream output to inspect",
-                              "type": "string"
-                            },
-                            "type": {
-                              "enum": [
-                                "conditional"
-                              ],
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "equals",
-                            "path",
-                            "type"
-                          ],
-                          "type": "object"
-                        }
-                      ],
+            "additionalProperties": false,
+            "description": "Merge another pipeline session into this session using additional linking edges",
+            "properties": {
+              "edges": {
+                "description": "Edges that connect the source pipeline into the target pipeline",
+                "items": {
+                  "oneOf": [
+                    {
                       "properties": {
-                        "source": {
-                          "description": "Upstream node identifier",
-                          "type": "string"
-                        },
-                        "target": {
-                          "description": "Downstream node identifier",
+                        "type": {
+                          "const": "success",
                           "type": "string"
                         }
                       },
                       "required": [
-                        "source",
-                        "target"
+                        "type"
                       ],
                       "type": "object"
                     },
-                    "type": "array"
+                    {
+                      "properties": {
+                        "type": {
+                          "const": "always",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "equals": {
+                          "description": "Expected JSON value at `path`"
+                        },
+                        "path": {
+                          "description": "JSON path within upstream output to inspect",
+                          "type": "string"
+                        },
+                        "type": {
+                          "const": "conditional",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "path",
+                        "equals"
+                      ],
+                      "type": "object"
+                    }
+                  ],
+                  "properties": {
+                    "source": {
+                      "description": "Upstream node identifier",
+                      "type": "string"
+                    },
+                    "target": {
+                      "description": "Downstream node identifier",
+                      "type": "string"
+                    }
                   },
-                  "sourceSessionId": {
-                    "description": "Pipeline session identifier to merge into the target pipeline",
-                    "type": "string"
-                  }
+                  "required": [
+                    "source",
+                    "target"
+                  ],
+                  "type": "object"
                 },
-                "required": [
-                  "edges",
-                  "sourceSessionId"
-                ],
-                "type": "object"
+                "type": "array"
+              },
+              "sourceSessionId": {
+                "description": "Pipeline session identifier to merge into the target pipeline",
+                "type": "string"
               }
+            },
+            "required": [
+              "sourceSessionId",
+              "edges"
             ],
-            "description": "Merge another pipeline session into this session using additional linking edges"
+            "type": "object"
           },
           "learn": {
             "default": false,
@@ -2336,7 +2264,7 @@
             "default": 8,
             "description": "Max concurrent active nodes",
             "format": "uint32",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": "integer"
           },
           "name": {
@@ -2375,25 +2303,21 @@
             "type": "boolean"
           },
           "rewind": {
-            "allOf": [
-              {
-                "additionalProperties": false,
-                "properties": {
-                  "nodeIds": {
-                    "description": "Node identifiers to rewind before cascading downstream resets",
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": "array"
-                  }
+            "additionalProperties": false,
+            "description": "Rewind the specified nodeIds and all downstream nodes",
+            "properties": {
+              "nodeIds": {
+                "description": "Node identifiers to rewind before cascading downstream resets",
+                "items": {
+                  "type": "string"
                 },
-                "required": [
-                  "nodeIds"
-                ],
-                "type": "object"
+                "type": "array"
               }
+            },
+            "required": [
+              "nodeIds"
             ],
-            "description": "Rewind the specified nodeIds and all downstream nodes"
+            "type": "object"
           },
           "run": {
             "default": false,
@@ -2406,16 +2330,12 @@
             "type": "string"
           },
           "status": {
-            "allOf": [
-              {
-                "enum": [
-                  "completed",
-                  "abandoned"
-                ],
-                "type": "string"
-              }
+            "description": "Node status update",
+            "enum": [
+              "completed",
+              "abandoned"
             ],
-            "description": "Node status update"
+            "type": "string"
           },
           "summary": {
             "default": false,
@@ -2426,7 +2346,7 @@
             "default": null,
             "description": "Maximum wait duration in milliseconds; omitted means unlimited",
             "format": "uint64",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": "integer"
           },
           "view": {
@@ -2555,7 +2475,7 @@
             "default": 10,
             "description": "Maximum number of results to return",
             "format": "uint32",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": "integer"
           },
           "timespan": {
@@ -2617,8 +2537,8 @@
           }
         },
         "required": [
-          "canonicalConcept",
-          "conceptsToReplace"
+          "conceptsToReplace",
+          "canonicalConcept"
         ],
         "title": "RepairConceptsParams",
         "type": "object"
@@ -2639,7 +2559,7 @@
             "default": 5,
             "description": "Benchmark iterations per category",
             "format": "uint32",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": "integer"
           },
           "learn": {
@@ -2651,7 +2571,7 @@
             "default": 1000,
             "description": "Maximum test files to use during benchmarks",
             "format": "uint32",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": "integer"
           }
         },
@@ -2675,8 +2595,8 @@
           }
         },
         "required": [
-          "content",
-          "id"
+          "id",
+          "content"
         ],
         "title": "SaveWorkflowAssetParams",
         "type": "object"
@@ -2724,14 +2644,14 @@
             "default": 1,
             "description": "Page number for results",
             "format": "uint32",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": "integer"
           },
           "pageSize": {
             "default": 10,
             "description": "Maximum files to return",
             "format": "uint32",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": "integer"
           },
           "query": {
@@ -2860,7 +2780,7 @@
             "default": null,
             "description": "Thought number that this revision updates",
             "format": "uint32",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": [
               "integer",
               "null"
@@ -2902,7 +2822,7 @@
             "default": 0,
             "description": "Sequence index. To start a new session, omit `sessionId` and pass `thoughtNumber=0` — the server returns the generated `sessionId`. Subsequent calls reuse that `sessionId` and increment from 1.",
             "format": "uint32",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": "integer"
           },
           "thoughts": {
@@ -2917,7 +2837,7 @@
             "default": 0,
             "description": "Current estimate for total thoughts",
             "format": "uint32",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": "integer"
           }
         },
@@ -2976,7 +2896,7 @@
             "default": 2,
             "description": "Graph traversal depth",
             "format": "uint32",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": "integer"
           },
           "format": {
@@ -3000,7 +2920,7 @@
             "default": 30,
             "description": "Maximum nodes to include in the diagram",
             "format": "uint32",
-            "minimum": 0.0,
+            "minimum": 0,
             "type": "integer"
           }
         },
@@ -3035,7 +2955,7 @@
           },
           "inputs": {
             "additionalProperties": true,
-            "description": "Declared workflow inputs (start mode only). Keys must match input names declared in the workflow asset's frontmatter; values are typed per the workflow declaration. Validated against the asset declaration before dispatch.",
+            "description": "Declared workflow inputs (start mode only). Keys must match input names declared in the\nworkflow asset's frontmatter; values are typed per the workflow declaration. Validated\nagainst the asset declaration before dispatch.",
             "type": [
               "object",
               "null"
@@ -3209,8 +3129,8 @@
           }
         },
         "required": [
-          "content",
-          "title"
+          "title",
+          "content"
         ],
         "title": "WriteMemoryParams",
         "type": "object"

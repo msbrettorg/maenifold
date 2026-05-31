@@ -85,7 +85,7 @@ fn pipeline_schema_includes_conditional_edge_fields() {
 fn pipeline_node_schema_exposes_join_policy_for_all_variants() {
     let schema = schema_value_no_null_options::<PipelineParams>();
     let variants =
-        schema["properties"]["definition"]["allOf"][0]["properties"]["nodes"]["items"]["oneOf"]
+        schema["properties"]["definition"]["properties"]["nodes"]["items"]["oneOf"]
             .as_array()
             .expect("pipeline definition node variants");
     assert_eq!(variants.len(), 4);

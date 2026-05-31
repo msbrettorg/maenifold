@@ -26,7 +26,9 @@ pub(super) fn derived_tool_definition<T: JsonSchema>(
 }
 
 pub(super) fn schema_value<T: JsonSchema>() -> Value {
-    root_schema_to_value(schemars::schema_for!(T))
+    let settings = schemars::generate::SchemaSettings::draft07();
+    let generator = settings.into_generator();
+    root_schema_to_value(generator.into_root_schema_for::<T>())
 }
 
 /// Generates a JSON Schema value for `T` and post-processes it to remove `null` type
@@ -38,7 +40,7 @@ pub(super) fn schema_value<T: JsonSchema>() -> Value {
 /// which simplifies both schema inspection and function-call schema validation.
 #[allow(dead_code)]
 pub(super) fn schema_value_no_null_options<T: JsonSchema>() -> Value {
-    let mut value = root_schema_to_value(schemars::schema_for!(T));
+    let mut value = schema_value::<T>();
     strip_null_options(&mut value);
     value
 }

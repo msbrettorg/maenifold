@@ -171,6 +171,7 @@ fn delete_workflow_asset_response_lists_deleted_files() {
 
 #[test]
 #[serial]
+#[cfg(unix)]
 fn delete_workflow_asset_rejects_symlink() {
     let (_tmp, context, _guard) = test_context();
     save_asset(&context, "target");

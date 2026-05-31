@@ -1,4 +1,4 @@
-use agent_client_protocol as acp;
+use agent_client_protocol::schema::{self as acp};
 
 use super::super::session::resume::sanitized_resume_failure_kind;
 use super::types::{AcpExecuteError, AcpExecuteSuccess};

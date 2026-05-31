@@ -65,7 +65,7 @@ pub(super) fn create_task_with_bin_for_test(
     )
 }
 
-#[cfg(all(test, not(target_os = "macos")))]
+#[cfg(all(test, unix, not(target_os = "macos")))]
 pub(super) fn create_task_with_bin_for_test(
     context: &ToolContext,
     payload: &Value,

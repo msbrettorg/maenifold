@@ -89,7 +89,7 @@ pub fn read_to_string_guarded(path: &Path) -> Result<String> {
     read_to_string_with_timeout(path, FILE_READ_TIMEOUT)
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(crate) fn read_to_string_guarded_for_test(path: &Path, timeout: Duration) -> Result<String> {
     let metadata = fs::metadata(path)?;
     if is_dataless(&metadata) {

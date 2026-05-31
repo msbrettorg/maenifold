@@ -89,7 +89,6 @@ pub(super) fn merged_session_config(
         model: model
             .clone()
             .or_else(|| agent_config.and_then(|config| config.model.clone())),
-        mode: agent_config.and_then(|config| config.mode.clone()),
         thought_level: thought_level
             .clone()
             .or_else(|| agent_config.and_then(|config| config.thought_level.clone())),

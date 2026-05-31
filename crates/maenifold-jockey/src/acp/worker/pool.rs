@@ -1,6 +1,6 @@
-use agent_client_protocol as acp;
+use agent_client_protocol::schema::{self as acp};
+use agent_client_protocol::{Agent, ConnectionTo};
 use dashmap::DashSet;
-use serde_json::Value;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -25,15 +25,11 @@ pub(crate) fn pool_key(app_session_id: &str, runtime_key: &str, role_name: &str)
 
 pub(crate) struct LiveConnection {
     pub(crate) instance_id: u64,
-    pub(crate) conn: Rc<acp::ClientSideConnection>,
+    pub(crate) conn: Rc<ConnectionTo<Agent>>,
     pub(crate) session_id: acp::SessionId,
     pub(crate) resumed: bool,
     pub(crate) cwd: String,
     pub(crate) delta_slot: DeltaSlot,
-    #[allow(dead_code)]
-    pub(crate) available_modes: Vec<Value>,
-    #[allow(dead_code)]
-    pub(crate) current_mode: Option<String>,
     pub(crate) child_pid: Option<u32>,
     pub(crate) _io_task: tokio::task::JoinHandle<()>,
     pub(crate) health_rx: tokio::sync::watch::Receiver<bool>,
@@ -65,7 +61,7 @@ impl Drop for LiveConnection {
 
 // SAFETY: LiveConnection is only ever created and accessed on the single-threaded
 // worker LocalSet (see `run_worker`). No actual cross-thread access occurs.
-// The Rc<ClientSideConnection> is the only non-Send field; it is safe because:
+// The Rc<ConnectionTo<Agent>> is the only non-Send field; it is safe because:
 // 1. cold_start() runs on the worker LocalSet and produces the Rc.
 // 2. handle_execute/handle_prewarm run on the same LocalSet.
 // 3. The connection map is thread-local to that worker thread.
@@ -78,7 +74,7 @@ unsafe impl Sync for LiveConnection {}
 /// Stored in a thread-local map keyed by pool_key, only accessed on the worker
 /// thread's LocalSet — so `Rc` is fine.
 pub(crate) struct CancelHandle {
-    pub(crate) conn: Rc<acp::ClientSideConnection>,
+    pub(crate) conn: Rc<ConnectionTo<Agent>>,
     pub(crate) session_id: acp::SessionId,
     pub(crate) cancelled: Arc<AtomicBool>,
 }

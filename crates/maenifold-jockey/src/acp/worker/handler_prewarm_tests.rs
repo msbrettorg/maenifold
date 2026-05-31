@@ -19,7 +19,7 @@ async fn already_live_resume_emits_replay_complete() {
         delta_rx.try_recv().expect("replay sentinel"),
         AcpEvent::ReplayComplete
     ));
-    let (_, _, session_id) = result_rx.await.expect("prewarm result");
+    let (_, session_id) = result_rx.await.expect("prewarm result");
     assert_eq!(session_id, "");
 }
 
@@ -34,6 +34,6 @@ async fn failed_resume_emits_replay_complete_before_empty_result() {
         delta_rx.try_recv().expect("replay sentinel"),
         AcpEvent::ReplayComplete
     ));
-    let (_, _, session_id) = result_rx.await.expect("prewarm result");
+    let (_, session_id) = result_rx.await.expect("prewarm result");
     assert_eq!(session_id, "");
 }

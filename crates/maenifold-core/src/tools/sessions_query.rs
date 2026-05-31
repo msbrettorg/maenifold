@@ -1,9 +1,11 @@
 use super::sessions::{AgentSessionError, ListedSession, NullAcpClient, SessionQueryResult};
 use crate::sessions::extract_session_timestamp_millis;
-use agent_client_protocol::{self as acp, Agent as _};
+use agent_client_protocol::schema::{self as acp};
+use agent_client_protocol::{Agent, ByteStreams, Client, ConnectionTo};
 use chrono::{TimeZone, Utc};
 use std::future::Future;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::sync::LazyLock;
 use tokio::runtime::{Builder, Handle, Runtime, RuntimeFlavor};
 use tokio::task;
@@ -90,17 +92,49 @@ async fn list_agent_sessions_local(
         .take()
         .ok_or_else(|| format!("stdout unavailable for agent '{agent_name}'"))?;
 
-    let (connection, io_future) = acp::ClientSideConnection::new(
-        NullAcpClient,
-        stdin.compat_write(),
-        stdout.compat(),
-        |future| {
-            tokio::task::spawn_local(future);
-        },
-    );
+    let transport = ByteStreams::new(stdin.compat_write(), stdout.compat());
+    let null_client = Arc::new(NullAcpClient);
+    let (connection_tx, connection_rx) = tokio::sync::oneshot::channel::<ConnectionTo<Agent>>();
+    let io_future = Client
+        .builder()
+        .name("maenifold")
+        .on_receive_request(
+            {
+                let null_client = null_client.clone();
+                async move |req: acp::RequestPermissionRequest, responder, _connection| {
+                    let response = null_client.request_permission(req).await?;
+                    responder.respond(response)
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_notification(
+            {
+                let null_client = null_client.clone();
+                async move |notif: acp::SessionNotification, _connection| {
+                    null_client.session_notification(notif).await
+                }
+            },
+            agent_client_protocol::on_receive_notification!(),
+        )
+        .connect_with(
+            transport,
+            move |connection: ConnectionTo<Agent>| async move {
+                connection_tx.send(connection).map_err(|_| {
+                    acp::Error::new(
+                        acp::ErrorCode::InternalError.into(),
+                        "failed to receive ACP connection handle",
+                    )
+                })?;
+                std::future::pending::<acp::Result<()>>().await
+            },
+        );
     let io_task = tokio::task::spawn_local(async move {
         let _ = io_future.await;
     });
+    let connection = connection_rx
+        .await
+        .map_err(|_| format!("failed to receive ACP connection handle for agent '{agent_name}'"))?;
 
     let result = query_sessions(&connection, &agent_name).await;
 
@@ -113,14 +147,15 @@ async fn list_agent_sessions_local(
 }
 
 async fn query_sessions(
-    connection: &acp::ClientSideConnection,
+    connection: &ConnectionTo<Agent>,
     agent_name: &str,
 ) -> std::result::Result<SessionQueryResult, String> {
     let init = connection
-        .initialize(
+        .send_request(
             acp::InitializeRequest::new(acp::ProtocolVersion::V1)
                 .client_info(acp::Implementation::new("maenifold", "0.1.0").title("maenifold")),
         )
+        .block_task()
         .await
         .map_err(|error| format!("initialize failed for agent '{agent_name}': {error}"))?;
 
@@ -144,7 +179,8 @@ async fn query_sessions(
             request = request.cursor(cursor_token);
         }
         let response = connection
-            .list_sessions(request)
+            .send_request(request)
+            .block_task()
             .await
             .map_err(|error| format!("session/list failed for agent '{agent_name}': {error}"))?;
         sessions.extend(

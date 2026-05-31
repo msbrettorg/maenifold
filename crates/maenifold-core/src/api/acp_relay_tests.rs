@@ -1,5 +1,5 @@
 use super::*;
-use agent_client_protocol::StopReason;
+use agent_client_protocol::schema::StopReason;
 
 #[test]
 fn cancelled_worker_error_returns_cancelled_stop_reason() {

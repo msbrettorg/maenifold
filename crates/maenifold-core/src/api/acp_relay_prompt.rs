@@ -1,7 +1,7 @@
 use super::acp_relay::{PendingPrompt, RelayConfig, RelaySession};
 use super::acp_relay_caps::caps_for_agent;
 use super::acp_relay_helpers::{rpc_error, update_config_options};
-use agent_client_protocol as acp;
+use agent_client_protocol::schema::{self as acp};
 use serde_json::{Value, json};
 use tokio::sync::{mpsc, oneshot};
 
@@ -67,7 +67,6 @@ pub(super) fn handle_prompt(
             client_capabilities: active.client_capabilities.clone(),
             allowed_tools: None,
             output_schema: None,
-            role_mode: None,
             role_config_options: vec![],
             resume_session_id: None,
             session_id_tx: None,

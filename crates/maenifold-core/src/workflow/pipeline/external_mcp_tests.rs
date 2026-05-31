@@ -1,30 +1,35 @@
-use std::{
-    collections::HashMap,
-    ffi::{OsStr, OsString},
-    fs,
-    path::Path,
-    sync::Arc,
-};
+use std::collections::HashMap;
+use std::ffi::{OsStr, OsString};
+#[cfg(unix)]
+use std::fs;
+#[cfg(unix)]
+use std::path::Path;
+#[cfg(unix)]
+use std::sync::Arc;
 
+#[cfg(unix)]
 use axum::{
     Router,
-    body::Bytes,
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
     routing::{get, post},
 };
+#[cfg(unix)]
+use axum::{body::Bytes, extract::State, http::StatusCode, response::IntoResponse};
 use rmcp::model::{CallToolResult, Content};
+#[cfg(unix)]
 use serde_json::json;
+#[cfg(unix)]
 use tempfile::TempDir;
+#[cfg(unix)]
 use tokio::sync::Mutex;
 
 use super::super::external_mcp_transport::build_child_path_env;
 use super::*;
+#[cfg(unix)]
 use crate::{
     acp_config::HttpAuthConfig, config::Config, tools::ToolContext, util::json::OutputFormat,
 };
 
+#[cfg(unix)]
 #[path = "external_mcp_tests_http.rs"]
 mod http;
 #[path = "external_mcp_tests_path_env.rs"]
@@ -57,18 +62,22 @@ fn config_with_global_and_agents(
     }
 }
 
+#[cfg(unix)]
 type CapturedRequests = Vec<(String, HashMap<String, String>)>;
 
+#[cfg(unix)]
 #[derive(Clone)]
 struct HeaderCaptureState {
     requests: Arc<Mutex<CapturedRequests>>,
 }
 
+#[cfg(unix)]
 struct EnvVarGuard {
     key: &'static str,
     original: Option<OsString>,
 }
 
+#[cfg(unix)]
 impl EnvVarGuard {
     fn set(key: &'static str, value: OsString) -> Self {
         let original = std::env::var_os(key);
@@ -79,6 +88,7 @@ impl EnvVarGuard {
     }
 }
 
+#[cfg(unix)]
 impl Drop for EnvVarGuard {
     fn drop(&mut self) {
         match self.original.as_ref() {
@@ -92,6 +102,7 @@ impl Drop for EnvVarGuard {
     }
 }
 
+#[cfg(unix)]
 fn prepend_path_guard(path: &Path) -> EnvVarGuard {
     let mut paths = vec![path.to_path_buf()];
     if let Some(existing) = std::env::var_os("PATH") {
@@ -120,6 +131,7 @@ fn install_fake_azure_cli(dir: &Path, token: &str) {
     fs::set_permissions(&script, permissions).expect("chmod fake az");
 }
 
+#[cfg(unix)]
 async fn oauth_metadata_handler() -> impl IntoResponse {
     (
         StatusCode::OK,
@@ -131,6 +143,7 @@ async fn oauth_metadata_handler() -> impl IntoResponse {
     )
 }
 
+#[cfg(unix)]
 async fn capture_mcp_headers_handler(
     State(state): State<HeaderCaptureState>,
     headers: axum::http::HeaderMap,
@@ -216,6 +229,7 @@ async fn capture_mcp_headers_handler(
     panic!("unexpected MCP method: {method}");
 }
 
+#[cfg(unix)]
 async fn delete_mcp_session_handler() -> impl IntoResponse {
     StatusCode::NO_CONTENT
 }

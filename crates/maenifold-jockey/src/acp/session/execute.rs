@@ -1,4 +1,4 @@
-use agent_client_protocol::{self as acp};
+use agent_client_protocol::schema::{self as acp};
 use serde_json::json;
 use std::time::Instant;
 use tokio::sync::{mpsc, oneshot};
@@ -20,7 +20,6 @@ pub async fn execute_runtime(
     mcp_servers: Vec<acp::McpServer>,
     allowed_tools: Option<Vec<String>>,
     output_schema: Option<serde_json::Value>,
-    role_mode: Option<String>,
     role_config_options: Vec<(String, String)>,
     _state: Option<(&crate::types::AppState, &str)>,
     app_session_id: &str,
@@ -149,7 +148,6 @@ pub async fn execute_runtime(
             mcp_servers,
             allowed_tools: allowed_tools.clone(),
             output_schema: output_schema.clone(),
-            role_mode,
             role_config_options,
             resume_session_id,
             session_id_tx,

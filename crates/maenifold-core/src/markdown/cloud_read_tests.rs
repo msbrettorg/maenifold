@@ -1,4 +1,6 @@
-use super::paths::{is_dataless_size_blocks, read_to_string_guarded_for_test};
+use super::paths::is_dataless_size_blocks;
+#[cfg(unix)]
+use super::paths::read_to_string_guarded_for_test;
 use super::{read_markdown, write_markdown};
 use crate::acp_config::MaenifoldSettings;
 use crate::config::Config;
@@ -6,6 +8,7 @@ use crate::error::MaenifoldError;
 use std::fs;
 use std::io::Write as _;
 use std::path::Path;
+#[cfg(unix)]
 use std::time::Duration;
 
 fn test_config(root: &Path) -> Config {

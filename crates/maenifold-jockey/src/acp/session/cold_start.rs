@@ -1,4 +1,5 @@
-use agent_client_protocol::{self as acp, Agent as _};
+use agent_client_protocol::schema::{self as acp};
+use agent_client_protocol::{Agent, ByteStreams, Client, ConnectionTo};
 use serde_json::{Value, json};
 use std::io::ErrorKind;
 use std::rc::Rc;
@@ -12,11 +13,10 @@ use super::super::adapter::{acp_log, clip};
 use super::super::client::JockeyUiClient;
 use super::super::runtime_state::{
     remember_agent_capabilities, remember_runtime_config_options, remember_runtime_models,
-    remember_runtime_modes,
 };
 use super::super::worker::{AcpEvent, DeltaSlot, LiveConnection, register_child_pid};
 use super::cold_start_helpers::{
-    INIT_TIMEOUT, LIVE_CONNECTION_SEQ, LOAD_SESSION_TIMEOUT, SESSION_TIMEOUT, extract_mode_ids,
+    INIT_TIMEOUT, LIVE_CONNECTION_SEQ, LOAD_SESSION_TIMEOUT, SESSION_TIMEOUT,
     extract_models_from_config_options,
 };
 
@@ -86,20 +86,129 @@ pub(crate) async fn cold_start(
 
     acp_log("spawn.ok", json!({ "binary": binary, "pid": child.id() }));
 
-    let (conn, io_future) = acp::ClientSideConnection::new(
-        JockeyUiClient {
-            delta_slot: delta_slot.clone(),
-            auto_approve,
-            workspace_root: std::path::PathBuf::from(abs_cwd),
-        },
-        stdin.compat_write(),
-        stdout.compat(),
-        |fut| {
-            tokio::task::spawn_local(fut);
-        },
-    );
-
     let (health_tx, health_rx) = tokio::sync::watch::channel(true);
+    let transport = ByteStreams::new(stdin.compat_write(), stdout.compat());
+    let ui_client = Arc::new(JockeyUiClient {
+        delta_slot: delta_slot.clone(),
+        auto_approve,
+        workspace_root: std::path::PathBuf::from(abs_cwd),
+    });
+    let (connection_tx, connection_rx) = tokio::sync::oneshot::channel::<ConnectionTo<Agent>>();
+    let connection_future = Client
+        .builder()
+        .name("jockey")
+        .on_receive_request(
+            {
+                let ui_client = ui_client.clone();
+                async move |req: acp::RequestPermissionRequest, responder, _connection| {
+                    let response = ui_client.request_permission(req).await?;
+                    responder.respond(response)
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            {
+                let ui_client = ui_client.clone();
+                async move |req: acp::ReadTextFileRequest, responder, _connection| {
+                    let response = ui_client.read_text_file(req).await?;
+                    responder.respond(response)
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            {
+                let ui_client = ui_client.clone();
+                async move |req: acp::WriteTextFileRequest, responder, _connection| {
+                    let response = ui_client.write_text_file(req).await?;
+                    responder.respond(response)
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            {
+                let ui_client = ui_client.clone();
+                async move |req: acp::CreateTerminalRequest, responder, _connection| {
+                    let response = ui_client.create_terminal(req).await?;
+                    responder.respond(response)
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            {
+                let ui_client = ui_client.clone();
+                async move |req: acp::TerminalOutputRequest, responder, _connection| {
+                    let response = ui_client.terminal_output(req).await?;
+                    responder.respond(response)
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            {
+                let ui_client = ui_client.clone();
+                async move |req: acp::WaitForTerminalExitRequest, responder, _connection| {
+                    let response = ui_client.wait_for_terminal_exit(req).await?;
+                    responder.respond(response)
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            {
+                let ui_client = ui_client.clone();
+                async move |req: acp::KillTerminalRequest, responder, _connection| {
+                    let response = ui_client.kill_terminal(req).await?;
+                    responder.respond(response)
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            {
+                let ui_client = ui_client.clone();
+                async move |req: acp::ReleaseTerminalRequest, responder, _connection| {
+                    let response = ui_client.release_terminal(req).await?;
+                    responder.respond(response)
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_notification(
+            {
+                let ui_client = ui_client.clone();
+                async move |notif: acp::SessionNotification, _connection| {
+                    ui_client.session_notification(notif).await
+                }
+            },
+            agent_client_protocol::on_receive_notification!(),
+        )
+        .connect_with(
+            transport,
+            move |connection: ConnectionTo<Agent>| async move {
+                connection_tx.send(connection).map_err(|_| {
+                    acp::Error::new(
+                        acp::ErrorCode::InternalError.into(),
+                        "failed to receive ACP connection handle",
+                    )
+                })?;
+                std::future::pending::<acp::Result<()>>().await
+            },
+        );
+    let io_health_tx = health_tx.clone();
+    let io_handle = tokio::task::spawn_local(async move {
+        if let Err(e) = connection_future.await {
+            acp_log("io_task.error", json!({ "error": e.to_string() }));
+        }
+        let _ = io_health_tx.send(false);
+    });
+    let conn = connection_rx
+        .await
+        .map_err(|_| "failed to receive ACP connection handle".to_string())?;
+
     let wait_health_tx = health_tx.clone();
     let wait_pid = child.id();
     // T-328.14: explicit process-exit watcher. The io_future-driven health
@@ -121,21 +230,15 @@ pub(crate) async fn cold_start(
         );
         let _ = wait_health_tx.send(false);
     });
-    let io_handle = tokio::task::spawn_local(async move {
-        if let Err(e) = io_future.await {
-            acp_log("io_task.error", json!({ "error": e.to_string() }));
-        }
-        let _ = health_tx.send(false);
-    });
-
     let t = Instant::now();
     let init_resp = tokio::time::timeout(
         INIT_TIMEOUT,
-        conn.initialize(
+        conn.send_request(
             acp::InitializeRequest::new(acp::ProtocolVersion::V1)
                 .client_info(acp::Implementation::new("jockey", "0.1.0").title("Jockey"))
                 .client_capabilities(client_capabilities),
-        ),
+        )
+        .block_task(),
     )
     .await
     .map_err(|_| format!("timeout: initialize exceeded {}s", INIT_TIMEOUT.as_secs()))?
@@ -154,12 +257,11 @@ pub(crate) async fn cold_start(
     struct SessionStartResult {
         session_id: acp::SessionId,
         config_options: Option<Vec<acp::SessionConfigOption>>,
-        modes: Option<acp::SessionModeState>,
         resumed: bool,
     }
 
     async fn do_new_session(
-        conn: &acp::ClientSideConnection,
+        conn: &ConnectionTo<Agent>,
         abs_cwd: &str,
         mcp_servers: Vec<acp::McpServer>,
     ) -> Result<SessionStartResult, String> {
@@ -167,7 +269,7 @@ pub(crate) async fn cold_start(
         if !mcp_servers.is_empty() {
             req = req.mcp_servers(mcp_servers);
         }
-        let resp = tokio::time::timeout(SESSION_TIMEOUT, conn.new_session(req))
+        let resp = tokio::time::timeout(SESSION_TIMEOUT, conn.send_request(req).block_task())
             .await
             .map_err(|_| {
                 format!(
@@ -179,7 +281,6 @@ pub(crate) async fn cold_start(
         Ok(SessionStartResult {
             session_id: resp.session_id,
             config_options: resp.config_options,
-            modes: resp.modes,
             resumed: false,
         })
     }
@@ -198,18 +299,18 @@ pub(crate) async fn cold_start(
             if !mcp_servers.is_empty() {
                 load_req = load_req.mcp_servers(mcp_servers.clone());
             }
-            match tokio::time::timeout(LOAD_SESSION_TIMEOUT, conn.load_session(load_req))
-                .await
-                .map_err(|_| {
-                    acp::Error::new(
-                        acp::ErrorCode::InternalError.into(),
-                        format!(
-                            "timeout: load_session exceeded {}s",
-                            LOAD_SESSION_TIMEOUT.as_secs()
-                        ),
-                    )
-                })
-                .and_then(|r| r)
+            match tokio::time::timeout(
+                LOAD_SESSION_TIMEOUT,
+                conn.send_request(load_req).block_task(),
+            )
+            .await
+            .map_err(|_| {
+                format!(
+                    "timeout: load_session exceeded {}s",
+                    LOAD_SESSION_TIMEOUT.as_secs()
+                )
+            })
+            .and_then(|r| r.map_err(|e| e.to_string()))
             {
                 Ok(resp) => {
                     acp_log(
@@ -219,7 +320,6 @@ pub(crate) async fn cold_start(
                     SessionStartResult {
                         session_id: acp::SessionId::from(sid),
                         config_options: resp.config_options,
-                        modes: resp.modes,
                         resumed: true,
                     }
                 }
@@ -260,29 +360,6 @@ pub(crate) async fn cold_start(
     }
     let session_id = start_result.session_id;
 
-    let available_modes = start_result
-        .modes
-        .as_ref()
-        .map(|m| {
-            serde_json::to_value(m)
-                .ok()
-                .and_then(|v| v.get("modes").cloned())
-                .unwrap_or(json!([]))
-        })
-        .unwrap_or(json!([]));
-    let available_modes = match available_modes {
-        Value::Array(a) => a,
-        _ => vec![],
-    };
-    remember_runtime_modes(runtime_key, extract_mode_ids(&available_modes));
-    let current_mode = start_result.modes.as_ref().and_then(|m| {
-        serde_json::to_value(m).ok().and_then(|v| {
-            v.get("current")
-                .and_then(|c| c.as_str())
-                .map(|s| s.to_string())
-        })
-    });
-
     acp_log(
         "stage.ok",
         json!({
@@ -302,8 +379,6 @@ pub(crate) async fn cold_start(
         resumed: start_result.resumed,
         cwd: abs_cwd.to_string(),
         delta_slot,
-        available_modes,
-        current_mode,
         child_pid: wait_pid,
         _io_task: io_handle,
         health_rx,

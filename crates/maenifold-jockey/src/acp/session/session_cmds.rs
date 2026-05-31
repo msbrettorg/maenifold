@@ -153,32 +153,6 @@ pub async fn reconnect_session(
     rx.await.map_err(|_| "worker disconnected".to_string())?
 }
 
-pub async fn set_mode(
-    runtime_kind: &str,
-    role_name: &str,
-    mode_id: &str,
-    app_session_id: Option<&str>,
-) -> Result<(), String> {
-    let runtime_key = {
-        let k = normalize_runtime_key(runtime_kind);
-        if k.is_empty() {
-            return Err("empty runtime".to_string());
-        };
-        k
-    };
-    let resolved_session_id =
-        resolve_session_id(app_session_id).ok_or_else(|| "app session id required".to_string())?;
-    let (tx, rx) = oneshot::channel();
-    let _ = worker_tx().send(WorkerMsg::SetMode {
-        runtime_key,
-        role_name: role_name.to_string(),
-        app_session_id: resolved_session_id,
-        mode_id: mode_id.to_string(),
-        result_tx: tx,
-    });
-    rx.await.map_err(|_| "worker disconnected".to_string())?
-}
-
 pub async fn set_config_option(
     runtime_kind: &str,
     role_name: &str,

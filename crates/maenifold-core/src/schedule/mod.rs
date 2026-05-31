@@ -13,8 +13,9 @@ mod supervisor;
 mod systemd;
 
 pub use config::{RunRecord, RunStatus, ScheduledTask};
-pub use cron::{parse_schedule, ParsedSchedule};
-#[cfg(test)]
+pub use cron::{ParsedSchedule, parse_schedule};
+#[cfg(all(test, target_os = "macos"))]
+#[allow(unused_imports)]
 pub(crate) use launchd::{FailingLaunchctlBackend, NoopLaunchctlBackend};
 pub use launchd::{LaunchctlBackend, LaunchdManager, RealLaunchctlBackend};
 pub use lock::LockGuard;

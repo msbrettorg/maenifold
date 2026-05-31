@@ -462,16 +462,23 @@ function getStatusIcon(status: string): string {
 textarea {
   flex: 1;
   padding: 0.75rem;
-  border: 1px solid var(--border-color, #ccc);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
+  background: var(--bg-main);
+  color: var(--text-primary);
   font-size: 1rem;
   font-family: inherit;
   resize: none;
 }
 
+textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
 textarea:focus {
   outline: none;
-  border-color: var(--text-accent, #0066cc);
+  border-color: var(--text-accent);
 }
 
 .send-btn {

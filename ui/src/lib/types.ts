@@ -1,4 +1,4 @@
-// Types for ACP UI application
+// Types for the Maenifold UI application
 
 /**
  * Transport kinds supported by the frontend.

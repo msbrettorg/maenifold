@@ -270,7 +270,7 @@ function clearError() {
       :class="{ 'is-drawer': isNarrowLayout }"
     >
       <div class="sidebar-header">
-        <h1>ACP UI</h1>
+        <h1>Maenifold</h1>
         <div class="header-actions">
           <button 
             class="settings-btn" 
@@ -423,7 +423,7 @@ function clearError() {
         
         <!-- Welcome screen when not connected -->
         <div v-else class="welcome-screen">
-          <h2>Welcome to ACP UI</h2>
+          <h2>Welcome to Maenifold</h2>
           <p>Select an agent and create a new session to get started.</p>
           <p v-if="!hasAgents" class="hint">
             Configure agents in your config file to begin.
@@ -499,8 +499,8 @@ function clearError() {
     --bg-user: #1a3a5c;
     --bg-assistant: #2d2d2d;
     --text-primary: #e0e0e0;
-    --text-secondary: #a0a0a0;
-    --text-muted: #707070;
+    --text-secondary: #b0b0b0;
+    --text-muted: #8a8a8a;
     --text-accent: #4da6ff;
     --border-color: #404040;
     background-color: #252525;
@@ -555,21 +555,33 @@ html, body, #app {
 .settings-btn,
 .toggle-btn {
   padding: 0.25rem 0.5rem;
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
   cursor: pointer;
-  font-size: 0.875rem;
-  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text-secondary);
+  border-radius: 4px;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 
 .settings-btn:hover,
 .toggle-btn:hover {
   color: var(--text-primary);
+  background: var(--bg-hover);
+  border-color: var(--border-color);
+}
+
+.toggle-btn {
+  /* The chevron glyph is a touch larger to read clearly at small sizes
+     and keeps the same baseline as the gear / antenna emoji siblings. */
+  font-size: 1.05rem;
 }
 
 .settings-btn.active {
   color: var(--text-accent);
   background: var(--bg-hover);
+  border-color: var(--border-color);
   border-radius: 4px;
 }
 
@@ -687,12 +699,29 @@ html, body, #app {
   left: 0;
   top: 50%;
   transform: translateY(-50%);
-  padding: 0.5rem;
+  padding: 0.625rem 0.5rem;
   border: 1px solid var(--border-color);
   border-left: none;
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 6px 6px 0;
   background: var(--bg-sidebar);
+  color: var(--text-secondary);
   cursor: pointer;
+  font-size: 1.05rem;
+  line-height: 1;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.18);
+  transition: background 0.12s, color 0.12s, padding 0.12s;
+}
+
+.sidebar-toggle-collapsed:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  padding-right: 0.75rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .sidebar-toggle-collapsed {
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.55);
+  }
 }
 
 .main-area {

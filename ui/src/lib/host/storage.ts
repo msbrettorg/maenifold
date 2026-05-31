@@ -1,7 +1,8 @@
 // Minimal KV-store shim with two backends:
 //  - on Tauri, defers to `@tauri-apps/plugin-store` so behaviour matches
 //    today's persistence (keyed JSON file in the app's data dir);
-//  - on web, uses `localStorage` under a single `acp-ui:<name>` namespace.
+//  - on web, uses `localStorage` under a single `maenifold-ui:<name>`
+//    namespace.
 //
 // The exposed shape mirrors the subset of `plugin-store` we actually use
 // (`get`, `set`, `save`) so we can swap backends without touching call
@@ -20,7 +21,7 @@ class WebKVStore implements KVStore {
   private data: Record<string, unknown>;
 
   constructor(name: string) {
-    this.storageKey = `acp-ui:${name}`;
+    this.storageKey = `maenifold-ui:${name}`;
     this.data = {};
     if (typeof localStorage !== 'undefined') {
       const raw = localStorage.getItem(this.storageKey);

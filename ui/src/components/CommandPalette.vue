@@ -100,20 +100,29 @@ function selectCommand(cmd: SlashCommand) {
 </template>
 
 <style scoped>
-/* Light theme VS Code style */
+/* Theme-aware palette that respects the app's CSS variables (light/dark)
+   rather than the hardcoded #fff / #2563eb that used to clash with the
+   dark sidebar + chat area. */
 .command-palette {
   position: absolute;
   bottom: 100%;
   left: 0;
   width: 400px;
   margin-bottom: 6px;
-  background: #fff;
-  border: 1px solid #e0e0e0;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
   max-height: 320px;
   overflow: visible;
   z-index: 100;
+}
+
+@media (prefers-color-scheme: dark) {
+  .command-palette {
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.55);
+  }
 }
 
 .command-list {
@@ -124,25 +133,26 @@ function selectCommand(cmd: SlashCommand) {
 .command-item {
   padding: 8px 16px;
   cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
-  background: #fff;
+  border-bottom: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
-  transition: background 0.12s;
+  transition: background 0.12s, color 0.12s;
   position: relative;
 }
 .command-item:last-child {
   border-bottom: none;
 }
+.command-item:hover:not(.selected) {
+  background: var(--bg-hover);
+}
 .command-item.selected {
-  background: #2563eb;
+  background: var(--bg-primary);
   color: #fff;
-  border-radius: 6px;
 }
 .command-item.selected .command-name,
-.command-item.selected .command-hint,
-.command-item.selected .command-description,
-.command-item.selected .command-source {
+.command-item.selected .command-description {
   color: #fff;
 }
 
@@ -151,19 +161,22 @@ function selectCommand(cmd: SlashCommand) {
   left: calc(100% + 8px);
   top: 0;
   width: 220px;
-  background: #fff;
-  color: #333;
-  border: 1px solid #e0e0e0;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
   padding: 8px 12px;
   font-size: 0.95em;
   white-space: normal;
   z-index: 200;
   word-break: break-word;
 }
-.command-item:hover:not(.selected) {
-  background: #f3f8fd;
+
+@media (prefers-color-scheme: dark) {
+  .command-tooltip {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+  }
 }
 
 /* Command row: command and description on same line */
@@ -175,8 +188,8 @@ function selectCommand(cmd: SlashCommand) {
 }
 .command-name {
   font-weight: 600;
-  color: #2563eb;
-  font-family: monospace;
+  color: var(--text-accent);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 1em;
   min-width: 110px;
   max-width: 140px;
@@ -186,16 +199,12 @@ function selectCommand(cmd: SlashCommand) {
   text-overflow: ellipsis;
 }
 .command-description {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.97em;
   margin-left: 18px;
   flex: 1 1 auto;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.command-item.selected .command-name,
-.command-item.selected .command-description {
-  color: #fff;
 }
 </style>

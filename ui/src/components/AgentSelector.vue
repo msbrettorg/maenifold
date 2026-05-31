@@ -85,16 +85,28 @@ function handleSelect(event: Event) {
 
 label {
   font-weight: 600;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary);
 }
 
+/* WebView2 (Tauri) leaves <select> native-styled by default, which on
+   Windows draws white-on-white in OS dark mode. Force our own theme
+   variables and lock the appearance so the dropdown is always readable. */
 select {
-  padding: 0.5rem;
-  border: 1px solid var(--border-color, #ccc);
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding: 0.5rem 1.75rem 0.5rem 0.5rem;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 1rem;
-  background: var(--bg-input, #fff);
-  color: var(--text-primary, #333);
+  font-family: inherit;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+                    linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position: calc(100% - 14px) 50%, calc(100% - 9px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
 }
 
 select:disabled {
@@ -102,10 +114,19 @@ select:disabled {
   cursor: not-allowed;
 }
 
+/* The <option> elements pop up in a native OS menu; we can only color the
+   text/background — the chrome is OS-owned. Setting them here so the
+   options aren't unreadable when the OS menu draws in our app's theme. */
+select option {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+}
+
 .config-hint {
   margin-top: 0.5rem;
   padding: 0.75rem;
   background: var(--bg-warning, #fff3cd);
+  color: #5b4500;
   border-radius: 4px;
   font-size: 0.875rem;
 }
@@ -114,9 +135,9 @@ select:disabled {
   display: block;
   margin-top: 0.25rem;
   padding: 0.25rem 0.5rem;
-  background: var(--bg-code, #f5f5f5);
+  background: rgba(0, 0, 0, 0.08);
   border-radius: 2px;
-  font-family: monospace;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   word-break: break-all;
 }
 </style>

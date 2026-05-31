@@ -124,12 +124,13 @@ ul {
 
 .session-agent {
   font-size: 0.75rem;
-  color: var(--text-accent, #0066cc);
+  color: var(--text-accent);
+  font-weight: 500;
 }
 
 .session-date {
   font-size: 0.75rem;
-  color: var(--text-muted, #999);
+  color: var(--text-secondary);
 }
 
 .delete-btn {

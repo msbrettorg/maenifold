@@ -1,8 +1,8 @@
 [package]
-name = "acp-ui"
+name = "maenifold-ui"
 version = "0.1.16"
-description = "A Tauri App"
-authors = ["you"]
+description = "Maenifold UI — Agent Client Protocol desktop client"
+authors = ["Maenifold"]
 edition = "2021"
 
 [workspace]
@@ -13,7 +13,7 @@ edition = "2021"
 # The `_lib` suffix may seem redundant but it is necessary
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "acp_ui_lib"
+name = "maenifold_ui_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -34,6 +34,9 @@ uuid = { version = "1", features = ["v4"] }
 parking_lot = "0.12"
 indexmap = { version = "2", features = ["serde"] }
 shell-escape = "0.1"
+
+[dev-dependencies]
+tempfile = "3"
 
 # `machine-uid` reads platform-specific machine identifiers and does not
 # support iOS / Android. Telemetry on mobile falls back to an anonymous id.

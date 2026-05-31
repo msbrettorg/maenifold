@@ -79,116 +79,15 @@ pub struct AgentsConfig {
 
 impl Default for AgentsConfig {
     fn default() -> Self {
-        let mut agents = IndexMap::new();
-        agents.insert(
-            "GitHub Copilot".to_string(),
-            AgentConfig::stdio(
-                "npx".to_string(),
-                vec![
-                    "@github/copilot-language-server@latest".to_string(),
-                    "--acp".to_string(),
-                ],
-                std::collections::HashMap::new(),
-            ),
-        );
-        agents.insert(
-            "Claude Code".to_string(),
-            AgentConfig::stdio(
-                "npx".to_string(),
-                vec!["@agentclientprotocol/claude-agent-acp@latest".to_string()],
-                std::collections::HashMap::new(),
-            ),
-        );
-        agents.insert(
-            "Gemini CLI".to_string(),
-            AgentConfig::stdio(
-                "npx".to_string(),
-                vec![
-                    "@google/gemini-cli@latest".to_string(),
-                    "--experimental-acp".to_string(),
-                ],
-                std::collections::HashMap::new(),
-            ),
-        );
-        agents.insert(
-            "Qwen Code".to_string(),
-            AgentConfig::stdio(
-                "npx".to_string(),
-                vec![
-                    "@qwen-code/qwen-code@latest".to_string(),
-                    "--acp".to_string(),
-                    "--experimental-skills".to_string(),
-                ],
-                std::collections::HashMap::new(),
-            ),
-        );
-        agents.insert(
-            "Auggie CLI".to_string(),
-            AgentConfig::stdio(
-                "npx".to_string(),
-                vec![
-                    "@augmentcode/auggie@latest".to_string(),
-                    "--acp".to_string(),
-                ],
-                {
-                    let mut env = std::collections::HashMap::new();
-                    env.insert("AUGMENT_DISABLE_AUTO_UPDATE".to_string(), "1".to_string());
-                    env
-                },
-            ),
-        );
-        agents.insert(
-            "Qoder CLI".to_string(),
-            AgentConfig::stdio(
-                "npx".to_string(),
-                vec![
-                    "@qoder-ai/qodercli@latest".to_string(),
-                    "--acp".to_string(),
-                ],
-                std::collections::HashMap::new(),
-            ),
-        );
-        agents.insert(
-            "Codex CLI".to_string(),
-            AgentConfig::stdio(
-                "npx".to_string(),
-                vec!["@zed-industries/codex-acp@latest".to_string()],
-                std::collections::HashMap::new(),
-            ),
-        );
-        agents.insert(
-            "OpenCode".to_string(),
-            AgentConfig::stdio(
-                "npx".to_string(),
-                vec!["opencode-ai@latest".to_string(), "acp".to_string()],
-                std::collections::HashMap::new(),
-            ),
-        );
-        agents.insert(
-            "OpenClaw".to_string(),
-            AgentConfig::stdio(
-                "npx".to_string(),
-                vec!["openclaw".to_string(), "acp".to_string()],
-                std::collections::HashMap::new(),
-            ),
-        );
-        agents.insert(
-            "Kiro CLI".to_string(),
-            AgentConfig::stdio(
-                "kiro-cli".to_string(),
-                vec!["acp".to_string()],
-                std::collections::HashMap::new(),
-            ),
-        );
-        agents.insert(
-            "Hermes Agent".to_string(),
-            AgentConfig::stdio(
-                "hermes".to_string(),
-                vec!["acp".to_string()],
-                std::collections::HashMap::new(),
-            ),
-        );
-        AgentsConfig { agents }
+        // Agent defaults now live in maenifold-core
+        // (`crate::acp_config::default_agents_config`) so the daemon and
+        // the UI bootstrap the same set. The UI's empty default is just
+        // the fallback when no file exists yet and the daemon hasn't run
+        // — first daemon launch (or first UI launch hitting
+        // `save_config`) writes the populated file.
+        AgentsConfig {
+            agents: IndexMap::new(),
+        }
     }
 }
 
@@ -211,13 +110,17 @@ impl ConfigManager {
             fs::create_dir_all(parent).map_err(|e| e.to_string())?;
         }
 
-        // Load initial config or create default
+        // The maenifold daemon owns first-run bootstrap of
+        // `maenifold.json` (see `Config::ensure_default_config_file` in
+        // maenifold-core). If the file is missing here it usually means
+        // the daemon hasn't been launched yet — fall back to an empty
+        // in-memory config and let the file watcher pick up the daemon's
+        // write when it lands. Writing an empty file here would clobber
+        // any defaults the daemon is about to write.
         let config = if config_path.exists() {
             load_config(&config_path)?
         } else {
-            let default_config = AgentsConfig::default();
-            save_config(&config_path, &default_config)?;
-            default_config
+            AgentsConfig::default()
         };
 
         let config = Arc::new(RwLock::new(config));
@@ -298,35 +201,222 @@ impl ConfigManager {
 }
 
 fn get_config_path(_app: &AppHandle) -> Result<PathBuf, String> {
-    // On desktop we keep the historical `~/.config/acp-ui/agents.json`
-    // (resp. %APPDATA%\acp-ui, ~/Library/Application Support/acp-ui)
-    // so existing installations don't need to migrate.
+    // Single source of truth: the maenifold daemon's `maenifold.json`
+    // lives at `$MAENIFOLD_ROOT/maenifold.json` (default `~/maenifold/`).
+    // The daemon bootstraps this file with sane agent defaults on first
+    // run (`Config::ensure_default_config_file`), so both surfaces see
+    // the same agents from the very first launch instead of the UI
+    // maintaining its own historical `~/.config/acp-ui/agents.json`.
     #[cfg(desktop)]
     {
-        return dirs::config_dir()
-            .map(|p| p.join("acp-ui").join("agents.json"))
-            .ok_or_else(|| "Could not find config directory".to_string());
+        let root: PathBuf = match std::env::var_os("MAENIFOLD_ROOT") {
+            Some(value) => PathBuf::from(value),
+            None => dirs::home_dir()
+                .ok_or_else(|| "Could not resolve home directory".to_string())?
+                .join("maenifold"),
+        };
+        return Ok(root.join("maenifold.json"));
     }
-    // On mobile, the only writable per-app location is the sandbox config
-    // dir exposed by Tauri. `dirs::config_dir()` is unreliable there.
+    // Mobile builds have no shared filesystem with a maenifold daemon —
+    // keep the sandbox path so the UI still functions standalone.
     #[cfg(not(desktop))]
     {
         return _app
             .path()
             .app_config_dir()
             .map_err(|e| format!("Could not resolve app config dir: {}", e))
-            .map(|p| p.join("agents.json"));
+            .map(|p| p.join("maenifold.json"));
     }
 }
 
 fn load_config(path: &PathBuf) -> Result<AgentsConfig, String> {
     let content = fs::read_to_string(path).map_err(|e| e.to_string())?;
-    serde_json::from_str(&content).map_err(|e| e.to_string())
+    parse_maenifold_config(&content)
+}
+
+/// Parse the daemon-shape `maenifold.json` into the UI's `AgentsConfig`.
+///
+/// The daemon stores each agent's invocation as a single space-joined
+/// `command` string (`"npx @scope/foo@latest --acp"`); the UI's spawn
+/// path takes a separate `command` binary and `args` vector. We split on
+/// whitespace at load time to bridge the two shapes without forcing the
+/// daemon to mirror our richer struct. Unknown top-level keys
+/// (`mcpServers`, `settings`) are preserved on save (see `save_config`).
+fn parse_maenifold_config(content: &str) -> Result<AgentsConfig, String> {
+    let value: serde_json::Value = serde_json::from_str(content).map_err(|e| e.to_string())?;
+    let agents_value = value
+        .get("agents")
+        .cloned()
+        .unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new()));
+    let raw_agents: IndexMap<String, serde_json::Value> =
+        serde_json::from_value(agents_value).map_err(|e| e.to_string())?;
+
+    let mut agents: IndexMap<String, AgentConfig> = IndexMap::with_capacity(raw_agents.len());
+    for (name, raw) in raw_agents {
+        let entry = agent_from_value(&name, &raw)?;
+        agents.insert(name, entry);
+    }
+    Ok(AgentsConfig { agents })
+}
+
+fn agent_from_value(name: &str, raw: &serde_json::Value) -> Result<AgentConfig, String> {
+    let obj = raw
+        .as_object()
+        .ok_or_else(|| format!("agent '{name}' must be an object"))?;
+
+    let transport = match obj.get("transport").and_then(|v| v.as_str()) {
+        Some("websocket") => AgentTransport::Websocket,
+        Some("http") => AgentTransport::Http,
+        // Default + explicit "stdio" + anything unknown collapses to the
+        // canonical stdio path so the UI never silently drops an agent.
+        _ => AgentTransport::Stdio,
+    };
+
+    let env: std::collections::HashMap<String, String> = obj
+        .get("env")
+        .cloned()
+        .map(serde_json::from_value)
+        .transpose()
+        .map_err(|e| format!("agent '{name}' has invalid env: {e}"))?
+        .unwrap_or_default();
+
+    let url = obj
+        .get("url")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
+    let headers: Option<std::collections::HashMap<String, String>> = obj
+        .get("headers")
+        .cloned()
+        .map(serde_json::from_value)
+        .transpose()
+        .map_err(|e| format!("agent '{name}' has invalid headers: {e}"))?;
+
+    // stdio agents accept either the daemon shape (single `command` string)
+    // or the legacy UI shape (separate `command` + `args`). Split on
+    // whitespace when no explicit `args` is present so the spawn path can
+    // always invoke `Command::new(command).args(args)`.
+    let (command, args) = match transport {
+        AgentTransport::Stdio => {
+            let raw_command = obj
+                .get("command")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let raw_args: Option<Vec<String>> = obj
+                .get("args")
+                .cloned()
+                .map(serde_json::from_value)
+                .transpose()
+                .map_err(|e| format!("agent '{name}' has invalid args: {e}"))?;
+            split_command_and_args(raw_command, raw_args)
+        }
+        _ => (None, None),
+    };
+
+    Ok(AgentConfig {
+        transport,
+        command,
+        args,
+        env,
+        url,
+        headers,
+    })
+}
+
+fn split_command_and_args(
+    command: Option<String>,
+    args: Option<Vec<String>>,
+) -> (Option<String>, Option<Vec<String>>) {
+    if args.is_some() {
+        return (command, args);
+    }
+    let Some(raw) = command else {
+        return (None, None);
+    };
+    let mut parts = raw.split_whitespace().map(|s| s.to_string());
+    let Some(binary) = parts.next() else {
+        return (None, None);
+    };
+    let rest: Vec<String> = parts.collect();
+    let args_field = if rest.is_empty() { None } else { Some(rest) };
+    (Some(binary), args_field)
 }
 
 fn save_config(path: &PathBuf, config: &AgentsConfig) -> Result<(), String> {
-    let content = serde_json::to_string_pretty(config).map_err(|e| e.to_string())?;
-    fs::write(path, content).map_err(|e| e.to_string())
+    // Preserve unknown top-level keys the daemon owns (`mcpServers`,
+    // `settings`, future additions) by merging into whatever is currently
+    // on disk rather than serializing the UI's view wholesale.
+    let mut root: serde_json::Map<String, serde_json::Value> = match fs::read_to_string(path) {
+        Ok(existing) => serde_json::from_str::<serde_json::Value>(&existing)
+            .ok()
+            .and_then(|v| v.as_object().cloned())
+            .unwrap_or_default(),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => serde_json::Map::new(),
+        Err(err) => return Err(err.to_string()),
+    };
+
+    let mut agents_map = serde_json::Map::with_capacity(config.agents.len());
+    for (name, entry) in &config.agents {
+        agents_map.insert(name.clone(), agent_to_daemon_value(entry));
+    }
+    root.insert(
+        "agents".to_string(),
+        serde_json::Value::Object(agents_map),
+    );
+
+    let body = serde_json::to_string_pretty(&serde_json::Value::Object(root))
+        .map_err(|e| e.to_string())?;
+    fs::write(path, format!("{body}\n")).map_err(|e| e.to_string())
+}
+
+/// Serialize a single agent in the daemon's wire shape. Stdio agents
+/// collapse `command` + `args` back into one space-joined string so the
+/// daemon's `validate_agent_entry` (which splits the same way via
+/// `AgentEntry::command_parts`) reads exactly what we wrote.
+fn agent_to_daemon_value(entry: &AgentConfig) -> serde_json::Value {
+    let mut obj = serde_json::Map::new();
+    match entry.transport {
+        AgentTransport::Stdio => {
+            // Daemon ignores `transport: "stdio"` (it's the default), but
+            // emit it explicitly to keep round-trips faithful when other
+            // tooling reads the file.
+            if let Some(command) = entry.command.as_ref() {
+                let joined = match entry.args.as_ref().filter(|a| !a.is_empty()) {
+                    Some(args) => format!("{} {}", command, args.join(" ")),
+                    None => command.clone(),
+                };
+                obj.insert("command".to_string(), serde_json::Value::String(joined));
+            }
+        }
+        AgentTransport::Websocket | AgentTransport::Http => {
+            obj.insert(
+                "transport".to_string(),
+                serde_json::Value::String(match entry.transport {
+                    AgentTransport::Websocket => "websocket".to_string(),
+                    AgentTransport::Http => "http".to_string(),
+                    AgentTransport::Stdio => unreachable!(),
+                }),
+            );
+            if let Some(url) = entry.url.as_ref() {
+                obj.insert("url".to_string(), serde_json::Value::String(url.clone()));
+            }
+            if let Some(headers) = entry.headers.as_ref() {
+                if !headers.is_empty() {
+                    obj.insert(
+                        "headers".to_string(),
+                        serde_json::to_value(headers).unwrap_or(serde_json::Value::Null),
+                    );
+                }
+            }
+        }
+    }
+    if !entry.env.is_empty() {
+        obj.insert(
+            "env".to_string(),
+            serde_json::to_value(&entry.env).unwrap_or(serde_json::Value::Null),
+        );
+    }
+    serde_json::Value::Object(obj)
 }
 
 #[cfg(desktop)]
@@ -371,42 +461,136 @@ fn setup_watcher(
 mod tests {
     use super::*;
 
-    /// Old-format `agents.json` files only contain `command/args/env`. The
-    /// new struct must still deserialize them as stdio agents so users
-    /// don't lose their config on upgrade.
     #[test]
-    fn deserializes_legacy_stdio_config() {
+    fn parses_daemon_combined_command_form() {
+        // Maenifold daemon stores agents as a single space-joined command
+        // string. The UI's loader must split it into binary + args so the
+        // spawn path can call `Command::new(binary).args(args)`.
+        let json = r#"{"agents":{"GitHub Copilot":{"command":"npx @github/copilot-language-server@latest --acp"}}}"#;
+        let cfg = parse_maenifold_config(json).expect("daemon shape must parse");
+        let entry = cfg.agents.get("GitHub Copilot").expect("agent present");
+        assert_eq!(entry.transport, AgentTransport::Stdio);
+        assert_eq!(entry.command.as_deref(), Some("npx"));
+        assert_eq!(
+            entry.args.as_deref(),
+            Some(["@github/copilot-language-server@latest", "--acp"].as_slice())
+                .map(|s| s.iter().map(|x| x.to_string()).collect::<Vec<_>>())
+                .as_deref()
+        );
+    }
+
+    #[test]
+    fn parses_legacy_split_command_args_form() {
+        // Older `agents.json` files used separate command + args fields;
+        // keep deserializing them unchanged so a user migrating from the
+        // old UI-owned config file doesn't lose their entries.
         let json = r#"{"agents":{"Legacy":{"command":"npx","args":["x"],"env":{}}}}"#;
-        let cfg: AgentsConfig = serde_json::from_str(json).unwrap();
-        let a = cfg.agents.get("Legacy").unwrap();
-        assert_eq!(a.transport, AgentTransport::Stdio);
-        assert_eq!(a.command.as_deref(), Some("npx"));
-        assert_eq!(a.url, None);
+        let cfg = parse_maenifold_config(json).expect("legacy shape must parse");
+        let entry = cfg.agents.get("Legacy").expect("agent present");
+        assert_eq!(entry.transport, AgentTransport::Stdio);
+        assert_eq!(entry.command.as_deref(), Some("npx"));
+        assert_eq!(entry.args.as_deref().map(|v| v.len()), Some(1));
     }
 
-    /// New-format remote agents must round-trip through serde without losing
-    /// the transport / url / headers fields.
     #[test]
-    fn roundtrips_remote_websocket_config() {
+    fn parses_remote_websocket_agent() {
         let json = r#"{"agents":{"Remote":{"transport":"websocket","url":"wss://x/v1","headers":{"Authorization":"Bearer abc"}}}}"#;
-        let cfg: AgentsConfig = serde_json::from_str(json).unwrap();
-        let a = cfg.agents.get("Remote").unwrap();
-        assert_eq!(a.transport, AgentTransport::Websocket);
-        assert_eq!(a.url.as_deref(), Some("wss://x/v1"));
-        assert_eq!(a.command, None);
-        let serialized = serde_json::to_string(&cfg).unwrap();
-        // `transport: "stdio"` is omitted by skip_serializing_if; ensure
-        // websocket is present in the round-trip output.
-        assert!(serialized.contains("\"transport\":\"websocket\""));
+        let cfg = parse_maenifold_config(json).expect("remote shape must parse");
+        let entry = cfg.agents.get("Remote").expect("agent present");
+        assert_eq!(entry.transport, AgentTransport::Websocket);
+        assert_eq!(entry.url.as_deref(), Some("wss://x/v1"));
+        assert_eq!(entry.command, None);
+        assert!(entry.args.is_none());
+        assert_eq!(
+            entry.headers.as_ref().and_then(|h| h.get("Authorization")).map(String::as_str),
+            Some("Bearer abc"),
+        );
     }
 
     #[test]
-    fn defaults_keep_all_eleven_stdio_agents() {
+    fn ignores_daemon_specific_top_level_keys() {
+        // The shared maenifold.json carries `mcpServers` and `settings`
+        // sections the daemon owns. The UI loader must tolerate them
+        // rather than refusing to parse.
+        let json = r#"{
+            "mcpServers": {"x": {"command": "/bin/y"}},
+            "agents": {"A": {"command": "/bin/a"}},
+            "settings": {"autoSync": true}
+        }"#;
+        let cfg = parse_maenifold_config(json).expect("daemon-shape config must parse");
+        assert_eq!(cfg.agents.len(), 1);
+    }
+
+    #[test]
+    fn save_preserves_unknown_top_level_keys() {
+        // The UI must not wipe `mcpServers` / `settings` when the user
+        // adds or edits an agent.
+        let tmp = tempfile::NamedTempFile::new().expect("tmp file");
+        let path = tmp.path().to_path_buf();
+        std::fs::write(
+            &path,
+            r#"{
+                "mcpServers": {"x": {"command": "/bin/y"}},
+                "agents": {"Old": {"command": "/bin/old"}},
+                "settings": {"autoSync": true}
+            }"#,
+        )
+        .expect("seed");
+
+        let mut config = AgentsConfig {
+            agents: IndexMap::new(),
+        };
+        config.agents.insert(
+            "New".to_string(),
+            AgentConfig::stdio(
+                "/bin/new".to_string(),
+                vec!["--flag".to_string()],
+                std::collections::HashMap::new(),
+            ),
+        );
+        save_config(&path, &config).expect("save");
+
+        let written = std::fs::read_to_string(&path).expect("read");
+        let value: serde_json::Value = serde_json::from_str(&written).expect("parse");
+        assert!(value.get("mcpServers").is_some(), "mcpServers preserved");
+        assert!(value.get("settings").is_some(), "settings preserved");
+        assert_eq!(
+            value
+                .get("agents")
+                .and_then(|a| a.get("New"))
+                .and_then(|n| n.get("command"))
+                .and_then(|c| c.as_str()),
+            Some("/bin/new --flag"),
+        );
+        assert!(
+            value
+                .get("agents")
+                .and_then(|a| a.get("Old"))
+                .is_none(),
+            "save replaces agents wholesale (Old should be gone)"
+        );
+    }
+
+    #[test]
+    fn roundtrips_stdio_through_daemon_shape() {
+        let json = r#"{"agents":{"GH":{"command":"npx @github/copilot-language-server@latest --acp"}}}"#;
+        let parsed = parse_maenifold_config(json).expect("parse");
+        let tmp = tempfile::NamedTempFile::new().expect("tmp file");
+        save_config(&tmp.path().to_path_buf(), &parsed).expect("save");
+        let reparsed =
+            parse_maenifold_config(&std::fs::read_to_string(tmp.path()).expect("read"))
+                .expect("reparse");
+        let entry = reparsed.agents.get("GH").expect("agent");
+        assert_eq!(entry.command.as_deref(), Some("npx"));
+        assert_eq!(entry.args.as_deref().map(|v| v.len()), Some(2));
+    }
+
+    #[test]
+    fn default_keeps_zero_agents_until_daemon_bootstraps() {
+        // The UI no longer ships its own default agent set — the daemon
+        // owns the bootstrap (see `Config::ensure_default_config_file`).
+        // Empty default is the correct fallback when no file exists.
         let cfg = AgentsConfig::default();
-        assert_eq!(cfg.agents.len(), 11);
-        for (_, a) in &cfg.agents {
-            assert_eq!(a.transport, AgentTransport::Stdio);
-            assert!(a.command.is_some());
-        }
+        assert!(cfg.agents.is_empty());
     }
 }

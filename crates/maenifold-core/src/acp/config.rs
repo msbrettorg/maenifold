@@ -7,6 +7,8 @@
 // non-mod.rs submodule directory resolution interacts with that mount in a
 // way that differs from the conventional `<stem>/` lookup.
 
+#[path = "config/defaults.rs"]
+mod defaults;
 #[path = "config/gateway_settings.rs"]
 mod gateway_settings;
 #[path = "config/loader.rs"]
@@ -29,6 +31,7 @@ mod tests;
 #[path = "config/types_tests.rs"]
 mod types_tests;
 
+pub use defaults::default_agents_config;
 #[allow(unused_imports)]
 #[allow(unused_imports)]
 pub use gateway_settings::*;

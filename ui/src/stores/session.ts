@@ -423,8 +423,8 @@ export const useSessionStore = defineStore('session', () => {
           },
         },
         clientInfo: {
-          name: 'acp-ui',
-          title: 'ACP UI',
+          name: 'maenifold-ui',
+          title: 'Maenifold',
           version: appVersion,
         },
       });
@@ -613,8 +613,8 @@ export const useSessionStore = defineStore('session', () => {
           },
         },
         clientInfo: {
-          name: 'acp-ui',
-          title: 'ACP UI',
+          name: 'maenifold-ui',
+          title: 'Maenifold',
           version: appVersion,
         },
       });

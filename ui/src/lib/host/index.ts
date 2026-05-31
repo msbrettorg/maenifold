@@ -38,7 +38,7 @@ export interface RemoteAgentOptions {
 // mutate it (the Tauri implementation watches a real file).
 // ---------------------------------------------------------------------------
 
-const WEB_CONFIG_KEY = 'acp-ui:agents';
+const WEB_CONFIG_KEY = 'maenifold-ui:agents';
 const WEB_CONFIG_PATH_LABEL = '(browser local storage)';
 
 function loadWebConfig(): AgentsConfig {

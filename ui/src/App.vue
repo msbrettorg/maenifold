@@ -28,6 +28,11 @@ const showSettings = ref(false);
 const showTrafficMonitor = ref(false);
 const showStartupDetails = ref(false);
 
+// Embedded at build time by Vite. Used in the welcome hero pill so the
+// version appears as soon as the bundle loads (no async getAppVersion()
+// round-trip needed).
+const APP_VERSION = '0.1.16';
+
 // Reactive flag tracking whether the viewport is narrow enough to show the
 // sidebar as a slide-in drawer (mobile / very narrow desktop windows). Used
 // by the template to decide when the backdrop is interactive and by
@@ -423,11 +428,76 @@ function clearError() {
         
         <!-- Welcome screen when not connected -->
         <div v-else class="welcome-screen">
-          <h2>Welcome to Maenifold</h2>
-          <p>Select an agent and create a new session to get started.</p>
-          <p v-if="!hasAgents" class="hint">
-            Configure agents in your config file to begin.
-          </p>
+          <div class="welcome-hero">
+            <!-- Inline Lucide brain glyph: same path as the app icon -->
+            <svg
+              class="welcome-brain"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 18V5"/>
+              <path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/>
+              <path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/>
+              <path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/>
+              <path d="M18 18a4 4 0 0 0 2-7.464"/>
+              <path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/>
+              <path d="M6 18a4 4 0 0 1-2-7.464"/>
+              <path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/>
+            </svg>
+
+            <div class="welcome-identity" aria-label="Application identity">
+              <span class="welcome-name">Maenifold</span>
+              <span class="welcome-version">v{{ APP_VERSION }}</span>
+            </div>
+
+            <h1 class="welcome-headline">What can I help you with?</h1>
+            <p class="welcome-sub">
+              {{ hasAgents
+                  ? 'Pick an agent in the sidebar and start a new session.'
+                  : 'Configure agents in ~/maenifold/maenifold.json to begin.' }}
+            </p>
+
+            <div class="welcome-actions">
+              <button
+                v-if="hasAgents"
+                class="welcome-action primary"
+                :disabled="!selectedAgent || isLoading || isConnecting"
+                @click="handleNewSession"
+              >
+                <span class="welcome-action-icon">💬</span>
+                <span class="welcome-action-label">
+                  <strong>New session</strong>
+                  <small>{{ selectedAgent ? `with ${selectedAgent}` : 'select an agent first' }}</small>
+                </span>
+              </button>
+              <button
+                class="welcome-action"
+                @click="showSettings = true"
+              >
+                <span class="welcome-action-icon">⚙</span>
+                <span class="welcome-action-label">
+                  <strong>Settings</strong>
+                  <small>Manage agents &amp; preferences</small>
+                </span>
+              </button>
+              <button
+                class="welcome-action"
+                @click="showTrafficMonitor = true"
+              >
+                <span class="welcome-action-icon">📡</span>
+                <span class="welcome-action-label">
+                  <strong>Traffic monitor</strong>
+                  <small>Inspect ACP messages</small>
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
       </main>
       
@@ -851,17 +921,157 @@ html, body, #app {
   text-align: center;
   padding: 2rem;
   color: var(--text-secondary);
+  background:
+    radial-gradient(80% 60% at 50% 0%, color-mix(in srgb, var(--text-accent) 8%, transparent) 0%, transparent 70%),
+    var(--bg-main);
 }
 
-.welcome-screen h2 {
-  margin-bottom: 0.5rem;
+.welcome-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 560px;
+  gap: 1.25rem;
+}
+
+.welcome-brain {
+  width: 88px;
+  height: 88px;
+  color: var(--text-accent);
+  opacity: 0.85;
+  filter: drop-shadow(0 6px 18px color-mix(in srgb, var(--text-accent) 28%, transparent));
+}
+
+.welcome-identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: -0.25rem;
+}
+
+.welcome-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+}
+
+.welcome-version {
+  padding: 0.125rem 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-sidebar);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.welcome-headline {
+  margin: 0;
+  font-size: 1.65rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
-.welcome-screen .hint {
-  margin-top: 1rem;
-  font-size: 0.875rem;
+.welcome-sub {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  max-width: 440px;
+}
+
+.welcome-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.625rem;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 800px) {
+  .welcome-actions {
+    grid-template-columns: 1fr;
+  }
+  .welcome-brain {
+    width: 64px;
+    height: 64px;
+  }
+  .welcome-headline {
+    font-size: 1.35rem;
+  }
+}
+
+.welcome-action {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.05s ease;
+  font: inherit;
+}
+
+.welcome-action:hover:not(:disabled) {
+  border-color: var(--text-accent);
+  background: var(--bg-hover);
+}
+
+.welcome-action:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.welcome-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.welcome-action.primary {
+  border-color: color-mix(in srgb, var(--text-accent) 50%, var(--border-color));
+  background: color-mix(in srgb, var(--text-accent) 10%, var(--bg-main));
+}
+
+.welcome-action.primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text-accent) 16%, var(--bg-main));
+}
+
+.welcome-action-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.welcome-action-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.welcome-action-label strong {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.welcome-action-label small {
+  font-size: 0.7rem;
+  font-weight: 400;
   color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---------- Mobile / narrow-viewport layout ---------- */

@@ -96,9 +96,9 @@ fn is_supported_object_schema(schema: &Value) -> bool {
 }
 
 fn validation_path(error: &jsonschema::ValidationError<'_>) -> String {
-    match &error.kind {
+    match error.kind() {
         jsonschema::error::ValidationErrorKind::Required { property } => {
-            let base = error.instance_path.to_string();
+            let base = error.instance_path().to_string();
             let property = property
                 .as_str()
                 .map(escape_json_pointer_segment)
@@ -109,12 +109,12 @@ fn validation_path(error: &jsonschema::ValidationError<'_>) -> String {
                 format!("{base}/{property}")
             }
         }
-        _ => error.instance_path.to_string(),
+        _ => error.instance_path().to_string(),
     }
 }
 
 fn validation_keyword(error: &jsonschema::ValidationError<'_>) -> String {
-    let schema_path = error.schema_path.to_string();
+    let schema_path = error.schema_path().to_string();
     schema_path
         .rsplit('/')
         .next()
@@ -129,7 +129,7 @@ fn missing_required_properties(
 ) -> Vec<String> {
     let mut missing = errors
         .iter()
-        .filter_map(|error| match &error.kind {
+        .filter_map(|error| match error.kind() {
             jsonschema::error::ValidationErrorKind::Required { property } => {
                 property.as_str().map(str::to_string)
             }

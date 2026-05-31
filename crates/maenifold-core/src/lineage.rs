@@ -8,7 +8,7 @@ fn stable_lineage_id(kind: &str, stable_key: &str) -> String {
     hasher.update(b":");
     hasher.update(normalized.as_bytes());
     let digest = hasher.finalize();
-    let hex = format!("{digest:x}");
+    let hex: String = digest.iter().map(|b| format!("{b:02x}")).collect();
     format!("lin-v1-{kind}-{}", &hex[..20])
 }
 

@@ -20,44 +20,44 @@ backon = "1.6"
 # Evaluated but deferred: unstable_session_fork (needs pipeline integration), unstable_message_id (needs prompt correlation)
 agent-client-protocol = { version = "0.12.1", features = ["unstable"] }
 agent-client-protocol-schema = { version = "=0.13.2", features = ["unstable"] }
-anyhow = "1.0.100"
+anyhow = "1.0.102"
 axum = "0.8"
-chrono = { version = "0.4.42", features = ["serde"] }
-once_cell = "1.21.3"
+chrono = { version = "0.4.44", features = ["serde"] }
+once_cell = "1.21.4"
 parking_lot = "0.12.5"
 reqwest = { version = "0.13", features = ["json", "multipart"] }
-regex = "1.12.2"
-rmcp = { version = "1.5.0", features = ["server", "transport-io", "macros", "schemars"] }
-schemars = "0.8"
-rusqlite = { version = "0.38.0", features = ["bundled", "functions", "load_extension", "modern_sqlite"] }
+regex = "1.12.3"
+rmcp = { version = "1.7.0", features = ["server", "transport-io", "macros", "schemars"] }
+schemars = "1.2"
+rusqlite = { version = "0.40.0", features = ["bundled", "functions", "load_extension", "modern_sqlite"] }
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = { version = "1.0.145", features = ["preserve_order"] }
+serde_json = { version = "1.0.150", features = ["preserve_order"] }
 serde_yml = { package = "serde_norway", version = "0.9.42" }
 slug = "0.1.6"
-thiserror = "2.0.17"
+thiserror = "2.0.18"
 tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
 # T-17.2: RTM FR-23 (RTM-127, RTM-129, RTM-130) - HTTP transport needs networking and
 # SIGINT handling for graceful shutdown.
-tokio = { version = "1.52.1", features = ["macros", "rt-multi-thread", "io-std", "sync", "net", "signal"] }
+tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread", "io-std", "sync", "net", "signal"] }
 tokio-util = { version = "0.7", features = ["rt", "compat"] }
 tower-http = { version = "0.6", features = ["cors"] }
 walkdir = "2.5.0"
-pulldown-cmark = "0.13.0"
-sha2 = "0.10.9"
+pulldown-cmark = "0.13.4"
+sha2 = "0.11.0"
 base64 = "0.22.1"
-uuid = { version = "1.23.1", features = ["v4", "serde"] }
+uuid = { version = "1.23.2", features = ["v4", "serde"] }
 ort = { version = "2.0.0-rc.12", default-features = false, features = ["std", "ndarray", "load-dynamic", "api-24"] }
-tokenizers = "0.22.2"
+tokenizers = "0.23.1"
 tray-icon = { version = "0.24", default-features = false }
 wry = { version = "0.55.1", default-features = false, features = ["os-webview", "protocol"] }
-notify = { version = "7", features = ["macos_fsevent"] }
-tempfile = "3.23.0"
+notify = { version = "8", features = ["macos_fsevent"] }
+tempfile = "3.27.0"
 fd-lock = "4"
-assert_cmd = "2.1.1"
-predicates = "3.1.3"
-similar-asserts = "1.7.0"
+assert_cmd = "2.2.2"
+predicates = "3.1.4"
+similar-asserts = "2.0.0"
 urlencoding = "2.1.3"
 libc = "0.2"
 async-trait = "0.1"

@@ -19,7 +19,7 @@ dashmap = "6"
 libc = "0.2"
 once_cell.workspace = true
 reqwest.workspace = true
-rusqlite = { version = "0.38", features = ["bundled"] }
+rusqlite = { version = "0.40", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json.workspace = true
 sha2.workspace = true

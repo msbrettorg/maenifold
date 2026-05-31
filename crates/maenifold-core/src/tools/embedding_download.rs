@@ -239,7 +239,7 @@ async fn verify_sha256(path: &Path, file: &CatalogFile) -> Result<(), String> {
         }
         hasher.update(&buffer[..read]);
     }
-    let actual = format!("{:x}", hasher.finalize());
+    let actual: String = hasher.finalize().iter().map(|b| format!("{b:02x}")).collect();
     if actual != file.sha256.to_ascii_lowercase() {
         return Err(format!(
             "SHA-256 verification failed for {}: expected {}, got {}",

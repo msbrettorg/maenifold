@@ -3,7 +3,7 @@ use super::sessions_query::{list_agent_sessions, run_sessions_future};
 use crate::acp_config::AgentsConfig;
 use crate::error::{MaenifoldError, Result};
 use crate::util::json::{OutputFormat, success};
-use agent_client_protocol as acp;
+use agent_client_protocol::schema::{self as acp};
 use futures_util::future::join_all;
 use serde::Serialize;
 use serde_json::{Value, json};
@@ -43,9 +43,8 @@ pub(super) struct SessionQueryResult {
 
 pub(super) struct NullAcpClient;
 
-#[async_trait::async_trait(?Send)]
-impl acp::Client for NullAcpClient {
-    async fn request_permission(
+impl NullAcpClient {
+    pub(crate) async fn request_permission(
         &self,
         _args: acp::RequestPermissionRequest,
     ) -> acp::Result<acp::RequestPermissionResponse> {
@@ -54,7 +53,10 @@ impl acp::Client for NullAcpClient {
         ))
     }
 
-    async fn session_notification(&self, _args: acp::SessionNotification) -> acp::Result<()> {
+    pub(crate) async fn session_notification(
+        &self,
+        _args: acp::SessionNotification,
+    ) -> acp::Result<()> {
         Ok(())
     }
 }

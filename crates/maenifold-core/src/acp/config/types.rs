@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use agent_client_protocol as acp;
+use agent_client_protocol::schema::{self as acp};
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::api::mcp_discovery::DEFAULT_DISCOVERY_TIMEOUT;

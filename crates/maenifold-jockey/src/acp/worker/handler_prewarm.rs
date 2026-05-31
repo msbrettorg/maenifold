@@ -1,11 +1,10 @@
-use agent_client_protocol::{self as acp};
+use agent_client_protocol::schema::{self as acp};
 use serde_json::{Value, json};
 use tokio::sync::{mpsc, oneshot};
 
 use super::super::adapter::{acp_log, resolve_cwd};
 use super::super::runtime_state::{
-    list_discovered_config_options, list_discovered_modes, remember_runtime_available_commands,
-    remember_runtime_modes,
+    list_discovered_config_options, remember_runtime_available_commands,
 };
 use super::super::session::cold_start;
 use super::handler_config::{
@@ -31,10 +30,9 @@ pub(crate) async fn handle_prewarm(
     cwd: String,
     auto_approve: bool,
     mcp_servers: Vec<acp::McpServer>,
-    role_mode: Option<String>,
     role_config_options: Vec<Value>,
     delta_tx: Option<mpsc::Sender<AcpEvent>>,
-    result_tx: Option<oneshot::Sender<(Vec<Value>, Vec<String>, String)>>,
+    result_tx: Option<oneshot::Sender<(Vec<Value>, String)>>,
     resume_session_id: Option<String>,
 ) {
     let mut result_tx = result_tx;
@@ -60,15 +58,6 @@ pub(crate) async fn handle_prewarm(
                     runtime_key,
                     role_name,
                     commands.clone(),
-                );
-            }
-            AcpEvent::AvailableModes { modes, .. } => {
-                remember_runtime_modes(
-                    runtime_key,
-                    modes
-                        .iter()
-                        .filter_map(|m| m.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
-                        .collect(),
                 );
             }
             _ => {}
@@ -187,7 +176,6 @@ pub(crate) async fn handle_prewarm(
                     &key,
                     &session_id,
                     forward_tx,
-                    &role_mode,
                     &flat_role_config_options,
                     runtime_key,
                 )
@@ -209,7 +197,6 @@ pub(crate) async fn handle_prewarm(
                     &key,
                     &session_id,
                     &dummy_tx,
-                    &role_mode,
                     &flat_role_config_options,
                     runtime_key,
                 )
@@ -243,11 +230,7 @@ pub(crate) async fn handle_prewarm(
             spawn_connection_health_watch(key, instance_id, death, health_rx_clone);
 
             if let Some(tx) = result_tx {
-                let _ = tx.send((
-                    list_discovered_config_options(runtime_key),
-                    list_discovered_modes(runtime_key),
-                    session_id_str,
-                ));
+                let _ = tx.send((list_discovered_config_options(runtime_key), session_id_str));
             }
         }
         Err(e) => {

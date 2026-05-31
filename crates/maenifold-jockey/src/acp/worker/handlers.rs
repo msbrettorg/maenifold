@@ -1,4 +1,4 @@
-use agent_client_protocol::{self as acp, Agent as _};
+use agent_client_protocol::schema::{self as acp};
 use serde_json::json;
 
 use super::super::adapter::acp_log;
@@ -32,7 +32,7 @@ pub(crate) async fn shutdown_worker_state() {
         items
     });
     for (_key, conn, session_id) in cancel_items {
-        let _ = conn.cancel(acp::CancelNotification::new(session_id)).await;
+        let _ = conn.send_notification(acp::CancelNotification::new(session_id));
     }
 
     // Drop all live connections
@@ -110,8 +110,7 @@ async fn reset_worker_session_by_pool_key(
     if let Some(h) = cancel {
         let _ = h
             .conn
-            .cancel(acp::CancelNotification::new(h.session_id))
-            .await;
+            .send_notification(acp::CancelNotification::new(h.session_id));
     }
 
     if let Some(live) = CONN_MAP.with(|m| m.borrow_mut().remove(key)) {
@@ -136,7 +135,7 @@ pub(crate) fn handle_cancel(runtime_key: String, role_name: String, app_session_
             json!({ "runtime": &runtime_key, "role": role_name }),
         );
         tokio::task::spawn_local(async move {
-            let _ = conn.cancel(acp::CancelNotification::new(session_id)).await;
+            let _ = conn.send_notification(acp::CancelNotification::new(session_id));
         });
     } else {
         acp_log(
@@ -186,8 +185,7 @@ pub(crate) async fn reconnect_worker_session(
     if let Some(h) = cancel {
         let _ = h
             .conn
-            .cancel(acp::CancelNotification::new(h.session_id))
-            .await;
+            .send_notification(acp::CancelNotification::new(h.session_id));
     }
 
     if let Some(live) = CONN_MAP.with(|m| m.borrow_mut().remove(&key)) {

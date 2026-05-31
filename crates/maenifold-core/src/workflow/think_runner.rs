@@ -1,4 +1,4 @@
-use agent_client_protocol as acp;
+use agent_client_protocol::schema::{self as acp};
 use jockey::EventSender;
 use serde_json::Value;
 

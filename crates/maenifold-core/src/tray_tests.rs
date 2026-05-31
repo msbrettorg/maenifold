@@ -1,5 +1,7 @@
 use super::{ServerMode, resolve_open_url};
-use crate::tray_menu::{is_launchd_managed, launchd_service_target};
+use crate::tray_menu::is_launchd_managed;
+#[cfg(target_os = "macos")]
+use crate::tray_menu::launchd_service_target;
 use tray_icon::menu::MenuId;
 
 #[test]

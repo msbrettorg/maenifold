@@ -1,4 +1,4 @@
-use agent_client_protocol as acp;
+use agent_client_protocol::schema as acp;
 use serde::Serialize;
 use serde_json::Value;
 use tokio::sync::{mpsc, oneshot};
@@ -103,9 +103,6 @@ pub enum AcpEvent {
         description: Option<String>,
         options: Vec<Value>,
     },
-    ModeUpdate {
-        mode_id: String,
-    },
     ConfigUpdate {
         options: Vec<Value>,
     },
@@ -117,10 +114,6 @@ pub enum AcpEvent {
     },
     AvailableCommands {
         commands: Vec<Value>,
-    },
-    AvailableModes {
-        modes: Vec<Value>,
-        current: Option<String>,
     },
     PermissionExpired {
         request_id: String,
@@ -149,7 +142,6 @@ pub enum WorkerMsg {
         mcp_servers: Vec<acp::McpServer>,
         allowed_tools: Option<Vec<String>>,
         output_schema: Option<Value>,
-        role_mode: Option<String>,
         role_config_options: Vec<(String, String)>,
         resume_session_id: Option<String>,
         session_id_tx: Option<oneshot::Sender<String>>,
@@ -165,10 +157,9 @@ pub enum WorkerMsg {
         cwd: String,
         auto_approve: bool,
         mcp_servers: Vec<acp::McpServer>,
-        role_mode: Option<String>,
         role_config_options: Vec<Value>,
         delta_tx: Option<mpsc::Sender<AcpEvent>>,
-        result_tx: Option<oneshot::Sender<(Vec<Value>, Vec<String>, String)>>,
+        result_tx: Option<oneshot::Sender<(Vec<Value>, String)>>,
         resume_session_id: Option<String>,
     },
     Cancel {
@@ -210,13 +201,6 @@ pub enum WorkerMsg {
         role_name: String,
         app_session_id: String,
         result_tx: oneshot::Sender<bool>,
-    },
-    SetMode {
-        runtime_key: String,
-        role_name: String,
-        app_session_id: String,
-        mode_id: String,
-        result_tx: oneshot::Sender<Result<(), String>>,
     },
     SetConfigOption {
         runtime_key: String,

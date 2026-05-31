@@ -54,10 +54,14 @@ mod isolation_tests {
     fn fake_bin_in(temp: &TempDir) -> PathBuf {
         let bin = temp.path().join("fake-maenifold");
         fs::write(&bin, "#!/bin/sh\nexit 0\n").expect("write fake bin");
-        use std::os::unix::fs::PermissionsExt;
-        let mut permissions = fs::metadata(&bin).expect("fake bin metadata").permissions();
-        permissions.set_mode(0o755);
-        fs::set_permissions(&bin, permissions).expect("set fake bin permissions");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+
+            let mut permissions = fs::metadata(&bin).expect("fake bin metadata").permissions();
+            permissions.set_mode(0o755);
+            fs::set_permissions(&bin, permissions).expect("set fake bin permissions");
+        }
         bin
     }
 
@@ -215,10 +219,14 @@ mod cross_platform_trait_tests {
     fn fake_bin_in(temp: &TempDir) -> PathBuf {
         let bin = temp.path().join("fake-maenifold");
         fs::write(&bin, "#!/bin/sh\nexit 0\n").expect("write fake bin");
-        use std::os::unix::fs::PermissionsExt;
-        let mut permissions = fs::metadata(&bin).expect("fake bin metadata").permissions();
-        permissions.set_mode(0o755);
-        fs::set_permissions(&bin, permissions).expect("set fake bin permissions");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+
+            let mut permissions = fs::metadata(&bin).expect("fake bin metadata").permissions();
+            permissions.set_mode(0o755);
+            fs::set_permissions(&bin, permissions).expect("set fake bin permissions");
+        }
         bin
     }
 

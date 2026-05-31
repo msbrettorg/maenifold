@@ -1,7 +1,7 @@
 use super::agent_session::{AgentResponse, AgentSession};
 use super::runner::WorkflowRunStatus;
 use crate::error::{MaenifoldError, Result};
-use agent_client_protocol as acp;
+use agent_client_protocol::schema::{self as acp};
 use regex::Regex;
 use serde::Deserialize;
 use serde_json::{Value, json};

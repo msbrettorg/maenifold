@@ -1,5 +1,5 @@
 use super::acp_relay::{ConfigCategory, config_option_category};
-use agent_client_protocol as acp;
+use agent_client_protocol::schema::{self as acp};
 use axum::extract::ws::{Message, WebSocket};
 use futures_util::SinkExt;
 use serde_json::{Value, json};
@@ -51,18 +51,6 @@ pub(super) fn patch_config_option_current_value(option: &mut Value, value: &str)
     if let Some(object) = option.as_object_mut() {
         object.insert("currentValue".to_string(), next_value);
     }
-}
-
-pub(super) fn build_modes(modes: &[String], current_mode_id: &Option<String>) -> Option<Value> {
-    let current = current_mode_id
-        .as_deref()
-        .or_else(|| modes.first().map(|mode| mode.as_str()));
-    current.map(|current| {
-        json!({
-            "currentModeId": current,
-            "availableModes": modes.iter().map(|mode| json!({"id": mode, "name": mode})).collect::<Vec<_>>(),
-        })
-    })
 }
 
 // NOTE: Permission forwarding infrastructure is dormant while auto_approve is true.

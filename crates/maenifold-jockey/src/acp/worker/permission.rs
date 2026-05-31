@@ -1,4 +1,4 @@
-use agent_client_protocol as acp;
+use agent_client_protocol::schema::{self as acp};
 use dashmap::DashMap;
 use std::sync::OnceLock;
 use tokio::sync::oneshot;

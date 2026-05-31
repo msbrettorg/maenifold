@@ -1,5 +1,4 @@
-use agent_client_protocol::{self as acp};
-use serde_json::Value;
+use agent_client_protocol::schema::{self as acp};
 use std::collections::HashSet;
 use std::sync::atomic::AtomicU64;
 
@@ -64,20 +63,4 @@ pub(super) fn extract_models_from_config_options(
     let mut models = out.into_iter().collect::<Vec<_>>();
     models.sort_unstable();
     models
-}
-
-pub(super) fn extract_mode_ids(modes: &[Value]) -> Vec<String> {
-    let mut out = HashSet::new();
-    for mode in modes {
-        if let Some(id) = mode.get("id").and_then(|v| v.as_str()) {
-            out.insert(id.to_string());
-            continue;
-        }
-        if let Some(id) = mode.as_str() {
-            out.insert(id.to_string());
-        }
-    }
-    let mut items = out.into_iter().collect::<Vec<_>>();
-    items.sort_unstable();
-    items
 }

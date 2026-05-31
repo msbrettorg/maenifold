@@ -1,4 +1,4 @@
-use agent_client_protocol::{self as acp, Agent as _};
+use agent_client_protocol::schema::{self as acp};
 use serde_json::{Map, Value, json};
 use std::sync::{
     Arc, Mutex,
@@ -75,7 +75,6 @@ pub(crate) async fn handle_execute(
     mcp_servers: Vec<acp::McpServer>,
     allowed_tools: Option<Vec<String>>,
     output_schema: Option<serde_json::Value>,
-    role_mode: Option<String>,
     role_config_options: Vec<(String, String)>,
     resume_session_id: Option<String>,
     session_id_tx: Option<oneshot::Sender<String>>,
@@ -160,7 +159,6 @@ pub(crate) async fn handle_execute(
             &key,
             &session_id,
             &delta_tx,
-            &role_mode,
             &role_config_options,
             runtime_key,
         )
@@ -181,13 +179,12 @@ pub(crate) async fn handle_execute(
     } else {
         // T-170.8: Re-apply config options on warm connections so that
         // model/thoughtLevel overrides from each pipeline node reach the agent.
-        // Previously only modes were re-emitted here, silently dropping
-        // per-node model and thoughtLevel overrides.
+        // Previously config options were only applied during cold start, silently
+        // dropping per-node model and thoughtLevel overrides on warm reuse.
         if let Err(e) = apply_cold_start_config(
             &key,
             &session_id,
             &delta_tx,
-            &role_mode,
             &role_config_options,
             runtime_key,
         )
@@ -216,7 +213,7 @@ pub(crate) async fn handle_execute(
     });
 
     let prompt_started = Instant::now();
-    let prompt_fut = conn_rc.prompt(prompt_request);
+    let prompt_fut = conn_rc.send_request(prompt_request).block_task();
     tokio::pin!(prompt_fut);
 
     let prompt_result: Result<Result<acp::PromptResponse, acp::Error>, String> = loop {
@@ -304,9 +301,7 @@ pub(crate) async fn handle_execute(
                     "reason": reason
                 }),
             );
-            let _ = conn_rc
-                .cancel(acp::CancelNotification::new(session_id.clone()))
-                .await;
+            let _ = conn_rc.send_notification(acp::CancelNotification::new(session_id.clone()));
             let is_same = CONN_MAP.with(|m| {
                 m.borrow()
                     .get(&key)

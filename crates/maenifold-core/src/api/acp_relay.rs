@@ -1,5 +1,5 @@
 use crate::api::routes::{ApiError, ApiResult, ApiState};
-use agent_client_protocol as acp;
+use agent_client_protocol::schema::{self as acp};
 use axum::{
     extract::{Path, Query, State, ws::WebSocketUpgrade},
     response::{IntoResponse, Json},
@@ -89,8 +89,6 @@ pub(super) struct RelaySession {
     pub(super) mcp_servers: Vec<acp::McpServer>,
     pub(super) client_capabilities: acp::ClientCapabilities,
     pub(super) config_options: Vec<Value>,
-    pub(super) modes: Vec<String>,
-    pub(super) current_mode_id: Option<String>,
 }
 
 pub(super) struct PendingPrompt {

@@ -1,6 +1,6 @@
 use super::super::worker::AcpEvent;
 use super::JockeyUiClient;
-use agent_client_protocol::{self as acp, Client};
+use agent_client_protocol::schema::{self as acp};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};

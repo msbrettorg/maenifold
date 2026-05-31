@@ -57,10 +57,6 @@ pub(super) fn agent_config_schema() -> serde_json::Value {
                     "type": "string",
                     "description": "Model override for the agent session"
                 },
-            "mode": {
-                "type": "string",
-                "description": "Session mode override for the agent session"
-            },
             "thoughtLevel": {
                 "type": "string",
                 "description": "Thought level override for the agent session"

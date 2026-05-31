@@ -1,6 +1,6 @@
 use crate::acp_config::{AgentEntry, AgentsConfig};
 use crate::error::{MaenifoldError, Result};
-use agent_client_protocol as acp;
+use agent_client_protocol::schema::{self as acp};
 use std::collections::HashSet;
 use std::path::Path;
 

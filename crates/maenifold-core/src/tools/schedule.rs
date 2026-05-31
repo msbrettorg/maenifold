@@ -29,10 +29,13 @@ mod schedule_tests;
 pub(super) mod schedule_validation;
 
 #[cfg(test)]
+use schedule_crud::create_task_with_bin;
+#[cfg(all(test, unix))]
+use schedule_crud::create_task_with_bin_for_test;
+#[cfg(test)]
+#[cfg(target_os = "macos")]
 use schedule_crud::update_task_for_test;
 use schedule_crud::{create_task, delete_task, get_task, list_tasks, run_now, update_task};
-#[cfg(test)]
-use schedule_crud::{create_task_with_bin, create_task_with_bin_for_test};
 use schedule_helpers::{
     env_allowlist_view, optional_bool, optional_path_buf, optional_string, optional_string_array,
     optional_u32, optional_value, reject_enabled_while_paused, resolve_maenifold_bin,

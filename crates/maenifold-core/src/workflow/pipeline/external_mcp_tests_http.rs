@@ -2,6 +2,7 @@ use super::*;
 
 #[tokio::test]
 #[serial_test::serial]
+#[cfg(unix)]
 async fn invoke_external_tool_preserves_http_auth_and_custom_headers() {
     let fake_cli_dir = TempDir::new().expect("fake Azure CLI dir");
     install_fake_azure_cli(fake_cli_dir.path(), "TOKEN_4242");

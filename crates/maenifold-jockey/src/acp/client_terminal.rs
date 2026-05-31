@@ -1,4 +1,4 @@
-use agent_client_protocol::{self as acp};
+use agent_client_protocol::schema::{self as acp};
 use dashmap::DashMap;
 use std::sync::OnceLock;
 

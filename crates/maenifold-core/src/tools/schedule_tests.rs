@@ -142,7 +142,7 @@ fn create_task_with_failing_launchd(
     )
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(all(unix, not(target_os = "macos")))]
 fn create_task_with_failing_launchd(
     _temp: &TempDir,
     _context: &ToolContext,

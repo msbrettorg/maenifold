@@ -195,9 +195,6 @@ pub struct PipelineAgentConfigSchema {
     /// Model override for the agent session
     #[serde(default)]
     pub model: Option<String>,
-    /// Session mode override for the agent session
-    #[serde(default)]
-    pub mode: Option<String>,
     /// Thought level override for the agent session
     #[serde(default)]
     pub thought_level: Option<String>,

@@ -79,7 +79,6 @@ fn exec_with_jockey(
     let runtime_kind = resolved_agent.runtime_kind;
     let agent_name = resolved_agent.agent_key;
     let cwd = options.cwd.to_string_lossy().to_string();
-    let role_mode = options.role_mode.clone();
     let role_config_options = options.role_config_options.clone();
     let app_session_id = options.app_session_id.clone();
     let auto_approve = options.auto_approve;
@@ -100,7 +99,6 @@ fn exec_with_jockey(
                 resolved_agent.mcp_servers,
                 None,
                 None,
-                role_mode,
                 role_config_options,
                 None,
                 &app_session_id,

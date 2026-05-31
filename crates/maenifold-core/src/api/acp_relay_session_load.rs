@@ -6,9 +6,7 @@
 
 use super::acp_relay::{RelayConfig, RelaySession, SessionLoadParams};
 use super::acp_relay_dispatch::forward_event;
-use super::acp_relay_helpers::{
-    build_modes, reject_client_mcp_servers, resolve_session_cwd, rpc_error,
-};
+use super::acp_relay_helpers::{reject_client_mcp_servers, resolve_session_cwd, rpc_error};
 use super::acp_relay_mcp::reset_session_connection;
 use axum::extract::ws::{Message, WebSocket};
 use serde_json::{Value, json};
@@ -66,7 +64,6 @@ pub(super) async fn handle_session_load(
             cwd: cwd.clone(),
             auto_approve: false,
             mcp_servers: mcp_servers.clone(),
-            role_mode: None,
             role_config_options: vec![],
             delta_tx: Some(event_tx),
             result_tx: Some(tx),
@@ -75,8 +72,8 @@ pub(super) async fn handle_session_load(
         .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker unavailable"))?;
 
     let mut replay_complete = false;
-    let mut replay_result: Option<(Vec<Value>, Vec<String>, String)> = None;
-    let (config_options, modes, session_id) = loop {
+    let mut replay_result: Option<(Vec<Value>, String)> = None;
+    let (config_options, session_id) = loop {
         // Once `ReplayComplete` has been observed we must NOT poll `event_rx`
         // any longer: the upstream forwarder task drops its sender clone the
         // moment resume finishes, so the channel closes almost immediately
@@ -155,16 +152,10 @@ pub(super) async fn handle_session_load(
         mcp_servers,
         client_capabilities,
         config_options: config_options.clone(),
-        modes: modes.clone(),
-        current_mode_id: None,
     });
-    let modes = session
-        .as_ref()
-        .and_then(|active| build_modes(&active.modes, &active.current_mode_id));
     Ok(json!({
         "sessionId": session_id,
         "configOptions": config_options,
-        "modes": modes,
     }))
 }
 
@@ -195,8 +186,8 @@ fn replay_wait_error_to_rpc(error: ReplayWaitError, request_id: Value) -> Value 
 /// channel in a `select!` produces a spurious `ACP replay channel closed
 /// before completion` error and the UI hangs (T-330.3).
 pub(crate) async fn wait_for_worker_result(
-    rx: &mut tokio::sync::oneshot::Receiver<(Vec<Value>, Vec<String>, String)>,
-) -> Result<(Vec<Value>, Vec<String>, String), ReplayWaitError> {
+    rx: &mut tokio::sync::oneshot::Receiver<(Vec<Value>, String)>,
+) -> Result<(Vec<Value>, String), ReplayWaitError> {
     match rx.await {
         Ok(result) => Ok(result),
         Err(_) => Err(ReplayWaitError::WorkerDisconnected),

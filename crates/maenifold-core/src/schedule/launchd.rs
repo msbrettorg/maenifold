@@ -50,10 +50,10 @@ impl LaunchctlBackend for RealLaunchctlBackend {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, target_os = "macos"))]
 pub(crate) struct NoopLaunchctlBackend;
 
-#[cfg(test)]
+#[cfg(all(test, target_os = "macos"))]
 impl LaunchctlBackend for NoopLaunchctlBackend {
     fn load(&self, _plist_path: &Path) -> Result<()> {
         Ok(())
@@ -64,10 +64,10 @@ impl LaunchctlBackend for NoopLaunchctlBackend {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, target_os = "macos"))]
 pub(crate) struct FailingLaunchctlBackend;
 
-#[cfg(test)]
+#[cfg(all(test, target_os = "macos"))]
 impl LaunchctlBackend for FailingLaunchctlBackend {
     fn load(&self, _plist_path: &Path) -> Result<()> {
         bail!("simulated launchctl failure for test")
@@ -292,9 +292,7 @@ mod isolation_tests {
         let bin = temp.path().join("fake-maenifold");
         fs::write(&bin, "#!/bin/sh\nexit 0\n").expect("write fake bin");
         use std::os::unix::fs::PermissionsExt;
-        let mut permissions = fs::metadata(&bin)
-            .expect("fake bin metadata")
-            .permissions();
+        let mut permissions = fs::metadata(&bin).expect("fake bin metadata").permissions();
         permissions.set_mode(0o755);
         fs::set_permissions(&bin, permissions).expect("set fake bin permissions");
         bin
@@ -322,7 +320,8 @@ mod isolation_tests {
     }
 
     fn launch_agents_dir() -> PathBuf {
-        PathBuf::from(std::env::var_os("HOME").expect("HOME should be set")).join("Library/LaunchAgents")
+        PathBuf::from(std::env::var_os("HOME").expect("HOME should be set"))
+            .join("Library/LaunchAgents")
     }
 
     fn host_schedule_plist_count() -> usize {
@@ -333,10 +332,7 @@ mod isolation_tests {
             .flatten()
             .filter_map(|entry| entry.ok())
             .filter_map(|entry| entry.file_name().into_string().ok())
-            .filter(|name| {
-                name.starts_with(LABEL_PREFIX)
-                    && name.ends_with(".plist")
-            })
+            .filter(|name| name.starts_with(LABEL_PREFIX) && name.ends_with(".plist"))
             .count()
     }
 
@@ -362,12 +358,16 @@ mod isolation_tests {
             load_count: Arc::clone(&load_count),
             unload_count: Arc::clone(&unload_count),
         };
-        let manager = LaunchdManager::new_with(temp_agents_dir.clone(), fake_bin, Arc::new(backend))
-            .expect("create launchd manager");
+        let manager =
+            LaunchdManager::new_with(temp_agents_dir.clone(), fake_bin, Arc::new(backend))
+                .expect("create launchd manager");
 
         manager.install(&task).expect("install schedule");
 
-        assert!(temp_plist_path.exists(), "temp plist should exist after install");
+        assert!(
+            temp_plist_path.exists(),
+            "temp plist should exist after install"
+        );
         assert!(
             !host_plist_path.exists(),
             "host LaunchAgents should not contain test plist"

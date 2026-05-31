@@ -204,6 +204,12 @@ fn create_temp_path(path: &Path) -> PathBuf {
         ))
 }
 
+#[cfg(windows)]
+fn sync_directory(_path: &Path) -> Result<(), GateError> {
+    Ok(())
+}
+
+#[cfg(not(windows))]
 fn sync_directory(path: &Path) -> Result<(), GateError> {
     let directory = fs::File::open(path)?;
     directory.sync_all()?;

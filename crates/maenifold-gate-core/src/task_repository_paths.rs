@@ -85,6 +85,12 @@ pub(super) fn searched_directories_display(root: &Path) -> String {
         .join(", ")
 }
 
+#[cfg(windows)]
+pub(super) fn sync_directory(_path: &Path) -> Result<(), GateError> {
+    Ok(())
+}
+
+#[cfg(not(windows))]
 pub(super) fn sync_directory(path: &Path) -> Result<(), GateError> {
     let directory = fs::File::open(path)?;
     directory.sync_all()?;

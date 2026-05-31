@@ -6,6 +6,7 @@ members = [
   "crates/maenifold-jockey",
   "crates/maenifold-pipeline-driver",
 ]
+exclude = ["ui/src-tauri"]
 resolver = "2"
 
 [workspace.package]

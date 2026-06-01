@@ -1016,7 +1016,7 @@ export default defineComponent({
       defaultAgentMessage.value = null;
     }
 
-    function applySelectedAgent(): void {
+    async function applySelectedAgent(): Promise<void> {
       if (setDefaultDisabled.value || !selectedAgentName.value) return;
 
       defaultAgentSaving.value = true;
@@ -1024,8 +1024,7 @@ export default defineComponent({
       defaultAgentMessage.value = null;
 
       try {
-        // TODO: this depends on T-413.1's SetSettings being merged.
-        console.warn("TODO: this depends on T-413.1's SetSettings being merged.", {
+        await gatewayExecute('maenifold.system', 'SetSettings', {
           settings: {
             defaultAgent: selectedAgentName.value,
           },
@@ -1041,7 +1040,7 @@ export default defineComponent({
           },
         };
 
-        defaultAgentMessage.value = `${selectedAgentName.value} was selected locally. TODO: this depends on T-413.1's SetSettings being merged.`;
+        defaultAgentMessage.value = `${selectedAgentName.value} is now the default agent.`;
       } catch (error) {
         defaultAgentError.value = error instanceof Error ? error.message : String(error);
       } finally {
@@ -1610,18 +1609,6 @@ export default defineComponent({
                     <span v-if="selectedAgentName === agent.name" class="selection-indicator-dot" />
                   </span>
                 </button>
-              </div>
-
-              <div class="warning-panel">
-                <AlertTriangle class="warning-panel-icon" />
-                <div>
-                  <strong>Stubbed until T-413.1 lands</strong>
-                  <p>
-                    TODO: this depends on T-413.1's SetSettings being merged.
-                    Clicking <em>Set as default</em> updates this component locally and logs a
-                    console warning instead of calling the daemon.
-                  </p>
-                </div>
               </div>
 
               <p v-if="defaultAgentMessage" class="inline-note">

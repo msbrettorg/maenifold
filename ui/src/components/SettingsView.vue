@@ -1,354 +1,171 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { computed, ref, type Component } from 'vue';
+import { MessageSquare, Package, Server, Settings, SlidersHorizontal } from '@lucide/vue';
 import { useConfigStore } from '../stores/config';
-import { addAgent, removeAgent, updateAgent } from '../lib/host';
-import { getTransportKind, type AgentTransportKind } from '../lib/types';
-import { restrictedTransports } from '../lib/platform';
-import EnvVarEditor from './EnvVarEditor.vue';
 
-const emit = defineEmits<{
+// Preserve the legacy event surface until T-413.7 rewires App.vue away from
+// the old modal entry point. This component does not emit `close` anymore.
+defineEmits<{
   (e: 'close'): void;
 }>();
 
+type SettingsArea = 'embeddings' | 'appSettings' | 'agents' | 'mcpServers';
+type BadgeTone = 'count' | 'status';
+
+interface RailItem {
+  id: SettingsArea;
+  label: string;
+  icon: Component;
+  badge: string;
+  badgeTone: BadgeTone;
+}
+
+interface AreaCopy {
+  title: string;
+  subtitle: string;
+  placeholderTitle: string;
+  placeholderDescription: string;
+  milestone: string;
+  icon: Component;
+}
+
 const configStore = useConfigStore();
+const activeArea = ref<SettingsArea>('embeddings');
 
-interface AgentRow {
-  name: string;
-  transport: AgentTransportKind;
-  command: string;
-  args: string;
-  env: Record<string, string>;
-  url: string;
-  headers: Record<string, string>;
-}
+const areaCopy: Record<SettingsArea, AreaCopy> = {
+  embeddings: {
+    title: 'Embeddings',
+    subtitle: 'Placeholder shell for the embeddings management surface.',
+    placeholderTitle: 'Embeddings tab coming in T-413.3',
+    placeholderDescription:
+      'This panel is reserved for model catalog, active-model state, and embedding health details.',
+    milestone: 'T-413.3',
+    icon: Package,
+  },
+  appSettings: {
+    title: 'App Settings',
+    subtitle: 'Placeholder shell for the schema-driven app settings editor.',
+    placeholderTitle: 'App Settings tab coming in T-413.4',
+    placeholderDescription:
+      'This surface will render from the backend settings schema instead of a hard-coded field list.',
+    milestone: 'T-413.4',
+    icon: SlidersHorizontal,
+  },
+  agents: {
+    title: 'Agents',
+    subtitle: 'Placeholder shell for ACP agent management.',
+    placeholderTitle: 'Agents tab coming in T-413.5',
+    placeholderDescription:
+      'Agent CRUD moves into this dedicated settings area in the follow-on task.',
+    milestone: 'T-413.5',
+    icon: MessageSquare,
+  },
+  mcpServers: {
+    title: 'MCP Servers',
+    subtitle: 'Placeholder shell for MCP server management.',
+    placeholderTitle: 'MCP Servers placeholder',
+    placeholderDescription:
+      'This slot is intentionally reserved for future MCP server configuration work beyond the shell task.',
+    milestone: 'Deferred',
+    icon: Server,
+  },
+};
 
-// True on iOS / Android / web: hide the stdio option in the form, and
-// filter stdio agents out of the list entirely (they can't run there
-// anyway).
-const restricted = restrictedTransports();
+const railItems = computed<RailItem[]>(() => [
+  {
+    id: 'embeddings',
+    label: 'Embeddings',
+    icon: Package,
+    badge: 'Catalog',
+    badgeTone: 'status',
+  },
+  {
+    id: 'appSettings',
+    label: 'App Settings',
+    icon: SlidersHorizontal,
+    badge: 'Schema',
+    badgeTone: 'status',
+  },
+  {
+    id: 'agents',
+    label: 'Agents',
+    icon: MessageSquare,
+    badge: String(configStore.allAgentNames.length),
+    badgeTone: 'count',
+  },
+  {
+    id: 'mcpServers',
+    label: 'MCP Servers',
+    icon: Server,
+    badge: '0',
+    badgeTone: 'count',
+  },
+]);
 
-const agents = computed<AgentRow[]>(() => {
-  const entries = Object.entries(configStore.config.agents);
-  // On restricted hosts (mobile / web), hide stdio agents entirely. They
-  // can't run there (no subprocess), and showing them with a disabled
-  // Edit button just creates confusion. The raw entries remain in the
-  // config so a desktop sync round-trips them losslessly.
-  const filtered = restricted
-    ? entries.filter(([, c]) => getTransportKind(c) !== 'stdio')
-    : entries;
-  return filtered.map(([name, config]) => ({
-    name,
-    transport: getTransportKind(config),
-    command: config.command ?? '',
-    args: (config.args ?? []).join(' '),
-    env: config.env ?? {},
-    url: config.url ?? '',
-    headers: config.headers ?? {},
-  }));
-});
+const activePanel = computed<AreaCopy>(() => areaCopy[activeArea.value]);
 
-// Form state
-const showAddForm = ref(false);
-const editingAgent = ref<string | null>(null);
-const formName = ref('');
-const formTransport = ref<AgentTransportKind>(restricted ? 'websocket' : 'stdio');
-const formCommand = ref('');
-const formArgs = ref('');
-const formEnv = ref<Record<string, string>>({});
-const formUrl = ref('');
-const formHeaders = ref<Record<string, string>>({});
-const formError = ref('');
-const isSubmitting = ref(false);
-
-function resetForm() {
-  formName.value = '';
-  formTransport.value = restricted ? 'websocket' : 'stdio';
-  formCommand.value = '';
-  formArgs.value = '';
-  formEnv.value = {};
-  formUrl.value = '';
-  formHeaders.value = {};
-  formError.value = '';
-  showAddForm.value = false;
-  editingAgent.value = null;
-}
-
-function startAdd() {
-  resetForm();
-  showAddForm.value = true;
-}
-
-function startEdit(agent: AgentRow) {
-  resetForm();
-  editingAgent.value = agent.name;
-  formName.value = agent.name;
-  formTransport.value = agent.transport;
-  formCommand.value = agent.command;
-  formArgs.value = agent.args;
-  formEnv.value = { ...agent.env };
-  formUrl.value = agent.url;
-  formHeaders.value = { ...agent.headers };
-}
-
-function parseArgs(argsString: string): string[] {
-  // Simple arg parsing - split on spaces but respect quotes
-  const args: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  let quoteChar = '';
-
-  for (const char of argsString) {
-    if ((char === '"' || char === "'") && !inQuotes) {
-      inQuotes = true;
-      quoteChar = char;
-    } else if (char === quoteChar && inQuotes) {
-      inQuotes = false;
-      quoteChar = '';
-    } else if (char === ' ' && !inQuotes) {
-      if (current.trim()) {
-        args.push(current.trim());
-      }
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  if (current.trim()) {
-    args.push(current.trim());
-  }
-  return args;
-}
-
-async function handleSubmit() {
-  formError.value = '';
-
-  if (!formName.value.trim()) {
-    formError.value = 'Name is required';
-    return;
-  }
-
-  // Validate agent name is not purely numeric (JavaScript object key ordering issue)
-  if (/^\d+$/.test(formName.value)) {
-    formError.value = 'Agent name cannot be purely numeric';
-    return;
-  }
-
-  const transport = formTransport.value;
-  const isRemote = transport !== 'stdio';
-
-  if (isRemote) {
-    if (!formUrl.value.trim()) {
-      formError.value = 'URL is required for remote agents';
-      return;
-    }
-    const lower = formUrl.value.trim().toLowerCase();
-    if (transport === 'websocket' && !(lower.startsWith('ws://') || lower.startsWith('wss://'))) {
-      formError.value = 'WebSocket URL must start with ws:// or wss://';
-      return;
-    }
-    if (transport === 'http' && !(lower.startsWith('http://') || lower.startsWith('https://'))) {
-      formError.value = 'HTTP URL must start with http:// or https://';
-      return;
-    }
-  } else {
-    if (!formCommand.value.trim()) {
-      formError.value = 'Command is required';
-      return;
-    }
-  }
-
-  const args = isRemote ? [] : parseArgs(formArgs.value);
-  isSubmitting.value = true;
-
-  try {
-    const remoteOpts = isRemote
-      ? {
-          transport: transport as 'websocket' | 'http',
-          url: formUrl.value.trim(),
-          headers: Object.keys(formHeaders.value).length > 0 ? formHeaders.value : undefined,
-        }
-      : {};
-    const command = isRemote ? null : formCommand.value;
-    const env = isRemote ? {} : formEnv.value;
-
-    if (editingAgent.value) {
-      const newConfig = await updateAgent(formName.value, command, args, env, remoteOpts);
-      configStore.updateFromEvent(newConfig);
-    } else {
-      // Check for duplicates
-      if (configStore.config.agents[formName.value]) {
-        formError.value = 'An agent with this name already exists';
-        isSubmitting.value = false;
-        return;
-      }
-      const newConfig = await addAgent(formName.value, command, args, env, remoteOpts);
-      configStore.updateFromEvent(newConfig);
-    }
-    resetForm();
-  } catch (e) {
-    formError.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    isSubmitting.value = false;
-  }
-}
-
-async function handleDelete(name: string) {
-  if (!confirm(`Delete agent "${name}"?`)) return;
-
-  try {
-    const newConfig = await removeAgent(name);
-    configStore.updateFromEvent(newConfig);
-  } catch (e) {
-    console.error('Failed to delete agent:', e);
-  }
+function selectArea(area: SettingsArea): void {
+  activeArea.value = area;
 }
 </script>
 
 <template>
-  <div class="settings-overlay" @click.self="emit('close')">
-    <div class="settings-panel">
-      <div class="settings-header">
-        <h2>Settings</h2>
-        <button class="close-btn" @click="emit('close')">✕</button>
-      </div>
+  <div class="settings-view">
+    <div class="settings-inner">
+      <section class="settings-hero">
+        <div class="hero-icon-wrap" aria-hidden="true">
+          <Settings :size="34" :stroke-width="1.5" />
+        </div>
+        <div class="hero-copy">
+          <h1 class="hero-title">Settings</h1>
+          <p class="hero-description">
+            Manage embeddings, app settings, ACP agents, and MCP servers.
+          </p>
+        </div>
+      </section>
 
-      <div class="settings-content">
-        <section class="agents-section">
-          <div class="section-header">
-            <h3>Agents</h3>
-            <button class="add-btn" @click="startAdd" :disabled="showAddForm">
-              + Add Agent
-            </button>
+      <div class="settings-grid">
+        <aside class="settings-rail" aria-label="Settings areas">
+          <div class="rail-label">Settings</div>
+          <button
+            v-for="item in railItems"
+            :id="`settings-tab-${item.id}`"
+            :key="item.id"
+            class="rail-item"
+            :class="{ active: activeArea === item.id }"
+            type="button"
+            :aria-pressed="activeArea === item.id"
+            @click="selectArea(item.id)"
+          >
+            <component :is="item.icon" class="rail-item-icon" :size="18" :stroke-width="1.9" />
+            <span class="rail-item-label">{{ item.label }}</span>
+            <span class="rail-item-badge" :class="`rail-item-badge--${item.badgeTone}`">
+              {{ item.badge }}
+            </span>
+          </button>
+        </aside>
+
+        <section class="settings-content">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">{{ activePanel.title }}</h2>
+              <p class="panel-subtitle">{{ activePanel.subtitle }}</p>
+            </div>
+            <span class="panel-chip">{{ activePanel.milestone }}</span>
           </div>
 
-          <!-- Add/Edit Form -->
-          <div v-if="showAddForm || editingAgent" class="agent-form">
-            <h4>{{ editingAgent ? 'Edit Agent' : 'Add New Agent' }}</h4>
-
-            <div class="form-group">
-              <label>Name</label>
-              <input
-                v-model="formName"
-                type="text"
-                placeholder="My Agent"
-                :disabled="!!editingAgent"
-              />
+          <div class="placeholder-card">
+            <div class="placeholder-icon-wrap" aria-hidden="true">
+              <component :is="activePanel.icon" :size="26" :stroke-width="1.75" />
             </div>
-
-            <div class="form-group">
-              <label>Transport</label>
-              <select v-model="formTransport">
-                <option v-if="!restricted" value="stdio">stdio (local subprocess)</option>
-                <option value="websocket">websocket (remote)</option>
-                <option value="http">http (remote)</option>
-              </select>
-              <small v-if="restricted">stdio is not available on this platform.</small>
-            </div>
-
-            <template v-if="formTransport === 'stdio'">
-              <div class="form-group">
-                <label>Command</label>
-                <input
-                  v-model="formCommand"
-                  type="text"
-                  placeholder="npx"
-                />
-              </div>
-
-              <div class="form-group">
-                <label>Arguments</label>
-                <input
-                  v-model="formArgs"
-                  type="text"
-                  placeholder="-y @example/agent"
-                />
-                <small>Space-separated. Use quotes for args with spaces.</small>
-              </div>
-
-              <div class="form-group">
-                <EnvVarEditor v-model="formEnv" />
-              </div>
-            </template>
-
-            <template v-else>
-              <div class="form-group">
-                <label>URL</label>
-                <input
-                  v-model="formUrl"
-                  type="text"
-                  :placeholder="formTransport === 'websocket' ? 'wss://acp.example.com/v1' : 'https://acp.example.com/v1'"
-                />
-                <small>
-                  {{ formTransport === 'websocket' ? 'WebSocket endpoint (ws:// or wss://)' : 'Streamable HTTP endpoint (http:// or https://)' }}
-                </small>
-              </div>
-
-              <div class="form-group">
-                <label>Headers</label>
-                <EnvVarEditor v-model="formHeaders" />
-                <small>
-                  Authorization headers are sent over the connection. Browser WebSocket APIs
-                  cannot attach arbitrary HTTP headers; an <code>Authorization: Bearer &lt;token&gt;</code>
-                  header is forwarded as a <code>bearer.&lt;token&gt;</code> WebSocket subprotocol.
-                </small>
-              </div>
-            </template>
-
-            <div v-if="formError" class="form-error">
-              {{ formError }}
-            </div>
-
-            <div class="form-actions">
-              <button
-                class="save-btn"
-                @click="handleSubmit"
-                :disabled="isSubmitting"
-              >
-                {{ isSubmitting ? 'Saving...' : 'Save' }}
-              </button>
-              <button class="cancel-btn" @click="resetForm">
-                Cancel
-              </button>
+            <div class="placeholder-copy">
+              <span class="placeholder-eyebrow">Shell placeholder</span>
+              <h3 class="placeholder-title">{{ activePanel.placeholderTitle }}</h3>
+              <p class="placeholder-description">
+                {{ activePanel.placeholderDescription }}
+              </p>
             </div>
           </div>
-
-          <!-- Agent List -->
-          <div class="agents-list">
-            <div
-              v-for="agent in agents"
-              :key="agent.name"
-              class="agent-item"
-            >
-              <div class="agent-info">
-                <div class="agent-name">
-                  {{ agent.name }}
-                  <span class="agent-transport-badge" :data-kind="agent.transport">{{ agent.transport }}</span>
-                </div>
-                <div class="agent-command">
-                  <code v-if="agent.transport === 'stdio'">{{ agent.command }} {{ agent.args }}</code>
-                  <code v-else>{{ agent.url }}</code>
-                </div>
-              </div>
-              <div class="agent-actions">
-                <button class="edit-btn" @click="startEdit(agent)">
-                  Edit
-                </button>
-                <button class="delete-btn" @click="handleDelete(agent.name)">
-                  Delete
-                </button>
-              </div>
-            </div>
-
-            <div v-if="agents.length === 0" class="no-agents">
-              No agents configured. Add one to get started!
-            </div>
-          </div>
-        </section>
-
-        <section class="config-section">
-          <h3>Config File</h3>
-          <p class="config-path">{{ configStore.configPath }}</p>
-          <small>Changes to this file are automatically reloaded.</small>
         </section>
       </div>
     </div>
@@ -356,300 +173,298 @@ async function handleDelete(name: string) {
 </template>
 
 <style scoped>
-.settings-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+.settings-view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1.5rem 1.75rem 3rem;
+  background:
+    radial-gradient(70% 50% at 50% 0%, color-mix(in srgb, var(--text-accent) 9%, transparent) 0%, transparent 70%),
+    var(--bg-main);
+}
+
+.settings-inner {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.settings-hero {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bg-sidebar) 70%, var(--bg-main));
+}
+
+.hero-icon-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  color: var(--text-accent);
+  background: color-mix(in srgb, var(--text-accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-accent) 25%, var(--border-color));
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--text-accent) 16%, transparent);
 }
 
-.agent-transport-badge {
-  display: inline-block;
-  margin-left: 0.5rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  vertical-align: middle;
-  border: 1px solid transparent;
-  /* Default (stdio) — emerald to convey "local process". */
-  background: #ecfdf5;
-  color: #047857;
-  border-color: #a7f3d0;
-}
-.agent-transport-badge[data-kind='websocket'],
-.agent-transport-badge[data-kind='http'] {
-  background: #e0f2fe;
-  color: #0369a1;
-  border-color: #bae6fd;
-}
-
-.settings-panel {
-  background: var(--bg-main);
-  border-radius: 8px;
-  width: 90%;
-  max-width: 600px;
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.settings-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.settings-header h2 {
-  margin: 0;
-  font-size: 1.25rem;
-}
-
-.close-btn {
-  border: none;
-  background: transparent;
-  font-size: 1.25rem;
-  cursor: pointer;
-  color: var(--text-secondary);
-  padding: 0.25rem;
-}
-
-.close-btn:hover {
-  color: var(--text-primary);
-}
-
-.settings-content {
-  padding: 1.25rem;
-  overflow-y: auto;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-
-.section-header h3 {
-  margin: 0;
-}
-
-.add-btn {
-  padding: 0.375rem 0.75rem;
-  border: 1px solid var(--bg-primary);
-  background: transparent;
-  color: var(--bg-primary);
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
-}
-
-.add-btn:hover:not(:disabled) {
-  background: var(--bg-primary);
-  color: white;
-}
-
-.add-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.agent-form {
-  background: var(--bg-sidebar);
-  padding: 1rem;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-}
-
-.agent-form h4 {
-  margin: 0 0 1rem 0;
-  font-size: 1rem;
-}
-
-.form-group {
-  margin-bottom: 0.75rem;
-}
-
-.form-group label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-size: 0.9rem;
-  background: var(--bg-main);
-  color: var(--text-primary);
-}
-
-.form-group input:focus {
-  outline: none;
-  border-color: var(--bg-primary);
-}
-
-.form-group small {
-  display: block;
-  margin-top: 0.25rem;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.form-error {
-  color: var(--bg-danger);
-  font-size: 0.875rem;
-  margin-bottom: 0.75rem;
-}
-
-.form-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.save-btn {
-  padding: 0.5rem 1rem;
-  background: var(--bg-primary);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.save-btn:hover:not(:disabled) {
-  background: var(--bg-primary-hover);
-}
-
-.save-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.cancel-btn {
-  padding: 0.5rem 1rem;
-  background: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.cancel-btn:hover {
-  background: var(--bg-hover);
-}
-
-.agents-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.agent-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem;
-  background: var(--bg-sidebar);
-  border-radius: 6px;
-}
-
-.agent-info {
-  flex: 1;
+.hero-copy {
   min-width: 0;
 }
 
-.agent-name {
-  font-weight: 500;
-  margin-bottom: 0.25rem;
+.hero-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
 }
 
-.agent-command {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.agent-command code {
-  background: var(--bg-main);
-  padding: 0.125rem 0.375rem;
-  border-radius: 3px;
-  word-break: break-all;
-}
-
-.agent-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-left: 1rem;
-}
-
-.edit-btn,
-.delete-btn {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
-.edit-btn {
-  background: transparent;
-  border: 1px solid var(--border-color);
+.hero-description {
+  margin: 0.25rem 0 0;
   color: var(--text-secondary);
+  line-height: 1.5;
 }
 
-.edit-btn:hover {
+.settings-grid {
+  display: grid;
+  grid-template-columns: 228px minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.settings-rail {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.6rem;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg-sidebar) 55%, var(--bg-main));
+}
+
+.rail-label {
+  padding: 0.35rem 0.6rem 0.2rem;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.rail-item:hover {
+  color: var(--text-primary);
   background: var(--bg-hover);
 }
 
-.delete-btn {
-  background: transparent;
-  border: 1px solid var(--bg-danger);
-  color: var(--bg-danger);
+.rail-item.active {
+  color: var(--text-accent);
+  background: color-mix(in srgb, var(--text-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--text-accent) 35%, var(--border-color));
 }
 
-.delete-btn:hover {
-  background: var(--bg-danger);
-  color: white;
+.rail-item-icon {
+  flex-shrink: 0;
 }
 
-.no-agents {
-  text-align: center;
-  padding: 2rem;
-  color: var(--text-muted);
+.rail-item-label {
+  min-width: 0;
 }
 
-.config-section {
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border-color);
-}
-
-.config-section h3 {
-  margin: 0 0 0.5rem 0;
-}
-
-.config-path {
-  font-family: monospace;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
+.rail-item-badge {
+  margin-left: auto;
+  padding: 0.08rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
   background: var(--bg-sidebar);
-  padding: 0.5rem;
-  border-radius: 4px;
-  word-break: break-all;
-  margin-bottom: 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
 }
 
-.config-section small {
-  font-size: 0.75rem;
+.rail-item-badge--status {
   color: var(--text-muted);
+}
+
+.rail-item-badge--count {
+  color: var(--text-primary);
+}
+
+.rail-item.active .rail-item-badge {
+  color: var(--text-accent);
+  border-color: color-mix(in srgb, var(--text-accent) 35%, var(--border-color));
+  background: color-mix(in srgb, var(--text-accent) 8%, var(--bg-main));
+}
+
+.settings-content {
+  min-width: 0;
+  min-height: 380px;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: var(--bg-main);
+  overflow: hidden;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--bg-sidebar) 55%, var(--bg-main));
+}
+
+.panel-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.panel-subtitle {
+  margin: 0.2rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.panel-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--text-accent) 35%, var(--border-color));
+  background: color-mix(in srgb, var(--text-accent) 8%, var(--bg-main));
+  color: var(--text-accent);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.placeholder-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin: 1.15rem;
+  padding: 1.2rem 1.15rem;
+  border: 1px dashed color-mix(in srgb, var(--text-accent) 26%, var(--border-color));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg-sidebar) 45%, var(--bg-main));
+}
+
+.placeholder-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  color: var(--text-accent);
+  background: color-mix(in srgb, var(--text-accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-accent) 25%, var(--border-color));
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--text-accent) 12%, transparent);
+  flex-shrink: 0;
+}
+
+.placeholder-copy {
+  min-width: 0;
+}
+
+.placeholder-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 0.45rem;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.placeholder-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.placeholder-description {
+  margin: 0.4rem 0 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .settings-view {
+    padding: 1.25rem 1rem 2rem;
+  }
+
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-rail {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .rail-label {
+    width: 100%;
+  }
+
+  .rail-item {
+    flex: 1 1 calc(50% - 0.3rem);
+  }
+}
+
+@media (max-width: 640px) {
+  .settings-hero {
+    align-items: flex-start;
+  }
+
+  .panel-head,
+  .placeholder-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .panel-chip {
+    align-self: flex-start;
+  }
+
+  .rail-item {
+    flex-basis: 100%;
+  }
 }
 </style>

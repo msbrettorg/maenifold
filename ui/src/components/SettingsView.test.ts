@@ -15,6 +15,9 @@ function mountSettingsView() {
   return mount(SettingsView, {
     global: {
       plugins: [pinia],
+      stubs: {
+        SettingsEmbeddings: { template: '<div class="settings-embeddings stub" />' },
+      },
     },
   });
 }
@@ -63,19 +66,18 @@ describe('SettingsView', () => {
     expectPressedStates(wrapper, 'appSettings');
   });
 
-  it('shows the correct placeholder content for each active area', async () => {
+  it('shows the embeddings panel and the correct placeholder content for the remaining areas', async () => {
     const wrapper = mountSettingsView();
 
     const expectations: Array<{
       area: AreaId;
       title: string;
-      placeholder: string;
       milestone: string;
+      placeholder?: string;
     }> = [
       {
         area: 'embeddings',
         title: 'Embeddings',
-        placeholder: 'Embeddings tab coming in T-413.3',
         milestone: 'T-413.3',
       },
       {
@@ -102,8 +104,16 @@ describe('SettingsView', () => {
       await railButton(wrapper, area).trigger('click');
 
       expect(wrapper.get('.panel-title').text()).toBe(title);
-      expect(wrapper.get('.placeholder-title').text()).toBe(placeholder);
       expect(wrapper.get('.panel-chip').text()).toBe(milestone);
+
+      if (area === 'embeddings') {
+        expect(wrapper.findAll('.settings-embeddings')).toHaveLength(1);
+        expect(wrapper.findAll('.placeholder-card')).toHaveLength(0);
+        continue;
+      }
+
+      expect(wrapper.findAll('.settings-embeddings')).toHaveLength(0);
+      expect(wrapper.get('.placeholder-title').text()).toBe(placeholder);
     }
   });
 
@@ -111,7 +121,7 @@ describe('SettingsView', () => {
     const wrapper = mountSettingsView();
     const hero = wrapper.get('.settings-hero');
 
-    expect(hero.get('.hero-icon-wrap svg').exists()).toBe(true);
+    expect(hero.get('.hero-icon-wrap svg').element).toBeInstanceOf(SVGElement);
     expect(hero.get('.hero-title').text()).toBe('Settings');
     expect(hero.get('.hero-description').text()).toBe(
       'Manage embeddings, app settings, ACP agents, and MCP servers.'

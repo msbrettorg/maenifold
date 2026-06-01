@@ -2,6 +2,7 @@
 import { computed, ref, type Component } from 'vue';
 import { MessageSquare, Package, Server, Settings, SlidersHorizontal } from '@lucide/vue';
 import { useConfigStore } from '../stores/config';
+import SettingsEmbeddings from './SettingsEmbeddings.vue';
 
 // Preserve the legacy event surface until T-413.7 rewires App.vue away from
 // the old modal entry point. This component does not emit `close` anymore.
@@ -35,7 +36,7 @@ const activeArea = ref<SettingsArea>('embeddings');
 const areaCopy: Record<SettingsArea, AreaCopy> = {
   embeddings: {
     title: 'Embeddings',
-    subtitle: 'Placeholder shell for the embeddings management surface.',
+    subtitle: 'Vector model powering semantic search. Live from EmbeddingModels list / status.',
     placeholderTitle: 'Embeddings tab coming in T-413.3',
     placeholderDescription:
       'This panel is reserved for model catalog, active-model state, and embedding health details.',
@@ -154,7 +155,8 @@ function selectArea(area: SettingsArea): void {
             <span class="panel-chip">{{ activePanel.milestone }}</span>
           </div>
 
-          <div class="placeholder-card">
+          <SettingsEmbeddings v-if="activeArea === 'embeddings'" />
+          <div v-else class="placeholder-card">
             <div class="placeholder-icon-wrap" aria-hidden="true">
               <component :is="activePanel.icon" :size="26" :stroke-width="1.75" />
             </div>

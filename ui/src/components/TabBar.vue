@@ -4,6 +4,7 @@
 // navigation state lives in the appShell store so HomeView quick-tiles and
 // App.vue can switch tabs too.
 import { House, MessageSquare, ShieldCheck, CalendarClock, GitBranch, Workflow, Brain } from '@lucide/vue';
+import { Settings } from '@lucide/vue';
 import { useAppShellStore, type AppShellTab } from '../stores/appShell';
 
 interface TabDef {
@@ -20,6 +21,8 @@ const tabs: TabDef[] = [
   { id: 'pipelines', label: 'Pipelines', icon: GitBranch },
   { id: 'workflows', label: 'Workflows', icon: Workflow },
 ];
+
+tabs.push({ id: 'settings', label: 'Settings', icon: Settings });
 
 const shell = useAppShellStore();
 </script>

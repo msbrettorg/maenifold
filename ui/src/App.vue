@@ -41,7 +41,6 @@ const selectedCwd = ref('');
 // free-text field instead of the picker button.
 const folderPickerAvailable = canPickFolder();
 const showSidebar = ref(true);
-const showSettings = ref(false);
 const showTrafficMonitor = ref(false);
 const showStartupDetails = ref(false);
 
@@ -305,12 +304,11 @@ function clearError() {
         <h1>Maenifold</h1>
         <div class="header-actions">
           <button 
-            class="settings-btn" 
+            class="header-icon-btn" 
             :class="{ active: showTrafficMonitor }"
             @click="showTrafficMonitor = !showTrafficMonitor" 
             title="ACP Traffic Monitor"
           >📡</button>
-          <button class="settings-btn" @click="showSettings = true" title="Settings">⚙</button>
           <button class="toggle-btn" @click="toggleSidebar">◀</button>
         </div>
       </div>
@@ -507,16 +505,6 @@ function clearError() {
               </button>
               <button
                 class="welcome-action"
-                @click="showSettings = true"
-              >
-                <span class="welcome-action-icon">⚙</span>
-                <span class="welcome-action-label">
-                  <strong>Settings</strong>
-                  <small>Manage agents &amp; preferences</small>
-                </span>
-              </button>
-              <button
-                class="welcome-action"
                 @click="showTrafficMonitor = true"
               >
                 <span class="welcome-action-icon">📡</span>
@@ -545,6 +533,7 @@ function clearError() {
         @new-session="handleNewSession"
         @resume-session="handleResumeSession"
       />
+      <SettingsView v-else-if="shell.activeTab === 'settings'" />
       <!-- Placeholder tabs (infrastructure-only this sprint) -->
       <PlaceholderView
         v-else-if="shell.activeTab === 'gate'"
@@ -585,11 +574,6 @@ function clearError() {
       @cancel="handleAuthMethodCancel"
     />
 
-    <!-- Settings -->
-    <SettingsView 
-      v-if="showSettings"
-      @close="showSettings = false"
-    />
   </div>
 </template>
 
@@ -705,7 +689,7 @@ html, body, #app {
   gap: 0.25rem;
 }
 
-.settings-btn,
+.header-icon-btn,
 .toggle-btn {
   padding: 0.25rem 0.5rem;
   border: 1px solid transparent;
@@ -718,7 +702,7 @@ html, body, #app {
   transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 
-.settings-btn:hover,
+.header-icon-btn:hover,
 .toggle-btn:hover {
   color: var(--text-primary);
   background: var(--bg-hover);
@@ -731,7 +715,7 @@ html, body, #app {
   font-size: 1.05rem;
 }
 
-.settings-btn.active {
+.header-icon-btn.active {
   color: var(--text-accent);
   background: var(--bg-hover);
   border-color: var(--border-color);
@@ -1231,7 +1215,7 @@ html, body, #app {
   }
 
   /* Tap-target sizing for the icon buttons inside the sidebar header. */
-  .settings-btn,
+  .header-icon-btn,
   .toggle-btn {
     min-width: 40px;
     min-height: 40px;

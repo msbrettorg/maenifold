@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
+    "test": "vitest run",
     "dev:web": "vite --mode web",
     "build:web": "vue-tsc --noEmit && vite build --mode web",
     "preview:web": "vite preview --mode web --outDir dist-web",
@@ -33,6 +34,7 @@
     "@vitejs/plugin-vue": "^6.0.7",
     "typescript": "~6.0.3",
     "vite": "^8.0.14",
+    "vitest": "^4.1.7",
     "vue-tsc": "^3.3.3"
   }
 }

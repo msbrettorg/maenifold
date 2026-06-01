@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, ref, type Component } from 'vue';
+import { computed, onMounted, ref, type Component } from 'vue';
 import { MessageSquare, Package, Server, Settings, SlidersHorizontal } from '@lucide/vue';
-import { useConfigStore } from '../stores/config';
+import { useAgentsAdminStore } from '../stores/agentsAdmin';
+import SettingsAgents from './SettingsAgents.vue';
 import SettingsAppSettings from './SettingsAppSettings.vue';
 import SettingsEmbeddings from './SettingsEmbeddings.vue';
+import SettingsMcpServers from './SettingsMcpServers.vue';
 
 // Preserve the legacy event surface until T-413.7 rewires App.vue away from
 // the old modal entry point. This component does not emit `close` anymore.
@@ -25,51 +27,33 @@ interface RailItem {
 interface AreaCopy {
   title: string;
   subtitle: string;
-  placeholderTitle: string;
-  placeholderDescription: string;
   milestone: string;
-  icon: Component;
 }
 
-const configStore = useConfigStore();
+const agentsAdminStore = useAgentsAdminStore();
 const activeArea = ref<SettingsArea>('embeddings');
 
 const areaCopy: Record<SettingsArea, AreaCopy> = {
   embeddings: {
     title: 'Embeddings',
     subtitle: 'Vector model powering semantic search. Live from EmbeddingModels list / status.',
-    placeholderTitle: 'Embeddings tab coming in T-413.3',
-    placeholderDescription:
-      'This panel is reserved for model catalog, active-model state, and embedding health details.',
     milestone: 'T-413.3',
-    icon: Package,
   },
   appSettings: {
     title: 'App Settings',
-    subtitle: 'Placeholder shell for the schema-driven app settings editor.',
-    placeholderTitle: 'App Settings tab coming in T-413.4',
-    placeholderDescription:
-      'This surface will render from the backend settings schema instead of a hard-coded field list.',
+    subtitle: 'Schema-driven settings editor backed by GetSettingsSchema and SetSettings.',
     milestone: 'T-413.4',
-    icon: SlidersHorizontal,
   },
   agents: {
     title: 'Agents',
-    subtitle: 'Placeholder shell for ACP agent management.',
-    placeholderTitle: 'Agents tab coming in T-413.5',
-    placeholderDescription:
-      'Agent CRUD moves into this dedicated settings area in the follow-on task.',
+    subtitle: 'Configured ACP agents from GetConfig.agents with gateway-backed CRUD commands.',
     milestone: 'T-413.5',
-    icon: MessageSquare,
   },
   mcpServers: {
     title: 'MCP Servers',
-    subtitle: 'Placeholder shell for MCP server management.',
-    placeholderTitle: 'MCP Servers placeholder',
-    placeholderDescription:
-      'This slot is intentionally reserved for future MCP server configuration work beyond the shell task.',
-    milestone: 'Deferred',
-    icon: Server,
+    subtitle:
+      'Configured MCP servers from GetConfig.mcpServers with gateway-backed CRUD commands.',
+    milestone: 'T-413.5',
   },
 };
 
@@ -92,19 +76,25 @@ const railItems = computed<RailItem[]>(() => [
     id: 'agents',
     label: 'Agents',
     icon: MessageSquare,
-    badge: String(configStore.allAgentNames.length),
+    badge: String(Object.keys(agentsAdminStore.agents).length),
     badgeTone: 'count',
   },
   {
     id: 'mcpServers',
     label: 'MCP Servers',
     icon: Server,
-    badge: '0',
+    badge: String(Object.keys(agentsAdminStore.mcpServers).length),
     badgeTone: 'count',
   },
 ]);
 
 const activePanel = computed<AreaCopy>(() => areaCopy[activeArea.value]);
+
+onMounted(() => {
+  void agentsAdminStore.fetchConfig().catch(() => {
+    // The tab panels surface gateway errors inline. The rail only needs a best-effort count.
+  });
+});
 
 function selectArea(area: SettingsArea): void {
   activeArea.value = area;
@@ -158,18 +148,8 @@ function selectArea(area: SettingsArea): void {
 
           <SettingsEmbeddings v-if="activeArea === 'embeddings'" />
           <SettingsAppSettings v-else-if="activeArea === 'appSettings'" />
-          <div v-else class="placeholder-card">
-            <div class="placeholder-icon-wrap" aria-hidden="true">
-              <component :is="activePanel.icon" :size="26" :stroke-width="1.75" />
-            </div>
-            <div class="placeholder-copy">
-              <span class="placeholder-eyebrow">Shell placeholder</span>
-              <h3 class="placeholder-title">{{ activePanel.placeholderTitle }}</h3>
-              <p class="placeholder-description">
-                {{ activePanel.placeholderDescription }}
-              </p>
-            </div>
-          </div>
+          <SettingsAgents v-else-if="activeArea === 'agents'" />
+          <SettingsMcpServers v-else-if="activeArea === 'mcpServers'" />
         </section>
       </div>
     </div>

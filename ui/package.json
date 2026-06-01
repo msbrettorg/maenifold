@@ -16,7 +16,6 @@
   "dependencies": {
     "@agentclientprotocol/sdk": "^0.22.1",
     "@lucide/vue": "^1.17.0",
-    "@microsoft/applicationinsights-web": "^3.4.1",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2.7.1",
     "@tauri-apps/plugin-fs": "^2.5.1",

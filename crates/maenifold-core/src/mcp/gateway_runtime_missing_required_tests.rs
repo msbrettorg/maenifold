@@ -36,6 +36,7 @@ async fn state() -> GatewayState {
         registry,
         IntentResolverSettings::default(),
         PathBuf::from("."),
+        crate::mcp::config_tools::mutation_state_for_tests(),
     )
 }
 

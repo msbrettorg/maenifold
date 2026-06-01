@@ -4,6 +4,7 @@ use super::{
 };
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::domain_mapping;
+use crate::mcp::gateway_config;
 use crate::mcp::gateway_gate;
 use crate::mcp::gateway_schema_validation::compile_validator;
 use crate::mcp::gateway_tasks;
@@ -20,6 +21,12 @@ impl GatewayRegistry {
     ) -> Result<Self> {
         let mut registry = Self::default();
         registry.add_native_tools()?;
+        registry.add_static_domain(
+            "maenifold.system",
+            native_domain_description("maenifold.system"),
+            gateway_config::commands(),
+            |name| CommandTarget::ConfigCommand { command: name },
+        )?;
         registry.add_static_domain(
             gateway_gate::DOMAIN_NAME,
             gateway_gate::DOMAIN_DESCRIPTION,

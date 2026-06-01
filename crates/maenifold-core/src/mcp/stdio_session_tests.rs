@@ -5,7 +5,9 @@ use serde_json::json;
 use std::time::Duration;
 
 fn python() -> String {
-    crate::test_util::locate_python3().to_string_lossy().to_string()
+    crate::test_util::locate_python3()
+        .to_string_lossy()
+        .to_string()
 }
 
 const TIMEOUT_SERVER: &str = r#"

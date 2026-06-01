@@ -4,17 +4,25 @@ use serde_json::{Value, json};
 
 const NAME_PARAM: &str = "name";
 
-pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
+pub(crate) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
     match registry_name {
+        "GetSettingsSchema" => Some(tool_definition(
+            "GetSettingsSchema",
+            "Returns the canonical JSON Schema for partial maenifold settings updates.",
+            object_schema(json!({})),
+        )),
         "ReloadConfig" => Some(tool_definition(
             "ReloadConfig",
             "Reloads maenifold.json and refreshes live daemon settings.",
             object_schema(json!({})),
         )),
-        "UpdateSettings" => Some(tool_definition(
+        "UpdateSettings" => Some(settings_tool(
             "UpdateSettings",
             "Deep-merges partial Maenifold settings into maenifold.json and refreshes live settings.",
-            object_schema(json!({ "settings": partial_settings_schema() })),
+        )),
+        "SetSettings" => Some(settings_tool(
+            "SetSettings",
+            "Deep-merges partial Maenifold settings into maenifold.json and refreshes live settings.",
         )),
         "AddAgent" => Some(agent_tool(
             "AddAgent",
@@ -42,6 +50,14 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
         )),
         _ => None,
     }
+}
+
+fn settings_tool(name: &str, description: &str) -> McpToolDefinition {
+    tool_definition(
+        name,
+        description,
+        object_schema(json!({ "settings": partial_settings_schema() })),
+    )
 }
 
 fn agent_tool(name: &str, description: &str) -> McpToolDefinition {
@@ -79,6 +95,7 @@ fn agent_entry_schema() -> Value {
         "type": "object",
         "properties": {
             "command": { "type": "string", "minLength": 1 },
+            "args": { "type": "array", "items": { "type": "string" } },
             "env": { "type": "object", "additionalProperties": { "type": "string" } },
             "envFromFile": { "type": "object", "additionalProperties": { "type": "string" } },
             "envFromCommand": env_from_command_schema(),
@@ -110,6 +127,9 @@ fn mcp_server_schema() -> Value {
                 "type": "object",
                 "properties": {
                     "url": { "type": "string", "minLength": 1 },
+                    "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+                    "auth": { "type": "string", "enum": ["azure-default"] },
+                    "timeout": { "type": "integer", "minimum": 1 },
                     "gateway": { "type": "boolean" }
                 },
                 "required": ["url"],
@@ -134,7 +154,7 @@ fn env_from_command_schema() -> Value {
     })
 }
 
-fn partial_settings_schema() -> Value {
+pub(crate) fn partial_settings_schema() -> Value {
     json!({
         "type": "object",
         "properties": {

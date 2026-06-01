@@ -61,9 +61,24 @@ impl ApiState {
     }
 }
 
+#[derive(Clone)]
 pub struct ApiStateSharedConfig {
     config: Arc<RwLock<Config>>,
     config_manager: ConfigManager,
+}
+
+impl ApiStateSharedConfig {
+    pub(crate) fn config(&self) -> Arc<RwLock<Config>> {
+        Arc::clone(&self.config)
+    }
+
+    pub(crate) fn config_manager(&self) -> ConfigManager {
+        self.config_manager.clone()
+    }
+
+    pub(crate) fn config_snapshot(&self) -> Config {
+        self.config.read().clone()
+    }
 }
 
 impl From<Config> for ApiStateSharedConfig {

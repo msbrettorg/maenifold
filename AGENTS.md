@@ -64,7 +64,7 @@ One product, one Rust workspace. `crates/` = backend (CLI + MCP server + pipelin
 
 **Direct access OK:** `maenifold.json` (preferences only), ACP host filesystem/terminal per protocol spec.
 
-**MCP tools are the primary interface.** Agents use `GatewayExecute`, `GatewayIndex`, `GatewayBatch`, `GatewayIntent`, `complete_node`, `ReadMcpResource`, and `GetHelp` as their first choice. The `mae_mcp` curl helper and direct `curl` to `/mcp` are **last-resort fallbacks** only when MCP tools are unavailable or timing out. Never default to curl when MCP tools work.
+**MCP tools are the primary interface.** Agents use `GatewayExecute`, `GatewayIndex`, `GatewayBatch`, `GatewayIntent`, `complete_node`, `ReadMcpResource`, and `GetHelp` as their first choice. If the MCP tools aren't exposed in the session, start the daemon (`launchctl kickstart -k gui/$(id -u)/com.ma-collective.maenifold` on macOS, or `./rebuild.sh` for a full redeploy) and re-check the tool inventory. If they still aren't reachable, fall back to the in-process CLI: `maenifold tool <NAME> '<JSON-PAYLOAD>'`. If neither path works, fail fast and report — never curl `/mcp` directly, never hand-roll an MCP HTTP envelope, never reintroduce a `mae_mcp`-style helper.
 
 **No REST data APIs.** The daemon exposes `/mcp` for MCP JSON-RPC. The only non-MCP HTTP endpoints are infrastructure: `/api/health`, `/api/machine-id`, `/api/config/*` (file I/O), `/api/user-prompt/*` (MCP sampling bridge), `/api/acp/session` (ACP WebSocket transport). All domain data flows through MCP.
 

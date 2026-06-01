@@ -1,114 +1,43 @@
-// Azure Application Insights telemetry wrapper
-import { ApplicationInsights } from '@microsoft/applicationinsights-web';
-import { getMachineId } from './host';
+// Telemetry shim.
+//
+// The previous implementation wrapped @microsoft/applicationinsights-web
+// and shipped events to a hardcoded Azure AppInsights endpoint. That
+// dependency was removed because:
+//   1. Vite's Rolldown bundler emitted multiple [INVALID_ANNOTATION]
+//      warnings against the AppInsights `/* #__PURE__ */` comment
+//      positions (a third-party issue we don't control at the source).
+//   2. Shipping client telemetry to a Microsoft-hosted endpoint by default
+//      conflicts with the project's localhost-trust security model
+//      (see AGENTS.md "MCP Boundary" and "Cargo-cult security" sections).
+//
+// The public API is preserved as no-ops so callers in App.vue and
+// stores/session.ts don't need to change. To re-enable telemetry against
+// a different backend, replace the no-op bodies below.
 
-let appInsights: ApplicationInsights | null = null;
-let isEnabled = true;
-let machineId: string | null = null;
-
-const CONNECTION_STRING = 'InstrumentationKey=70b098b2-fcae-4834-867f-69554662910c;IngestionEndpoint=https://eastus-8.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus.livediagnostics.monitor.azure.com/;ApplicationId=d2f5a78f-257e-4748-bd25-509258a27bd2';
-
-/**
- * Initialize Application Insights telemetry
- * @param enabled Whether telemetry is enabled (respects user preference)
- */
-export async function initTelemetry(enabled: boolean = true) {
-  isEnabled = enabled;
-  
-  if (!enabled) {
-    console.log('Telemetry disabled by user preference');
-    return;
-  }
-
-  try {
-    // Get machine ID for reliable user identification
-    try {
-      machineId = await getMachineId();
-    } catch (e) {
-      console.warn('Failed to get machine ID:', e);
-      machineId = null;
-    }
-
-    appInsights = new ApplicationInsights({
-      config: {
-        connectionString: CONNECTION_STRING,
-        enableAutoRouteTracking: false, // Not needed for desktop app
-        disableFetchTracking: true,     // Reduce noise from API calls
-        disableAjaxTracking: true,      // Reduce noise
-        autoTrackPageVisitTime: false,  // Not applicable for desktop
-        enableCorsCorrelation: false,   // Not needed
-      }
-    });
-    
-    appInsights.loadAppInsights();
-    
-    // Set the authenticated user ID to machine ID for reliable tracking
-    if (machineId) {
-      appInsights.setAuthenticatedUserContext(machineId);
-    }
-    
-    appInsights.trackPageView({ name: 'AppLaunch' });
-    
-    console.log('Telemetry initialized', machineId ? `(machine: ${machineId.slice(0, 8)}...)` : '');
-  } catch (e) {
-    console.warn('Failed to initialize telemetry:', e);
-    appInsights = null;
-  }
+export async function initTelemetry(_enabled: boolean = true): Promise<void> {
+  // no-op
 }
 
-/**
- * Track a custom event
- */
-export function trackEvent(name: string, properties?: Record<string, string>) {
-  if (!isEnabled || !appInsights) return;
-  
-  try {
-    appInsights.trackEvent({ name }, properties);
-  } catch (e) {
-    console.warn('Failed to track event:', e);
-  }
+export function trackEvent(_name: string, _properties?: Record<string, string>): void {
+  // no-op
 }
 
-/**
- * Track an exception/error
- */
-export function trackError(error: Error, properties?: Record<string, string>) {
-  if (!isEnabled || !appInsights) return;
-  
-  try {
-    appInsights.trackException({ exception: error }, properties);
-  } catch (e) {
-    console.warn('Failed to track error:', e);
-  }
+export function trackError(_error: Error, _properties?: Record<string, string>): void {
+  // no-op
 }
 
-/**
- * Track a metric value
- */
-export function trackMetric(name: string, value: number, properties?: Record<string, string>) {
-  if (!isEnabled || !appInsights) return;
-  
-  try {
-    appInsights.trackMetric({ name, average: value }, properties);
-  } catch (e) {
-    console.warn('Failed to track metric:', e);
-  }
+export function trackMetric(
+  _name: string,
+  _value: number,
+  _properties?: Record<string, string>,
+): void {
+  // no-op
 }
 
-/**
- * Set whether telemetry is enabled
- */
-export function setTelemetryEnabled(enabled: boolean) {
-  isEnabled = enabled;
-  if (!enabled && appInsights) {
-    // Flush any pending data before disabling
-    appInsights.flush();
-  }
+export function setTelemetryEnabled(_enabled: boolean): void {
+  // no-op
 }
 
-/**
- * Check if telemetry is enabled
- */
 export function isTelemetryEnabled(): boolean {
-  return isEnabled;
+  return false;
 }

@@ -36,7 +36,7 @@ const activeArea = ref<SettingsArea>('embeddings');
 const areaCopy: Record<SettingsArea, AreaCopy> = {
   embeddings: {
     title: 'Embeddings',
-    subtitle: 'Placeholder shell for the embeddings management surface.',
+    subtitle: 'Vector model powering semantic search. Live from EmbeddingModels list / status.',
     milestone: 'T-413.3',
   },
   appSettings: {

@@ -43,8 +43,8 @@ export interface AgentEntry {
 }
 
 interface GetConfigResponse {
-  agents?: Record<string, AgentEntry>;
-  mcpServers?: Record<string, McpServerEntry>;
+  agents?: Record<string, AgentEntry> | Array<AgentEntry & { name?: string }>;
+  mcpServers?: Record<string, McpServerEntry> | Array<McpServerEntry & { name?: string }>;
 }
 
 function toErrorMessage(error: unknown): string {
@@ -52,6 +52,20 @@ function toErrorMessage(error: unknown): string {
 }
 
 function asRecord<T>(value: unknown): Record<string, T> {
+  if (Array.isArray(value)) {
+    // GetConfig serializes agents + mcpServers as arrays where each entry
+    // carries its key in a `name` field. Re-key by `name`.
+    return value.reduce<Record<string, T>>((acc, entry) => {
+      if (isPlainObject(entry)) {
+        const { name, ...rest } = entry as Record<string, unknown>;
+        if (typeof name === 'string' && name.length > 0) {
+          acc[name] = rest as T;
+        }
+      }
+      return acc;
+    }, {});
+  }
+
   if (!isPlainObject(value)) {
     return {};
   }

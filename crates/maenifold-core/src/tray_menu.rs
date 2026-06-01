@@ -1,7 +1,4 @@
 #[cfg(target_os = "macos")]
-use std::process::Command;
-
-#[cfg(target_os = "macos")]
 use libc;
 
 use tray_icon::menu::{Menu, MenuId, MenuItem, PredefinedMenuItem};
@@ -85,18 +82,32 @@ pub(crate) fn build_tray_menu() -> TrayMenuState<CoreTrayMenuState> {
     }
 }
 
+/// Toggle the "Open at Login" launchd LaunchAgent plist.
+///
+/// Treated as a pure autostart-policy toggle:
+/// - **Enable**: write `~/Library/LaunchAgents/<label>.plist`. launchd reads
+///   this directory at user login, so the change takes effect at the next
+///   login. We deliberately do NOT call `launchctl bootstrap` here: with
+///   `RunAtLoad=true` it would tell launchd to start a *second* maenifold
+///   instance immediately, which would lose the port-8080 binding race
+///   against the already-running tray and crash-loop under `KeepAlive`.
+/// - **Disable**: remove the plist. We deliberately do NOT call `launchctl
+///   bootout` here: bootout SIGTERMs the running service (us) and waits for
+///   exit, which kills the tray before this function can complete its job
+///   (verified pre-fix: tray icon vanished, plist remained, next login still
+///   autostarted the daemon). The user can click Quit if they also want to
+///   stop the currently-running daemon.
+///
+/// Net semantics: "Open at Login" only controls behaviour at the next user
+/// login. Lifecycle of the currently-running daemon is controlled by Quit /
+/// Restart, independently.
 pub(crate) fn toggle_login_item(port: u16, login_item: Option<&MenuItem>) {
     #[cfg(target_os = "macos")]
     {
         let result = if is_login_enabled() {
-            bootout_launch_agent();
             remove_launch_agent()
         } else {
-            let r = write_launch_agent(port);
-            if r.is_ok() {
-                bootstrap_launch_agent();
-            }
-            r
+            write_launch_agent(port)
         };
 
         if let Err(err) = result {
@@ -126,47 +137,6 @@ pub(crate) fn toggle_login_item(port: u16, login_item: Option<&MenuItem>) {
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         let _ = (port, login_item);
-    }
-}
-
-#[cfg(target_os = "macos")]
-fn bootstrap_launch_agent() {
-    let uid = get_uid();
-    let path = launch_agent_path();
-    let domain = format!("gui/{uid}");
-    match Command::new("launchctl")
-        .args(["bootstrap", &domain, &path.display().to_string()])
-        .output()
-    {
-        Ok(output) if !output.status.success() => {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            // Exit code 37 = "service already loaded" — not an error
-            if !stderr.contains("already loaded") && output.status.code() != Some(37) {
-                eprintln!("Warning: launchctl bootstrap failed: {}", stderr.trim());
-            }
-        }
-        Err(err) => eprintln!("Warning: failed to run launchctl bootstrap: {err}"),
-        _ => {}
-    }
-}
-
-#[cfg(target_os = "macos")]
-fn bootout_launch_agent() {
-    let uid = get_uid();
-    let target = format!("gui/{uid}/{SERVICE_LABEL}");
-    match Command::new("launchctl")
-        .args(["bootout", &target])
-        .output()
-    {
-        Ok(output) if !output.status.success() => {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            // Ignore "not loaded" / "no such process" — service may not be registered
-            if !stderr.contains("No such process") && !stderr.contains("not loaded") {
-                eprintln!("Warning: launchctl bootout failed: {}", stderr.trim());
-            }
-        }
-        Err(err) => eprintln!("Warning: failed to run launchctl bootout: {err}"),
-        _ => {}
     }
 }
 

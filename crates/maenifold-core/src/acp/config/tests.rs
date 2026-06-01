@@ -65,6 +65,7 @@ fn expected_settings() -> MaenifoldSettings {
         quarantine_retention_days: None,
         snippet_length: Some(512),
         sync_role: Some("leader".to_string()),
+        default_agent: None,
         decay: DecaySettings {
             grace_days_sequential: 9,
             grace_days_workflows: 18,

@@ -64,7 +64,17 @@ verify_gate_domain() {
   return 1
 }
 
-echo "═══ Release build: all crates ═══"
+echo "═══ Toolchain check ═══"
+for tool in node npm; do
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    echo "  ✗ $tool not found on PATH — required for UI build"
+    exit 1
+  fi
+done
+echo "  ✓ node $(node --version), npm $(npm --version)"
+
+echo ""
+echo "═══ Release build: all Rust crates ═══"
 make manifest
 cargo build --release -p maenifold-jockey -p maenifold-core -p maenifold-pipeline-driver -p maenifold-cli
 
@@ -93,8 +103,50 @@ for bin in maenifold maenifold-pipeline-driver; do
 done
 
 echo ""
-echo "═══ Desktop app ═══"
-echo "  — front-end was rip'd; vanilla MCP server only. Skipping packaging."
+echo "═══ UI: install deps (npm ci) ═══"
+( cd "$ROOT/ui" && npm ci )
+
+echo ""
+echo "═══ UI: build Tauri native app (npm run tauri build) ═══"
+( cd "$ROOT/ui" && npm run tauri build )
+TAURI_APP="$ROOT/ui/src-tauri/target/release/bundle/macos/Maenifold.app"
+if [ ! -d "$TAURI_APP" ]; then
+  echo "  ✗ Tauri build did not produce $TAURI_APP"
+  exit 1
+fi
+echo "  ✓ Tauri app built at $TAURI_APP"
+
+echo ""
+echo "═══ UI: build web SPA (npm run build:web — for iframe embedding via spa-server) ═══"
+( cd "$ROOT/ui" && npm run build:web )
+SPA_DIST="$ROOT/ui/dist-web"
+if [ ! -d "$SPA_DIST" ] || [ ! -f "$SPA_DIST/index.html" ]; then
+  echo "  ✗ web SPA build did not produce $SPA_DIST/index.html"
+  exit 1
+fi
+echo "  ✓ web SPA built at $SPA_DIST"
+
+echo ""
+echo "═══ Install desktop app to /Applications ═══"
+APP_SYMLINK="/Applications/maenifold.app"
+if [ -L "$APP_SYMLINK" ]; then
+  current_target=$(readlink "$APP_SYMLINK")
+  if [ "$current_target" = "$TAURI_APP" ]; then
+    echo "  ✓ symlink already correct: $APP_SYMLINK → $TAURI_APP"
+  else
+    echo "  → replacing symlink: was → $current_target"
+    rm "$APP_SYMLINK"
+    ln -s "$TAURI_APP" "$APP_SYMLINK"
+    echo "  ✓ symlink now: $APP_SYMLINK → $TAURI_APP"
+  fi
+elif [ -e "$APP_SYMLINK" ]; then
+  echo "  ⚠ $APP_SYMLINK exists and is not a symlink — refusing to overwrite"
+  echo "     remove or rename it manually, then rerun ./rebuild.sh"
+  exit 1
+else
+  ln -s "$TAURI_APP" "$APP_SYMLINK"
+  echo "  ✓ symlink created: $APP_SYMLINK → $TAURI_APP"
+fi
 
 echo ""
 echo "═══ Restart launchd services ═══"
@@ -121,8 +173,31 @@ for svc in com.ma-collective.maenifold; do
 done
 
 echo ""
+echo "═══ Repoint com.maenifold.spa-server LaunchAgent at ui/dist-web ═══"
+SPA_PLIST="$HOME/Library/LaunchAgents/com.maenifold.spa-server.plist"
+if [ ! -f "$SPA_PLIST" ]; then
+  echo "  — $SPA_PLIST not installed, skipping spa-server repoint"
+else
+  current_spa_path=$(plutil -extract ProgramArguments.2 raw "$SPA_PLIST" 2>/dev/null || echo "")
+  if [ "$current_spa_path" = "$SPA_DIST" ]; then
+    echo "  ✓ plist ProgramArguments[2] already = $SPA_DIST"
+  else
+    echo "  → repointing ProgramArguments[2]: $current_spa_path → $SPA_DIST"
+    plutil -replace ProgramArguments.2 -string "$SPA_DIST" "$SPA_PLIST"
+    launchctl bootout "gui/${UID_NUM}/com.maenifold.spa-server" 2>/dev/null || true
+    sleep 1
+    launchctl bootstrap "gui/${UID_NUM}" "$SPA_PLIST"
+    echo "  ✓ spa-server bootstrapped with new path"
+  fi
+fi
+
+echo ""
 echo "═══ Launch desktop app ═══"
-echo "  — front-end was rip'd; nothing to launch."
+if [ -L "$APP_SYMLINK" ] && [ -d "$(readlink "$APP_SYMLINK")" ]; then
+  echo "  ✓ Available at $APP_SYMLINK (click in Finder or run: open $APP_SYMLINK)"
+else
+  echo "  ⚠ $APP_SYMLINK unavailable"
+fi
 
 echo ""
 echo "═══ Verify ═══"
@@ -137,6 +212,20 @@ echo ""
 echo "═══ Verify maenifold.gate domain registration ═══"
 if ! verify_gate_domain; then
   verify_failed=1
+fi
+
+echo ""
+echo "═══ Verify SPA server ═══"
+if [ -f "$SPA_PLIST" ]; then
+  spa_code=$(curl --connect-timeout 2 --max-time 5 -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:8090/" 2>/dev/null) || spa_code="000"
+  if [ "$spa_code" = "200" ]; then
+    echo "  ✓ localhost:8090 serving SPA (HTTP $spa_code)"
+  else
+    echo "  ✗ localhost:8090 not responding (HTTP $spa_code) — spa-server may need manual bootstrap"
+    verify_failed=1
+  fi
+else
+  echo "  — spa-server LaunchAgent not installed, skipping"
 fi
 
 echo ""

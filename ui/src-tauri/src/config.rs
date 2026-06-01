@@ -53,25 +53,6 @@ fn is_default_transport(t: &AgentTransport) -> bool {
     *t == AgentTransport::Stdio
 }
 
-impl AgentConfig {
-    /// Build a stdio-transport agent config (used by defaults and
-    /// backward-compatible callers).
-    pub fn stdio(
-        command: String,
-        args: Vec<String>,
-        env: std::collections::HashMap<String, String>,
-    ) -> Self {
-        Self {
-            transport: AgentTransport::Stdio,
-            command: Some(command),
-            args: Some(args),
-            env,
-            url: None,
-            headers: None,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentsConfig {
     pub agents: IndexMap<String, AgentConfig>,

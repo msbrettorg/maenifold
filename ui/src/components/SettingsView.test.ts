@@ -124,44 +124,39 @@ describe('SettingsView', () => {
       title: string;
       stubSelector: string;
       stubText: string;
-      milestone: string;
     }> = [
       {
         area: 'embeddings',
         title: 'Embeddings',
         stubSelector: '.embeddings-stub',
         stubText: 'Stubbed Embeddings',
-        milestone: 'T-413.3',
       },
       {
         area: 'appSettings',
         title: 'App Settings',
         stubSelector: '.app-settings-stub',
         stubText: 'Stubbed App Settings',
-        milestone: 'T-413.4',
       },
       {
         area: 'agents',
         title: 'Agents',
         stubSelector: '.agents-stub',
         stubText: 'Stubbed Agents',
-        milestone: 'T-413.5',
       },
       {
         area: 'mcpServers',
         title: 'MCP Servers',
         stubSelector: '.mcp-servers-stub',
         stubText: 'Stubbed MCP Servers',
-        milestone: 'T-413.5',
       },
     ];
 
-    for (const { area, title, stubSelector, stubText, milestone } of expectations) {
+    for (const { area, title, stubSelector, stubText } of expectations) {
       await railButton(wrapper, area).trigger('click');
 
       expect(wrapper.get('.panel-title').text()).toBe(title);
       expect(wrapper.get(stubSelector).text()).toBe(stubText);
-      expect(wrapper.get('.panel-chip').text()).toBe(milestone);
+      expect(wrapper.findAll('.panel-chip')).toHaveLength(0);
       expect(wrapper.findAll('.placeholder-card')).toHaveLength(0);
     }
   });

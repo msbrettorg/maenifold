@@ -302,8 +302,8 @@ function promptRegenerate(sourceModel: EmbeddingModel | null = activeCatalogMode
     kind: 'regenerate',
     title: 'Regenerate embeddings',
     summary:
-      'Clear embedding metadata so vectors rebuild on the next daemon sync with the active model.',
-    confirmLabel: 'Regenerate embeddings',
+      'Clear embedding metadata and immediately rebuild vectors against the active model. This fires EmbeddingModels regenerate followed by graph Sync in one operation.',
+    confirmLabel: 'Regenerate now',
     tone: 'warn',
     parameters: {
       action: 'regenerate',
@@ -320,7 +320,7 @@ function promptRegenerate(sourceModel: EmbeddingModel | null = activeCatalogMode
       },
     ],
     warning:
-      'This does not silently mutate the UI state. The daemon will rebuild vectors on the next sync after you confirm.',
+      'Sync runs synchronously and can take several seconds for large memory stores. The vector tables will repopulate before this dialog closes.',
   });
 }
 

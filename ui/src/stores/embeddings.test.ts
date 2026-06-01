@@ -119,6 +119,8 @@ const catalogResponse = {
 };
 
 type GatewayArgs = {
+  domain?: string;
+  command?: string;
   parameters?: {
     action?: string;
   };
@@ -134,6 +136,9 @@ function gatewayTextResult(payload: unknown) {
 
 function mockSuccessfulActionResponses(): void {
   callToolMock.mockImplementation(async (_toolName: string, args: GatewayArgs) => {
+    if (args.domain === 'maenifold.graph' && args.command === 'Sync') {
+      return gatewayTextResult({ ok: true });
+    }
     switch (args.parameters?.action) {
       case 'status':
         return gatewayTextResult(statusResponse);
@@ -235,7 +240,7 @@ describe('useEmbeddingsStore', () => {
     });
   });
 
-  it('regenerate sends only the regenerate action payload', async () => {
+  it('regenerate sends EmbeddingModels regenerate then chains graph Sync', async () => {
     mockSuccessfulActionResponses();
 
     await store.regenerate();
@@ -252,6 +257,12 @@ describe('useEmbeddingsStore', () => {
       parameters: Record<string, unknown>;
     }).parameters;
     expect(Object.prototype.hasOwnProperty.call(firstCallParameters, 'modelId')).toBe(false);
+
+    expect(callToolMock).toHaveBeenNthCalledWith(2, 'GatewayExecute', {
+      domain: 'maenifold.graph',
+      command: 'Sync',
+      parameters: {},
+    });
   });
 
   it('surfaces failures through error state and clears loading', async () => {

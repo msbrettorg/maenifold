@@ -6,6 +6,8 @@ import { McpHttpError, mcpHttpClient } from '../lib/mcp/client';
 const GATEWAY_TOOL_NAME = 'GatewayExecute';
 const EMBEDDING_MODELS_DOMAIN = 'maenifold.system';
 const EMBEDDING_MODELS_COMMAND = 'EmbeddingModels';
+const GRAPH_DOMAIN = 'maenifold.graph';
+const GRAPH_SYNC_COMMAND = 'Sync';
 const DEFAULT_POLL_INTERVAL_MS = 6000;
 
 type EmbeddingModelsAction =
@@ -173,6 +175,23 @@ export const useEmbeddingsStore = defineStore('embeddings', () => {
     return parseGatewayJson<T>(result);
   }
 
+  async function callGraphSync(): Promise<string> {
+    const result = await mcpHttpClient.callTool<GatewayToolResult>(GATEWAY_TOOL_NAME, {
+      domain: GRAPH_DOMAIN,
+      command: GRAPH_SYNC_COMMAND,
+      parameters: {},
+    });
+
+    const text = result.content?.find((item) => item.type === 'text' && typeof item.text === 'string')?.text;
+    if (typeof text !== 'string' || !text.trim()) {
+      throw new Error('GatewayExecute graph Sync did not return content[0].text');
+    }
+    if (result.isError) {
+      throw new Error(text);
+    }
+    return text;
+  }
+
   async function loadStatus(): Promise<EmbeddingStatus> {
     const nextStatus = await callEmbeddingModels<EmbeddingStatus>({ action: 'status' });
     status.value = nextStatus;
@@ -265,6 +284,10 @@ export const useEmbeddingsStore = defineStore('embeddings', () => {
       const response = await callEmbeddingModels<EmbeddingMutationResponse>({
         action: 'regenerate',
       });
+      // Regenerate alone only clears embedding metadata. Immediately fire
+      // graph Sync so the daemon actually rebuilds vectors instead of
+      // leaving the user with stale state and a "run sync yourself" hint.
+      await callGraphSync();
       await refreshInternal();
       return response;
     });

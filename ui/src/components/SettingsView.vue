@@ -27,7 +27,6 @@ interface RailItem {
 interface AreaCopy {
   title: string;
   subtitle: string;
-  milestone: string;
 }
 
 const agentsAdminStore = useAgentsAdminStore();
@@ -37,23 +36,19 @@ const areaCopy: Record<SettingsArea, AreaCopy> = {
   embeddings: {
     title: 'Embeddings',
     subtitle: 'Vector model powering semantic search. Live from EmbeddingModels list / status.',
-    milestone: 'T-413.3',
   },
   appSettings: {
     title: 'App Settings',
     subtitle: 'Schema-driven settings editor backed by GetSettingsSchema and SetSettings.',
-    milestone: 'T-413.4',
   },
   agents: {
     title: 'Agents',
     subtitle: 'Configured ACP agents from GetConfig.agents with gateway-backed CRUD commands.',
-    milestone: 'T-413.5',
   },
   mcpServers: {
     title: 'MCP Servers',
     subtitle:
       'Configured MCP servers from GetConfig.mcpServers with gateway-backed CRUD commands.',
-    milestone: 'T-413.5',
   },
 };
 
@@ -143,7 +138,6 @@ function selectArea(area: SettingsArea): void {
               <h2 class="panel-title">{{ activePanel.title }}</h2>
               <p class="panel-subtitle">{{ activePanel.subtitle }}</p>
             </div>
-            <span class="panel-chip">{{ activePanel.milestone }}</span>
           </div>
 
           <SettingsEmbeddings v-if="activeArea === 'embeddings'" />
@@ -339,22 +333,6 @@ function selectArea(area: SettingsArea): void {
   line-height: 1.45;
 }
 
-.panel-chip {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.28rem 0.7rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--text-accent) 35%, var(--border-color));
-  background: color-mix(in srgb, var(--text-accent) 8%, var(--bg-main));
-  color: var(--text-accent);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
 .placeholder-card {
   display: flex;
   align-items: flex-start;
@@ -441,10 +419,6 @@ function selectArea(area: SettingsArea): void {
   .placeholder-card {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  .panel-chip {
-    align-self: flex-start;
   }
 
   .rail-item {

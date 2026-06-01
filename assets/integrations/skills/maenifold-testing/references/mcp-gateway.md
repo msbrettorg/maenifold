@@ -11,60 +11,34 @@ GatewayIndex parameters={"domain":"maenifold.gate","includeSchemas":true}
 GatewayExecute domain="maenifold.gate" command="<gate_*>" parameters={...}
 ```
 
-## Use the `mae_mcp` helper, do not hand-roll curl envelopes
+## Execution-path chain
 
-A `mae_mcp` bash function is defined in `~/.copilot/copilot-instructions.md` (preloaded every session). Use it for every gateway call instead of writing the curl envelope by hand. Pattern:
+Always reach gateway commands in this exact order. There is no curl-to-`/mcp` step. No `mae_mcp` helper exists; do not reintroduce one.
 
-```bash
-mae_mcp <command> <params-json> [domain=maenifold.gate] [timeout=30]
-```
+1. **MCP tools (primary).** Use `maenifold-GatewayExecute`, `maenifold-GatewayIndex`, etc. Discover with `GatewayIndex` first; execute with `GatewayExecute`. Examples:
 
-Examples:
+   ```text
+   GatewayExecute domain="maenifold.gate" command="gate_Sync" parameters={"root":"/abs/path","rebuild":true}
+   GatewayExecute domain="maenifold.gate" command="gate_Pass" parameters={"root":"/abs/path","taskId":"T-X.Y","agent":"ralph-pm","notes":"...","expectedStage":"red-team"}
+   GatewayExecute domain="maenifold.memory" command="WriteMemory" parameters={"title":"...","folder":"mae-auto/iterations","content":"..."}
+   ```
 
-```bash
-# Sync the gate cache (default domain = maenifold.gate)
-mae_mcp gate_Sync '{"root":"/Users/brett/src/ma-collective/maenifold-rs","rebuild":true}'
+2. **Start the daemon if MCP tools aren't exposed in your session.** On macOS: `launchctl kickstart -k gui/$(id -u)/com.ma-collective.maenifold`. For a full release rebuild + restart: `./rebuild.sh` from the repo root. Wait a few seconds for the HTTP listener, then re-check the tool inventory.
 
-# Terminal pass — floor timeout at 180 per the iter-5 cascade-prevention rule
-mae_mcp gate_Pass '{"root":"/Users/brett/src/ma-collective/maenifold-rs","taskId":"T-X.Y","agent":"ralph-pm","notes":"...","expectedStage":"red-team"}' maenifold.gate 180
+3. **CLI fallback (if MCP still unreachable).** Use the in-process CLI:
 
-# Cross-domain
-mae_mcp WriteMemory '{"title":"...","folder":"mae-auto/iterations","content":"..."}' maenifold.memory
-mae_mcp BuildContext '{"conceptName":"sampling","depth":2,"includeContent":true}' maenifold.graph
-```
+   ```bash
+   maenifold tool GatewayExecute '{"domain":"maenifold.gate","command":"gate_Status","parameters":{"root":"/abs/path"}}'
+   maenifold tool WriteMemory '{"title":"...","folder":"mae-auto/iterations","content":"..."}'
+   ```
 
-Why the helper exists: in iter-14 alone, hand-rolled `TOKEN=$(cat ~/maenifold/auth/localhost.token); curl --max-time ... http://127.0.0.1:8080/mcp -H ... -d ...` envelopes appeared 400+ times across bash calls — each a chance to typo a header, forget a flag, or use single-quotes around `$TOKEN`. The helper enforces the iter-5 minimum 180s `--max-time` floor for `gate_Pass` / `gate_Fail`, includes `Mcp-Protocol-Version`, and reads the bearer token from `~/maenifold/auth/localhost.token` every call (so a token rotation is picked up without restart).
+   The CLI loads tools in-process, so it works even when the HTTP daemon is down. List available tools with `maenifold tool --help` and `maenifold --help`.
+
+4. **Fail fast.** If neither MCP tools nor the CLI binary work, stop and report the exact failure to the user (the commands you tried and what they returned). Do not curl `/mcp`. Do not hand-roll an MCP HTTP envelope. Do not invent a fourth path.
 
 ## Raw response discipline
 
-MCP responses may have `.result` on success or `.error` on failure. Inspect raw responses before applying `jq` filters:
-
-```bash
-jq -e '.error'
-jq '.result'
-```
-
-Only read `.result` after confirming there is no `.error`.
-
-## Shell quoting
-
-For bearer-token curl calls, use double quotes around headers containing shell variables:
-
-```bash
--H "Authorization: Bearer $TOKEN"
-```
-
-Single quotes send the literal `$TOKEN`.
-
-## CLI fallback
-
-If MCP is unavailable and a CLI fallback is needed, run:
-
-```bash
-maenifold --help
-```
-
-Do not assume fallback command names from old notes. If docs and binary disagree, file/update the testing lesson instead of treating the fallback as healthy.
+MCP / CLI responses use a `{ "success": bool, "data": ..., "error": ... }` envelope (or `{ "result": ..., "isError": bool }` for raw JSON-RPC). Always check `error` / `isError` before reading `data` / `result`. If you receive JSON, parse it before composing follow-up calls.
 
 ## Sampling capability-gate smoke test
 

@@ -379,7 +379,7 @@ Maenifold ships a Rust MCP server. Verification is concrete: a request goes in o
 ### Verification rules
 
 - **Hit the running daemon, not in-process tests.** `cargo test` proves the unit; the daemon round-trip proves the wire.
-- **Use the documented MCP path.** Workers MUST default to `maenifold-GatewayExecute` and the other `maenifold-*` MCP tools. The `mae_mcp` curl helper is a last-resort fallback only when the MCP tool surface is unavailable.
+- **Use the documented MCP path.** Workers MUST default to `maenifold-GatewayExecute` and the other `maenifold-*` MCP tools. If MCP tools aren't reachable, start the daemon (`launchctl kickstart -k gui/$(id -u)/com.ma-collective.maenifold` on macOS, or `./rebuild.sh` for a full redeploy) and retry. If still unreachable, fall back to the in-process CLI (`maenifold tool <NAME> '<JSON-PAYLOAD>'`). If neither works, fail fast — never curl `/mcp` directly, never reintroduce a curl-helper.
 - **Verify results, not appearances.** A 200 OK is not proof — read the response body and compare to the spec.
 - **Do not cheat.** Never assert on cached `.gate/gate.db` rows when the spec is about live MCP behavior. Never claim a fix works because the compiler accepted it.
 - **File everything.** Any issue, no matter how small, gets a gate task. Triage happens later, not during testing.

@@ -67,30 +67,19 @@ The PM is responsible for verifying these hold for the worker's worktree before 
 
 - **Build.** `cargo build --release -p <crate>` succeeds in the worktree.
 - **Tests.** `cargo test -p <crate>` succeeds for crates the worker touched. Per repo-root `AGENTS.md` test policy, blue-team runs only the changed-code tests; full workspace runs are reserved for sprint close.
-- **MCP wire surface.** When the change touches the MCP boundary, `curl POST http://localhost:8080/mcp` with `tools/list` must return exactly the 7 canonical tools (GatewayBatch, GatewayExecute, GatewayIndex, GatewayIntent, GetHelp, ReadMcpResource, complete_node). No more, no fewer.
+- **MCP wire surface.** When the change touches the MCP boundary, `maenifold tool tools/list '{}'` (or the equivalent MCP-tool `tools/list` round-trip) must return exactly the 7 canonical tools (GatewayBatch, GatewayExecute, GatewayIndex, GatewayIntent, GetHelp, ReadMcpResource, complete_node). No more, no fewer. Do not verify by curling `/mcp` directly.
 - **Memory note.** A `memory://` note is written for every accepted change with `[[WikiLinks]]` and a `## Source` section per repo-root `AGENTS.md` knowledge-grounding rules.
 
 ## Gate operations via MCP Gateway
 
-All gate ops go through the integrated `maenifold.gate` Gateway domain on the maenifold daemon (default `http://localhost:8080/mcp`).
+All gate ops go through the integrated `maenifold.gate` Gateway domain.
 
-```bash
-TOKEN=$(tr -d '\n' < ~/maenifold/auth/localhost.token)
-# Available commands:
-#   gate_Status, gate_Sync, gate_Pass, gate_Fail, gate_Append, gate_History, gate_TaskBody
-# Pattern (replace METHOD/PARAMS):
-#   curl -s -X POST http://localhost:8080/mcp \
-#     -H "Content-Type: application/json" \
-#     -H "Accept: application/json, text/event-stream" \
-#     -H "Mcp-Protocol-Version: 2025-03-26" \
-#     -H "Authorization: Bearer $TOKEN" \
-#     -d "$(jq -n --arg m "GatewayExecute" --argjson p "$PARAMS" \
-#         '{jsonrpc:"2.0", id:1, method:"tools/call", params:{name:$m, arguments:$p}}')"
-```
+**Execution-path chain — pick the first one that works, fail fast if none do:**
 
-The full safe helper pattern lives in `ralph/state/learnings.md` ("Safe MCP Gateway request helper pattern" — sprint 237 entry). Use that helper instead of hand-quoted curl one-liners.
-
-If `gate` as a CLI command is not on PATH, this is expected. Per repo-root `AGENTS.md` (sprint 242 known gap), gate is reachable only via MCP `GatewayExecute`. CLI parity is tracked separately.
+1. **MCP tools (primary).** Use `maenifold-GatewayExecute` with `domain="maenifold.gate"` and one of `gate_Status` / `gate_Sync` / `gate_Pass` / `gate_Fail` / `gate_Append` / `gate_History` / `gate_TaskBody`. Discover schemas first with `maenifold-GatewayIndex` `domain="maenifold.gate" includeSchemas=true`.
+2. **Daemon start (if MCP tools aren't exposed).** Start the daemon: `launchctl kickstart -k gui/$(id -u)/com.ma-collective.maenifold` on macOS, or `./rebuild.sh` for a full release rebuild + restart. Re-check the tool inventory; if the tools now appear, return to step 1.
+3. **CLI fallback (if MCP still unreachable).** Run the in-process CLI: `maenifold tool GatewayExecute '{"domain":"maenifold.gate","command":"gate_Pass","parameters":{...}}'`. The CLI loads tools in-process and works even when the HTTP daemon is down.
+4. **Fail fast.** If neither MCP nor the CLI binary works, stop and report the exact failure. Never curl `/mcp`. Never hand-roll an MCP HTTP envelope. Never reintroduce a `mae_mcp`-style helper.
 
 ## Commit policy
 

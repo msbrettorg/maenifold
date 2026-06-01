@@ -149,6 +149,61 @@ else
 fi
 
 echo ""
+echo "═══ Kill stale maenifold processes (orphans not managed by launchd) ═══"
+# Orphans escape launchd's service management (e.g. when a previous launchd
+# bootstrap deatched the daemon via setsid, or the service definition was
+# replaced). Once orphaned, 'launchctl kickstart' can't kill them, and the
+# fresh respawn fights for port 8080 → bind() EADDRINUSE → tight crash loop.
+# Per-PID cleanup BEFORE kickstart prevents this.
+#
+# Patterns covered:
+#   'maenifold --http'           — the daemon
+#   'maenifold-pipeline-driver'  — driver children (per AGENTS.md driver
+#                                   process hygiene rule; old drivers
+#                                   persist for in-flight pipeline runs)
+killed_any=0
+for pat in 'maenifold --http' 'maenifold-pipeline-driver'; do
+  pids=$(pgrep -f "$pat" 2>/dev/null || true)
+  if [ -n "$pids" ]; then
+    for pid in $pids; do
+      ppid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ' || echo '?')
+      cmd=$(ps -o command= -p "$pid" 2>/dev/null | head -c 80 || echo '?')
+      echo "  → SIGTERM PID $pid (ppid=$ppid): $cmd"
+      kill "$pid" 2>/dev/null || true
+      killed_any=1
+    done
+  fi
+done
+
+if [ "$killed_any" -eq 1 ]; then
+  sleep 2
+  # SIGKILL stragglers that ignored SIGTERM
+  for pat in 'maenifold --http' 'maenifold-pipeline-driver'; do
+    pids=$(pgrep -f "$pat" 2>/dev/null || true)
+    if [ -n "$pids" ]; then
+      for pid in $pids; do
+        echo "  → SIGKILL PID $pid (didn't exit on SIGTERM)"
+        kill -9 "$pid" 2>/dev/null || true
+      done
+    fi
+  done
+  sleep 1
+else
+  echo "  ✓ no stale maenifold processes"
+fi
+
+# Sanity: confirm port 8080 is free before handing off to launchd kickstart.
+# If something else (non-maenifold) is holding it, the kickstart will still
+# fail and we want to know now.
+if lsof -nP -iTCP:8080 -sTCP:LISTEN >/dev/null 2>&1; then
+  echo "  ⚠ port 8080 STILL held after kill — listing holders:"
+  lsof -nP -iTCP:8080 -sTCP:LISTEN
+  echo "     launchd kickstart will likely fail; investigate manually."
+else
+  echo "  ✓ port 8080 free"
+fi
+
+echo ""
 echo "═══ Restart launchd services ═══"
 for svc in com.ma-collective.maenifold; do
   if launchctl list "$svc" &>/dev/null; then

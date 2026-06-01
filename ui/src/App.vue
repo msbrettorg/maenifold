@@ -16,6 +16,7 @@ import TrafficMonitor from './components/TrafficMonitor.vue';
 import StartupProgress from './components/StartupProgress.vue';
 import TabBar from './components/TabBar.vue';
 import HomeView from './components/HomeView.vue';
+import SchedulesView from './components/SchedulesView.vue';
 import PlaceholderView from './components/PlaceholderView.vue';
 import type { SavedSession } from './lib/types';
 
@@ -551,6 +552,7 @@ function clearError() {
         title="Gates"
         description="Track gated delivery tasks and pipeline state at a glance. This surface is coming soon."
       />
+      <SchedulesView v-else-if="shell.activeTab === 'schedules'" />
       <PlaceholderView
         v-else-if="shell.activeTab === 'pipelines'"
         :icon="GitBranch"

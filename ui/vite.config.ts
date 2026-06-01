@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import vue from "@vitejs/plugin-vue";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -35,6 +35,11 @@ export default defineConfig(async ({ mode }) => {
           emptyOutDir: true,
         }
       : undefined,
+
+    test: {
+      environment: "node",
+      include: ["src/**/*.test.ts"],
+    },
 
     // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
     //

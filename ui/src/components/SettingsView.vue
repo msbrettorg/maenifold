@@ -2,6 +2,7 @@
 import { computed, ref, type Component } from 'vue';
 import { MessageSquare, Package, Server, Settings, SlidersHorizontal } from '@lucide/vue';
 import { useConfigStore } from '../stores/config';
+import SettingsAppSettings from './SettingsAppSettings.vue';
 import SettingsEmbeddings from './SettingsEmbeddings.vue';
 
 // Preserve the legacy event surface until T-413.7 rewires App.vue away from
@@ -156,6 +157,7 @@ function selectArea(area: SettingsArea): void {
           </div>
 
           <SettingsEmbeddings v-if="activeArea === 'embeddings'" />
+          <SettingsAppSettings v-else-if="activeArea === 'appSettings'" />
           <div v-else class="placeholder-card">
             <div class="placeholder-icon-wrap" aria-hidden="true">
               <component :is="activePanel.icon" :size="26" :stroke-width="1.75" />

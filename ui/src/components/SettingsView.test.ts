@@ -17,6 +17,9 @@ function mountSettingsView() {
       plugins: [pinia],
       stubs: {
         SettingsEmbeddings: { template: '<div class="settings-embeddings stub" />' },
+        SettingsAppSettings: {
+          template: '<div class="app-settings-stub">Stubbed App Settings</div>',
+        },
       },
     },
   });
@@ -44,7 +47,11 @@ describe('SettingsView', () => {
   it('renders all four left-rail entries', () => {
     const wrapper = mountSettingsView();
 
-    expect(wrapper.findAll('.rail-item-label').map((node) => node.text())).toEqual([
+    expect(
+      wrapper
+        .findAll('.rail-item-label')
+        .map((node: { text: () => string }) => node.text())
+    ).toEqual([
       'Embeddings',
       'App Settings',
       'Agents',
@@ -66,7 +73,7 @@ describe('SettingsView', () => {
     expectPressedStates(wrapper, 'appSettings');
   });
 
-  it('shows the embeddings panel and the correct placeholder content for the remaining areas', async () => {
+  it('shows the embeddings + app-settings real panels and placeholder content for the remaining areas', async () => {
     const wrapper = mountSettingsView();
 
     const expectations: Array<{
@@ -79,12 +86,6 @@ describe('SettingsView', () => {
         area: 'embeddings',
         title: 'Embeddings',
         milestone: 'T-413.3',
-      },
-      {
-        area: 'appSettings',
-        title: 'App Settings',
-        placeholder: 'App Settings tab coming in T-413.4',
-        milestone: 'T-413.4',
       },
       {
         area: 'agents',
@@ -115,6 +116,16 @@ describe('SettingsView', () => {
       expect(wrapper.findAll('.settings-embeddings')).toHaveLength(0);
       expect(wrapper.get('.placeholder-title').text()).toBe(placeholder);
     }
+  });
+
+  it('renders the stubbed app settings component and removes the placeholder', async () => {
+    const wrapper = mountSettingsView();
+
+    await railButton(wrapper, 'appSettings').trigger('click');
+
+    expect(wrapper.get('.panel-title').text()).toBe('App Settings');
+    expect(wrapper.get('.app-settings-stub').text()).toBe('Stubbed App Settings');
+    expect(wrapper.findAll('.placeholder-card')).toHaveLength(0);
   });
 
   it('renders the hero card with the settings icon, title, and description', () => {

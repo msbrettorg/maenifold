@@ -1,8 +1,9 @@
 export interface JsonSchemaNode {
-  type?: string;
+  type?: string | string[];
   title?: string;
   description?: string;
   minimum?: number;
+  enum?: unknown[];
   properties?: Record<string, JsonSchemaNode>;
   items?: JsonSchemaNode;
   additionalProperties?: boolean | JsonSchemaNode;

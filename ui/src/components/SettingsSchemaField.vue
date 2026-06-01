@@ -83,6 +83,14 @@ const schemaBaseType = computed(() => {
     return resolvedSchema.value.type;
   }
 
+  if (Array.isArray(resolvedSchema.value.type)) {
+    // Nullable shape from backend e.g. ["string", "null"] - pick the non-null member.
+    const nonNull = resolvedSchema.value.type.find((t) => t !== 'null');
+    if (typeof nonNull === 'string') {
+      return nonNull;
+    }
+  }
+
   if (declaresObjectShape(resolvedSchema.value)) {
     return 'object';
   }
@@ -107,6 +115,14 @@ const fieldType = computed(() => {
 });
 
 const rendersObjectGroup = computed(() => fieldType.value === 'object' && declaresObjectShape(resolvedSchema.value));
+
+const enumOptions = computed<string[] | null>(() => {
+  const e = resolvedSchema.value.enum;
+  if (Array.isArray(e) && e.length > 0 && e.every((v) => typeof v === 'string')) {
+    return e as string[];
+  }
+  return null;
+});
 
 const typeLabel = computed(() => {
   if (fieldType.value === 'array') {
@@ -455,8 +471,18 @@ function handleAddEntry(): void {
     </div>
 
     <div class="field-editor">
+      <select
+        v-if="fieldType === 'string' && enumOptions"
+        v-model="textDraft"
+        class="input-control"
+      >
+        <option v-for="option in enumOptions" :key="option" :value="option">
+          {{ option }}
+        </option>
+      </select>
+
       <input
-        v-if="fieldType === 'string'"
+        v-else-if="fieldType === 'string'"
         v-model="textDraft"
         type="text"
         class="input-control"

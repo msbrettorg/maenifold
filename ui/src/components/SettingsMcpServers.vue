@@ -923,7 +923,7 @@ async function deleteServer(name: string): Promise<void> {
 }
 
 .btn-primary {
-  color: #fff;
+  color: var(--bg-main);
   background: var(--text-accent);
   border-color: var(--text-accent);
 }
@@ -934,14 +934,14 @@ async function deleteServer(name: string): Promise<void> {
 
 .btn-danger,
 .icon-btn-danger {
-  color: #ff9b9b;
+  color: color-mix(in srgb, var(--bg-danger) 82%, var(--text-primary));
   border-color: color-mix(in srgb, var(--bg-danger) 52%, var(--border-color));
 }
 
 .btn-danger:hover,
 .icon-btn-danger:hover {
   background: color-mix(in srgb, var(--bg-danger) 20%, var(--bg-main));
-  color: #ffb3b3;
+  color: color-mix(in srgb, var(--bg-danger) 68%, var(--text-primary));
 }
 
 .transport-toggle {
@@ -1040,7 +1040,7 @@ async function deleteServer(name: string): Promise<void> {
 }
 
 .badge-type {
-  color: #4ec98a;
+  color: color-mix(in srgb, var(--bg-success) 85%, var(--text-primary));
   background: color-mix(in srgb, var(--bg-success) 12%, var(--bg-main));
   border: 1px solid color-mix(in srgb, var(--bg-success) 40%, var(--border-color));
 }
@@ -1075,7 +1075,7 @@ async function deleteServer(name: string): Promise<void> {
   align-items: center;
   justify-content: center;
   padding: 1.25rem;
-  background: color-mix(in srgb, #000 55%, transparent);
+  background: rgba(0, 0, 0, 0.55);
 }
 
 .editor-dialog {

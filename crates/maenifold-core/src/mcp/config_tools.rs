@@ -43,10 +43,12 @@ impl ConfigMutationState {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn config_manager(&self) -> ConfigManager {
         self.config_manager.clone()
     }
 
+    #[allow(dead_code)]
     pub(crate) fn runtime_config(&self) -> Arc<RwLock<Config>> {
         Arc::clone(&self.runtime_config)
     }
@@ -62,6 +64,7 @@ impl ConfigMutationState {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn mutation_state(
     config: &Config,
     config_manager: ConfigManager,
@@ -70,6 +73,13 @@ pub(crate) fn mutation_state(
         config_manager,
         Arc::new(parking_lot::RwLock::new(config.clone())),
     )
+}
+
+#[cfg(test)]
+pub(crate) fn mutation_state_for_tests() -> ConfigMutationState {
+    let config = Config::current();
+    let manager = ConfigManager::new(&config);
+    mutation_state(&config, manager)
 }
 
 #[derive(Serialize)]
@@ -108,6 +118,7 @@ struct NamedMcpServerRequest {
     entry: McpServerEntry,
 }
 
+#[allow(dead_code)]
 pub(crate) fn is_config_mutation_tool(tool_name: &str) -> bool {
     CONFIG_MUTATION_TOOLS.contains(&tool_name)
 }
@@ -151,6 +162,7 @@ fn notification_uris(tool_name: &str) -> &'static [&'static str] {
     }
 }
 
+#[allow(dead_code)]
 pub(crate) fn registry_invocation_unavailable(
     _context: &ToolContext,
     _payload: &Value,

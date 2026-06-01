@@ -1,19 +1,17 @@
 use crate::acp_config::AgentsConfig;
-#[cfg(test)]
 use crate::acp_config::{AgentEntry, MaenifoldSettings, McpServerEntry};
 use crate::config::Config;
-#[cfg(test)]
 use indexmap::IndexMap;
 use parking_lot::RwLock;
-#[cfg(test)]
 use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-// Read-only mirror of maenifold.json kept hot for the HTTP API surface.
-// Mutations now flow through the desktop app via Electron IPC; the daemon
-// only reads + reloads through the file watcher (see api::config_watch).
+// Read/write mirror of maenifold.json kept hot for the HTTP API and MCP
+// gateway surfaces. Gateway config mutations persist through this manager so
+// the daemon and config watch continue to share one file-authoritative source
+// of truth.
 #[derive(Clone)]
 pub(crate) struct ConfigManager {
     config: Arc<RwLock<AgentsConfig>>,
@@ -44,7 +42,6 @@ impl ConfigManager {
         self.config_path.clone()
     }
 
-    #[cfg(test)]
     pub(crate) fn render_config(&self) -> Result<String, String> {
         match fs::read_to_string(&self.config_path) {
             Ok(content) => Ok(content.trim_end().to_string()),
@@ -56,7 +53,6 @@ impl ConfigManager {
         }
     }
 
-    #[cfg(test)]
     pub(crate) fn update_settings(
         &self,
         settings: MaenifoldSettings,
@@ -67,7 +63,6 @@ impl ConfigManager {
         Ok(config.clone())
     }
 
-    #[cfg(test)]
     pub(crate) fn add_agent(
         &self,
         name: String,
@@ -82,7 +77,6 @@ impl ConfigManager {
         Ok(config.clone())
     }
 
-    #[cfg(test)]
     pub(crate) fn update_agent(
         &self,
         name: String,
@@ -97,7 +91,6 @@ impl ConfigManager {
         Ok(config.clone())
     }
 
-    #[cfg(test)]
     pub(crate) fn remove_agent(&self, name: &str) -> Result<AgentsConfig, String> {
         let mut config = self.config.write();
         if config.agents.remove(name).is_none() {
@@ -107,7 +100,6 @@ impl ConfigManager {
         Ok(config.clone())
     }
 
-    #[cfg(test)]
     pub(crate) fn add_mcp_server(
         &self,
         name: String,
@@ -122,7 +114,6 @@ impl ConfigManager {
         Ok(config.clone())
     }
 
-    #[cfg(test)]
     pub(crate) fn update_mcp_server(
         &self,
         name: &str,
@@ -137,7 +128,6 @@ impl ConfigManager {
         Ok(config.clone())
     }
 
-    #[cfg(test)]
     pub(crate) fn remove_mcp_server(&self, name: &str) -> Result<AgentsConfig, String> {
         let mut config = self.config.write();
         if config.mcp_servers.remove(name).is_none() {
@@ -148,7 +138,6 @@ impl ConfigManager {
     }
 }
 
-#[cfg(test)]
 fn persist_config(path: &Path, config: &AgentsConfig) -> Result<(), String> {
     let content = ordered_config_json(path, config)?;
     fs::write(path, format!("{content}\n")).map_err(|error| error.to_string())
@@ -162,7 +151,6 @@ fn load_config(path: &Path) -> Result<AgentsConfig, String> {
     }
 }
 
-#[cfg(test)]
 fn ordered_config_json(path: &Path, config: &AgentsConfig) -> Result<String, String> {
     let mut value = serde_json::to_value(config).map_err(|error| error.to_string())?;
     let Some(root) = value.as_object_mut() else {
@@ -191,7 +179,6 @@ fn ordered_config_json(path: &Path, config: &AgentsConfig) -> Result<String, Str
     serde_json::to_string_pretty(&value).map_err(|error| error.to_string())
 }
 
-#[cfg(test)]
 fn read_mcp_server_order(path: &Path) -> Result<Vec<String>, String> {
     let contents = match fs::read_to_string(path) {
         Ok(contents) => contents,

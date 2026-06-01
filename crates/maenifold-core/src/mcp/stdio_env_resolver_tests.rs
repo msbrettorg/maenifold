@@ -4,7 +4,9 @@ use crate::acp_config::EnvFromCommand;
 use crate::mcp::stdio_env_resolver::resolve_mcp_server_env;
 
 fn echo_command() -> String {
-    crate::test_util::fake_echo_binary().to_string_lossy().to_string()
+    crate::test_util::fake_echo_binary()
+        .to_string_lossy()
+        .to_string()
 }
 
 #[test]

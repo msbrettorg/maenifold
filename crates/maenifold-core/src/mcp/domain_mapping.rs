@@ -67,7 +67,15 @@ pub(crate) const TOOL_DOMAINS: &[(&str, &str)] = &[
     ("SequentialThinking", "maenifold.thinking"),
     ("AssumptionLedger", "maenifold.thinking"),
     ("MemoryStatus", "maenifold.system"),
+    ("GetSettingsSchema", "maenifold.system"),
     ("GetConfig", "maenifold.system"),
+    ("SetSettings", "maenifold.system"),
+    ("AddAgent", "maenifold.system"),
+    ("UpdateAgent", "maenifold.system"),
+    ("DeleteAgent", "maenifold.system"),
+    ("AddMcpServer", "maenifold.system"),
+    ("UpdateMcpServer", "maenifold.system"),
+    ("DeleteMcpServer", "maenifold.system"),
     ("GetCopilotModels", "maenifold.system"),
     ("UpdateAssets", "maenifold.system"),
     ("RunFullBenchmark", "maenifold.system"),
@@ -99,6 +107,7 @@ pub(crate) fn tool_safety(tool_name: &str) -> SafetyClass {
         | "FindSimilarConcepts"
         | "AnalyzeConceptCorruption"
         | "MemoryStatus"
+        | "GetSettingsSchema"
         | "GetConfig"
         | "GetCopilotModels"
         | "RunFullBenchmark"
@@ -112,8 +121,11 @@ pub(crate) fn tool_safety(tool_name: &str) -> SafetyClass {
         "DeleteMemory" | "DeleteWorkflowAsset" => SafetyClass::Destructive,
         "Workflow" | "Pipeline" | "SequentialThinking" | "AssumptionLedger" | "AcpExec"
         | "Schedule" => SafetyClass::Orchestration,
-        "EditMemory" | "MoveMemory" | "Sync" | "RepairConcepts" | "UpdateAssets"
-        | "EmbeddingModels" | "SaveWorkflowAsset" => SafetyClass::Mutate,
+        "EditMemory" | "MoveMemory" | "Sync" | "RepairConcepts" | "SetSettings" | "AddAgent"
+        | "UpdateAgent" | "DeleteAgent" | "AddMcpServer" | "UpdateMcpServer"
+        | "DeleteMcpServer" | "UpdateAssets" | "EmbeddingModels" | "SaveWorkflowAsset" => {
+            SafetyClass::Mutate
+        }
         _ => SafetyClass::Mutate,
     }
 }

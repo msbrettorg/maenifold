@@ -1,7 +1,9 @@
 use crate::acp_config::{AgentsConfig, McpServerEntry};
+use crate::api::routes::ApiStateSharedConfig;
 use crate::config::Config;
 use crate::error::Result;
 use crate::mcp::PendingRequestRegistry;
+use crate::mcp::config_tools::ConfigMutationState;
 use crate::mcp::gateway_registry::GatewayRegistry;
 use crate::mcp::gateway_runtime::GatewayState;
 use crate::mcp::gateway_session::{GatewayServerConfig, HttpServerConfig};
@@ -20,20 +22,28 @@ pub(super) enum GatewayStartup {
 }
 
 pub(super) async fn build_gateway(config: &Config) -> Result<GatewayStartup> {
-    build_gateway_with_registry(config, Arc::new(PendingRequestRegistry::new())).await
+    build_gateway_with_registry(
+        ApiStateSharedConfig::from(config.clone()),
+        Arc::new(PendingRequestRegistry::new()),
+    )
+    .await
 }
 
 pub(super) async fn build_gateway_with_registry(
-    config: &Config,
+    shared_config: ApiStateSharedConfig,
     pending_registry: Arc<PendingRequestRegistry>,
 ) -> Result<GatewayStartup> {
+    let config = shared_config.config_snapshot();
+    let config_mutation_state =
+        ConfigMutationState::new(shared_config.config_manager(), shared_config.config());
     let agents_config = match AgentsConfig::load(&config.maenifold_root) {
         Ok(config) => config,
         Err(error) => {
             tracing::error!(err = %error, "gateway config load failed, starting degraded gateway");
             return degraded_gateway(
-                config,
+                &config,
                 pending_registry,
+                config_mutation_state,
                 format!("gateway config load failed: {error}"),
                 None,
             )
@@ -46,7 +56,7 @@ pub(super) async fn build_gateway_with_registry(
         .filter(|(_name, server)| server.is_gateway())
         .collect();
     if gateway_servers.is_empty() {
-        return native_only_gateway(config, pending_registry).await;
+        return native_only_gateway(&config, pending_registry, config_mutation_state).await;
     }
 
     let configs: Vec<GatewayServerConfig> = gateway_servers
@@ -112,8 +122,9 @@ pub(super) async fn build_gateway_with_registry(
                 );
                 tracing::error!(err = %message, "gateway startup produced no upstream tools");
                 return degraded_gateway(
-                    config,
+                    &config,
                     Arc::clone(&pending_registry),
+                    config_mutation_state.clone(),
                     message,
                     Some(pool),
                 )
@@ -126,8 +137,9 @@ pub(super) async fn build_gateway_with_registry(
                         Ok(routing) => routing,
                         Err(error) => {
                             return degraded_gateway(
-                                config,
+                                &config,
                                 Arc::clone(&pending_registry),
+                                config_mutation_state.clone(),
                                 error.to_string(),
                                 Some(Arc::clone(&pool)),
                             )
@@ -141,6 +153,7 @@ pub(super) async fn build_gateway_with_registry(
                         registry,
                         config.settings.gateway.intent_resolver.clone(),
                         config.maenifold_root.clone(),
+                        config_mutation_state.clone(),
                     ));
                     resources::set_gateway_registry(Arc::new(gateway.registry().clone()));
                     info!(
@@ -154,8 +167,9 @@ pub(super) async fn build_gateway_with_registry(
                         "gateway registry build failed, starting without gateway"
                     );
                     degraded_gateway(
-                        config,
+                        &config,
                         Arc::clone(&pending_registry),
+                        config_mutation_state.clone(),
                         error.to_string(),
                         Some(Arc::clone(&pool)),
                     )
@@ -168,7 +182,14 @@ pub(super) async fn build_gateway_with_registry(
                 err = %error,
                 "gateway pool startup failed, starting without gateway"
             );
-            degraded_gateway(config, pending_registry, error.to_string(), None).await
+            degraded_gateway(
+                &config,
+                pending_registry,
+                config_mutation_state,
+                error.to_string(),
+                None,
+            )
+            .await
         }
     }
 }
@@ -176,6 +197,7 @@ pub(super) async fn build_gateway_with_registry(
 async fn native_only_gateway(
     config: &Config,
     registry: Arc<PendingRequestRegistry>,
+    config_mutation_state: ConfigMutationState,
 ) -> Result<GatewayStartup> {
     let pool = Arc::new(StdioPool::start(Vec::<StdioServerConfig>::new(), registry).await?);
     let resource_routing = ResourceRoutingRegistry::build(pool.as_ref())?;
@@ -187,6 +209,7 @@ async fn native_only_gateway(
         registry,
         config.settings.gateway.intent_resolver.clone(),
         config.maenifold_root.clone(),
+        config_mutation_state,
     ));
     resources::set_gateway_registry(Arc::new(gateway.registry().clone()));
     info!(
@@ -198,6 +221,7 @@ async fn native_only_gateway(
 async fn degraded_gateway(
     config: &Config,
     registry: Arc<PendingRequestRegistry>,
+    config_mutation_state: ConfigMutationState,
     error: String,
     diagnostics: Option<Arc<StdioPool>>,
 ) -> Result<GatewayStartup> {
@@ -209,6 +233,7 @@ async fn degraded_gateway(
         Arc::clone(&pool),
         config.settings.gateway.intent_resolver.clone(),
         config.maenifold_root.clone(),
+        config_mutation_state,
         error.clone(),
     )?);
     resources::set_gateway_registry(Arc::new(gateway.registry().clone()));

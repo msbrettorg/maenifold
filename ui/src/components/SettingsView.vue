@@ -2,6 +2,7 @@
 import { computed, ref, type Component } from 'vue';
 import { MessageSquare, Package, Server, Settings, SlidersHorizontal } from '@lucide/vue';
 import { useConfigStore } from '../stores/config';
+import SettingsAppSettings from './SettingsAppSettings.vue';
 
 // Preserve the legacy event surface until T-413.7 rewires App.vue away from
 // the old modal entry point. This component does not emit `close` anymore.
@@ -154,7 +155,9 @@ function selectArea(area: SettingsArea): void {
             <span class="panel-chip">{{ activePanel.milestone }}</span>
           </div>
 
-          <div class="placeholder-card">
+          <SettingsAppSettings v-if="activeArea === 'appSettings'" />
+
+          <div v-else class="placeholder-card">
             <div class="placeholder-icon-wrap" aria-hidden="true">
               <component :is="activePanel.icon" :size="26" :stroke-width="1.75" />
             </div>

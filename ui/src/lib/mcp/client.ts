@@ -176,6 +176,12 @@ export class McpHttpClient {
     }
   }
 
+  async callTool<T = unknown>(name: string, args: Record<string, unknown>): Promise<T> {
+    await this.initialize();
+
+    return this.sendRequest<T>('tools/call', { name, arguments: args });
+  }
+
   private async sendRequest<T>(
     method: string,
     params: unknown,

@@ -78,7 +78,7 @@ function handleSelect(event: Event) {
     <div v-if="!hasAgents" class="config-hint">
       <template v-if="restricted">
         <p>No remote agents configured.</p>
-        <p class="hint-action">Open Settings (⚙) to add one.</p>
+        <p class="hint-action">Open the Settings tab to add one.</p>
       </template>
       <template v-else>
         <p>No agents found. Add agents to:</p>

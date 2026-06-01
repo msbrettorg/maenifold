@@ -9,7 +9,8 @@
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 
-export type AppShellTab = 'home' | 'agents' | 'gate' | 'schedules' | 'pipelines' | 'workflows';
+export type AppShellTab = 'home' | 'agents' | 'gate' | 'schedules' | 'pipelines' | 'workflows'
+  | 'settings';
 
 export const useAppShellStore = defineStore('appShell', () => {
   // Launch on Home so the themed landing page is the first thing the user

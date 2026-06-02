@@ -1,15 +1,15 @@
 // App-shell store: owns the top-level tab navigation state.
-//
-// The UI is organised as a set of top tabs (Home, Agents, Gates,
-// Schedules, Pipelines, Workflows). Only the Agents tab is a fully-wired
-// surface today;
-// the others are landing/placeholder views. Keeping the active tab in a tiny
-// Pinia store lets the TabBar, HomeView quick-tiles, and App.vue all drive
-// navigation without prop-drilling.
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 
-export type AppShellTab = 'home' | 'agents' | 'gate' | 'schedules' | 'pipelines' | 'workflows'
+export type AppShellTab =
+  | 'home'
+  | 'agents'
+  | 'knowledge'
+  | 'gate'
+  | 'schedules'
+  | 'pipelines'
+  | 'workflows'
   | 'settings';
 
 export const useAppShellStore = defineStore('appShell', () => {

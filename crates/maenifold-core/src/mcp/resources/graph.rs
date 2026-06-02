@@ -40,12 +40,13 @@ pub(super) fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
                 |error| match error {
                     MaenifoldError::InvalidResourceUri(_) => {
                         MaenifoldError::InvalidResourceUri(format!(
-                            "{uri}. Expected one of '{}', '{}', '{}', '{}', '{}', or '{}'",
+                            "{uri}. Expected one of '{}', '{}', '{}', '{}', '{}', '{}', or '{}'",
                             graph_corpus::CORPUS_SNAPSHOT_URI,
                             graph_corpus::CORPUS_COMMUNITIES_URI,
                             GRAPH_CORPUS_PRIMER_ALLOWLIST_URI,
                             graph_corpus::GRAPH_STATS_URI,
                             graph_concept::CONCEPT_TEMPLATE_URI,
+                            graph_concept::CONCEPT_NEIGHBORS_TEMPLATE_URI,
                             graph_community::COMMUNITY_TEMPLATE_URI
                         ))
                     }

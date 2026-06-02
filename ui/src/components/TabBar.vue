@@ -3,7 +3,7 @@
 // off-the-shelf Lucide icon + label. Kept deliberately presentation-only: all
 // navigation state lives in the appShell store so HomeView quick-tiles and
 // App.vue can switch tabs too.
-import { House, MessageSquare, ShieldCheck, CalendarClock, GitBranch, Workflow, Brain } from '@lucide/vue';
+import { House, MessageSquare, ShieldCheck, CalendarClock, GitBranch, Workflow, Brain, Network } from '@lucide/vue';
 import { Settings } from '@lucide/vue';
 import { useAppShellStore, type AppShellTab } from '../stores/appShell';
 
@@ -16,6 +16,7 @@ interface TabDef {
 const tabs: TabDef[] = [
   { id: 'home', label: 'Home', icon: House },
   { id: 'agents', label: 'Agents', icon: MessageSquare },
+  { id: 'knowledge', label: 'Knowledge', icon: Network },
   { id: 'gate', label: 'Gates', icon: ShieldCheck },
   { id: 'schedules', label: 'Schedules', icon: CalendarClock },
   { id: 'pipelines', label: 'Pipelines', icon: GitBranch },

@@ -27,6 +27,76 @@ fn graph_concept_includes_nullable_community_id_field() {
     );
 }
 
+#[test]
+#[serial]
+fn graph_concept_neighbors_resource_pages_direct_relations() {
+    let (_tmp, _guard) = setup_graph_concept_fixture();
+
+    let first_page = read_payload("graph://concept/maenifold/neighbors?limit=2");
+    assert_eq!(
+        first_page.get("concept").and_then(Value::as_str),
+        Some("maenifold")
+    );
+    assert_eq!(
+        first_page.get("totalCount").and_then(Value::as_i64),
+        Some(4)
+    );
+    assert_eq!(first_page.get("limit").and_then(Value::as_u64), Some(2));
+    assert_eq!(first_page.get("cursor").and_then(Value::as_str), Some("0"));
+    assert_eq!(
+        first_page.get("nextCursor").and_then(Value::as_str),
+        Some("2")
+    );
+
+    let neighbors = first_page
+        .get("neighbors")
+        .and_then(Value::as_array)
+        .expect("neighbors array");
+    assert_eq!(neighbors.len(), 2);
+    assert_eq!(
+        neighbors[0].get("name").and_then(Value::as_str),
+        Some("high-weight")
+    );
+    assert_eq!(
+        neighbors[1].get("name").and_then(Value::as_str),
+        Some("middle-weight")
+    );
+    assert_eq!(
+        neighbors[0].get("sourceFileCount").and_then(Value::as_u64),
+        Some(1)
+    );
+
+    let second_page = read_payload("graph://concept/maenifold/neighbors?limit=2&cursor=2");
+    assert!(second_page.get("nextCursor").unwrap().is_null());
+    let second_neighbors = second_page
+        .get("neighbors")
+        .and_then(Value::as_array)
+        .expect("second neighbors array");
+    assert_eq!(second_neighbors.len(), 2);
+    assert_eq!(
+        second_neighbors[0].get("name").and_then(Value::as_str),
+        Some("low-weight")
+    );
+    assert_eq!(
+        second_neighbors[1].get("name").and_then(Value::as_str),
+        Some("neighbor-concept")
+    );
+}
+
+#[test]
+#[serial]
+fn graph_concept_neighbors_rejects_unbounded_limit() {
+    let (_tmp, _guard) = setup_graph_concept_fixture();
+
+    let error = handle_read_resource("graph://concept/maenifold/neighbors?limit=201")
+        .expect_err("oversized neighbor page should be rejected");
+
+    assert!(
+        error.to_string().contains("limit must be <= 200"),
+        "unexpected error: {error}"
+    );
+}
+
 fn setup_graph_concept_fixture() -> (TempDir, ConfigResetGuard) {
     let (tmp, guard) = setup_test_env();
     GraphDatabase::initialize_database(&Config::current()).expect("initialize graph database");
@@ -34,18 +104,29 @@ fn setup_graph_concept_fixture() -> (TempDir, ConfigResetGuard) {
         db::open_connection(&Config::current().database_path).expect("open graph database");
     seed_concept(&connection, "maenifold", Some(7));
     seed_concept(&connection, "neighbor-concept", Some(7));
+    seed_concept(&connection, "high-weight", Some(7));
+    seed_concept(&connection, "middle-weight", Some(7));
+    seed_concept(&connection, "low-weight", Some(7));
     seed_concept(&connection, "orphan-concept", None);
-    connection
-        .execute(
-            "INSERT INTO concept_graph (concept_a, concept_b, co_occurrence_count, source_files)
-             VALUES (?1, ?2, 3, ?3)",
-            params![
-                "maenifold",
-                "neighbor-concept",
-                "memory://fixtures/graph/maenifold.md"
-            ],
-        )
-        .expect("insert concept graph edge");
+    for (neighbor, weight) in [
+        ("neighbor-concept", 3),
+        ("high-weight", 9),
+        ("middle-weight", 7),
+        ("low-weight", 5),
+    ] {
+        connection
+            .execute(
+                "INSERT INTO concept_graph (concept_a, concept_b, co_occurrence_count, source_files)
+                 VALUES (?1, ?2, ?3, ?4)",
+                params![
+                    "maenifold",
+                    neighbor,
+                    weight,
+                    "memory://fixtures/graph/maenifold.md"
+                ],
+            )
+            .expect("insert concept graph edge");
+    }
     (tmp, guard)
 }
 

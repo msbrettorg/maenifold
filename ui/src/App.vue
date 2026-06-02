@@ -16,6 +16,7 @@ import TrafficMonitor from './components/TrafficMonitor.vue';
 import StartupProgress from './components/StartupProgress.vue';
 import TabBar from './components/TabBar.vue';
 import HomeView from './components/HomeView.vue';
+import KnowledgeView from './components/KnowledgeView.vue';
 import SchedulesView from './components/SchedulesView.vue';
 import PlaceholderView from './components/PlaceholderView.vue';
 import type { SavedSession } from './lib/types';
@@ -533,6 +534,7 @@ function clearError() {
         @new-session="handleNewSession"
         @resume-session="handleResumeSession"
       />
+      <KnowledgeView v-else-if="shell.activeTab === 'knowledge'" />
       <SettingsView v-else-if="shell.activeTab === 'settings'" />
       <!-- Placeholder tabs (infrastructure-only this sprint) -->
       <PlaceholderView

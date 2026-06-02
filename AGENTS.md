@@ -276,6 +276,23 @@ The daemon hosts MCP/HTTP; the driver hosts pipeline node execution. ANY change 
 
 ---
 
+## Forensics references
+
+When stealing components from prior maenifold UI eras (Pipeline / Workflow / Onboarding wizard / Settings / etc.), use these checked-out snapshots — DO NOT re-resurrect them from git history each time:
+
+- **`C:\src\maenifold\worktrees\old-ui-vue\apps\desktop\`** — Vue 3 + Vite + Pinia + Electron (forge). Detached HEAD at `0080ca9a2` (snapshot of `main` pre-`06ad66f15` vanilla-rip).
+  - 204 Vue components: 24 Pipeline*, 20 Workflow*, 7 Onboarding* (+ `OnboardingWizard.vue`), 6 Setting*, 147 other.
+  - shadcn-vue + Tailwind v4 + Lucide + Vue-flow + cytoscape + mermaid + KaTeX + Shiki.
+  - **Build proven:** `cd apps/desktop && npx vite build` -> clean `dist/` in ~3s. `npm install --ignore-scripts --no-audit --no-fund` already done (1410 packages, 764MB).
+  - Inventory map: `~/.copilot/session-state/ab143dec-cee0-4810-b5ca-fa1f56287c15/files/T-412/old-ui-inventory.md`
+  - Provenance: rip commit `06ad66f15` explicitly preserved this state at `main` snapshot `0080ca9a2`.
+
+- **Recent React/shadcn Pipeline Viewer (T-251.13)** — `apps/maenifold-console/` at `8d57b589a^`. React + Vite + Tailwind v4 + shadcn + React Flow. 69 files. NOT currently checked out as a worktree (smaller scope, can resurrect on demand).
+
+To clean up the forensics worktree when done: `git worktree remove C:\src\maenifold\worktrees\old-ui-vue`.
+
+---
+
 ## Enforcement
 
 Any agent may block or fail work that violates this constitution. Every bypass, fake-success, or verification gap becomes a gate item. Repeated violation → task rollback, escalation, narrower re-scope.

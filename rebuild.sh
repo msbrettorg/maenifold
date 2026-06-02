@@ -4,6 +4,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 
+# Approved-build token. The maenifold-core/gate-core/jockey build scripts reject
+# any compile that does not carry this token (see AGENTS.md > Build). Exporting it
+# here is what makes the rebuild script the only approved build path.
+export MAENIFOLD_REBUILD=1
+
 UID_NUM=$(id -u)
 
 launchctl_kickstart_with_timeout() {

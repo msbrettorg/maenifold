@@ -17,16 +17,52 @@ import {
   X,
 } from '@lucide/vue';
 import { useSchedulesStore } from '../stores/schedules';
-import type { RunRecord, RunStatus, ScheduledTask } from '../stores/schedules';
+import type {
+  McpActionOption,
+  RunRecord,
+  RunStatus,
+  ScheduledTask,
+} from '../stores/schedules';
+import { useAgentsAdminStore } from '../stores/agentsAdmin';
 
 type RowState = 'enabled' | 'paused' | 'failed';
+type RunMode = 'agent' | 'mcp_action';
 
 const schedulesStore = useSchedulesStore();
-const { tasks, loading, error, lastRefreshed, runningIds, historyByTaskId } = storeToRefs(schedulesStore);
+const {
+  tasks,
+  loading,
+  error,
+  lastRefreshed,
+  runningIds,
+  historyByTaskId,
+  mcpActionOptions,
+  allowedToolOptions,
+  optionsLoaded,
+} = storeToRefs(schedulesStore);
+
+const agentsAdminStore = useAgentsAdminStore();
+const { agents: agentsByName } = storeToRefs(agentsAdminStore);
+const agentNames = computed<string[]>(() =>
+  Object.keys(agentsByName.value).sort((a, b) => a.localeCompare(b)),
+);
+const hasAgents = computed<boolean>(() => agentNames.value.length > 0);
 
 onMounted(() => {
   void schedulesStore.loadTasks();
+  void schedulesStore.loadOptions();
+  void agentsAdminStore.fetchConfig().catch(() => undefined);
 });
+
+const mcpActionByValue = computed<Map<string, McpActionOption>>(
+  () => new Map(mcpActionOptions.value.map((option) => [option.value, option])),
+);
+
+function describeMcpAction(value: string | null): string {
+  if (!value) return 'No MCP action';
+  const option = mcpActionByValue.value.get(value);
+  return option ? option.label : value;
+}
 
 function formatFreshness(value: Date | null): string {
   if (!value) return 'never';
@@ -95,34 +131,39 @@ interface EditorForm {
   id: string | null;
   name: string;
   schedule: string;
-  schedule_human: string;
   agent: string;
   prompt: string;
   workdir: string;
   auto_grant_permissions: boolean;
-  allowedToolsText: string;
+  allowed_tools: string[];
   mcp_action: string;
   timeout_seconds: number;
   enabled: boolean;
+  run_mode: RunMode;
 }
 
 const editorOpen = ref(false);
 const editorForm = ref<EditorForm>(emptyForm());
+
+function pickDefaultAgent(): string {
+  if (agentNames.value.length > 0) return agentNames.value[0];
+  return '';
+}
 
 function emptyForm(): EditorForm {
   return {
     id: null,
     name: '',
     schedule: '',
-    schedule_human: '',
-    agent: 'claude-opus-4.8',
+    agent: pickDefaultAgent(),
     prompt: '',
     workdir: '',
     auto_grant_permissions: false,
-    allowedToolsText: '',
+    allowed_tools: [],
     mcp_action: '',
     timeout_seconds: 600,
     enabled: true,
+    run_mode: 'agent',
   };
 }
 
@@ -138,28 +179,21 @@ function openEdit(task: ScheduledTask): void {
     id: task.id,
     name: task.name,
     schedule: task.schedule,
-    schedule_human: task.schedule_human ?? '',
-    agent: task.agent,
+    agent: task.agent || pickDefaultAgent(),
     prompt: task.prompt,
     workdir: task.workdir ?? '',
     auto_grant_permissions: task.auto_grant_permissions,
-    allowedToolsText: task.allowed_tools.join(', '),
+    allowed_tools: [...task.allowed_tools],
     mcp_action: task.mcp_action ?? '',
     timeout_seconds: task.timeout_seconds,
     enabled: task.enabled,
+    run_mode: task.mcp_action ? 'mcp_action' : 'agent',
   };
   editorOpen.value = true;
 }
 
 function closeEditor(): void {
   editorOpen.value = false;
-}
-
-function parseTools(text: string): string[] {
-  return text
-    .split(',')
-    .map((tool) => tool.trim())
-    .filter((tool) => tool.length > 0);
 }
 
 function createScheduleId(name: string): string {
@@ -172,18 +206,50 @@ function createScheduleId(name: string): string {
   return slug.length > 0 ? `sched_${slug}` : `sched_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function toggleAllowedTool(name: string, checked: boolean): void {
+  const set = new Set(editorForm.value.allowed_tools);
+  if (checked) {
+    set.add(name);
+  } else {
+    set.delete(name);
+  }
+  editorForm.value.allowed_tools = Array.from(set);
+}
+
+const editorAgentMissing = computed<boolean>(
+  () => editorForm.value.run_mode === 'agent' && !hasAgents.value,
+);
+
+const editorCanSave = computed<boolean>(() => {
+  const form = editorForm.value;
+  if (form.name.trim().length === 0) return false;
+  if (form.schedule.trim().length === 0) return false;
+  if (form.run_mode === 'agent') {
+    if (!form.agent) return false;
+    if (form.prompt.trim().length === 0) return false;
+  } else {
+    if (!form.mcp_action) return false;
+  }
+  return true;
+});
+
 async function saveEditor(): Promise<void> {
   const form = editorForm.value;
-  const name = form.name.trim() || 'Untitled schedule';
+  if (!editorCanSave.value) return;
+
+  const name = form.name.trim();
+  const schedule = form.schedule.trim();
+  const isMcp = form.run_mode === 'mcp_action';
+
   const payload = {
     name,
-    schedule: form.schedule.trim() || '0 0 * * *',
-    agent: form.agent.trim() || 'claude-opus-4.8',
-    prompt: form.prompt.trim(),
+    schedule,
+    agent: form.agent,
+    prompt: isMcp ? '' : form.prompt.trim(),
     workdir: form.workdir.trim() || null,
     auto_grant_permissions: form.auto_grant_permissions,
-    allowed_tools: parseTools(form.allowedToolsText),
-    mcp_action: form.mcp_action.trim() || null,
+    allowed_tools: isMcp ? [] : [...form.allowed_tools],
+    mcp_action: isMcp ? form.mcp_action : null,
     timeout_seconds: Number(form.timeout_seconds) || 600,
     enabled: form.enabled,
   };
@@ -345,8 +411,8 @@ const statusLabels: Record<RunStatus, string> = {
                         <span class="state-label" :class="`state-text-${rowState(task)}`">
                           {{ stateLabels[rowState(task)] }}
                         </span>
-                        <span v-if="task.mcp_action" class="mcp-tag">
-                          {{ task.mcp_action }}
+                        <span v-if="task.mcp_action" class="mcp-tag" :title="task.mcp_action">
+                          {{ describeMcpAction(task.mcp_action) }}
                         </span>
                       </div>
                     </div>
@@ -525,42 +591,134 @@ const statusLabels: Record<RunStatus, string> = {
               <input v-model="editorForm.schedule" class="input mono" type="text" placeholder="0 2 * * *" />
             </label>
             <label class="field">
-              <span class="field-label">Human cadence <em>(optional)</em></span>
-              <input v-model="editorForm.schedule_human" class="input" type="text" placeholder="Every day at 2:00 AM" />
-            </label>
-          </div>
-
-          <div class="field-grid">
-            <label class="field">
-              <span class="field-label">Agent</span>
-              <input v-model="editorForm.agent" class="input" type="text" placeholder="claude-opus-4.8" />
-            </label>
-            <label class="field">
               <span class="field-label">Timeout (seconds)</span>
               <input v-model.number="editorForm.timeout_seconds" class="input mono" type="number" min="1" />
             </label>
           </div>
 
-          <label class="field">
-            <span class="field-label">Prompt</span>
-            <textarea v-model="editorForm.prompt" class="input textarea" rows="3" placeholder="Re-embed changed documents and refresh the vector index." />
-          </label>
+          <div class="field">
+            <span class="field-label">What runs</span>
+            <div class="segmented" role="radiogroup" aria-label="Run mode">
+              <button
+                type="button"
+                class="seg-btn"
+                :class="{ active: editorForm.run_mode === 'agent' }"
+                role="radio"
+                :aria-checked="editorForm.run_mode === 'agent'"
+                @click="editorForm.run_mode = 'agent'"
+              >
+                ACP agent prompt
+              </button>
+              <button
+                type="button"
+                class="seg-btn"
+                :class="{ active: editorForm.run_mode === 'mcp_action' }"
+                role="radio"
+                :aria-checked="editorForm.run_mode === 'mcp_action'"
+                @click="editorForm.run_mode = 'mcp_action'"
+              >
+                MCP action
+              </button>
+            </div>
+            <p class="field-hint">
+              An agent runs a prompt through the ACP runtime. An MCP action calls one
+              allow-listed gateway command directly — no inference.
+            </p>
+          </div>
 
-          <div class="field-grid">
+          <template v-if="editorForm.run_mode === 'agent'">
+            <label class="field">
+              <span class="field-label">Agent</span>
+              <select
+                v-model="editorForm.agent"
+                class="input"
+                :disabled="editorAgentMissing"
+              >
+                <option v-if="editorAgentMissing" value="">No agents configured</option>
+                <option
+                  v-for="name in agentNames"
+                  :key="name"
+                  :value="name"
+                >
+                  {{ name }}
+                </option>
+              </select>
+              <p v-if="editorAgentMissing" class="field-hint">
+                Add agents in <code>~/maenifold/maenifold.json</code> under
+                <code>agents</code>, then refresh.
+              </p>
+            </label>
+
+            <label class="field">
+              <span class="field-label">Prompt</span>
+              <textarea
+                v-model="editorForm.prompt"
+                class="input textarea"
+                rows="3"
+                placeholder="Re-embed changed documents and refresh the vector index."
+              />
+            </label>
+
             <label class="field">
               <span class="field-label">Workdir <em>(optional)</em></span>
               <input v-model="editorForm.workdir" class="input mono" type="text" placeholder="/path/to/repo" />
             </label>
-            <label class="field">
-              <span class="field-label">MCP action <em>(optional)</em></span>
-              <input v-model="editorForm.mcp_action" class="input mono" type="text" placeholder="gate_Sync" />
-            </label>
-          </div>
 
-          <label class="field">
-            <span class="field-label">Allowed tools <em>(comma separated)</em></span>
-            <input v-model="editorForm.allowedToolsText" class="input mono" type="text" placeholder="GatewayExecute, ReadMcpResource" />
-          </label>
+            <div class="field">
+              <span class="field-label">Allowed tools</span>
+              <p class="field-hint">
+                Tools the ACP agent may call during this run. Backed by the daemon's
+                MCP wire surface.
+              </p>
+              <div class="checklist">
+                <label
+                  v-for="tool in allowedToolOptions"
+                  :key="tool.name"
+                  class="check-row"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="editorForm.allowed_tools.includes(tool.name)"
+                    @change="toggleAllowedTool(tool.name, ($event.target as HTMLInputElement).checked)"
+                  />
+                  <span class="check-text">
+                    <code class="check-name">{{ tool.name }}</code>
+                    <span class="check-desc">{{ tool.description }}</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+          </template>
+
+          <template v-else>
+            <label class="field">
+              <span class="field-label">MCP action</span>
+              <select v-model="editorForm.mcp_action" class="input">
+                <option value="" disabled>Select an allow-listed action…</option>
+                <option
+                  v-for="opt in mcpActionOptions"
+                  :key="opt.value"
+                  :value="opt.value"
+                >
+                  {{ opt.label }} — {{ opt.command }}
+                </option>
+              </select>
+              <p v-if="editorForm.mcp_action" class="field-hint">
+                {{ mcpActionByValue.get(editorForm.mcp_action)?.description }}
+              </p>
+              <p v-else-if="!optionsLoaded" class="field-hint">
+                Loading allow-listed actions from the daemon…
+              </p>
+              <p v-else class="field-hint">
+                Only inference-free gateway commands are schedulable.
+              </p>
+            </label>
+
+            <label class="field">
+              <span class="field-label">Workdir <em>(optional)</em></span>
+              <input v-model="editorForm.workdir" class="input mono" type="text" placeholder="/path/to/repo" />
+            </label>
+          </template>
 
           <div class="toggle-row">
             <label class="toggle">
@@ -576,7 +734,12 @@ const statusLabels: Record<RunStatus, string> = {
 
         <footer class="editor-foot">
           <button class="btn" type="button" @click="closeEditor">Cancel</button>
-          <button class="btn btn-primary" type="button" @click="saveEditor">
+          <button
+            class="btn btn-primary"
+            type="button"
+            :disabled="!editorCanSave"
+            @click="saveEditor"
+          >
             <Check :size="15" />
             <span>{{ editorIsEditing ? 'Save changes' : 'Create schedule' }}</span>
           </button>
@@ -1290,6 +1453,120 @@ const statusLabels: Record<RunStatus, string> = {
 .textarea {
   resize: vertical;
   line-height: 1.5;
+}
+
+.field-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.field-hint code {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+  font-size: 0.74rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--text-accent) 8%, transparent);
+}
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--bg-sidebar) 50%, var(--bg-main));
+}
+
+.seg-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0.45rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.seg-btn:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-accent) 6%, transparent);
+}
+
+.seg-btn.active {
+  background: color-mix(in srgb, var(--text-accent) 16%, transparent);
+  color: var(--text-accent);
+}
+
+.seg-btn + .seg-btn {
+  border-left: 1px solid var(--border-color);
+}
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding: 0.6rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-sidebar) 35%, var(--bg-main));
+}
+
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.check-row:hover {
+  background: color-mix(in srgb, var(--text-accent) 6%, transparent);
+}
+
+.check-row input[type="checkbox"] {
+  margin-top: 0.18rem;
+}
+
+.check-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.check-name {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+  font-size: 0.82rem;
+  color: var(--text-primary);
+}
+
+.check-desc {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+select.input {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-secondary) 50%),
+    linear-gradient(135deg, var(--text-secondary) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 13px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 2.1rem;
+}
+
+select.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .toggle-row {

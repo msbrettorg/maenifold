@@ -280,6 +280,25 @@ pub(super) fn list_tasks(context: &ToolContext) -> Result<String> {
     Ok(render(context.output_format, json!(tasks)))
 }
 
+pub(super) fn options_action(context: &ToolContext) -> Result<String> {
+    let mcp_actions = crate::schedule::mcp_action_allowlist::DEFAULT_ALLOWLIST_ENTRIES
+        .iter()
+        .map(|entry| {
+            json!({
+                "domain": entry.domain,
+                "command": entry.command,
+                "value": format!("{}.{}", entry.domain, entry.command),
+                "label": entry.label,
+                "description": entry.description,
+            })
+        })
+        .collect::<Vec<_>>();
+    Ok(render(
+        context.output_format,
+        json!({ "mcp_actions": mcp_actions }),
+    ))
+}
+
 pub(super) fn get_task(context: &ToolContext, payload: &Value) -> Result<String> {
     let id = required_string(payload, "id")?;
     let task = schedule_store(context)

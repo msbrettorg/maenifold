@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 import { executeGateway, readGatewayResource } from '../lib/mcp/gateway.ts';
+import { mcpHttpClient } from '../lib/mcp/client';
 
 const SCHEDULE_DOMAIN = 'maenifold.system';
 const SCHEDULE_TOOL = 'Schedule';
@@ -34,6 +35,21 @@ export interface ScheduledTask {
   created_at: string;
   updated_at: string;
   last_run: RunRecord | null;
+}
+
+/** One backend-authored MCP action option for the schedule editor. */
+export interface McpActionOption {
+  domain: string;
+  command: string;
+  value: string;
+  label: string;
+  description: string;
+}
+
+/** One backend-exposed MCP tool the schedule editor can grant to an ACP agent. */
+export interface AllowedToolOption {
+  name: string;
+  description: string;
 }
 
 type ScheduleTaskInput = Partial<ScheduledTask> & { id: string };
@@ -185,6 +201,9 @@ export const useSchedulesStore = defineStore('schedules', () => {
   const lastRefreshed = ref<Date | null>(null);
   const runningIds = ref<Set<string>>(new Set());
   const historyByTaskId = ref<Record<string, RunRecord[]>>({});
+  const mcpActionOptions = ref<McpActionOption[]>([]);
+  const allowedToolOptions = ref<AllowedToolOption[]>([]);
+  const optionsLoaded = ref(false);
 
   const taskById = computed(() => new Map(tasks.value.map((task) => [task.id, task])));
 
@@ -258,6 +277,47 @@ export const useSchedulesStore = defineStore('schedules', () => {
     };
   }
 
+  function normalizeMcpActionOption(value: unknown): McpActionOption | null {
+    if (!value || typeof value !== 'object') return null;
+    const record = value as Record<string, unknown>;
+    const domain = typeof record.domain === 'string' ? record.domain : null;
+    const command = typeof record.command === 'string' ? record.command : null;
+    if (!domain || !command) return null;
+    const wireValue =
+      typeof record.value === 'string' && record.value.length > 0
+        ? record.value
+        : `${domain}.${command}`;
+    const label = typeof record.label === 'string' && record.label.length > 0 ? record.label : `${domain} · ${command}`;
+    const description = typeof record.description === 'string' ? record.description : '';
+    return { domain, command, value: wireValue, label, description };
+  }
+
+  async function loadOptions(): Promise<void> {
+    try {
+      const [optionsResult, toolList] = await Promise.all([
+        executeGateway<{ mcp_actions?: unknown[] }>(SCHEDULE_DOMAIN, SCHEDULE_TOOL, {
+          action: 'options',
+        }),
+        mcpHttpClient.listTools(),
+      ]);
+
+      const rawActions = Array.isArray(optionsResult?.mcp_actions) ? optionsResult.mcp_actions : [];
+      mcpActionOptions.value = rawActions
+        .map(normalizeMcpActionOption)
+        .filter((option): option is McpActionOption => option !== null);
+
+      allowedToolOptions.value = toolList.map((tool) => ({
+        name: tool.name,
+        description: tool.description ?? '',
+      }));
+
+      optionsLoaded.value = true;
+      error.value = null;
+    } catch (err) {
+      error.value = toErrorMessage(err);
+    }
+  }
+
   return {
     tasks,
     loading,
@@ -265,6 +325,9 @@ export const useSchedulesStore = defineStore('schedules', () => {
     lastRefreshed,
     runningIds,
     historyByTaskId,
+    mcpActionOptions,
+    allowedToolOptions,
+    optionsLoaded,
     loadTasks,
     createTask,
     updateTask,
@@ -272,5 +335,6 @@ export const useSchedulesStore = defineStore('schedules', () => {
     runTask,
     togglePaused,
     loadHistory,
+    loadOptions,
   };
 });

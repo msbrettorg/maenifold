@@ -38,7 +38,7 @@ use schedule_crud::create_task_with_bin_for_test;
 #[cfg(test)]
 #[cfg(target_os = "macos")]
 use schedule_crud::update_task_for_test;
-use schedule_crud::{create_task, delete_task, get_task, list_tasks, run_now, update_task};
+use schedule_crud::{create_task, delete_task, get_task, list_tasks, options_action, run_now, update_task};
 use schedule_helpers::{
     env_allowlist_view, optional_bool, optional_path_buf, optional_string, optional_string_array,
     optional_u32, optional_value, reject_enabled_while_paused, resolve_maenifold_bin,
@@ -77,8 +77,9 @@ pub fn schedule(context: &ToolContext, payload: &Value) -> Result<String> {
         "resume_all" => schedule_batch::resume_all(context, payload),
         "set_all_enabled" => schedule_batch::set_all_enabled(context, payload),
         "pause_status" => schedule_batch::pause_status(context),
+        "options" => options_action(context),
         _ => Err(MaenifoldError::InvalidArgument(format!(
-            "unknown action '{}'. Available: create, update, delete, list, get, run_now, logs, clear_history, backfill, preview, verify_installed, pause_all, resume_all, set_all_enabled, pause_status",
+            "unknown action '{}'. Available: create, update, delete, list, get, run_now, logs, clear_history, backfill, preview, verify_installed, pause_all, resume_all, set_all_enabled, pause_status, options",
             action
         ))),
     }

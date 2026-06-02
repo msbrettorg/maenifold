@@ -182,6 +182,23 @@ export class McpHttpClient {
     return this.sendRequest<T>('tools/call', { name, arguments: args });
   }
 
+  async listTools(): Promise<Array<{ name: string; description?: string }>> {
+    await this.initialize();
+
+    const result = await this.sendRequest<{ tools?: Array<{ name?: string; description?: string }> }>(
+      'tools/list',
+      {}
+    );
+
+    if (!result.tools || !Array.isArray(result.tools)) {
+      return [];
+    }
+
+    return result.tools
+      .filter((tool): tool is { name: string; description?: string } => typeof tool.name === 'string')
+      .map((tool) => ({ name: tool.name, description: tool.description }));
+  }
+
   private async sendRequest<T>(
     method: string,
     params: unknown,

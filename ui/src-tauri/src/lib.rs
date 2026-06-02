@@ -1,4 +1,6 @@
 mod agent;
+#[cfg(test)]
+mod agent_config_tests;
 mod config;
 
 use agent::{AgentInstance, AgentManager};
@@ -161,6 +163,8 @@ fn build_agent_config(
                 command: Some(command),
                 args: Some(args.unwrap_or_default()),
                 env: env.unwrap_or_default(),
+                env_from_file: std::collections::HashMap::new(),
+                env_from_command: std::collections::HashMap::new(),
                 url: None,
                 headers: None,
             })
@@ -192,6 +196,8 @@ fn build_agent_config(
                 command: None,
                 args: None,
                 env: std::collections::HashMap::new(),
+                env_from_file: std::collections::HashMap::new(),
+                env_from_command: std::collections::HashMap::new(),
                 url: Some(url),
                 headers,
             })

@@ -1,14 +1,16 @@
+use indexmap::IndexMap;
 #[cfg(desktop)]
-use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher, EventKind};
+use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
-use indexmap::IndexMap;
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use std::process::Command;
 use std::sync::Arc;
+use tauri::AppHandle;
 #[cfg(desktop)]
 use tauri::Emitter;
-use tauri::AppHandle;
 #[cfg(not(desktop))]
 use tauri::Manager;
 
@@ -27,6 +29,14 @@ pub enum AgentTransport {
     Http,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct EnvFromCommand {
+    pub command: String,
+    #[serde(default)]
+    pub args: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentConfig {
     /// Transport kind. Defaults to `stdio` for backward compatibility with
@@ -41,12 +51,114 @@ pub struct AgentConfig {
     pub args: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "std::collections::HashMap::is_empty")]
     pub env: std::collections::HashMap<String, String>,
+    #[serde(
+        default,
+        rename = "envFromFile",
+        skip_serializing_if = "std::collections::HashMap::is_empty"
+    )]
+    pub env_from_file: std::collections::HashMap<String, String>,
+    #[serde(
+        default,
+        rename = "envFromCommand",
+        skip_serializing_if = "std::collections::HashMap::is_empty"
+    )]
+    pub env_from_command: std::collections::HashMap<String, EnvFromCommand>,
 
     // ----- remote-only fields (optional, used when transport != stdio) -----
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub headers: Option<std::collections::HashMap<String, String>>,
+}
+
+impl AgentConfig {
+    pub fn stdio(
+        command: String,
+        args: Vec<String>,
+        env: std::collections::HashMap<String, String>,
+    ) -> Self {
+        Self {
+            transport: AgentTransport::Stdio,
+            command: Some(command),
+            args: Some(args),
+            env,
+            env_from_file: std::collections::HashMap::new(),
+            env_from_command: std::collections::HashMap::new(),
+            url: None,
+            headers: None,
+        }
+    }
+
+    pub fn command_parts(&self) -> Option<(String, Vec<String>)> {
+        let command = self.command.clone()?;
+        if let Some(args) = self.args.clone() {
+            return Some((expand_home_prefix(&command), args));
+        }
+        let mut parts = command.split_whitespace();
+        let binary = parts.next()?;
+        let args = parts.map(str::to_string).collect();
+        Some((expand_home_prefix(binary), args))
+    }
+}
+
+pub(crate) fn resolve_env(config: &AgentConfig) -> Result<HashMap<String, String>, String> {
+    let mut resolved = HashMap::new();
+
+    for (key, path) in &config.env_from_file {
+        let expanded_path = expand_home_prefix(path);
+        let value = std::fs::read_to_string(&expanded_path).map_err(|error| {
+            format!(
+                "{key}: failed to read envFromFile path {}: {error}",
+                expanded_path
+            )
+        })?;
+        resolved.insert(
+            key.clone(),
+            value
+                .trim_end_matches(|ch| ch == '\n' || ch == '\r')
+                .to_string(),
+        );
+    }
+
+    for (key, spec) in &config.env_from_command {
+        let output = Command::new(&spec.command)
+            .args(&spec.args)
+            .output()
+            .map_err(|error| {
+                format!(
+                    "{key}: failed to run envFromCommand {}: {error}",
+                    spec.command
+                )
+            })?;
+        if !output.status.success() {
+            return Err(format!(
+                "{key}: envFromCommand {} exited with status {}",
+                spec.command, output.status
+            ));
+        }
+        let value = String::from_utf8_lossy(&output.stdout);
+        resolved.insert(
+            key.clone(),
+            value
+                .trim_end_matches(|ch| ch == '\n' || ch == '\r')
+                .to_string(),
+        );
+    }
+
+    for (key, value) in &config.env {
+        resolved.insert(key.clone(), value.clone());
+    }
+
+    Ok(resolved)
+}
+
+fn expand_home_prefix(value: &str) -> String {
+    if let Some(rest) = value.strip_prefix("~/") {
+        if let Ok(home) = std::env::var("HOME") {
+            return format!("{home}/{rest}");
+        }
+    }
+    value.to_string()
 }
 
 fn is_default_transport(t: &AgentTransport) -> bool {
@@ -250,10 +362,7 @@ fn parse_maenifold_config(content: &str) -> Result<AgentsConfig, String> {
     // settings-driven UI behavior (e.g. `defaultAgent` for the picker)
     // works without code changes when new keys land. Unknown sub-keys
     // are preserved as opaque JSON.
-    let settings = value
-        .get("settings")
-        .and_then(|v| v.as_object())
-        .cloned();
+    let settings = value.get("settings").and_then(|v| v.as_object()).cloned();
 
     Ok(AgentsConfig { agents, settings })
 }
@@ -277,6 +386,20 @@ fn agent_from_value(name: &str, raw: &serde_json::Value) -> Result<AgentConfig, 
         .map(serde_json::from_value)
         .transpose()
         .map_err(|e| format!("agent '{name}' has invalid env: {e}"))?
+        .unwrap_or_default();
+    let env_from_file: std::collections::HashMap<String, String> = obj
+        .get("envFromFile")
+        .cloned()
+        .map(serde_json::from_value)
+        .transpose()
+        .map_err(|e| format!("agent '{name}' has invalid envFromFile: {e}"))?
+        .unwrap_or_default();
+    let env_from_command: std::collections::HashMap<String, EnvFromCommand> = obj
+        .get("envFromCommand")
+        .cloned()
+        .map(serde_json::from_value)
+        .transpose()
+        .map_err(|e| format!("agent '{name}' has invalid envFromCommand: {e}"))?
         .unwrap_or_default();
 
     let url = obj
@@ -317,6 +440,8 @@ fn agent_from_value(name: &str, raw: &serde_json::Value) -> Result<AgentConfig, 
         command,
         args,
         env,
+        env_from_file,
+        env_from_command,
         url,
         headers,
     })
@@ -358,33 +483,29 @@ fn save_config(path: &PathBuf, config: &AgentsConfig) -> Result<(), String> {
     for (name, entry) in &config.agents {
         agents_map.insert(name.clone(), agent_to_daemon_value(entry));
     }
-    root.insert(
-        "agents".to_string(),
-        serde_json::Value::Object(agents_map),
-    );
+    root.insert("agents".to_string(), serde_json::Value::Object(agents_map));
 
     let body = serde_json::to_string_pretty(&serde_json::Value::Object(root))
         .map_err(|e| e.to_string())?;
     fs::write(path, format!("{body}\n")).map_err(|e| e.to_string())
 }
 
-/// Serialize a single agent in the daemon's wire shape. Stdio agents
-/// collapse `command` + `args` back into one space-joined string so the
-/// daemon's `validate_agent_entry` (which splits the same way via
-/// `AgentEntry::command_parts`) reads exactly what we wrote.
-fn agent_to_daemon_value(entry: &AgentConfig) -> serde_json::Value {
+/// Serialize a single agent in the daemon's wire shape.
+pub(crate) fn agent_to_daemon_value(entry: &AgentConfig) -> serde_json::Value {
     let mut obj = serde_json::Map::new();
     match entry.transport {
         AgentTransport::Stdio => {
-            // Daemon ignores `transport: "stdio"` (it's the default), but
-            // emit it explicitly to keep round-trips faithful when other
-            // tooling reads the file.
             if let Some(command) = entry.command.as_ref() {
-                let joined = match entry.args.as_ref().filter(|a| !a.is_empty()) {
-                    Some(args) => format!("{} {}", command, args.join(" ")),
-                    None => command.clone(),
-                };
-                obj.insert("command".to_string(), serde_json::Value::String(joined));
+                obj.insert(
+                    "command".to_string(),
+                    serde_json::Value::String(command.clone()),
+                );
+            }
+            if let Some(args) = entry.args.as_ref() {
+                obj.insert(
+                    "args".to_string(),
+                    serde_json::to_value(args).unwrap_or(serde_json::Value::Null),
+                );
             }
         }
         AgentTransport::Websocket | AgentTransport::Http => {
@@ -415,6 +536,18 @@ fn agent_to_daemon_value(entry: &AgentConfig) -> serde_json::Value {
             serde_json::to_value(&entry.env).unwrap_or(serde_json::Value::Null),
         );
     }
+    if !entry.env_from_file.is_empty() {
+        obj.insert(
+            "envFromFile".to_string(),
+            serde_json::to_value(&entry.env_from_file).unwrap_or(serde_json::Value::Null),
+        );
+    }
+    if !entry.env_from_command.is_empty() {
+        obj.insert(
+            "envFromCommand".to_string(),
+            serde_json::to_value(&entry.env_from_command).unwrap_or(serde_json::Value::Null),
+        );
+    }
     serde_json::Value::Object(obj)
 }
 
@@ -425,7 +558,7 @@ fn setup_watcher(
     app_handle: AppHandle,
 ) -> Result<RecommendedWatcher, String> {
     let config_path_for_watcher = config_path.clone();
-    
+
     let mut watcher = RecommendedWatcher::new(
         move |res: Result<notify::Event, notify::Error>| {
             if let Ok(event) = res {
@@ -501,7 +634,11 @@ mod tests {
         assert_eq!(entry.command, None);
         assert!(entry.args.is_none());
         assert_eq!(
-            entry.headers.as_ref().and_then(|h| h.get("Authorization")).map(String::as_str),
+            entry
+                .headers
+                .as_ref()
+                .and_then(|h| h.get("Authorization"))
+                .map(String::as_str),
             Some("Bearer abc"),
         );
     }
@@ -554,32 +691,36 @@ mod tests {
         let value: serde_json::Value = serde_json::from_str(&written).expect("parse");
         assert!(value.get("mcpServers").is_some(), "mcpServers preserved");
         assert!(value.get("settings").is_some(), "settings preserved");
+        let new_agent = value
+            .get("agents")
+            .and_then(|a| a.get("New"))
+            .expect("New agent");
         assert_eq!(
-            value
-                .get("agents")
-                .and_then(|a| a.get("New"))
-                .and_then(|n| n.get("command"))
-                .and_then(|c| c.as_str()),
-            Some("/bin/new --flag"),
+            new_agent.get("command").and_then(|c| c.as_str()),
+            Some("/bin/new")
+        );
+        assert_eq!(
+            new_agent.get("args").and_then(|a| a.as_array()).map(|v| v
+                .iter()
+                .map(|x| x.as_str().unwrap_or(""))
+                .collect::<Vec<_>>()),
+            Some(vec!["--flag"]),
         );
         assert!(
-            value
-                .get("agents")
-                .and_then(|a| a.get("Old"))
-                .is_none(),
+            value.get("agents").and_then(|a| a.get("Old")).is_none(),
             "save replaces agents wholesale (Old should be gone)"
         );
     }
 
     #[test]
     fn roundtrips_stdio_through_daemon_shape() {
-        let json = r#"{"agents":{"GH":{"command":"npx @github/copilot-language-server@latest --acp"}}}"#;
+        let json =
+            r#"{"agents":{"GH":{"command":"npx @github/copilot-language-server@latest --acp"}}}"#;
         let parsed = parse_maenifold_config(json).expect("parse");
         let tmp = tempfile::NamedTempFile::new().expect("tmp file");
         save_config(&tmp.path().to_path_buf(), &parsed).expect("save");
-        let reparsed =
-            parse_maenifold_config(&std::fs::read_to_string(tmp.path()).expect("read"))
-                .expect("reparse");
+        let reparsed = parse_maenifold_config(&std::fs::read_to_string(tmp.path()).expect("read"))
+            .expect("reparse");
         let entry = reparsed.agents.get("GH").expect("agent");
         assert_eq!(entry.command.as_deref(), Some("npx"));
         assert_eq!(entry.args.as_deref().map(|v| v.len()), Some(2));

@@ -3,7 +3,7 @@ use crate::error::{MaenifoldError, Result};
 use crate::schedule::{
     ScheduleStore, ScheduledTask, env_allowlist::default_allowlist, pause_state,
 };
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 use std::path::PathBuf;
 
 pub(super) fn schedule_store(context: &ToolContext) -> ScheduleStore {
@@ -33,6 +33,7 @@ pub(super) fn task_value(task: &ScheduledTask) -> Value {
         "enabled": task.enabled,
         "auto_grant_permissions": task.auto_grant_permissions,
         "allowed_tools": task.allowed_tools,
+        "config_options": task.config_options,
         "mcp_action": task.mcp_action,
         "mcp_parameters": task.mcp_parameters,
         "created_at": task.created_at,
@@ -68,6 +69,38 @@ pub(super) fn optional_string(payload: &Value, key: &'static str) -> Result<Opti
 
 pub(super) fn optional_value(payload: &Value, key: &'static str) -> Result<Option<Value>> {
     Ok(payload.get(key).cloned())
+}
+
+pub(super) fn optional_value_map(
+    payload: &Value,
+    key: &'static str,
+) -> Result<Option<Map<String, Value>>> {
+    let Some(value) = payload.get(key) else {
+        return Ok(None);
+    };
+    if value.is_null() {
+        return Ok(Some(Map::new()));
+    }
+    let map = value
+        .as_object()
+        .cloned()
+        .ok_or_else(|| MaenifoldError::InvalidArgument(format!("'{key}' must be an object")))?;
+    for (entry_key, entry_value) in &map {
+        match entry_value {
+            Value::String(_) | Value::Bool(_) | Value::Number(_) => {}
+            Value::Null => {
+                return Err(MaenifoldError::InvalidArgument(format!(
+                    "'{key}.{entry_key}' must not be null"
+                )));
+            }
+            _ => {
+                return Err(MaenifoldError::InvalidArgument(format!(
+                    "'{key}.{entry_key}' must be a string, boolean, or number"
+                )));
+            }
+        }
+    }
+    Ok(Some(map))
 }
 
 pub(super) fn validate_mcp_action(action: Option<&str>, parameters: Option<&Value>) -> Result<()> {

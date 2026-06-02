@@ -19,6 +19,8 @@ Manages recurring agent tasks and automations.
 - `autoGrantPermissions` (bool, optional): Whether ACP permissions are
   auto-granted.
 - `allowedTools` (string[], optional): Tool allow-list for the scheduled run.
+- `config_options` (object, optional): ACP session config options to persist for
+  the selected agent. Values must be strings, booleans, or numbers.
 
 ## Pause-all actions
 

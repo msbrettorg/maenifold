@@ -274,6 +274,9 @@ fn build_payload(task: &ScheduledTask, workdir: Option<&Path>) -> Result<String>
     if !task.allowed_tools.is_empty() {
         payload["allowedTools"] = json!(&task.allowed_tools);
     }
+    if !task.config_options.is_empty() {
+        payload["configOptions"] = serde_json::Value::Object(task.config_options.clone());
+    }
     if let Some(dir) = workdir {
         payload["cwd"] = json!(dir.display().to_string());
     }

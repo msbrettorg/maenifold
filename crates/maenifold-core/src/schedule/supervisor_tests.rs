@@ -28,6 +28,7 @@ fn task() -> ScheduledTask {
         workdir: None,
         auto_grant_permissions: false,
         allowed_tools: Vec::new(),
+        config_options: serde_json::Map::new(),
         timeout_seconds: 300,
         enabled: true,
         created_at: Utc::now(),
@@ -74,6 +75,38 @@ fn payload_threads_explicit_permission_fields() {
         payload["allowedTools"],
         json!(["ReadMemory", "SearchMemories"])
     );
+}
+
+#[test]
+fn schedule_config_options_payload_threads_non_empty_map_and_omits_empty_map() {
+    let mut configured_task_value = serde_json::to_value(task()).expect("serialize task");
+    configured_task_value["config_options"] = json!({
+        "model": "claude-opus-4.6",
+        "stream": true,
+        "max_turns": 3
+    });
+    let configured_task =
+        serde_json::from_value::<ScheduledTask>(configured_task_value).expect("deserialize task");
+    let configured_payload = build_payload(&configured_task, None).expect("payload");
+    let configured_payload: Value =
+        serde_json::from_str(&configured_payload).expect("json payload");
+
+    assert_eq!(
+        configured_payload["configOptions"],
+        json!({
+            "model": "claude-opus-4.6",
+            "stream": true,
+            "max_turns": 3
+        })
+    );
+
+    let mut empty_task_value = serde_json::to_value(task()).expect("serialize task");
+    empty_task_value["config_options"] = json!({});
+    let empty_task = serde_json::from_value::<ScheduledTask>(empty_task_value).expect("task");
+    let empty_payload = build_payload(&empty_task, None).expect("payload");
+    let empty_payload: Value = serde_json::from_str(&empty_payload).expect("json payload");
+
+    assert!(empty_payload.get("configOptions").is_none());
 }
 
 /// Uses /usr/bin/env to inspect the actual environment passed to a child

@@ -38,6 +38,7 @@ fn direct_task(id: &str) -> ScheduledTask {
         workdir: None,
         auto_grant_permissions: false,
         allowed_tools: Vec::new(),
+        config_options: serde_json::Map::new(),
         mcp_action: Some("maenifold.gate.gate_Status".to_string()),
         mcp_parameters: Some(json!({"root": "/tmp"})),
         timeout_seconds: 10,

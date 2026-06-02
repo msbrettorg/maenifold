@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import {
   AlertCircle,
@@ -24,9 +24,17 @@ import type {
   ScheduledTask,
 } from '../stores/schedules';
 import { useAgentsAdminStore } from '../stores/agentsAdmin';
+import { createAcpClient } from '../lib/acp-bridge';
+import { isDesktop } from '../lib/platform';
+import type { AgentConfig, SessionConfigOption } from '../lib/types';
+import ConfigOptionPicker from './ConfigOptionPicker.vue';
 
 type RowState = 'enabled' | 'paused' | 'failed';
 type RunMode = 'agent' | 'mcp_action';
+
+const ACP_PROTOCOL_VERSION = 1;
+const ACP_CLIENT_VERSION = '0.1.0';
+const sessionConfigOptionCache = new Map<string, SessionConfigOption[]>();
 
 const schedulesStore = useSchedulesStore();
 const {
@@ -62,6 +70,22 @@ function describeMcpAction(value: string | null): string {
   if (!value) return 'No MCP action';
   const option = mcpActionByValue.value.get(value);
   return option ? option.label : value;
+}
+
+function summarizeConfigOptions(task: ScheduledTask): string | null {
+  const model = task.config_options?.model;
+  if (typeof model === 'string' && model.length > 0) {
+    return model;
+  }
+  for (const [key, value] of Object.entries(task.config_options ?? {})) {
+    if (typeof value === 'string' && value.length > 0) {
+      return `${key}: ${value}`;
+    }
+    if (typeof value === 'boolean' || typeof value === 'number') {
+      return `${key}: ${String(value)}`;
+    }
+  }
+  return null;
 }
 
 function formatFreshness(value: Date | null): string {
@@ -136,6 +160,7 @@ interface EditorForm {
   workdir: string;
   auto_grant_permissions: boolean;
   allowed_tools: string[];
+  config_options: Record<string, unknown>;
   mcp_action: string;
   timeout_seconds: number;
   enabled: boolean;
@@ -146,6 +171,10 @@ const editorOpen = ref(false);
 const editorForm = ref<EditorForm>(emptyForm());
 const editorError = ref<string | null>(null);
 const editorSaving = ref<boolean>(false);
+const editorAgentConfigOptions = ref<SessionConfigOption[]>([]);
+const editorAgentConfigOptionsLoading = ref(false);
+const editorAgentConfigOptionsError = ref<string | null>(null);
+const editorAgentConfigRequestId = ref(0);
 
 function pickDefaultAgent(): string {
   if (agentNames.value.length > 0) return agentNames.value[0];
@@ -162,6 +191,7 @@ function emptyForm(): EditorForm {
     workdir: '',
     auto_grant_permissions: false,
     allowed_tools: [],
+    config_options: {},
     mcp_action: '',
     timeout_seconds: 600,
     enabled: true,
@@ -173,6 +203,8 @@ const editorIsEditing = computed<boolean>(() => editorForm.value.id !== null);
 
 function openCreate(): void {
   editorForm.value = emptyForm();
+  editorAgentConfigOptions.value = [];
+  editorAgentConfigOptionsError.value = null;
   editorError.value = null;
   editorOpen.value = true;
 }
@@ -187,11 +219,14 @@ function openEdit(task: ScheduledTask): void {
     workdir: task.workdir ?? '',
     auto_grant_permissions: task.auto_grant_permissions,
     allowed_tools: [...task.allowed_tools],
+    config_options: { ...task.config_options },
     mcp_action: task.mcp_action ?? '',
     timeout_seconds: task.timeout_seconds,
     enabled: task.enabled,
     run_mode: task.mcp_action ? 'mcp_action' : 'agent',
   };
+  editorAgentConfigOptions.value = [];
+  editorAgentConfigOptionsError.value = null;
   editorError.value = null;
   editorOpen.value = true;
 }
@@ -199,6 +234,160 @@ function openEdit(task: ScheduledTask): void {
 function closeEditor(): void {
   editorError.value = null;
   editorOpen.value = false;
+}
+
+function cloneSessionConfigOption(option: SessionConfigOption): SessionConfigOption {
+  return JSON.parse(JSON.stringify(option)) as SessionConfigOption;
+}
+
+function mergeSessionConfigOptions(
+  options: SessionConfigOption[],
+  overrides: Record<string, unknown>,
+): SessionConfigOption[] {
+  return options.map((option) => {
+    const merged = cloneSessionConfigOption(option);
+    if (!(merged.id in overrides)) {
+      return merged;
+    }
+    const override = overrides[merged.id];
+    if (merged.type === 'boolean' && typeof override === 'boolean') {
+      merged.currentValue = override;
+    } else if (
+      merged.type === 'select' &&
+      (typeof override === 'string' || typeof override === 'number')
+    ) {
+      merged.currentValue = String(override);
+    }
+    return merged;
+  });
+}
+
+function syncFormConfigOptions(options: SessionConfigOption[]): void {
+  const configOptions = options.reduce<Record<string, unknown>>((acc, option) => {
+    acc[option.id] = option.currentValue;
+    return acc;
+  }, {});
+  editorForm.value = {
+    ...editorForm.value,
+    config_options: configOptions,
+  };
+}
+
+function fallbackConfigOptions(values: Record<string, unknown>): SessionConfigOption[] {
+  return Object.entries(values).reduce<SessionConfigOption[]>((acc, [id, value]) => {
+    const category = id === 'model' || id === 'mode' || id === 'thought_level' ? id : undefined;
+    if (typeof value === 'boolean') {
+      acc.push({
+        id,
+        name: id,
+        category,
+        type: 'boolean',
+        currentValue: value,
+      });
+      return acc;
+    }
+    if (typeof value === 'string' && value.length > 0) {
+      acc.push({
+        id,
+        name: id,
+        category,
+        type: 'select',
+        currentValue: value,
+        options: [{ value, name: value }],
+      });
+    }
+    return acc;
+  }, []);
+}
+
+const visibleConfigOptions = computed<SessionConfigOption[]>(() => {
+  if (editorAgentConfigOptions.value.length > 0) {
+    return editorAgentConfigOptions.value;
+  }
+  if (editorAgentConfigOptionsError.value) {
+    return fallbackConfigOptions(editorForm.value.config_options);
+  }
+  return [];
+});
+
+async function loadAgentConfigOptions(agentName: string): Promise<void> {
+  const requestId = ++editorAgentConfigRequestId.value;
+  editorAgentConfigOptionsError.value = null;
+
+  if (!agentName) {
+    editorAgentConfigOptions.value = [];
+    editorForm.value = { ...editorForm.value, config_options: {} };
+    return;
+  }
+
+  const agentConfig = agentsByName.value[agentName] as AgentConfig | undefined;
+  if (!agentConfig) {
+    editorAgentConfigOptions.value = [];
+    editorAgentConfigOptionsError.value = `Could not load session options: agent '${agentName}' is not configured.`;
+    return;
+  }
+
+  const cached = sessionConfigOptionCache.get(agentName);
+  if (cached) {
+    const merged = mergeSessionConfigOptions(cached, editorForm.value.config_options);
+    if (requestId !== editorAgentConfigRequestId.value) return;
+    editorAgentConfigOptions.value = merged;
+    syncFormConfigOptions(merged);
+    return;
+  }
+
+  editorAgentConfigOptionsLoading.value = true;
+  editorAgentConfigOptions.value = [];
+
+  let client: Awaited<ReturnType<typeof createAcpClient>> | null = null;
+  try {
+    client = await createAcpClient({ name: agentName, config: agentConfig });
+    const canAccessFs = isDesktop();
+    await client.initialize({
+      protocolVersion: ACP_PROTOCOL_VERSION,
+      clientCapabilities: {
+        fs: {
+          readTextFile: canAccessFs,
+          writeTextFile: canAccessFs,
+        },
+      },
+      clientInfo: {
+        name: 'maenifold-ui',
+        title: 'Maenifold',
+        version: ACP_CLIENT_VERSION,
+      },
+    });
+    const sessionResponse = await client.newSession({
+      cwd: '.',
+      mcpServers: [],
+    });
+    const rawOptions = Array.isArray((sessionResponse as { configOptions?: unknown[] }).configOptions)
+      ? ((sessionResponse as { configOptions?: unknown[] }).configOptions as SessionConfigOption[])
+      : [];
+    sessionConfigOptionCache.set(agentName, rawOptions.map(cloneSessionConfigOption));
+    const merged = mergeSessionConfigOptions(rawOptions, editorForm.value.config_options);
+    if (requestId !== editorAgentConfigRequestId.value) return;
+    editorAgentConfigOptions.value = merged;
+    syncFormConfigOptions(merged);
+  } catch (err) {
+    if (requestId !== editorAgentConfigRequestId.value) return;
+    editorAgentConfigOptions.value = [];
+    editorAgentConfigOptionsError.value = `Could not load session options: ${
+      err instanceof Error ? err.message : String(err)
+    }`;
+  } finally {
+    if (client) {
+      await client.disconnect().catch(() => undefined);
+    }
+    if (requestId === editorAgentConfigRequestId.value) {
+      editorAgentConfigOptionsLoading.value = false;
+    }
+  }
+}
+
+function retryAgentConfigOptions(): void {
+  sessionConfigOptionCache.delete(editorForm.value.agent);
+  void loadAgentConfigOptions(editorForm.value.agent);
 }
 
 function createScheduleId(name: string): string {
@@ -222,6 +411,44 @@ function toggleAllowedTool(name: string, checked: boolean): void {
   }
   editorForm.value.allowed_tools = Array.from(set);
 }
+
+function onConfigChange(optionId: string, value: string | boolean): void {
+  editorForm.value = {
+    ...editorForm.value,
+    config_options: {
+      ...editorForm.value.config_options,
+      [optionId]: value,
+    },
+  };
+  editorAgentConfigOptions.value = editorAgentConfigOptions.value.map((option) => {
+    if (option.id !== optionId) {
+      return option;
+    }
+    const updated = cloneSessionConfigOption(option);
+    if (updated.type === 'boolean' && typeof value === 'boolean') {
+      updated.currentValue = value;
+    } else if (updated.type === 'select' && typeof value === 'string') {
+      updated.currentValue = value;
+    }
+    return updated;
+  });
+}
+
+watch(
+  [editorOpen, () => editorForm.value.run_mode, () => editorForm.value.agent, agentsByName],
+  ([open, runMode, agent]) => {
+    if (!open || runMode !== 'agent') {
+      if (runMode !== 'agent') {
+        editorAgentConfigOptions.value = [];
+        editorAgentConfigOptionsError.value = null;
+        editorAgentConfigOptionsLoading.value = false;
+      }
+      return;
+    }
+    void loadAgentConfigOptions(agent);
+  },
+  { immediate: false },
+);
 
 const editorAgentMissing = computed<boolean>(
   () => editorForm.value.run_mode === 'agent' && !hasAgents.value,
@@ -257,6 +484,7 @@ async function saveEditor(): Promise<void> {
     workdir: form.workdir.trim() || null,
     auto_grant_permissions: form.auto_grant_permissions,
     allowed_tools: isMcp ? [] : [...form.allowed_tools],
+    config_options: isMcp ? {} : { ...form.config_options },
     mcp_action: isMcp ? form.mcp_action : null,
     timeout_seconds: Number(form.timeout_seconds) || 600,
     enabled: form.enabled,
@@ -327,6 +555,8 @@ const statusLabels: Record<RunStatus, string> = {
   timeout: 'Timeout',
   skipped: 'Skipped',
 };
+
+defineExpose({ editorForm });
 </script>
 <template>
   <div class="schedules">
@@ -442,7 +672,16 @@ const statusLabels: Record<RunStatus, string> = {
 
                 <!-- Agent -->
                 <td>
-                  <span class="agent-chip">{{ task.agent }}</span>
+                  <div class="agent-cell">
+                    <span class="agent-chip">{{ task.agent }}</span>
+                    <span
+                      v-if="summarizeConfigOptions(task)"
+                      class="config-tag"
+                      :title="JSON.stringify(task.config_options)"
+                    >
+                      {{ summarizeConfigOptions(task) }}
+                    </span>
+                  </div>
                 </td>
 
                 <!-- Last run -->
@@ -663,6 +902,35 @@ const statusLabels: Record<RunStatus, string> = {
                 <code>agents</code>, then refresh.
               </p>
             </label>
+
+            <div class="field">
+              <span class="field-label">Session config options</span>
+              <p class="field-hint">
+                Live ACP options for the selected agent. These are saved with the
+                schedule and forwarded at fire time as <code>configOptions</code>.
+              </p>
+              <p v-if="editorAgentConfigOptionsLoading" class="field-hint">
+                Loading session options…
+              </p>
+              <p v-if="editorAgentConfigOptionsError" class="field-hint field-error-inline">
+                {{ editorAgentConfigOptionsError }}
+                <button class="inline-link" type="button" @click="retryAgentConfigOptions">Retry</button>
+              </p>
+              <p
+                v-if="!editorAgentConfigOptionsLoading && !editorAgentConfigOptionsError && visibleConfigOptions.length === 0"
+                class="field-hint"
+              >
+                This agent has no configurable session options.
+              </p>
+              <div v-if="visibleConfigOptions.length > 0" class="config-options-grid">
+                <ConfigOptionPicker
+                  v-for="option in visibleConfigOptions"
+                  :key="option.id"
+                  :option="option"
+                  @change="(value) => onConfigChange(option.id, value)"
+                />
+              </div>
+            </div>
 
             <label class="field">
               <span class="field-label">Prompt</span>
@@ -1186,6 +1454,23 @@ const statusLabels: Record<RunStatus, string> = {
   font-size: 0.76rem;
 }
 
+.agent-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.config-tag {
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--bg-sidebar) 70%, var(--bg-main));
+  border: 1px solid var(--border-color);
+}
+
 /* Run pill / meta ------------------------------------------------------- */
 .run-pill {
   display: inline-flex;
@@ -1487,6 +1772,22 @@ const statusLabels: Record<RunStatus, string> = {
   background: color-mix(in srgb, var(--text-accent) 8%, transparent);
 }
 
+.field-error-inline {
+  color: color-mix(in srgb, var(--bg-danger) 75%, var(--text-primary));
+}
+
+.inline-link {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-accent);
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  margin-left: 0.35rem;
+  text-decoration: underline;
+}
+
 .segmented {
   display: inline-flex;
   border: 1px solid var(--border-color);
@@ -1530,6 +1831,13 @@ const statusLabels: Record<RunStatus, string> = {
   border: 1px solid var(--border-color);
   border-radius: 10px;
   background: color-mix(in srgb, var(--bg-sidebar) 35%, var(--bg-main));
+}
+
+.config-options-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 .check-row {

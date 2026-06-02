@@ -28,6 +28,7 @@ export interface ScheduledTask {
   workdir: string | null;
   auto_grant_permissions: boolean;
   allowed_tools: string[];
+  config_options: Record<string, unknown>;
   mcp_action: string | null;
   mcp_parameters: unknown | null;
   timeout_seconds: number;
@@ -65,6 +66,7 @@ interface RawScheduledTask extends Record<string, unknown> {
   workdir?: string | null;
   auto_grant_permissions?: boolean;
   allowed_tools?: unknown;
+  config_options?: unknown;
   mcp_action?: string | null;
   mcp_parameters?: unknown;
   timeout_seconds?: number;
@@ -98,6 +100,16 @@ function asStringOrNull(value: unknown): string | null {
 
 function asStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+function asConfigOptions(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+  return Object.entries(value as Record<string, unknown>).reduce<Record<string, unknown>>((acc, [key, entry]) => {
+    acc[key] = entry;
+    return acc;
+  }, {});
 }
 
 function parseLogTimestamp(fileName: unknown): string | null {
@@ -151,6 +163,7 @@ function normalizeTask(value: RawScheduledTask): ScheduledTask {
     workdir: asStringOrNull(value.workdir),
     auto_grant_permissions: value.auto_grant_permissions === true,
     allowed_tools: asStringArray(value.allowed_tools),
+    config_options: asConfigOptions(value.config_options),
     mcp_action: asStringOrNull(value.mcp_action),
     mcp_parameters: value.mcp_parameters ?? null,
     timeout_seconds: typeof value.timeout_seconds === 'number' ? value.timeout_seconds : 300,
@@ -171,6 +184,7 @@ function toMutationPayload(input: ScheduleTaskInput): Record<string, unknown> {
   if (input.workdir !== undefined) payload.workdir = input.workdir;
   if (input.auto_grant_permissions !== undefined) payload.auto_grant_permissions = input.auto_grant_permissions;
   if (input.allowed_tools !== undefined) payload.allowed_tools = input.allowed_tools;
+  if (input.config_options !== undefined) payload.config_options = input.config_options;
   if (input.mcp_action !== undefined) payload.mcp_action = input.mcp_action;
   if (input.mcp_parameters !== undefined) payload.mcp_parameters = input.mcp_parameters;
   if (input.timeout_seconds !== undefined) payload.timeout_seconds = input.timeout_seconds;

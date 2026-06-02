@@ -12,6 +12,7 @@ fn task(schedule: &str) -> ScheduledTask {
         workdir: None,
         auto_grant_permissions: false,
         allowed_tools: Vec::new(),
+        config_options: serde_json::Map::new(),
         mcp_action: None,
         mcp_parameters: None,
         timeout_seconds: 300,

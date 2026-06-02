@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
-import { ShieldCheck, GitBranch, Workflow } from '@lucide/vue';
 import { canPickFolder, pickFolder, loadKvStore, type KVStore } from './lib/host';
 import { useConfigStore } from './stores/config';
 import { useSessionStore } from './stores/session';
@@ -18,7 +17,6 @@ import TabBar from './components/TabBar.vue';
 import HomeView from './components/HomeView.vue';
 import KnowledgeView from './components/KnowledgeView.vue';
 import SchedulesView from './components/SchedulesView.vue';
-import PlaceholderView from './components/PlaceholderView.vue';
 import type { SavedSession } from './lib/types';
 
 const configStore = useConfigStore();
@@ -536,26 +534,7 @@ function clearError() {
       />
       <KnowledgeView v-else-if="shell.activeTab === 'knowledge'" />
       <SettingsView v-else-if="shell.activeTab === 'settings'" />
-      <!-- Placeholder tabs (infrastructure-only this sprint) -->
-      <PlaceholderView
-        v-else-if="shell.activeTab === 'gate'"
-        :icon="ShieldCheck"
-        title="Gates"
-        description="Track gated delivery tasks and pipeline state at a glance. This surface is coming soon."
-      />
       <SchedulesView v-else-if="shell.activeTab === 'schedules'" />
-      <PlaceholderView
-        v-else-if="shell.activeTab === 'pipelines'"
-        :icon="GitBranch"
-        title="Pipelines"
-        description="Compose and run multi-step agent pipelines. This surface is coming soon."
-      />
-      <PlaceholderView
-        v-else-if="shell.activeTab === 'workflows'"
-        :icon="Workflow"
-        title="Workflows"
-        description="Browse and author reusable reasoning workflows. This surface is coming soon."
-      />
     </div>
     <!-- /tab-content -->
 

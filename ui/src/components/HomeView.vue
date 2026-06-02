@@ -7,10 +7,10 @@
 // session lifecycle (start / resume) is delegated to App.vue via emits so the
 // shell can flip to the Agents tab once a session is live.
 import { computed } from 'vue';
-import { Brain, MessageSquare, GitBranch, ShieldCheck, Workflow, MessageCircle, Clock } from '@lucide/vue';
+import { Brain, MessageSquare, MessageCircle, Clock } from '@lucide/vue';
 import { useConfigStore } from '../stores/config';
 import { useSessionStore } from '../stores/session';
-import { useAppShellStore, type AppShellTab } from '../stores/appShell';
+import { useAppShellStore } from '../stores/appShell';
 import type { SavedSession } from '../lib/types';
 
 const props = defineProps<{ version: string }>();
@@ -52,18 +52,18 @@ const connectionStatus = computed<ConnStatus>(() => {
 });
 
 interface QuickTile {
-  key: AppShellTab;
+  key: 'agents';
   title: string;
   description: string;
   icon: typeof MessageSquare;
 }
 
-const tiles: QuickTile[] = [
-  { key: 'agents', title: 'Agents', description: 'Start or resume sessions', icon: MessageSquare },
-  { key: 'pipelines', title: 'Pipelines', description: 'Run multi-step workflows', icon: GitBranch },
-  { key: 'gate', title: 'Gates', description: 'Track tasks & delivery', icon: ShieldCheck },
-  { key: 'workflows', title: 'Workflows', description: 'Browse & author', icon: Workflow },
-];
+// QuickTile is preserved for when real, MCP-backed surfaces (Gates,
+// Pipelines, Workflows) get views wired in. Right now there's nothing
+// honest to put in the grid — the only real tile (Agents) duplicates
+// the primary CTA above — so the grid renders an empty array and is
+// hidden via v-if in the template.
+const tiles: QuickTile[] = [];
 
 const recentSessions = computed<SavedSession[]>(() =>
   [...sessionStore.resumableSessions].sort((a, b) => b.lastUpdated - a.lastUpdated).slice(0, 6)
@@ -129,8 +129,9 @@ function handleResume(session: SavedSession) {
         </span>
       </button>
 
-      <!-- Quick tiles -->
-      <div class="home-tiles">
+      <!-- Quick tiles: rendered only when there are real, MCP-backed tabs
+           to surface. See `tiles` in the script block. -->
+      <div v-if="tiles.length > 0" class="home-tiles">
         <button
           v-for="tile in tiles"
           :key="tile.key"

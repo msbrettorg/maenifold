@@ -27,9 +27,7 @@ describe('useAppShellStore', () => {
     const tabs: AppShellTab[] = [
       'home',
       'agents',
-      'gate',
-      'pipelines',
-      'workflows',
+      'knowledge',
       'schedules',
       'settings',
     ];

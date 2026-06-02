@@ -6,10 +6,7 @@ export type AppShellTab =
   | 'home'
   | 'agents'
   | 'knowledge'
-  | 'gate'
   | 'schedules'
-  | 'pipelines'
-  | 'workflows'
   | 'settings';
 
 export const useAppShellStore = defineStore('appShell', () => {

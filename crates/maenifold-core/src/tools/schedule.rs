@@ -25,6 +25,9 @@ pub(super) mod schedule_os;
 #[cfg(test)]
 #[path = "schedule_tests.rs"]
 mod schedule_tests;
+#[cfg(test)]
+#[path = "schedule_run_now_async_tests.rs"]
+mod schedule_run_now_async_tests;
 #[path = "schedule_validation.rs"]
 pub(super) mod schedule_validation;
 

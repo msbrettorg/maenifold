@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { storeToRefs } from 'pinia';
 import {
   AlertCircle,
   CalendarClock,
@@ -12,360 +13,83 @@ import {
   RefreshCw,
   RotateCcw,
   History,
-  Square,
   Trash2,
   X,
 } from '@lucide/vue';
+import { useSchedulesStore } from '../stores/schedules';
+import type { RunRecord, RunStatus, ScheduledTask } from '../stores/schedules';
 
-/**
- * Opus 4.8 — Schedules tab redesign (MOCKUP).
- *
- * Self-contained: no Pinia, no live store, no MCP, no network. All handlers are
- * local state mutations / console.log. Sample data is hardcoded below.
- *
- * Design intent:
- *  - Explicit Refresh button + a live "freshness" affordance (relative age that
- *    drifts toward stale, with a spinning indicator while refreshing).
- *  - One master table with an inline per-row action cluster
- *    (run-now / pause-resume / cancel / history / edit / delete).
- *  - A right-hand slide-over panel for run history of the selected schedule.
- *  - A centered modal for create/edit, mirroring the SettingsAgents editor idiom.
- *  - A compact inline confirm modal for destructive delete.
- */
+type RowState = 'enabled' | 'paused' | 'failed';
 
-type RunStatus = 'success' | 'failed' | 'timeout' | 'skipped';
+const schedulesStore = useSchedulesStore();
+const { tasks, loading, error, lastRefreshed, runningIds, historyByTaskId } = storeToRefs(schedulesStore);
 
-interface RunRecord {
-  status: RunStatus;
-  timestamp: string;
-  duration_seconds: number;
-  error: string | null;
-  mcp_action: string | null;
-  mcp_parameters: unknown | null;
-  mcp_result: unknown | null;
-}
-
-interface ScheduledTask {
-  id: string;
-  name: string;
-  schedule: string;
-  schedule_human: string | null;
-  agent: string;
-  prompt: string;
-  workdir: string | null;
-  auto_grant_permissions: boolean;
-  allowed_tools: string[];
-  mcp_action: string | null;
-  mcp_parameters: unknown | null;
-  timeout_seconds: number;
-  enabled: boolean;
-  created_at: string;
-  updated_at: string;
-  last_run: RunRecord | null;
-}
-
-// Derived row state shown in the table. A schedule is "running" when its id is
-// the one currently in-flight; otherwise it is enabled / paused / failed.
-type RowState = 'running' | 'enabled' | 'paused' | 'failed';
-
-// ---------------------------------------------------------------------------
-// Sample data (hardcoded — mockup only).
-// ---------------------------------------------------------------------------
-
-const tasks = ref<ScheduledTask[]>([
-  {
-    id: 'sched_morning_digest',
-    name: 'Morning memory digest',
-    schedule: '0 7 * * *',
-    schedule_human: 'Every day at 7:00 AM',
-    agent: 'claude-opus-4.8',
-    prompt: 'Summarize new memory:// notes captured in the last 24h and post a digest.',
-    workdir: '/Users/brett/src/ma-collective/maenifold-rs',
-    auto_grant_permissions: true,
-    allowed_tools: ['GatewayExecute', 'ReadMcpResource', 'GetHelp'],
-    mcp_action: null,
-    mcp_parameters: null,
-    timeout_seconds: 600,
-    enabled: true,
-    created_at: '2025-02-04T11:20:00Z',
-    updated_at: '2025-03-01T08:02:00Z',
-    last_run: {
-      status: 'success',
-      timestamp: '2025-03-12T07:00:09Z',
-      duration_seconds: 42,
-      error: null,
-      mcp_action: null,
-      mcp_parameters: null,
-      mcp_result: null,
-    },
-  },
-  {
-    id: 'sched_gate_sync',
-    name: 'Gate read-model sync',
-    schedule: '*/30 * * * *',
-    schedule_human: 'Every 30 minutes',
-    agent: 'gpt-5.4',
-    prompt: 'Rebuild the gate read-model so the board reflects on-disk task markers.',
-    workdir: null,
-    auto_grant_permissions: true,
-    allowed_tools: ['GatewayExecute'],
-    mcp_action: 'gate_Sync',
-    mcp_parameters: { root: '/Users/brett/src/ma-collective/maenifold-rs', rebuild: true },
-    timeout_seconds: 120,
-    enabled: true,
-    created_at: '2025-01-18T09:00:00Z',
-    updated_at: '2025-03-10T14:31:00Z',
-    last_run: {
-      status: 'success',
-      timestamp: '2025-03-12T09:30:02Z',
-      duration_seconds: 6,
-      error: null,
-      mcp_action: 'gate_Sync',
-      mcp_parameters: { root: '/Users/brett/src/ma-collective/maenifold-rs', rebuild: true },
-      mcp_result: { tasks_indexed: 47, stages_rebuilt: 5 },
-    },
-  },
-  {
-    id: 'sched_nightly_index',
-    name: 'Nightly knowledge index',
-    schedule: '0 2 * * *',
-    schedule_human: 'Every day at 2:00 AM',
-    agent: 'mai-code-flash-1',
-    prompt: 'Re-embed changed documents and refresh the vector index.',
-    workdir: '/Users/brett/src/ma-collective/maenifold-rs',
-    auto_grant_permissions: false,
-    allowed_tools: ['GatewayIndex', 'GatewayBatch'],
-    mcp_action: 'GatewayIndex',
-    mcp_parameters: { scope: 'changed', since: '24h' },
-    timeout_seconds: 1800,
-    enabled: true,
-    created_at: '2025-02-22T19:45:00Z',
-    updated_at: '2025-03-12T09:41:00Z',
-    last_run: {
-      status: 'success',
-      timestamp: '2025-03-12T02:00:11Z',
-      duration_seconds: 311,
-      error: null,
-      mcp_action: 'GatewayIndex',
-      mcp_parameters: { scope: 'changed', since: '24h' },
-      mcp_result: { documents: 128, embedded: 41 },
-    },
-  },
-  {
-    id: 'sched_acr_report',
-    name: 'Weekly ACR reconciliation',
-    schedule: '0 6 * * 1',
-    schedule_human: 'Mondays at 6:00 AM',
-    agent: 'claude-opus-4.8',
-    prompt: 'Pull ACR consumption and flag week-over-week anomalies over 15%.',
-    workdir: null,
-    auto_grant_permissions: false,
-    allowed_tools: ['GatewayExecute', 'ReadMcpResource'],
-    mcp_action: null,
-    mcp_parameters: null,
-    timeout_seconds: 900,
-    enabled: false,
-    created_at: '2025-01-30T12:10:00Z',
-    updated_at: '2025-03-04T17:22:00Z',
-    last_run: {
-      status: 'skipped',
-      timestamp: '2025-03-10T06:00:00Z',
-      duration_seconds: 0,
-      error: 'Schedule paused — run skipped.',
-      mcp_action: null,
-      mcp_parameters: null,
-      mcp_result: null,
-    },
-  },
-  {
-    id: 'sched_link_audit',
-    name: 'Broken link audit',
-    schedule: '15 4 * * *',
-    schedule_human: 'Every day at 4:15 AM',
-    agent: 'gpt-5.4',
-    prompt: 'Crawl docs/ for dead internal links and open a gate task per cluster.',
-    workdir: '/Users/brett/src/ma-collective/maenifold-rs/docs',
-    auto_grant_permissions: true,
-    allowed_tools: ['GatewayExecute', 'GatewayBatch'],
-    mcp_action: null,
-    mcp_parameters: null,
-    timeout_seconds: 600,
-    enabled: true,
-    created_at: '2025-02-11T08:00:00Z',
-    updated_at: '2025-03-11T22:14:00Z',
-    last_run: {
-      status: 'failed',
-      timestamp: '2025-03-12T04:15:33Z',
-      duration_seconds: 73,
-      error: 'GatewayExecute returned 502 from docs crawler after 3 internal retries.',
-      mcp_action: null,
-      mcp_parameters: null,
-      mcp_result: null,
-    },
-  },
-  {
-    id: 'sched_standup_brief',
-    name: 'Standup briefing',
-    schedule: '45 8 * * 1-5',
-    schedule_human: 'Weekdays at 8:45 AM',
-    agent: 'mai-code-flash-1',
-    prompt: 'Compile overnight run results and open PRs into a short standup brief.',
-    workdir: null,
-    auto_grant_permissions: true,
-    allowed_tools: ['GatewayExecute', 'ReadMcpResource', 'GetHelp'],
-    mcp_action: null,
-    mcp_parameters: null,
-    timeout_seconds: 300,
-    enabled: true,
-    created_at: '2025-02-28T07:30:00Z',
-    updated_at: '2025-03-12T09:39:00Z',
-    last_run: {
-      status: 'success',
-      timestamp: '2025-03-11T08:45:08Z',
-      duration_seconds: 58,
-      error: null,
-      mcp_action: null,
-      mcp_parameters: null,
-      mcp_result: null,
-    },
-  },
-]);
-
-// Map of schedule id -> recent run history (newest first).
-const history = ref<Record<string, RunRecord[]>>({
-  sched_morning_digest: [
-    { status: 'success', timestamp: '2025-03-12T07:00:09Z', duration_seconds: 42, error: null, mcp_action: null, mcp_parameters: null, mcp_result: null },
-    { status: 'success', timestamp: '2025-03-11T07:00:07Z', duration_seconds: 39, error: null, mcp_action: null, mcp_parameters: null, mcp_result: null },
-    { status: 'timeout', timestamp: '2025-03-10T07:00:00Z', duration_seconds: 600, error: 'Exceeded timeout_seconds=600 while waiting on memory:// search.', mcp_action: null, mcp_parameters: null, mcp_result: null },
-    { status: 'success', timestamp: '2025-03-09T07:00:05Z', duration_seconds: 44, error: null, mcp_action: null, mcp_parameters: null, mcp_result: null },
-  ],
-  sched_gate_sync: [
-    { status: 'success', timestamp: '2025-03-12T09:30:02Z', duration_seconds: 6, error: null, mcp_action: 'gate_Sync', mcp_parameters: { rebuild: true }, mcp_result: { tasks_indexed: 47 } },
-    { status: 'success', timestamp: '2025-03-12T09:00:02Z', duration_seconds: 5, error: null, mcp_action: 'gate_Sync', mcp_parameters: { rebuild: true }, mcp_result: { tasks_indexed: 47 } },
-    { status: 'skipped', timestamp: '2025-03-12T08:30:00Z', duration_seconds: 0, error: 'Previous run still in flight — overlap skipped.', mcp_action: 'gate_Sync', mcp_parameters: null, mcp_result: null },
-  ],
-  sched_nightly_index: [
-    { status: 'success', timestamp: '2025-03-12T02:00:11Z', duration_seconds: 311, error: null, mcp_action: 'GatewayIndex', mcp_parameters: { scope: 'changed' }, mcp_result: { embedded: 41 } },
-    { status: 'failed', timestamp: '2025-03-11T02:00:09Z', duration_seconds: 88, error: 'Vector store rejected batch: dimension mismatch (1536 != 3072).', mcp_action: 'GatewayIndex', mcp_parameters: { scope: 'changed' }, mcp_result: null },
-  ],
-  sched_acr_report: [
-    { status: 'skipped', timestamp: '2025-03-10T06:00:00Z', duration_seconds: 0, error: 'Schedule paused — run skipped.', mcp_action: null, mcp_parameters: null, mcp_result: null },
-    { status: 'success', timestamp: '2025-03-03T06:00:14Z', duration_seconds: 204, error: null, mcp_action: null, mcp_parameters: null, mcp_result: null },
-  ],
-  sched_link_audit: [
-    { status: 'failed', timestamp: '2025-03-12T04:15:33Z', duration_seconds: 73, error: 'GatewayExecute returned 502 from docs crawler after 3 internal retries.', mcp_action: null, mcp_parameters: null, mcp_result: null },
-    { status: 'success', timestamp: '2025-03-11T04:15:21Z', duration_seconds: 61, error: null, mcp_action: null, mcp_parameters: null, mcp_result: null },
-    { status: 'success', timestamp: '2025-03-10T04:15:19Z', duration_seconds: 59, error: null, mcp_action: null, mcp_parameters: null, mcp_result: null },
-  ],
-  sched_standup_brief: [
-    { status: 'success', timestamp: '2025-03-11T08:45:08Z', duration_seconds: 58, error: null, mcp_action: null, mcp_parameters: null, mcp_result: null },
-    { status: 'success', timestamp: '2025-03-10T08:45:11Z', duration_seconds: 63, error: null, mcp_action: null, mcp_parameters: null, mcp_result: null },
-  ],
+onMounted(() => {
+  void schedulesStore.loadTasks();
 });
 
-// ---------------------------------------------------------------------------
-// Freshness / refresh affordance.
-// ---------------------------------------------------------------------------
-
-const lastRefreshed = ref<Date>(new Date());
-const refreshing = ref(false);
-// Drives the relative-age recompute without a poll: a tick the user can bump.
-const ageTick = ref(0);
-
-const freshnessLabel = computed<string>(() => {
-  void ageTick.value; // dependency so manual refreshes re-render the label
-  const seconds = Math.max(0, Math.round((Date.now() - lastRefreshed.value.getTime()) / 1000));
+function formatFreshness(value: Date | null): string {
+  if (!value) return 'never';
+  const seconds = Math.max(0, Math.round((Date.now() - value.getTime()) / 1000));
   if (seconds < 5) return 'just now';
   if (seconds < 60) return `${seconds}s ago`;
   const minutes = Math.round(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.round(minutes / 60);
   return `${hours}h ago`;
-});
-
-const isStale = computed<boolean>(() => {
-  void ageTick.value;
-  return Date.now() - lastRefreshed.value.getTime() > 120_000;
-});
-
-function refresh(): void {
-  if (refreshing.value) return;
-  refreshing.value = true;
-  console.log('[mock] refresh schedules');
-  // Simulate a fetch latency, then stamp freshness. No polling is started.
-  window.setTimeout(() => {
-    lastRefreshed.value = new Date();
-    ageTick.value += 1;
-    refreshing.value = false;
-  }, 650);
 }
 
-// ---------------------------------------------------------------------------
-// Row state + run controls.
-// ---------------------------------------------------------------------------
+const freshnessLabel = computed<string>(() => formatFreshness(lastRefreshed.value));
+const isStale = computed<boolean>(
+  () => !lastRefreshed.value || Date.now() - lastRefreshed.value.getTime() > 120_000,
+);
 
-// Which schedule (if any) currently has an in-flight run. Seeded so the mockup
-// shows a "running" row out of the box.
-const runningId = ref<string | null>('sched_nightly_index');
+function refresh(): void {
+  void schedulesStore.loadTasks();
+}
 
 function rowState(task: ScheduledTask): RowState {
-  if (runningId.value === task.id) return 'running';
   if (!task.enabled) return 'paused';
-  if (task.last_run && task.last_run.status === 'failed') return 'failed';
+  if (task.last_run?.status === 'failed') return 'failed';
   return 'enabled';
 }
 
+function isRunning(taskId: string): boolean {
+  return runningIds.value.has(taskId);
+}
+
 const stateLabels: Record<RowState, string> = {
-  running: 'Running',
   enabled: 'Enabled',
   paused: 'Paused',
   failed: 'Last run failed',
 };
 
 function runNow(task: ScheduledTask): void {
-  console.log('[mock] run now', task.id);
-  runningId.value = task.id;
-}
-
-function cancelRun(task: ScheduledTask): void {
-  console.log('[mock] cancel in-flight run', task.id);
-  if (runningId.value === task.id) {
-    runningId.value = null;
-  }
+  void schedulesStore.runTask(task.id);
 }
 
 function togglePause(task: ScheduledTask): void {
-  console.log('[mock] toggle pause', task.id, '->', !task.enabled);
-  task.enabled = !task.enabled;
-  task.updated_at = new Date().toISOString();
+  void schedulesStore.togglePaused(task.id);
 }
-
-// ---------------------------------------------------------------------------
-// History slide-over.
-// ---------------------------------------------------------------------------
 
 const historyOpenId = ref<string | null>(null);
 
 const historyTask = computed<ScheduledTask | null>(
-  () => tasks.value.find((t) => t.id === historyOpenId.value) ?? null,
+  () => tasks.value.find((task) => task.id === historyOpenId.value) ?? null,
 );
 
 const historyRuns = computed<RunRecord[]>(() =>
-  historyOpenId.value ? history.value[historyOpenId.value] ?? [] : [],
+  historyOpenId.value ? historyByTaskId.value[historyOpenId.value] ?? [] : [],
 );
 
 function openHistory(task: ScheduledTask): void {
-  console.log('[mock] open history', task.id);
   historyOpenId.value = task.id;
+  void schedulesStore.loadHistory(task.id);
 }
 
 function closeHistory(): void {
   historyOpenId.value = null;
 }
-
-// ---------------------------------------------------------------------------
-// Create / edit modal.
-// ---------------------------------------------------------------------------
 
 interface EditorForm {
   id: string | null;
@@ -405,13 +129,11 @@ function emptyForm(): EditorForm {
 const editorIsEditing = computed<boolean>(() => editorForm.value.id !== null);
 
 function openCreate(): void {
-  console.log('[mock] open create');
   editorForm.value = emptyForm();
   editorOpen.value = true;
 }
 
 function openEdit(task: ScheduledTask): void {
-  console.log('[mock] open edit', task.id);
   editorForm.value = {
     id: task.id,
     name: task.name,
@@ -436,62 +158,44 @@ function closeEditor(): void {
 function parseTools(text: string): string[] {
   return text
     .split(',')
-    .map((t) => t.trim())
-    .filter((t) => t.length > 0);
+    .map((tool) => tool.trim())
+    .filter((tool) => tool.length > 0);
 }
 
-function saveEditor(): void {
-  const f = editorForm.value;
-  const now = new Date().toISOString();
-  const tools = parseTools(f.allowedToolsText);
-  const mcpAction = f.mcp_action.trim().length > 0 ? f.mcp_action.trim() : null;
+function createScheduleId(name: string): string {
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 48);
+  return slug.length > 0 ? `sched_${slug}` : `sched_${Math.random().toString(36).slice(2, 8)}`;
+}
 
-  if (f.id === null) {
-    const created: ScheduledTask = {
-      id: `sched_${Math.random().toString(36).slice(2, 8)}`,
-      name: f.name.trim() || 'Untitled schedule',
-      schedule: f.schedule.trim() || '0 0 * * *',
-      schedule_human: f.schedule_human.trim() || null,
-      agent: f.agent.trim() || 'claude-opus-4.8',
-      prompt: f.prompt.trim(),
-      workdir: f.workdir.trim() || null,
-      auto_grant_permissions: f.auto_grant_permissions,
-      allowed_tools: tools,
-      mcp_action: mcpAction,
-      mcp_parameters: null,
-      timeout_seconds: Number(f.timeout_seconds) || 600,
-      enabled: f.enabled,
-      created_at: now,
-      updated_at: now,
-      last_run: null,
-    };
-    console.log('[mock] create schedule', created);
-    tasks.value = [created, ...tasks.value];
-    history.value[created.id] = [];
+async function saveEditor(): Promise<void> {
+  const form = editorForm.value;
+  const name = form.name.trim() || 'Untitled schedule';
+  const payload = {
+    name,
+    schedule: form.schedule.trim() || '0 0 * * *',
+    agent: form.agent.trim() || 'claude-opus-4.8',
+    prompt: form.prompt.trim(),
+    workdir: form.workdir.trim() || null,
+    auto_grant_permissions: form.auto_grant_permissions,
+    allowed_tools: parseTools(form.allowedToolsText),
+    mcp_action: form.mcp_action.trim() || null,
+    timeout_seconds: Number(form.timeout_seconds) || 600,
+    enabled: form.enabled,
+  };
+
+  if (form.id) {
+    await schedulesStore.updateTask({ id: form.id, ...payload });
   } else {
-    const target = tasks.value.find((t) => t.id === f.id);
-    if (target) {
-      target.name = f.name.trim() || target.name;
-      target.schedule = f.schedule.trim() || target.schedule;
-      target.schedule_human = f.schedule_human.trim() || null;
-      target.agent = f.agent.trim() || target.agent;
-      target.prompt = f.prompt.trim();
-      target.workdir = f.workdir.trim() || null;
-      target.auto_grant_permissions = f.auto_grant_permissions;
-      target.allowed_tools = tools;
-      target.mcp_action = mcpAction;
-      target.timeout_seconds = Number(f.timeout_seconds) || target.timeout_seconds;
-      target.enabled = f.enabled;
-      target.updated_at = now;
-      console.log('[mock] update schedule', target.id);
-    }
+    await schedulesStore.createTask({ id: createScheduleId(name), ...payload });
   }
+
   editorOpen.value = false;
 }
-
-// ---------------------------------------------------------------------------
-// Delete confirmation.
-// ---------------------------------------------------------------------------
 
 const deleteTarget = ref<ScheduledTask | null>(null);
 
@@ -503,27 +207,24 @@ function cancelDelete(): void {
   deleteTarget.value = null;
 }
 
-function confirmDelete(): void {
+async function confirmDelete(): Promise<void> {
   const target = deleteTarget.value;
   if (!target) return;
-  console.log('[mock] delete schedule', target.id);
-  tasks.value = tasks.value.filter((t) => t.id !== target.id);
-  delete history.value[target.id];
-  if (historyOpenId.value === target.id) historyOpenId.value = null;
-  if (runningId.value === target.id) runningId.value = null;
+
+  await schedulesStore.deleteTask(target.id);
+  if (historyOpenId.value === target.id) {
+    historyOpenId.value = null;
+  }
   deleteTarget.value = null;
 }
 
-// ---------------------------------------------------------------------------
-// Formatting helpers.
-// ---------------------------------------------------------------------------
+const enabledCount = computed<number>(() => tasks.value.filter((task) => task.enabled).length);
 
-const enabledCount = computed<number>(() => tasks.value.filter((t) => t.enabled).length);
-
-function formatTimestamp(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString(undefined, {
+function formatTimestamp(iso: string | null): string {
+  if (!iso) return 'Unknown time';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleString(undefined, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -546,7 +247,6 @@ const statusLabels: Record<RunStatus, string> = {
   skipped: 'Skipped',
 };
 </script>
-
 <template>
   <div class="schedules">
     <div class="schedules-inner">
@@ -578,11 +278,11 @@ const statusLabels: Record<RunStatus, string> = {
           <button
             class="btn"
             type="button"
-            :disabled="refreshing"
+            :disabled="loading"
             @click="refresh"
           >
-            <RefreshCw :size="15" :class="{ spinning: refreshing }" />
-            <span>{{ refreshing ? 'Refreshing…' : 'Refresh' }}</span>
+            <RefreshCw :size="15" :class="{ spinning: loading }" />
+            <span>{{ loading ? 'Refreshing…' : 'Refresh' }}</span>
           </button>
           <button class="btn btn-primary" type="button" @click="openCreate">
             <Plus :size="15" />
@@ -603,11 +303,23 @@ const statusLabels: Record<RunStatus, string> = {
           <span class="schedules-count">{{ tasks.length }}</span>
         </div>
 
-        <div v-if="tasks.length === 0" class="schedules-state">
+        <div v-if="error && tasks.length === 0" class="schedules-state schedules-state-error">
+          {{ error }}
+        </div>
+
+        <div v-else-if="loading && tasks.length === 0" class="schedules-state">
+          Loading schedules...
+        </div>
+
+        <div v-else-if="tasks.length === 0" class="schedules-state">
           No schedules yet. Create one to get started.
         </div>
 
         <div v-else class="schedules-table-wrap">
+          <div v-if="error" class="schedules-banner">
+            <AlertCircle :size="14" />
+            <span>{{ error }}</span>
+          </div>
           <table class="schedules-table">
             <thead>
               <tr>
@@ -622,7 +334,6 @@ const statusLabels: Record<RunStatus, string> = {
               <tr
                 v-for="task in tasks"
                 :key="task.id"
-                :class="{ 'row-running': rowState(task) === 'running' }"
               >
                 <!-- Name + state -->
                 <td>
@@ -670,26 +381,16 @@ const statusLabels: Record<RunStatus, string> = {
                 <!-- Controls -->
                 <td class="col-actions">
                   <div class="row-actions">
-                    <!-- run / cancel -->
                     <button
-                      v-if="rowState(task) === 'running'"
-                      class="icon-btn icon-btn-danger"
-                      type="button"
-                      title="Cancel in-flight run"
-                      aria-label="Cancel in-flight run"
-                      @click="cancelRun(task)"
-                    >
-                      <Square :size="15" />
-                    </button>
-                    <button
-                      v-else
                       class="icon-btn"
                       type="button"
                       title="Run now"
                       aria-label="Run now"
+                      :disabled="isRunning(task.id)"
                       @click="runNow(task)"
                     >
-                      <Play :size="15" />
+                      <RefreshCw v-if="isRunning(task.id)" :size="15" class="spinning" />
+                      <Play v-else :size="15" />
                     </button>
 
                     <!-- pause / resume -->
@@ -1152,6 +853,22 @@ const statusLabels: Record<RunStatus, string> = {
   color: var(--text-secondary);
 }
 
+.schedules-state-error {
+  color: color-mix(in srgb, var(--bg-danger) 78%, var(--text-primary));
+}
+
+.schedules-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 1rem 1rem 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--bg-danger) 35%, var(--border-color));
+  border-radius: 12px;
+  color: color-mix(in srgb, var(--bg-danger) 78%, var(--text-primary));
+  background: color-mix(in srgb, var(--bg-danger) 10%, var(--bg-main));
+}
+
 .schedules-table-wrap {
   overflow-x: auto;
 }
@@ -1191,10 +908,6 @@ const statusLabels: Record<RunStatus, string> = {
   border-bottom: none;
 }
 
-.row-running {
-  background: color-mix(in srgb, var(--text-accent) 6%, transparent);
-}
-
 .col-actions {
   width: 1%;
   white-space: nowrap;
@@ -1230,21 +943,6 @@ const statusLabels: Record<RunStatus, string> = {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--bg-danger) 20%, transparent);
 }
 
-.state-running {
-  background: var(--text-accent);
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--text-accent) 45%, transparent);
-  animation: pulse 1.4s ease-out infinite;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--text-accent) 45%, transparent);
-  }
-  100% {
-    box-shadow: 0 0 0 7px color-mix(in srgb, var(--text-accent) 0%, transparent);
-  }
-}
-
 .job-primary {
   font-weight: 600;
   color: var(--text-primary);
@@ -1261,11 +959,6 @@ const statusLabels: Record<RunStatus, string> = {
 .state-label {
   font-size: 0.74rem;
   color: var(--text-muted);
-}
-
-.state-text-running {
-  color: var(--text-accent);
-  font-weight: 600;
 }
 
 .state-text-failed {

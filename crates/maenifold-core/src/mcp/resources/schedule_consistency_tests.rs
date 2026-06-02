@@ -56,15 +56,22 @@ fn schedule_tool_and_resources_match_after_mutation_matrix() {
     set_enabled_with_store(&context, id, false);
     assert!(!assert_all_surfaces_agree(&context, id).enabled);
 
+    // run_now is now fire-and-forget; the supervisor writes last_run from the
+    // detached child. The cross-surface last_run consistency check that lived
+    // here historically relied on synchronous in-process Supervisor::run; with
+    // the async swap the test environment cannot exercise the spawn end-to-end
+    // because resolve_maenifold_bin() returns current_exe() (the libtest
+    // binary) which has no `schedule run` subcommand. Full async coverage is
+    // in tools::schedule::schedule_run_now_async_tests. Here we only smoke-
+    // test the new run_now response shape and confirm the schedule's enabled
+    // state survives the call.
     let run_now = call_schedule(&context, json!({"action": "run_now", "id": id}));
     assert_eq!(run_now["action"], "run_now");
     assert_eq!(run_now["id"], id);
-    let tool_after_run = call_schedule(&context, json!({"action": "get", "id": id}));
-    let resource_after_run = resource_json(&context, &format!("schedule://job/{id}"));
-    let (tool_last_run, resource_last_run) =
-        (&tool_after_run["last_run"], &resource_after_run["last_run"]);
-    assert!(!tool_last_run.is_null() && !tool_last_run.as_str().is_some_and(str::is_empty));
-    assert!(!resource_last_run.is_null() && !resource_last_run.as_str().is_some_and(str::is_empty));
+    assert!(
+        run_now["pid"].as_u64().is_some(),
+        "run_now should return numeric pid, got {run_now}"
+    );
     assert!(!assert_all_surfaces_agree(&context, id).enabled);
 
     let schedule_store = store(&context);

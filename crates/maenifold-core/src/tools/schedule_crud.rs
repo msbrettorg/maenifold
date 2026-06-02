@@ -7,10 +7,13 @@ use super::{
 use crate::error::{MaenifoldError, Result};
 #[cfg(all(test, target_os = "macos"))]
 use crate::schedule::LaunchctlBackend;
-use crate::schedule::{ScheduledTask, Supervisor};
+use crate::schedule::ScheduledTask;
 use chrono::Utc;
 use serde_json::{Value, json};
+#[cfg(unix)]
+use std::os::unix::process::CommandExt;
 use std::path::Path;
+use std::process::{Command, Stdio};
 #[cfg(all(test, target_os = "macos"))]
 use std::path::PathBuf;
 #[cfg(all(test, target_os = "macos"))]
@@ -286,13 +289,55 @@ pub(super) fn get_task(context: &ToolContext, payload: &Value) -> Result<String>
 }
 
 pub(super) fn run_now(context: &ToolContext, payload: &Value) -> Result<String> {
+    let bin = resolve_maenifold_bin()?;
+    run_now_with_bin(context, payload, &bin)
+}
+
+pub(super) fn run_now_with_bin(context: &ToolContext, payload: &Value, bin: &Path) -> Result<String> {
     let id = required_string(payload, "id")?;
-    let supervisor = Supervisor::new(schedule_store(context), resolve_maenifold_bin()?);
-    let run = supervisor
-        .run(id)
+    schedule_store(context)
+        .read(id)
         .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+
+    let mut command = Command::new(bin);
+    command
+        .args(["schedule", "run", id])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+
+    #[cfg(unix)]
+    unsafe {
+        command.pre_exec(|| {
+            if libc::setsid() == -1 {
+                return Err(std::io::Error::last_os_error());
+            }
+            Ok(())
+        });
+    }
+
+    let child = command.spawn().map_err(|error| {
+        MaenifoldError::Message(format!("failed to spawn detached scheduled run '{id}': {error}"))
+    })?;
+    let pid = child.id();
+    // Reap the zombie when the child exits. setsid detaches the session/process
+    // group but does NOT reparent the child while the daemon is alive, so we
+    // must wait() somewhere. A background reaper thread takes ownership and
+    // joins itself when the child exits, never blocking the daemon.
+    std::thread::spawn(move || {
+        let mut child = child;
+        let _ = child.wait();
+    });
+
+    let started_at = Utc::now();
     Ok(render(
         context.output_format,
-        json!({"action":"run_now","id":id,"run":run,"message":format!("Scheduled task '{}' executed.", id)}),
+        json!({
+            "action": "run_now",
+            "id": id,
+            "pid": pid,
+            "started_at": started_at,
+            "message": format!("Scheduled task '{}' spawned (pid {}).", id, pid)
+        }),
     ))
 }

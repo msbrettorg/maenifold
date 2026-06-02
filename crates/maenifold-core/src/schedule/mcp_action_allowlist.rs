@@ -42,7 +42,7 @@ pub const DEFAULT_ALLOWLIST_ENTRIES: &[McpActionAllowEntry] = &[
         description: "List memory notes under a prefix.",
     },
     McpActionAllowEntry {
-        domain: "maenifold.memory",
+        domain: "maenifold.system",
         command: "MemoryStatus",
         label: "Memory · Status",
         description: "Summarise the memory store (counts, paths).",
@@ -54,9 +54,9 @@ pub const DEFAULT_ALLOWLIST_ENTRIES: &[McpActionAllowEntry] = &[
         description: "Materialise an LLM-shaped context bundle from the graph.",
     },
     McpActionAllowEntry {
-        domain: "maenifold.graph",
+        domain: "maenifold.system",
         command: "RecentActivity",
-        label: "Graph · RecentActivity",
+        label: "System · RecentActivity",
         description: "Recent agent activity rollup from the graph.",
     },
     McpActionAllowEntry {
@@ -90,9 +90,9 @@ mod tests {
             ("maenifold.gate", "gate_Sync"),
             ("maenifold.memory", "ReadMemory"),
             ("maenifold.memory", "ListMemories"),
-            ("maenifold.memory", "MemoryStatus"),
+            ("maenifold.system", "MemoryStatus"),
             ("maenifold.graph", "BuildContext"),
-            ("maenifold.graph", "RecentActivity"),
+            ("maenifold.system", "RecentActivity"),
             ("maenifold.system", "Schedule"),
         ] {
             assert!(

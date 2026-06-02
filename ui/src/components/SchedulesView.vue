@@ -144,6 +144,8 @@ interface EditorForm {
 
 const editorOpen = ref(false);
 const editorForm = ref<EditorForm>(emptyForm());
+const editorError = ref<string | null>(null);
+const editorSaving = ref<boolean>(false);
 
 function pickDefaultAgent(): string {
   if (agentNames.value.length > 0) return agentNames.value[0];
@@ -171,6 +173,7 @@ const editorIsEditing = computed<boolean>(() => editorForm.value.id !== null);
 
 function openCreate(): void {
   editorForm.value = emptyForm();
+  editorError.value = null;
   editorOpen.value = true;
 }
 
@@ -189,21 +192,25 @@ function openEdit(task: ScheduledTask): void {
     enabled: task.enabled,
     run_mode: task.mcp_action ? 'mcp_action' : 'agent',
   };
+  editorError.value = null;
   editorOpen.value = true;
 }
 
 function closeEditor(): void {
+  editorError.value = null;
   editorOpen.value = false;
 }
 
 function createScheduleId(name: string): string {
+  // Backend requires alphanumeric + hyphens only (see schedule_helpers.rs
+  // validate_id). Collapse any other characters into hyphens.
   const slug = name
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
     .slice(0, 48);
-  return slug.length > 0 ? `sched_${slug}` : `sched_${Math.random().toString(36).slice(2, 8)}`;
+  return slug.length > 0 ? `sched-${slug}` : `sched-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function toggleAllowedTool(name: string, checked: boolean): void {
@@ -236,6 +243,7 @@ const editorCanSave = computed<boolean>(() => {
 async function saveEditor(): Promise<void> {
   const form = editorForm.value;
   if (!editorCanSave.value) return;
+  if (editorSaving.value) return;
 
   const name = form.name.trim();
   const schedule = form.schedule.trim();
@@ -254,13 +262,20 @@ async function saveEditor(): Promise<void> {
     enabled: form.enabled,
   };
 
-  if (form.id) {
-    await schedulesStore.updateTask({ id: form.id, ...payload });
-  } else {
-    await schedulesStore.createTask({ id: createScheduleId(name), ...payload });
+  editorSaving.value = true;
+  editorError.value = null;
+  try {
+    if (form.id) {
+      await schedulesStore.updateTask({ id: form.id, ...payload });
+    } else {
+      await schedulesStore.createTask({ id: createScheduleId(name), ...payload });
+    }
+    editorOpen.value = false;
+  } catch (err) {
+    editorError.value = err instanceof Error ? err.message : String(err);
+  } finally {
+    editorSaving.value = false;
   }
-
-  editorOpen.value = false;
 }
 
 const deleteTarget = ref<ScheduledTask | null>(null);
@@ -732,16 +747,18 @@ const statusLabels: Record<RunStatus, string> = {
           </div>
         </div>
 
+        <p v-if="editorError" class="editor-error" role="alert">{{ editorError }}</p>
+
         <footer class="editor-foot">
-          <button class="btn" type="button" @click="closeEditor">Cancel</button>
+          <button class="btn" type="button" @click="closeEditor" :disabled="editorSaving">Cancel</button>
           <button
             class="btn btn-primary"
             type="button"
-            :disabled="!editorCanSave"
+            :disabled="!editorCanSave || editorSaving"
             @click="saveEditor"
           >
             <Check :size="15" />
-            <span>{{ editorIsEditing ? 'Save changes' : 'Create schedule' }}</span>
+            <span>{{ editorSaving ? 'Saving…' : editorIsEditing ? 'Save changes' : 'Create schedule' }}</span>
           </button>
         </footer>
       </section>
@@ -1593,6 +1610,17 @@ select.input:disabled {
   padding: 1rem 1.25rem;
   border-top: 1px solid var(--border-color);
   background: color-mix(in srgb, var(--bg-sidebar) 45%, var(--bg-main));
+}
+
+.editor-error {
+  margin: 0;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--accent-danger, #d93b3b) 12%, transparent);
+  color: var(--accent-danger, #d93b3b);
+  font-size: 0.85rem;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  word-break: break-word;
 }
 
 /* Confirm dialog -------------------------------------------------------- */

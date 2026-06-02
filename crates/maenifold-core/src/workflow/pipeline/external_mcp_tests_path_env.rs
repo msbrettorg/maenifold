@@ -11,10 +11,17 @@ fn build_child_path_env_adds_common_user_tool_dirs_and_command_parent() {
         std::path::PathBuf::from("/Users/tester")
     };
     let command = home
-        .join(if cfg!(unix) { ".npm-global/bin" } else { r".dotnet\tools" })
+        .join(if cfg!(unix) {
+            ".npm-global/bin"
+        } else {
+            r".dotnet\tools"
+        })
         .join("workiq");
     let existing_path: std::ffi::OsString = std::env::join_paths(if cfg!(unix) {
-        vec![std::path::PathBuf::from("/usr/bin"), std::path::PathBuf::from("/bin")]
+        vec![
+            std::path::PathBuf::from("/usr/bin"),
+            std::path::PathBuf::from("/bin"),
+        ]
     } else {
         vec![
             std::path::PathBuf::from(r"C:\Windows\System32"),
@@ -45,7 +52,10 @@ fn build_child_path_env_adds_common_user_tool_dirs_and_command_parent() {
         expect_contains(std::path::Path::new("/bin"), "/bin");
         expect_contains(&home.join(".npm-global/bin"), "~/.npm-global/bin");
         expect_contains(&home.join(".dotnet/tools"), "~/.dotnet/tools");
-        expect_contains(std::path::Path::new("/opt/homebrew/bin"), "/opt/homebrew/bin");
+        expect_contains(
+            std::path::Path::new("/opt/homebrew/bin"),
+            "/opt/homebrew/bin",
+        );
     } else {
         // On Windows the production helper still adds the unix paths verbatim
         // (they are harmless because nothing on Windows resolves under them);

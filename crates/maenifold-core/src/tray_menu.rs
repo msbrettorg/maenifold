@@ -267,7 +267,15 @@ fn enable_login_run_key(port: u16) -> std::io::Result<()> {
     let value = login_run_command_value(&exe_path.display().to_string(), port);
     let output = std::process::Command::new("reg")
         .args([
-            "add", RUN_KEY, "/v", SERVICE_LABEL, "/t", "REG_SZ", "/d", &value, "/f",
+            "add",
+            RUN_KEY,
+            "/v",
+            SERVICE_LABEL,
+            "/t",
+            "REG_SZ",
+            "/d",
+            &value,
+            "/f",
         ])
         .output()?;
     if output.status.success() {

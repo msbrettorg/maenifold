@@ -1,7 +1,7 @@
 use maenifold_core::{Config, GraphDatabase};
 use rusqlite::Connection;
 use std::path::{Path, PathBuf};
-use std::sync::{mpsc, Arc, Barrier};
+use std::sync::{Arc, Barrier, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
 

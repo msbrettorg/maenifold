@@ -1,9 +1,9 @@
 use super::ToolContext;
+#[cfg(target_os = "macos")]
+use super::ort_runtime_catalog::ort_runtime_dylib_filename;
 use super::ort_runtime_catalog::{
     OrtRuntimeCatalogEntry, load_ort_runtime_catalog_from_str, pick_ort_runtime_entry,
 };
-#[cfg(target_os = "macos")]
-use super::ort_runtime_catalog::ort_runtime_dylib_filename;
 use crate::config::Config;
 use crate::mcp::schema::EmbeddingModelsParams;
 use crate::tools::embedding_models::embedding_models;

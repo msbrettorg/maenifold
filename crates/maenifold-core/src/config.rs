@@ -111,8 +111,12 @@ impl Config {
             }
         };
         match fs::write(&path, format!("{body}\n")) {
-            Ok(()) => info!(path = %path.display(), agents = defaults.agents.len(), "wrote default maenifold.json"),
-            Err(err) => warn!(error = %err, path = %path.display(), "failed to write default maenifold.json"),
+            Ok(()) => {
+                info!(path = %path.display(), agents = defaults.agents.len(), "wrote default maenifold.json")
+            }
+            Err(err) => {
+                warn!(error = %err, path = %path.display(), "failed to write default maenifold.json")
+            }
         }
     }
 

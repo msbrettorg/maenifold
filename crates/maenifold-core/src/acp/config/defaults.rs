@@ -76,7 +76,11 @@ pub fn default_agents_config() -> AgentsConfig {
     agents.insert(
         "Qwen Code".to_string(),
         stdio(
-            vec!["@qwen-code/qwen-code@latest", "--acp", "--experimental-skills"],
+            vec![
+                "@qwen-code/qwen-code@latest",
+                "--acp",
+                "--experimental-skills",
+            ],
             HashMap::new(),
         ),
     );
@@ -84,10 +88,7 @@ pub fn default_agents_config() -> AgentsConfig {
         "Auggie CLI".to_string(),
         stdio(
             vec!["@augmentcode/auggie@latest", "--acp"],
-            HashMap::from([(
-                "AUGMENT_DISABLE_AUTO_UPDATE".to_string(),
-                "1".to_string(),
-            )]),
+            HashMap::from([("AUGMENT_DISABLE_AUTO_UPDATE".to_string(), "1".to_string())]),
         ),
     );
     agents.insert(
@@ -174,7 +175,10 @@ mod tests {
         // the mercy of HashMap iteration order. See the
         // `defaultAgent` field on MaenifoldSettings for the contract.
         assert_eq!(
-            config.settings.as_ref().and_then(|s| s.default_agent.as_deref()),
+            config
+                .settings
+                .as_ref()
+                .and_then(|s| s.default_agent.as_deref()),
             Some("Copilot CLI"),
         );
     }
@@ -184,7 +188,10 @@ mod tests {
         let config = default_agents_config();
         let auggie = config.agents.get("Auggie CLI").expect("auggie present");
         assert_eq!(
-            auggie.env.get("AUGMENT_DISABLE_AUTO_UPDATE").map(String::as_str),
+            auggie
+                .env
+                .get("AUGMENT_DISABLE_AUTO_UPDATE")
+                .map(String::as_str),
             Some("1"),
         );
     }

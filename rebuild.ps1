@@ -16,12 +16,27 @@
 .PARAMETER Port
     HTTP port for the daemon. Default 8080.
 
+.PARAMETER Test
+    Run a focused cargo test pass instead of the build+restart flow. The
+    MAENIFOLD_REBUILD token is set (so the build guard permits the compile) and
+    the running daemon is left untouched. This is the only approved way to run
+    tests on Windows; bare `cargo test` is rejected by the build guard.
+
+.PARAMETER Crate
+    One or more crates to test when -Test is set. Defaults to the four primary
+    crates. Pass a single crate to narrow the run, e.g. -Test -Crate maenifold-core.
+
 .EXAMPLE
     pwsh rebuild.ps1
+
+.EXAMPLE
+    pwsh rebuild.ps1 -Test -Crate maenifold-core
 #>
 [CmdletBinding()]
 param(
-    [int]$Port = 8080
+    [int]$Port = 8080,
+    [switch]$Test,
+    [string[]]$Crate = @('maenifold-jockey', 'maenifold-core', 'maenifold-pipeline-driver', 'maenifold-cli')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -35,6 +50,15 @@ $env:MAENIFOLD_REBUILD = '1'
 
 # Interactive/canonical build must use the workspace target, never an agent cache.
 Remove-Item Env:\CARGO_TARGET_DIR -ErrorAction SilentlyContinue
+
+if ($Test) {
+    Write-Host '=== Focused test run (build token set; daemon untouched) ==='
+    $testArgs = @()
+    foreach ($c in $Crate) { $testArgs += @('-p', $c) }
+    Write-Host "  cargo test $($testArgs -join ' ')"
+    cargo test @testArgs
+    exit $LASTEXITCODE
+}
 
 Write-Host '=== Evict stale agent build caches ==='
 & (Join-Path $repoRoot 'scripts/clean-stale-agent-caches.ps1') -Apply

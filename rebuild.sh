@@ -4,10 +4,38 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 
+# Focused test mode: `./rebuild.sh --test [crate ...]` runs cargo test under the
+# build token (so the build guard permits the compile) and leaves the daemon
+# untouched. This is the only approved way to run tests; bare `cargo test` is
+# rejected by the build guard. Defaults to the four primary crates.
+TEST_MODE=0
+TEST_CRATES=(maenifold-jockey maenifold-core maenifold-pipeline-driver maenifold-cli)
+if [ "${1:-}" = "--test" ]; then
+  TEST_MODE=1
+  shift
+  if [ "$#" -gt 0 ]; then
+    TEST_CRATES=("$@")
+  fi
+fi
+
 # Approved-build token. The maenifold-core/gate-core/jockey build scripts reject
 # any compile that does not carry this token (see AGENTS.md > Build). Exporting it
 # here is what makes the rebuild script the only approved build path.
 export MAENIFOLD_REBUILD=1
+
+if [ "$TEST_MODE" -eq 1 ]; then
+  echo "═══ Focused test run (build token set; daemon untouched) ═══"
+  pargs=()
+  for c in "${TEST_CRATES[@]}"; do
+    pargs+=(-p "$c")
+  done
+  echo "  cargo test ${pargs[*]}"
+  if cargo test "${pargs[@]}"; then
+    exit 0
+  else
+    exit 1
+  fi
+fi
 
 UID_NUM=$(id -u)
 

@@ -16,6 +16,7 @@ import { usePipelineDesignStore } from '../../stores/pipelineDesign';
 import { useCanvasController } from './useCanvasController';
 import { useCanvasSync } from './useCanvasSync';
 import { useDesignController } from './design/useDesignController';
+import { useSurgeryController } from './surgery/useSurgeryController';
 import PipelineNode from './PipelineNode.vue';
 import PipelineEdge from './PipelineEdge.vue';
 
@@ -26,6 +27,7 @@ const { selectedView, viewLoading } = storeToRefs(store);
 const design = usePipelineDesignStore();
 const controller = useCanvasController();
 const designController = useDesignController();
+const surgeryController = useSurgeryController();
 const { layingOut, dispose } = useCanvasSync(FLOW_ID);
 const { screenToFlowCoordinate } = useVueFlow(FLOW_ID);
 
@@ -53,10 +55,18 @@ function onPaneContextMenu(event: MouseEvent): void {
 }
 
 function onNodeContextMenu({ event, node }: NodeMouseEvent): void {
-  if (!designModeActive.value) return;
-  event.preventDefault();
   const mouse = event as MouseEvent;
-  designController.openNodeMenu(mouse.clientX, mouse.clientY, node.id);
+  if (designModeActive.value) {
+    event.preventDefault();
+    designController.openNodeMenu(mouse.clientX, mouse.clientY, node.id);
+    return;
+  }
+  // Not in design mode: if a live (server-backed) pipeline is selected, open the
+  // SURGERY menu for the right-clicked node. The two menus are mutually exclusive
+  // (surgery is suppressed during design mode), so they never both open.
+  if (!selectedView.value) return;
+  event.preventDefault();
+  surgeryController.openNodeMenu(mouse.clientX, mouse.clientY, node.id);
 }
 
 function onEdgeContextMenu({ event, edge }: EdgeMouseEvent): void {

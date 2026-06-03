@@ -217,6 +217,7 @@ export function useCanvasSync(flowId: string) {
       }
       fittedPipelineId.value = null;
       controller.setSelectedNodeId(null);
+      controller.setSelectedNodeIds([]);
       controller.hasSelection.value = false;
       controller.closeZoom();
     }
@@ -277,6 +278,7 @@ export function useCanvasSync(flowId: string) {
       const nodeIds = nodeKey ? nodeKey.split('\u0001') : [];
       controller.hasSelection.value = nodeIds.length + edgeCount > 0;
       controller.setSelectedNodeId(nodeIds.length === 1 ? nodeIds[0] : null);
+      controller.setSelectedNodeIds(nodeIds);
     }
   );
 

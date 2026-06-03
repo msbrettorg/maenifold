@@ -6,11 +6,13 @@
 // "zoom" affordance that opens the SemanticZoom overlay for the node.
 import { computed, onUnmounted, watch } from 'vue';
 import { storeToRefs } from 'pinia';
-import { Maximize2, MousePointerClick } from '@lucide/vue';
+import { Maximize2, MousePointerClick, Octagon, RotateCcw } from '@lucide/vue';
 import { usePipelinesStore } from '../../stores/pipelines';
 import { usePipelineInspectionStore } from '../../stores/pipelineInspection';
 import { useCanvasController } from './useCanvasController';
 import { availableSurfaces, nodeConfigEntries, type ConfigEntry } from './zoomLogic';
+import { useSurgeryActions } from './surgery/useSurgeryActions';
+import { canRestartNode, canAbandonNode } from '../../lib/surgeryEnablement';
 import SessionInspectorPanel from './inspect/SessionInspectorPanel.vue';
 import ProvenanceBreadcrumbs from './inspect/ProvenanceBreadcrumbs.vue';
 import {
@@ -141,6 +143,23 @@ const surfaceCount = computed(() => {
 function openZoom(): void {
   if (node.value) controller.openZoom(node.value.nodeId);
 }
+
+// --- inline node surgery (T-600.5) -----------------------------------------
+// Resume (restart) an abandoned/stuck/failed node, or abandon an active node,
+// directly on the LIVE pipeline. Enablement mirrors the verified backend guards
+// (update_restart.rs / update_status.rs). Actions pause polling, mutate, re-view
+// to prove persistence, then resume — all via the shared surgery controller.
+const surgery = useSurgeryActions();
+const restartState = computed(() => canRestartNode(selectedView.value, node.value));
+const abandonState = computed(() => canAbandonNode(node.value));
+
+function onRestart(): void {
+  if (node.value) void surgery.restartNode(node.value.nodeId);
+}
+
+function onAbandon(): void {
+  if (node.value) void surgery.abandonNode(node.value.nodeId);
+}
 </script>
 
 <template>
@@ -174,6 +193,34 @@ function openZoom(): void {
         </dl>
 
         <ProvenanceBreadcrumbs :node="node" />
+
+        <!-- Inline node surgery: resume (restart) or abandon, gated by the
+             backend-verified enablement matrix. -->
+        <section
+          v-if="restartState.enabled || abandonState.enabled"
+          class="inspector-surgery"
+        >
+          <button
+            v-if="restartState.enabled"
+            type="button"
+            class="surgery-btn resume"
+            :disabled="surgery.busy.value"
+            @click="onRestart"
+          >
+            <RotateCcw :size="13" :stroke-width="2" />
+            Resume from this node
+          </button>
+          <button
+            v-if="abandonState.enabled"
+            type="button"
+            class="surgery-btn abandon"
+            :disabled="surgery.busy.value"
+            @click="onAbandon"
+          >
+            <Octagon :size="13" :stroke-width="2" />
+            Abandon node
+          </button>
+        </section>
 
         <section class="inspector-section">
           <SessionInspectorPanel :node="node" />
@@ -321,6 +368,49 @@ function openZoom(): void {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+}
+
+.inspector-surgery {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.surgery-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.surgery-btn.resume {
+  color: var(--text-accent);
+  border-color: color-mix(in srgb, var(--text-accent) 40%, var(--border-color));
+}
+
+.surgery-btn.resume:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text-accent) 12%, transparent);
+}
+
+.surgery-btn.abandon:hover:not(:disabled) {
+  color: var(--bg-danger, #d9534f);
+  border-color: color-mix(in srgb, var(--bg-danger, #d9534f) 45%, var(--border-color));
+  background: var(--bg-hover);
+}
+
+.surgery-btn:disabled {
+  cursor: default;
+  opacity: 0.5;
 }
 
 .inspector-section h4 {

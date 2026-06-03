@@ -15,6 +15,7 @@ import { storeToRefs } from 'pinia';
 import { GitBranch, PanelLeft, RefreshCw, Search } from '@lucide/vue';
 import { usePipelinesStore } from '../stores/pipelines';
 import { usePipelineDesignStore } from '../stores/pipelineDesign';
+import { useSurgeryController } from './pipeline/surgery/useSurgeryController';
 import PipelineCanvas from './pipeline/PipelineCanvas.vue';
 import PipelineToolbar from './pipeline/PipelineToolbar.vue';
 import NodeInspectorPane from './pipeline/NodeInspectorPane.vue';
@@ -24,9 +25,16 @@ import PipelineContextMenu from './pipeline/design/PipelineContextMenu.vue';
 import NodeConfigForm from './pipeline/design/NodeConfigForm.vue';
 import EdgeConfigForm from './pipeline/design/EdgeConfigForm.vue';
 import SaveStatusBadge from './pipeline/design/SaveStatusBadge.vue';
+import PipelineSurgeryToolbar from './pipeline/surgery/PipelineSurgeryToolbar.vue';
+import PipelineSurgeryMenu from './pipeline/surgery/PipelineSurgeryMenu.vue';
+import GraftNodesDialog from './pipeline/surgery/GraftNodesDialog.vue';
+import JoinPipelineDialog from './pipeline/surgery/JoinPipelineDialog.vue';
+import ForkPipelineDialog from './pipeline/surgery/ForkPipelineDialog.vue';
+import SurgeryStatusToast from './pipeline/surgery/SurgeryStatusToast.vue';
 
 const store = usePipelinesStore();
 const design = usePipelineDesignStore();
+const surgeryController = useSurgeryController();
 const { pipelines, loading, error, selectedPipelineId, viewLoading } = storeToRefs(store);
 
 const flyoutOpen = ref(true);
@@ -55,6 +63,9 @@ function selectPipeline(pipelineId: string): void {
   // Loading another pipeline navigates away from any in-flight design edits.
   if (!design.confirmDiscardDesignChanges()) return;
   design.exitDesignMode();
+  // Close any open surgery menu/dialog and drop the captured target so a stale
+  // surface can't mutate the newly selected pipeline (T-600.5 Defect 3).
+  surgeryController.reset();
   void store.viewPipeline(pipelineId);
 }
 </script>
@@ -161,6 +172,19 @@ function selectPipeline(pipelineId: string): void {
     <PipelineContextMenu />
     <NodeConfigForm />
     <EdgeConfigForm />
+
+    <!-- Graph surgery (T-600.5): SERVER-MODE operations on the selected LIVE
+         pipeline (batch rewind, node restart/abandon, graft, join, fork). The
+         parallel system to design-mode editing — suppressed while design mode is
+         active. Toolbar teleports into #pipeline-toolbar; the node menu, dialogs
+         and status toast teleport into #pipeline-overlay. All communicate through
+         the surgery controller singleton, never props/emits across the teleport. -->
+    <PipelineSurgeryToolbar />
+    <PipelineSurgeryMenu />
+    <GraftNodesDialog />
+    <JoinPipelineDialog />
+    <ForkPipelineDialog />
+    <SurgeryStatusToast />
   </section>
 </template>
 

@@ -251,6 +251,34 @@ describe('OnboardingWizard', () => {
     expect(wrapper.find('[role="dialog"]').exists()).toBe(true);
   });
 
+  it('stays hidden for a configured user but appears when Re-run setup calls reopen()', async () => {
+    // Mirrors how App.vue mounts the wizard for a fully-configured user: the
+    // initial :open is false (needsOnboarding === false), so the wizard does
+    // not auto-show. The Settings "Re-run setup" button calls the module-level
+    // reopen(), which must bring the mounted wizard back.
+    const wrapper = mount(OnboardingWizard, {
+      attachTo: document.body,
+      props: {
+        open: false,
+        config: {
+          agents: READY_CONFIG.agents.map((agent) => ({ ...agent })),
+          settings: { ...READY_CONFIG.settings },
+        },
+        embeddingStatus: {
+          activeModelStatus: { ...READY_EMBEDDING_STATUS.activeModelStatus },
+        },
+      },
+    });
+    mountedWrappers.push(wrapper);
+
+    await settle();
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
+
+    reopen();
+    await settle();
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true);
+  });
+
   it('keeps focus inside the dialog when Tab is pressed', async () => {
     const wrapper = mountWizard();
 

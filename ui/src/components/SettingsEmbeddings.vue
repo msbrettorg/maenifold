@@ -11,6 +11,7 @@ import {
 } from '@lucide/vue';
 
 import { useEmbeddingsStore, type EmbeddingModel } from '../stores/embeddings';
+import { composeActivationWarning } from './embeddingActivationWarning';
 
 type MutationKind = 'download' | 'activate' | 'delete' | 'regenerate';
 type MutationTone = 'primary' | 'danger' | 'warn';
@@ -42,6 +43,11 @@ const activeCatalogModel = computed<EmbeddingModel | null>(() => {
 
   return embeddingsStore.catalog.find((model) => model.isActive) ?? null;
 });
+
+const activeModelDimensions = computed<number | null>(
+  () =>
+    embeddingsStore.status?.model?.dimensions ?? activeCatalogModel.value?.dimensions ?? null
+);
 
 const activeModelIdLabel = computed<string>(
   () => embeddingsStore.status?.activeModelId ?? activeCatalogModel.value?.id ?? 'Not configured'
@@ -270,9 +276,11 @@ function promptActivate(model: EmbeddingModel): void {
       { label: 'Current active model', value: activeModelIdLabel.value },
       { label: 'Dimensions', value: formatCount(model.dimensions) },
     ],
-    warning: isRestrictedLicense(model.license)
-      ? 'Restricted-license activations require backend opt-in if the daemon enforces license confirmation.'
-      : null,
+    warning: composeActivationWarning({
+      targetDimensions: model.dimensions,
+      currentDimensions: activeModelDimensions.value,
+      restrictedLicense: isRestrictedLicense(model.license),
+    }),
   });
 }
 

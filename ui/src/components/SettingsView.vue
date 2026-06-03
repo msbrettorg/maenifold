@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, type Component } from 'vue';
-import { MessageSquare, Package, Server, Settings, SlidersHorizontal } from '@lucide/vue';
+import { MessageSquare, Package, RefreshCcw, Server, Settings, SlidersHorizontal } from '@lucide/vue';
 import { useAgentsAdminStore } from '../stores/agentsAdmin';
+import { reopen as reopenOnboarding } from './OnboardingWizard.vue';
 import SettingsAgents from './SettingsAgents.vue';
 import SettingsAppSettings from './SettingsAppSettings.vue';
 import SettingsEmbeddings from './SettingsEmbeddings.vue';
@@ -94,6 +95,14 @@ onMounted(() => {
 function selectArea(area: SettingsArea): void {
   activeArea.value = area;
 }
+
+// Re-run the first-run onboarding wizard. The wizard is mounted once at the
+// app-shell level (App.vue); reopen() clears its localStorage dismissal flag
+// and broadcasts a visibility event the mounted instance listens for, so it
+// reappears even for a fully-configured user.
+function rerunSetup(): void {
+  reopenOnboarding();
+}
 </script>
 
 <template>
@@ -109,6 +118,10 @@ function selectArea(area: SettingsArea): void {
             Manage embeddings, app settings, ACP agents, and MCP servers.
           </p>
         </div>
+        <button type="button" class="hero-rerun" @click="rerunSetup">
+          <RefreshCcw class="hero-rerun-icon" :size="16" :stroke-width="1.9" />
+          <span>Re-run setup</span>
+        </button>
       </section>
 
       <div class="settings-grid">
@@ -193,6 +206,33 @@ function selectArea(area: SettingsArea): void {
 
 .hero-copy {
   min-width: 0;
+}
+
+.hero-rerun {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--text-accent) 30%, var(--border-color));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--text-accent) 10%, transparent);
+  color: var(--text-accent);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.hero-rerun:hover {
+  background: color-mix(in srgb, var(--text-accent) 16%, transparent);
+  border-color: color-mix(in srgb, var(--text-accent) 45%, var(--border-color));
+}
+
+.hero-rerun-icon {
+  flex-shrink: 0;
 }
 
 .hero-title {

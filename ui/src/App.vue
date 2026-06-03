@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { canPickFolder, pickFolder, loadKvStore, type KVStore } from './lib/host';
 import { useConfigStore } from './stores/config';
+import { useEmbeddingsStore } from './stores/embeddings';
 import { useSessionStore } from './stores/session';
 import { useAppShellStore } from './stores/appShell';
 import { initTelemetry } from './lib/telemetry';
@@ -18,9 +19,15 @@ import HomeView from './components/HomeView.vue';
 import KnowledgeView from './components/KnowledgeView.vue';
 import SchedulesView from './components/SchedulesView.vue';
 import PipelinesView from './components/PipelinesView.vue';
+import OnboardingWizard, {
+  needsOnboarding,
+  type OnboardingConfig,
+  type OnboardingEmbedStatus,
+} from './components/OnboardingWizard.vue';
 import type { SavedSession } from './lib/types';
 
 const configStore = useConfigStore();
+const embeddingsStore = useEmbeddingsStore();
 const sessionStore = useSessionStore();
 const shell = useAppShellStore();
 
@@ -92,6 +99,32 @@ const isReconnecting = computed(() => sessionStore.isReconnecting);
 const error = computed(() => sessionStore.error || configStore.error);
 const hasAgents = computed(() => configStore.hasAgents);
 
+// --- Onboarding wizard wiring -------------------------------------------
+// The wizard renders its own full-screen scrim/dialog and self-manages
+// visibility (localStorage dismissal + a window visibility event). App.vue
+// just mounts it once, seeds its config/embedding snapshots from the existing
+// stores, and decides the initial auto-show from `needsOnboarding`.
+//
+// `config` matches OnboardingConfig (agents map + settings.defaultAgent) and
+// `status` matches OnboardingEmbedStatus (activeModelStatus). Both are passed
+// live so the wizard seeds from real daemon state; the wizard fetches its own
+// fresh data once visible.
+const onboardingConfig = computed<OnboardingConfig>(
+  () => configStore.config as OnboardingConfig
+);
+const onboardingEmbedStatus = computed<OnboardingEmbedStatus | null>(
+  () => embeddingsStore.status as OnboardingEmbedStatus | null
+);
+// Gates the wizard mount until the initial setup snapshot has been evaluated,
+// so a configured user never sees a wizard flash during store load.
+const onboardingReady = ref(false);
+// Snapshot of the auto-show decision, captured exactly once after initial
+// load. Kept as a non-reactive snapshot (not a live computed) so progressing
+// through the wizard — which flips store state to "configured" — does not
+// retract `props.open` and close the wizard mid-flow. The wizard itself still
+// honours its localStorage dismissal on top of this.
+const onboardingInitialOpen = ref(false);
+
 // Name of the agent the reconnect banner refers to. Falls back to the
 // generic "agent" if the saved session has no name (shouldn't happen).
 const reconnectingAgentName = computed(
@@ -143,7 +176,27 @@ onMounted(async () => {
   await configStore.loadConfig();
   await configStore.setupHotReload();
   await sessionStore.initStore();
-  
+
+  // Seed the embedding status once so the onboarding auto-show decision sees
+  // real daemon state. A failure here (daemon down / vec0 missing) is itself a
+  // signal that setup is incomplete, so we leave `status` null and let
+  // `needsOnboarding` treat it as "needs setup".
+  try {
+    await embeddingsStore.fetchStatus();
+  } catch {
+    // Non-fatal: needsOnboarding(null) -> true, which is the correct default
+    // for a fresh / unhealthy install.
+  }
+
+  // Decide the initial auto-show exactly once, then mount the wizard. The
+  // wizard suppresses itself when its localStorage dismissal flag is set, so a
+  // user who already finished setup is not re-prompted across relaunches.
+  onboardingInitialOpen.value = needsOnboarding(
+    onboardingConfig.value,
+    onboardingEmbedStatus.value
+  );
+  onboardingReady.value = true;
+
   const savedCwd = await prefsStore.get<string>('lastCwd');
   if (savedCwd) {
     selectedCwd.value = savedCwd;
@@ -557,6 +610,17 @@ function clearError() {
       :agent-name="pendingAuthAgentName"
       @select="handleAuthMethodSelect"
       @cancel="handleAuthMethodCancel"
+    />
+
+    <!-- First-run / Re-run onboarding wizard. Mounted at the app shell level so
+         its full-screen scrim sits above every tab. It self-manages visibility
+         (localStorage dismissal + visibility events); `Settings → Re-run setup`
+         calls its module-level reopen() to bring it back for configured users. -->
+    <OnboardingWizard
+      v-if="onboardingReady"
+      :open="onboardingInitialOpen"
+      :config="onboardingConfig"
+      :embedding-status="onboardingEmbedStatus"
     />
 
   </div>

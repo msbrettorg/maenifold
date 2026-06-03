@@ -118,6 +118,19 @@ vi.mock('./stores/appShell', async () => {
   };
 });
 
+vi.mock('./stores/embeddings', async () => {
+  const { reactive } = await import('vue');
+
+  const embeddingsStore = reactive({
+    status: null as unknown,
+    fetchStatus: vi.fn().mockResolvedValue(undefined),
+  });
+
+  return {
+    useEmbeddingsStore: () => embeddingsStore,
+  };
+});
+
 vi.mock('./lib/host', () => ({
   canPickFolder: () => false,
   pickFolder: vi.fn(),
@@ -193,6 +206,7 @@ function mountApp() {
         ChatView: passthroughStub,
         HomeView: HomeViewStub,
         KnowledgeView: passthroughStub,
+        OnboardingWizard: passthroughStub,
         PermissionDialog: passthroughStub,
         SchedulesView: passthroughStub,
         SessionList: passthroughStub,

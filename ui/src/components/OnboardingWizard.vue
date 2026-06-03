@@ -1441,7 +1441,7 @@ export default defineComponent({
               <div>
                 <strong>Troubleshooting</strong>
                 <ul class="troubleshooting-list">
-                  <li>Ensure the daemon is running with <code>maenifold --http --port 8080</code> (MCP) and <code>--local-api-port 8081</code> (API; defaults to 8081).</li>
+                  <li>Ensure the daemon is running with <code>maenifold --http --port 8080</code>. The <code>/api/health</code> surface is served on the same MCP port, so the wizard targets <code>{{ healthEndpoint }}</code>.</li>
                   <li>Confirm <code>{{ healthEndpoint }}</code> responds locally.</li>
                   <li>Retry the check once the daemon is healthy.</li>
                 </ul>

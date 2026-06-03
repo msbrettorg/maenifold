@@ -23,6 +23,7 @@ import {
   Sparkles,
 } from '@lucide/vue';
 import { mcpHttpClient, McpHttpError } from '../lib/mcp/client';
+import { LOCAL_API_BASE_URL } from '../lib/mcp/config';
 
 type StepId = 'welcome' | 'daemon' | 'model' | 'agent' | 'done';
 type HealthState = 'idle' | 'loading' | 'ok' | 'error';
@@ -38,7 +39,7 @@ const STEP_LABELS: Array<{ id: StepId; label: string }> = [
 
 const ONBOARDING_DISMISSED_KEY = 'maenifold-ui:onboarding-dismissed';
 const ONBOARDING_VISIBILITY_EVENT = 'maenifold-ui:onboarding-visibility';
-const HEALTH_ENDPOINT = 'http://127.0.0.1:8080/api/health';
+const HEALTH_ENDPOINT = `${LOCAL_API_BASE_URL.replace(/\/+$/, '')}/api/health`;
 const FOCUSABLE_SELECTOR = [
   'a[href]',
   'button:not([disabled])',
@@ -1236,6 +1237,7 @@ export default defineComponent({
       handleDialogKeydown,
       handlePrimaryAction,
       hasDownloadProgress,
+      healthEndpoint: HEALTH_ENDPOINT,
       healthError,
       healthPayload,
       healthState,
@@ -1374,7 +1376,7 @@ export default defineComponent({
               </div>
               <div class="wizard-card">
                 <strong>Step 2</strong>
-                <p>Check <code>http://127.0.0.1:8080/api/health</code> before the UI relies on it.</p>
+                <p>Check <code>{{ healthEndpoint }}</code> before the UI relies on it.</p>
               </div>
               <div class="wizard-card">
                 <strong>Steps 3–5</strong>
@@ -1409,7 +1411,7 @@ export default defineComponent({
                   <strong>Daemon health</strong>
                   <p v-if="healthState === 'ok'">
                     The daemon responded successfully at
-                    <code>http://127.0.0.1:8080/api/health</code>.
+                    <code>{{ healthEndpoint }}</code>.
                   </p>
                   <p v-else-if="healthState === 'loading'">
                     Checking the daemon health endpoint now…
@@ -1428,9 +1430,9 @@ export default defineComponent({
                 <Server class="status-row-icon" />
                 <div class="status-row-copy">
                   <strong>Endpoint</strong>
-                  <p>Health requests target the local daemon HTTP port used by the rest of the UI.</p>
+                  <p>Health requests target the local-only API listener (loopback only).</p>
                 </div>
-                <code class="status-row-value">127.0.0.1:8080</code>
+                <code class="status-row-value">{{ healthEndpoint }}</code>
               </div>
             </div>
 
@@ -1439,8 +1441,8 @@ export default defineComponent({
               <div>
                 <strong>Troubleshooting</strong>
                 <ul class="troubleshooting-list">
-                  <li>Ensure the daemon is running with <code>maenifold --http --port 8080</code>.</li>
-                  <li>Confirm <code>http://127.0.0.1:8080/api/health</code> responds locally.</li>
+                  <li>Ensure the daemon is running with <code>maenifold --http --port 8080</code> (MCP) and <code>--local-api-port 8081</code> (API; defaults to 8081).</li>
+                  <li>Confirm <code>{{ healthEndpoint }}</code> responds locally.</li>
                   <li>Retry the check once the daemon is healthy.</li>
                 </ul>
                 <p v-if="healthError" class="inline-error">{{ healthError }}</p>
@@ -1632,7 +1634,7 @@ export default defineComponent({
                 <CheckCircle2 class="recap-item-icon" />
                 <div class="recap-item-copy">
                   <strong>Daemon health</strong>
-                  <p>Checked against <code>http://127.0.0.1:8080/api/health</code>.</p>
+                  <p>Checked against <code>{{ healthEndpoint }}</code>.</p>
                 </div>
                 <span class="recap-item-value">{{ recapDaemonStatus }}</span>
               </div>

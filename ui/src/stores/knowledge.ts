@@ -6,7 +6,7 @@ const MEMORY_DOMAIN = 'maenifold.memory';
 const DEFAULT_QUERY = 'maenifold';
 const DEFAULT_CONCEPT = 'maenifold';
 const STATS_URI = 'graph://stats';
-const GRAPH_RELATION_LIMIT = 28;
+export const GRAPH_RELATION_LIMIT = 28;
 const SEARCH_PAGE_SIZE = 32;
 const ROOT_TREE_PATH = '';
 

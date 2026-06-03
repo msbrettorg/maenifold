@@ -7,9 +7,10 @@
 // the shell offers a tab per available surface.
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
-import { X } from '@lucide/vue';
+import { BookPlus, X } from '@lucide/vue';
 import { usePipelinesStore } from '../../stores/pipelines';
 import { useCanvasController } from './useCanvasController';
+import { usePromoteToMemory } from '../../composables/usePromoteToMemory';
 import {
   availableSurfaces,
   type ZoomSurface,
@@ -33,6 +34,11 @@ import SessionInspectorPanel from './inspect/SessionInspectorPanel.vue';
 const store = usePipelinesStore();
 const { selectedNodes } = storeToRefs(store);
 const controller = useCanvasController();
+const promote = usePromoteToMemory();
+
+function promoteCurrentNode(): void {
+  if (node.value) promote.openFor(node.value);
+}
 
 const node = computed<ViewNode | null>(() => {
   const id = controller.zoomNodeId.value;
@@ -145,9 +151,21 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
             <strong>{{ viewNodeDisplayLabel(node) }}</strong>
             <span class="zoom-status">{{ node.status }}</span>
           </div>
-          <button ref="closeButton" type="button" class="zoom-close" aria-label="Close zoom" @click="close">
-            <X :size="16" :stroke-width="2" />
-          </button>
+          <div class="zoom-actions">
+            <button
+              type="button"
+              class="zoom-promote"
+              aria-label="Promote to memory"
+              title="Promote to memory"
+              @click="promoteCurrentNode"
+            >
+              <BookPlus :size="15" :stroke-width="2" />
+              <span>Promote</span>
+            </button>
+            <button ref="closeButton" type="button" class="zoom-close" aria-label="Close zoom" @click="close">
+              <X :size="16" :stroke-width="2" />
+            </button>
+          </div>
         </header>
 
         <nav v-if="surfaces.length > 1" class="zoom-tabs" role="tablist">
@@ -264,6 +282,33 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
   text-transform: uppercase;
   letter-spacing: 0.02em;
   color: var(--text-secondary);
+}
+
+.zoom-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.zoom-promote {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--text-accent) 35%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--text-accent) 10%, transparent);
+  color: var(--text-accent);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.zoom-promote:hover {
+  background: color-mix(in srgb, var(--text-accent) 18%, transparent);
 }
 
 .zoom-close {

@@ -466,11 +466,6 @@ onMounted(() => {
   flex-direction: column;
   overflow: hidden;
   color: var(--text-primary);
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--border-color) 72%, transparent) 1px, transparent 1px),
-    linear-gradient(0deg, color-mix(in srgb, var(--border-color) 72%, transparent) 1px, transparent 1px),
-    var(--bg-main);
-  background-size: 28px 28px;
 }
 
 .kb-header {

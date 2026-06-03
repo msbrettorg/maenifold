@@ -67,7 +67,9 @@ pub(super) fn resolve_open_url(
 /// Spawn the tokio/axum server on a dedicated background `std::thread`,
 /// returning the join handle. Used by `run_with_tray`.
 pub(super) fn spawn_server_thread(
+    mcp_bind: String,
     port: u16,
+    local_api_port: u16,
     shutdown_token: CancellationToken,
 ) -> std::thread::JoinHandle<i32> {
     std::thread::Builder::new()
@@ -81,7 +83,13 @@ pub(super) fn spawn_server_thread(
                 }
             };
             let result = rt.block_on(async move {
-                crate::mcp::MaenifoldMcpServer::serve_http_with_shutdown(port, shutdown_token).await
+                crate::mcp::MaenifoldMcpServer::serve_split_with_shutdown(
+                    &mcp_bind,
+                    port,
+                    local_api_port,
+                    shutdown_token,
+                )
+                .await
             });
             rt.shutdown_timeout(Duration::from_secs(5));
             match result {

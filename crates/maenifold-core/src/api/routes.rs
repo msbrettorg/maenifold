@@ -59,6 +59,10 @@ impl ApiState {
             user_prompt_registry,
         }
     }
+
+    pub(crate) fn config_snapshot(&self) -> Config {
+        self.config.read().clone()
+    }
 }
 
 #[derive(Clone)]
@@ -106,6 +110,13 @@ impl ApiError {
     pub(crate) fn bad_request(message: impl Into<String>) -> Self {
         Self {
             status: StatusCode::BAD_REQUEST,
+            message: message.into(),
+        }
+    }
+
+    pub(crate) fn forbidden(message: impl Into<String>) -> Self {
+        Self {
+            status: StatusCode::FORBIDDEN,
             message: message.into(),
         }
     }

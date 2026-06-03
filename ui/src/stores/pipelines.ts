@@ -13,6 +13,7 @@ import type {
   PipelineView,
   ViewNode,
 } from '../lib/pipeline-types';
+import type { LogEntry } from '../components/pipeline/runner/runnerLog';
 
 // The Pipeline tool lives in the `maenifold.workflow` MCP domain and is a
 // single multiplexed command: the operation is selected by which flag
@@ -22,6 +23,10 @@ const WORKFLOW_DOMAIN = 'maenifold.workflow';
 const PIPELINE_COMMAND = 'Pipeline';
 const SESSIONS_URI = 'pipeline://sessions';
 const DEFAULT_MAX_CONCURRENCY = 8;
+// The live runner (T-600.3) appends one event-log entry per detected change.
+// Cap the buffer so a long-running pipeline can't grow it without bound; the
+// oldest entries are dropped first.
+const EVENT_LOG_CAP = 500;
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -143,6 +148,15 @@ export const usePipelinesStore = defineStore('pipelines', () => {
   const viewLoading = ref(false);
   const error = ref<string | null>(null);
 
+  // --- live-runner polling state (T-600.3) ----------------------------------
+  // Behavioral state owned by the runner that consumes it: the event log the
+  // poller appends to, whether a poll loop is active, and the most recent poll
+  // error (after the 3-strike tolerance trips). The interval itself lives in the
+  // `usePipelineRunner` composable; the store owns the shared reactive state.
+  const eventLog = ref<LogEntry[]>([]);
+  const pollingActive = ref(false);
+  const pollError = ref<string | null>(null);
+
   const pipelineCount = computed(() => pipelines.value.length);
   const selectedNodes = computed<ViewNode[]>(() => selectedView.value?.nodes ?? []);
   const selectedEdges = computed<PipelineEdge[]>(() => selectedView.value?.edges ?? []);
@@ -197,6 +211,20 @@ export const usePipelinesStore = defineStore('pipelines', () => {
     } finally {
       viewLoading.value = false;
     }
+  }
+
+  // Non-mutating view read: same `{ sessionId, view: true }` fetch as
+  // `viewPipeline` but it does NOT assign `selectedView`/`selectedPipelineId`.
+  // The live runner's poll loop uses this so an in-flight poll for pipeline A
+  // can never clobber the selection after the user switches to pipeline B; the
+  // caller decides (under generation/dispose gating) whether to apply the result.
+  async function fetchViewRaw(sessionId: string): Promise<PipelineView> {
+    const raw = await executeGateway<Record<string, unknown>>(
+      WORKFLOW_DOMAIN,
+      PIPELINE_COMMAND,
+      { sessionId, view: true }
+    );
+    return normalizePipelineView(raw);
   }
 
   // --- lifecycle mutations --------------------------------------------------
@@ -364,6 +392,45 @@ export const usePipelinesStore = defineStore('pipelines', () => {
     await refreshAll();
   }
 
+  // --- live-runner polling mutations (T-600.3) ------------------------------
+
+  function appendLogEntries(entries: LogEntry[]): void {
+    if (entries.length === 0) return;
+    const next = eventLog.value.concat(entries);
+    // Drop the oldest entries past the cap (newest are kept).
+    eventLog.value = next.length > EVENT_LOG_CAP ? next.slice(next.length - EVENT_LOG_CAP) : next;
+  }
+
+  function resetEventLog(): void {
+    eventLog.value = [];
+    pollError.value = null;
+  }
+
+  // Clear the current selection and its event log. Used after a successful
+  // delete so the UI never keeps showing/targeting a gone pipeline; a clean
+  // empty state is preferred over auto-selecting a survivor.
+  function clearSelection(): void {
+    selectedView.value = null;
+    selectedPipelineId.value = null;
+    eventLog.value = [];
+    pollError.value = null;
+  }
+
+  // Assign a polled view into the live selection. Separate from `viewPipeline`
+  // so the runner can apply a non-mutating poll result ONLY when it is still
+  // current (the gating decision lives in the composable).
+  function applyPolledView(view: PipelineView): void {
+    selectedView.value = view;
+  }
+
+  function setPollingActive(active: boolean): void {
+    pollingActive.value = active;
+  }
+
+  function setPollError(message: string | null): void {
+    pollError.value = message;
+  }
+
   return {
     pipelines,
     selectedView,
@@ -375,9 +442,13 @@ export const usePipelinesStore = defineStore('pipelines', () => {
     pipelineCount,
     selectedNodes,
     selectedEdges,
+    eventLog,
+    pollingActive,
+    pollError,
     refreshList,
     listPipelines,
     viewPipeline,
+    fetchViewRaw,
     createPipeline,
     updatePipeline,
     runPipeline,
@@ -394,5 +465,11 @@ export const usePipelinesStore = defineStore('pipelines', () => {
     setNodeStatus,
     refreshAll,
     bootstrap,
+    appendLogEntries,
+    resetEventLog,
+    clearSelection,
+    applyPolledView,
+    setPollingActive,
+    setPollError,
   };
 });

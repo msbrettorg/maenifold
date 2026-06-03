@@ -16,6 +16,7 @@ import { GitBranch, PanelLeft, RefreshCw, Search } from '@lucide/vue';
 import { usePipelinesStore } from '../stores/pipelines';
 import PipelineCanvas from './pipeline/PipelineCanvas.vue';
 import PipelineToolbar from './pipeline/PipelineToolbar.vue';
+import PipelineRunner from './pipeline/runner/PipelineRunner.vue';
 
 const store = usePipelinesStore();
 const { pipelines, loading, error, selectedPipelineId, viewLoading } = storeToRefs(store);
@@ -130,6 +131,10 @@ function selectPipeline(pipelineId: string): void {
 
     <!-- Canvas toolbar teleports into #pipeline-toolbar above. -->
     <PipelineToolbar />
+    <!-- Runner panel (action bar + run form + event log + history) teleports
+         into #pipeline-runner. Mounted here so its Teleport target resolves;
+         it renders nothing until a pipeline is selected. -->
+    <PipelineRunner />
   </section>
 </template>
 

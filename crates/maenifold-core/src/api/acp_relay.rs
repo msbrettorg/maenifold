@@ -2,6 +2,8 @@ use crate::api::routes::{ApiError, ApiResult, ApiState};
 use agent_client_protocol::schema::{self as acp};
 use axum::{
     extract::{Path, Query, State, ws::WebSocketUpgrade},
+    extract::ws::rejection::WebSocketUpgradeRejection,
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Json},
 };
 use serde::{Deserialize, Serialize};
@@ -126,14 +128,68 @@ fn default_agent_cwd(root: &std::path::Path) -> ApiResult<String> {
     Ok(jockey::acp::resolve_cwd(workdir.to_string_lossy().as_ref()))
 }
 
+#[allow(dead_code)]
+pub(crate) fn check_origin(
+    origin: Option<&str>,
+    allowlist: &[String],
+) -> std::result::Result<(), StatusCode> {
+    let Some(origin) = origin else {
+        return Ok(());
+    };
+    if allowlist.is_empty() {
+        return Ok(());
+    }
+    // First-party origins: explicit loopback HTTP/HTTPS variants and the
+    // Tauri packaged-app schemes. Opaque origins (`null`, `file://`) are
+    // intentionally EXCLUDED — a sandboxed iframe or cross-origin redirect
+    // can synthesize `Origin: null` from any attacker-controlled page, which
+    // would otherwise bypass this guard. If a user really needs to allow
+    // those opaque origins, they must list them explicitly in
+    // `mcpAllowedOrigins`.
+    let is_first_party_origin = origin == "http://localhost"
+        || origin.starts_with("http://localhost:")
+        || origin == "http://127.0.0.1"
+        || origin.starts_with("http://127.0.0.1:")
+        || origin == "http://[::1]"
+        || origin.starts_with("http://[::1]:")
+        || origin == "http://tauri.localhost"
+        || origin == "https://tauri.localhost"
+        || origin == "tauri://localhost";
+    if allowlist.iter().any(|allowed| allowed == origin) || is_first_party_origin {
+        return Ok(());
+    }
+    Err(StatusCode::FORBIDDEN)
+}
+
 /// Handles ACP relay WebSocket upgrades. The `?agent=` parameter must match a
 /// key in `~/maenifold/maenifold.json`'s `agents` block using a
 /// case-insensitive comparison.
+///
+/// The WebSocketUpgrade extractor is wrapped in `Result<_, _>` so its rejection
+/// (HTTP 426 for non-upgrade requests) is deferred. This lets the Origin guard
+/// run first — it MUST take precedence per MCP DNS-rebinding mitigation.
 pub async fn ws_handler(
-    ws: WebSocketUpgrade,
-    State(_state): State<ApiState>,
+    State(state): State<ApiState>,
     Query(query): Query<RelayQuery>,
+    headers: HeaderMap,
+    ws_result: std::result::Result<WebSocketUpgrade, WebSocketUpgradeRejection>,
 ) -> ApiResult<impl IntoResponse> {
+    let config = state.config_snapshot();
+    let origin = match headers.get(axum::http::header::ORIGIN) {
+        Some(value) => Some(
+            value
+                .to_str()
+                .map_err(|_| ApiError::forbidden("Forbidden Origin header"))?,
+        ),
+        None => None,
+    };
+    check_origin(origin, &config.mcp_allowed_origins())
+        .map_err(|_| ApiError::forbidden("Forbidden Origin header"))?;
+
+    let ws = ws_result.map_err(|rejection| {
+        ApiError::bad_request(format!("WebSocket upgrade rejected: {rejection}"))
+    })?;
+
     let agent_name = query
         .agent
         .filter(|value| !value.trim().is_empty())

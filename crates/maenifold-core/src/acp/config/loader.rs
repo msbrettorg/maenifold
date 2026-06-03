@@ -23,6 +23,10 @@ pub struct AgentsConfig {
     pub mcp_servers: HashMap<String, McpServerEntry>,
     #[serde(default)]
     pub agents: HashMap<String, AgentEntry>,
+    #[serde(default, rename = "mcpAllowedHosts", skip_serializing_if = "Vec::is_empty")]
+    pub mcp_allowed_hosts: Vec<String>,
+    #[serde(default, rename = "mcpAllowedOrigins", skip_serializing_if = "Vec::is_empty")]
+    pub mcp_allowed_origins: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub settings: Option<MaenifoldSettings>,
 }
@@ -45,6 +49,8 @@ impl AgentsConfig {
         let config = Self {
             mcp_servers: parsed.mcp_servers,
             agents,
+            mcp_allowed_hosts: parsed.mcp_allowed_hosts,
+            mcp_allowed_origins: parsed.mcp_allowed_origins,
             settings: parsed.settings,
         };
 
@@ -85,6 +91,8 @@ impl AgentsConfig {
         let config = Self {
             mcp_servers: parsed.mcp_servers,
             agents,
+            mcp_allowed_hosts: parsed.mcp_allowed_hosts,
+            mcp_allowed_origins: parsed.mcp_allowed_origins,
             settings: parsed.settings,
         };
 

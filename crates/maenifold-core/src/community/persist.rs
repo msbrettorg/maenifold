@@ -103,6 +103,8 @@ mod tests {
                 .join("thinking")
                 .join("sequential"),
             database_path: root.path().join("memory.db"),
+            mcp_allowed_hosts: Vec::new(),
+            mcp_allowed_origins: Vec::new(),
             settings: MaenifoldSettings::default(),
         };
 

@@ -1,6 +1,7 @@
 use crate::acp_config::{AgentsConfig, MaenifoldSettings, default_agents_config};
 use crate::error::{MaenifoldError, Result};
 use parking_lot::RwLock;
+use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -15,7 +16,8 @@ struct Overrides {
 
 static OVERRIDES: LazyLock<RwLock<Overrides>> = LazyLock::new(|| RwLock::new(Overrides::default()));
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
 pub struct Config {
     pub maenifold_root: PathBuf,
     pub memory_path: PathBuf,
@@ -23,6 +25,10 @@ pub struct Config {
     pub thinking_path: PathBuf,
     pub sequential_path: PathBuf,
     pub database_path: PathBuf,
+    #[serde(rename = "mcpAllowedHosts")]
+    pub mcp_allowed_hosts: Vec<String>,
+    #[serde(rename = "mcpAllowedOrigins")]
+    pub mcp_allowed_origins: Vec<String>,
     pub settings: MaenifoldSettings,
 }
 
@@ -56,6 +62,7 @@ impl Config {
                 std::process::exit(1);
             }
         };
+        let allowlists = AgentsConfig::load_or_default(&maenifold_root).unwrap_or_default();
         Self {
             maenifold_root,
             memory_path,
@@ -63,6 +70,8 @@ impl Config {
             thinking_path,
             sequential_path,
             database_path,
+            mcp_allowed_hosts: allowlists.mcp_allowed_hosts,
+            mcp_allowed_origins: allowlists.mcp_allowed_origins,
             settings,
         }
     }
@@ -126,6 +135,14 @@ impl Config {
             .to_str()
             .ok_or_else(|| MaenifoldError::NonUtf8Path(self.database_path.clone()))?;
         Ok(format!("file:{path}?mode=rwc"))
+    }
+
+    pub fn mcp_allowed_hosts(&self) -> Vec<String> {
+        self.mcp_allowed_hosts.clone()
+    }
+
+    pub fn mcp_allowed_origins(&self) -> Vec<String> {
+        self.mcp_allowed_origins.clone()
     }
 
     // T-92.2: rolling log rotation strategy.
@@ -309,6 +326,40 @@ mod default_retention_tests {
                 .expect("default quarantine retention config")
                 .retention_days,
             30
+        );
+    }
+
+    #[test]
+    fn config_default_mcp_allowed_hosts_is_empty() {
+        let config = Config::default();
+        assert!(config.mcp_allowed_hosts().is_empty());
+    }
+
+    #[test]
+    fn config_default_mcp_allowed_origins_is_empty() {
+        let config = Config::default();
+        assert!(config.mcp_allowed_origins().is_empty());
+    }
+
+    #[test]
+    fn config_deserializes_mcp_allowed_hosts_camel_case() {
+        let config: Config =
+            serde_json::from_str(r#"{"mcpAllowedHosts":["mac-a.tailfoo.ts.net"]}"#)
+                .expect("config deserializes");
+        assert_eq!(
+            config.mcp_allowed_hosts(),
+            vec!["mac-a.tailfoo.ts.net".to_string()]
+        );
+    }
+
+    #[test]
+    fn config_deserializes_mcp_allowed_origins_camel_case() {
+        let config: Config =
+            serde_json::from_str(r#"{"mcpAllowedOrigins":["https://allowed.example"]}"#)
+                .expect("config deserializes");
+        assert_eq!(
+            config.mcp_allowed_origins(),
+            vec!["https://allowed.example".to_string()]
         );
     }
 }

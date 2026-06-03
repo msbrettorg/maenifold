@@ -312,7 +312,7 @@ describe('nodeConfigEntries', () => {
       toolName: 'RecentActivity',
       cwd: 'C:/src',
       allowedTools: ['x'],
-      agentConfig: { k: 'v' },
+      agentConfig: { model: 'gpt-5' },
     };
     expect(nodeConfigEntries(node).map((e) => e.label)).toEqual([
       'agentConfig',

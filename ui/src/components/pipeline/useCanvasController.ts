@@ -20,6 +20,14 @@ export interface CanvasActions {
 const direction = ref<Direction>(DEFAULT_DIRECTION);
 const paletteOpen = ref(false);
 const hasSelection = ref(false);
+// The single currently-selected node id (null when zero or multiple nodes are
+// selected). Drives the teleported node inspector pane (T-600.6). Set by the
+// canvas's flow→selection handler in useCanvasSync.
+const selectedNodeId = ref<string | null>(null);
+// The node whose SemanticZoom overlay is open (null = overlay closed). Shared
+// here because the inspector (which opens it) and the overlay (which renders it)
+// are teleported into sibling subtrees and cannot reach each other via props.
+const zoomNodeId = ref<string | null>(null);
 
 let actions: CanvasActions | null = null;
 
@@ -40,6 +48,18 @@ export function useCanvasController() {
     paletteOpen.value = !paletteOpen.value;
   }
 
+  function setSelectedNodeId(next: string | null): void {
+    selectedNodeId.value = next;
+  }
+
+  function openZoom(nodeId: string): void {
+    zoomNodeId.value = nodeId;
+  }
+
+  function closeZoom(): void {
+    zoomNodeId.value = null;
+  }
+
   function autoLayout(): void {
     actions?.autoLayout();
   }
@@ -56,10 +76,15 @@ export function useCanvasController() {
     direction,
     paletteOpen,
     hasSelection,
+    selectedNodeId,
+    zoomNodeId,
     registerActions,
     clearActions,
     setDirection,
     togglePalette,
+    setSelectedNodeId,
+    openZoom,
+    closeZoom,
     autoLayout,
     fitView,
     deleteSelected,

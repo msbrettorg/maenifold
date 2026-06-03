@@ -88,8 +88,6 @@ fn test_config(root: &std::path::Path) -> Config {
         thinking_path: root.join("memory").join("thinking"),
         sequential_path: root.join("memory").join("thinking").join("sequential"),
         database_path: root.join("memory.db"),
-        mcp_allowed_hosts: Vec::new(),
-        mcp_allowed_origins: Vec::new(),
         settings: AgentsConfig::load(root)
             .expect("test config should load")
             .settings

@@ -6,8 +6,6 @@ use super::Cli;
 pub(super) struct ParsedCli {
     pub(super) cli: Cli,
     pub(super) port_was_explicit: bool,
-    pub(super) mcp_bind_was_explicit: bool,
-    pub(super) local_api_port_was_explicit: bool,
     pub(super) warn_deprecated_tool: bool,
 }
 
@@ -21,15 +19,10 @@ pub(super) fn parse_cli(args: &[String]) -> Result<ParsedCli, clap::Error> {
     let argv = std::iter::once("maenifold".to_string()).chain(normalized.args.iter().cloned());
     let matches = Cli::command().try_get_matches_from(argv)?;
     let port_was_explicit = matches.value_source("port") == Some(ValueSource::CommandLine);
-    let mcp_bind_was_explicit = matches.value_source("mcp_bind") == Some(ValueSource::CommandLine);
-    let local_api_port_was_explicit =
-        matches.value_source("local_api_port") == Some(ValueSource::CommandLine);
     let cli = Cli::from_arg_matches(&matches)?;
     Ok(ParsedCli {
         cli,
         port_was_explicit,
-        mcp_bind_was_explicit,
-        local_api_port_was_explicit,
         warn_deprecated_tool: normalized.warn_deprecated_tool,
     })
 }
@@ -48,12 +41,6 @@ pub(super) fn validate_cli(parsed: &ParsedCli) -> Result<(), String> {
 
     if parsed.port_was_explicit && !(parsed.cli.http || parsed.cli.app) {
         return Err("Error: --port is only valid with --http or --app".to_string());
-    }
-    if parsed.mcp_bind_was_explicit && !(parsed.cli.http || parsed.cli.app) {
-        return Err("Error: --mcp-bind is only valid with --http or --app".to_string());
-    }
-    if parsed.local_api_port_was_explicit && !(parsed.cli.http || parsed.cli.app) {
-        return Err("Error: --local-api-port is only valid with --http or --app".to_string());
     }
 
     Ok(())

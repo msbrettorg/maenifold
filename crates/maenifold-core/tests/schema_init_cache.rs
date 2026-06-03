@@ -18,8 +18,6 @@ fn make_config(root: &Path, database_path: PathBuf) -> Config {
         thinking_path,
         sequential_path,
         database_path,
-        mcp_allowed_hosts: Vec::new(),
-        mcp_allowed_origins: Vec::new(),
         settings: Default::default(),
     }
 }

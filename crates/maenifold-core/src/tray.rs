@@ -200,18 +200,9 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
     }
 
     let port = mode.port();
-    let args: Vec<String> = std::env::args().skip(1).collect();
-    let (mcp_bind, local_api_port) = match crate::cli::CliApp::classify(&args) {
-        crate::cli::CliAction::Http {
-            mcp_bind,
-            local_api_port,
-            ..
-        } => (mcp_bind, local_api_port),
-        _ => ("127.0.0.1".to_string(), 8081),
-    };
     let shutdown_token = CancellationToken::new();
 
-    let server_handle = spawn_server_thread(mcp_bind, port, local_api_port, shutdown_token.clone());
+    let server_handle = spawn_server_thread(port, shutdown_token.clone());
 
     // ── Build winit event loop & run ───────────────────────────────────
     let mut builder = EventLoop::builder();

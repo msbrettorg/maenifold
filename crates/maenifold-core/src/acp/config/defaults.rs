@@ -107,8 +107,6 @@ pub fn default_agents_config() -> AgentsConfig {
     AgentsConfig {
         mcp_servers: HashMap::new(),
         agents,
-        mcp_allowed_hosts: Vec::new(),
-        mcp_allowed_origins: Vec::new(),
         // Ship a UI default selection in the bootstrap so the picker
         // doesn't render with whatever HashMap ordering happens to land
         // first. Users can edit this freely in maenifold.json.

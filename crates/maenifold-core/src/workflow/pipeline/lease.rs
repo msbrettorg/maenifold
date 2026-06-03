@@ -114,8 +114,6 @@ mod tests {
             thinking_path: memory.join("thinking"),
             sequential_path: memory.join("thinking").join("sequential"),
             database_path: dir.join("memory.db"),
-            mcp_allowed_hosts: Vec::new(),
-            mcp_allowed_origins: Vec::new(),
             settings: crate::acp_config::MaenifoldSettings::default(),
         }
     }

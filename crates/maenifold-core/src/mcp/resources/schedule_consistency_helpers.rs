@@ -35,8 +35,6 @@ pub(super) fn test_context() -> (TempDir, ToolContext, ConfigResetGuard) {
         thinking_path: root.join("memory/thinking"),
         sequential_path: root.join("memory/thinking/sequential"),
         database_path: root.join("memory.db"),
-        mcp_allowed_hosts: Vec::new(),
-        mcp_allowed_origins: Vec::new(),
         settings: MaenifoldSettings::default(),
     };
     config

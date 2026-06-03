@@ -1,4 +1,4 @@
-use super::{mcp_router_with_service, local_api_router_with_state, service};
+use super::{router, service};
 use crate::api::routes::ApiState;
 use crate::mcp::localhost_cors;
 use crate::test_util::ConfigResetGuard;
@@ -20,20 +20,18 @@ fn test_state() -> (TempDir, ApiState, ConfigResetGuard) {
     (temp, ApiState::new(config, None), ConfigResetGuard)
 }
 
-// Test helper that merges both routers — equivalent to what production used
-// to do before T-415.1 split them. Some tests probe both halves of the surface
-// (e.g. /endophasia frontend route AND /api/config CORS), so they need both.
 fn test_router(state: ApiState) -> axum::Router {
     let config = Config::current();
-    let service = service(
-        tokio_util::sync::CancellationToken::new(),
-        config,
-        None,
-        None,
-    );
-    mcp_router_with_service(service)
-        .merge(local_api_router_with_state(state))
-        .layer(localhost_cors())
+    router(
+        service(
+            tokio_util::sync::CancellationToken::new(),
+            config,
+            None,
+            None,
+        ),
+        state,
+    )
+    .layer(localhost_cors())
 }
 
 #[tokio::test]

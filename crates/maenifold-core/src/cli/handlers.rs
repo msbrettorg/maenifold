@@ -40,7 +40,7 @@ pub(super) fn run_mcp() -> i32 {
     }
 }
 
-pub(super) fn run_http(mcp_bind: String, mcp_port: u16, local_api_port: u16) -> i32 {
+pub(super) fn run_http(port: u16) -> i32 {
     let config = Config::current();
     if let Err(err) = mcp::initialize_runtime(&config) {
         eprintln!("Error initializing storage: {err}");
@@ -61,11 +61,7 @@ pub(super) fn run_http(mcp_bind: String, mcp_port: u16, local_api_port: u16) -> 
         }
     };
 
-    let result = rt.block_on(MaenifoldMcpServer::serve_split(
-        &mcp_bind,
-        mcp_port,
-        local_api_port,
-    ));
+    let result = rt.block_on(MaenifoldMcpServer::serve_http(port));
     rt.shutdown_timeout(std::time::Duration::from_secs(5));
     match result {
         Ok(()) => 0,

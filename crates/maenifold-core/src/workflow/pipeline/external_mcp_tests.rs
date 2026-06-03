@@ -59,8 +59,6 @@ fn config_with_global_and_agents(
                 )
             })
             .collect(),
-        mcp_allowed_hosts: Vec::new(),
-        mcp_allowed_origins: Vec::new(),
         settings: None,
     }
 }

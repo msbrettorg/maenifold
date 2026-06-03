@@ -18,8 +18,6 @@ fn config_with_agent(name: &str) -> AgentsConfig {
     AgentsConfig {
         mcp_servers: HashMap::new(),
         agents,
-        mcp_allowed_hosts: Vec::new(),
-        mcp_allowed_origins: Vec::new(),
         settings: None,
     }
 }

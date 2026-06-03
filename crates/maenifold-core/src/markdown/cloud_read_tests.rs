@@ -20,8 +20,6 @@ fn test_config(root: &Path) -> Config {
         thinking_path: memory_path.join("thinking"),
         sequential_path: memory_path.join("thinking").join("sequential"),
         database_path: root.join("memory.db"),
-        mcp_allowed_hosts: Vec::new(),
-        mcp_allowed_origins: Vec::new(),
         settings: MaenifoldSettings::default(),
     }
 }

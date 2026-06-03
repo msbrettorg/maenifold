@@ -13,6 +13,7 @@ use clap::{Parser, Subcommand};
 use handlers::{run_http, run_mcp, run_schedule_run, run_tool_command};
 use parse::{ParsedCli, parse_cli, render_clap_error, render_error, validate_cli};
 use serde_json::Value;
+use std::str::FromStr;
 use tool_dispatch::invoke_tool_with_timeout;
 use usage::usage;
 
@@ -38,6 +39,14 @@ pub struct Cli {
     /// HTTP port (default: 8080)
     #[arg(long, default_value_t = 8080)]
     pub port: u16,
+
+    /// MCP bind address (default: 127.0.0.1)
+    #[arg(long, default_value = "127.0.0.1")]
+    pub mcp_bind: std::net::IpAddr,
+
+    /// Local API port (default: 8081)
+    #[arg(long, default_value_t = 8081)]
+    pub local_api_port: u16,
 
     /// Run with native app window
     #[arg(long)]
@@ -84,7 +93,12 @@ pub enum CliAction {
     /// --mcp mode, optionally carrying a service root when shared by other CLIs.
     Mcp { root: Option<PathBuf> },
     /// --http / --app mode with the resolved port and optional service root.
-    Http { port: u16, root: Option<PathBuf> },
+    Http {
+        mcp_bind: String,
+        mcp_port: u16,
+        local_api_port: u16,
+        root: Option<PathBuf>,
+    },
 }
 pub struct CliApp;
 impl CliApp {
@@ -102,8 +116,14 @@ impl CliApp {
             return CliAction::Headless;
         }
         if parsed.cli.http || parsed.cli.app {
+            let mcp_bind = parsed.cli.mcp_bind.to_string();
+            if std::net::IpAddr::from_str(&mcp_bind).is_err() {
+                return CliAction::Headless;
+            }
             CliAction::Http {
-                port: parsed.cli.port,
+                mcp_bind,
+                mcp_port: parsed.cli.port,
+                local_api_port: parsed.cli.local_api_port,
                 root: None,
             }
         } else if parsed.cli.mcp {
@@ -130,11 +150,11 @@ impl CliApp {
         } = parsed;
 
         if cli.http {
-            return run_http(cli.port);
+            return run_http(cli.mcp_bind.to_string(), cli.port, cli.local_api_port);
         }
 
         if cli.app {
-            return run_app(cli.port);
+            return run_app(cli.mcp_bind.to_string(), cli.port, cli.local_api_port);
         }
 
         if cli.mcp {
@@ -250,12 +270,65 @@ fn normalize_json_output(output: String) -> (String, i32) {
 }
 
 #[cfg(feature = "app")]
-fn run_app(port: u16) -> i32 {
+fn run_app(_mcp_bind: String, port: u16, _local_api_port: u16) -> i32 {
     crate::tray::run_with_tray(crate::tray::ServerMode::Http(port))
 }
 
 #[cfg(not(feature = "app"))]
-fn run_app(_port: u16) -> i32 {
+fn run_app(_mcp_bind: String, _port: u16, _local_api_port: u16) -> i32 {
     eprintln!("Error: --app is not supported in this build");
     1
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{CliAction, CliApp};
+
+    fn args(values: &[&str]) -> Vec<String> {
+        values.iter().map(|value| value.to_string()).collect()
+    }
+
+    #[test]
+    fn cli_default_mcp_bind_is_127_0_0_1() {
+        match CliApp::classify(&args(&["--http", "--port", "8080"])) {
+            CliAction::Http { mcp_bind, .. } => assert_eq!(mcp_bind, "127.0.0.1"),
+            other => panic!("expected http action, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn cli_parses_explicit_mcp_bind() {
+        match CliApp::classify(&args(&[
+            "--http",
+            "--port",
+            "8080",
+            "--mcp-bind",
+            "0.0.0.0",
+        ])) {
+            CliAction::Http { mcp_bind, .. } => assert_eq!(mcp_bind, "0.0.0.0"),
+            other => panic!("expected http action, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn cli_default_local_api_port_is_8081() {
+        match CliApp::classify(&args(&["--http", "--port", "8080"])) {
+            CliAction::Http { local_api_port, .. } => assert_eq!(local_api_port, 8081),
+            other => panic!("expected http action, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn cli_parses_explicit_local_api_port() {
+        match CliApp::classify(&args(&[
+            "--http",
+            "--port",
+            "8080",
+            "--local-api-port",
+            "9999",
+        ])) {
+            CliAction::Http { local_api_port, .. } => assert_eq!(local_api_port, 9999),
+            other => panic!("expected http action, got {other:?}"),
+        }
+    }
 }

@@ -205,6 +205,7 @@ async function handleNewSession() {
   }
 
   try {
+    shell.setActiveTab('agents');
     await sessionStore.createSession(selectedAgent.value, cwd);
   } catch (e) {
     console.error('Failed to create session:', e);
@@ -214,6 +215,7 @@ async function handleNewSession() {
 async function handleResumeSession(session: SavedSession) {
   selectedAgent.value = session.agentName;
   try {
+    shell.setActiveTab('agents');
     await sessionStore.resumeSession(session);
   } catch (e) {
     console.error('Failed to resume session:', e);

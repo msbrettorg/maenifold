@@ -49,6 +49,7 @@ fn direct_task(id: &str, enabled: bool) -> ScheduledTask {
         workdir: None,
         auto_grant_permissions: false,
         allowed_tools: Vec::new(),
+        config_options: serde_json::Map::new(),
         mcp_action: None,
         mcp_parameters: None,
         timeout_seconds: 300,
@@ -142,7 +143,7 @@ fn create_task_with_failing_launchd(
     )
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(all(unix, not(target_os = "macos")))]
 fn create_task_with_failing_launchd(
     _temp: &TempDir,
     _context: &ToolContext,
@@ -452,4 +453,171 @@ fn update_persists_workdir_and_timeout_seconds_from_payload() {
         Some(PathBuf::from("/var/tmp/updated-work"))
     );
     assert_eq!(persisted.timeout_seconds, 17);
+}
+
+#[test]
+fn create_task_round_trips_config_options_via_create_and_get() {
+    let temp = TempDir::new().expect("temp dir");
+    let context = test_context(&temp);
+    let fake_bin = fake_bin_in(&temp);
+    let mut payload = create_payload("config-options-round-trip", false);
+    payload["config_options"] = json!({
+        "model": "claude-opus-4.6",
+        "stream": true,
+        "max_turns": 3
+    });
+
+    let created = parse(
+        &create_task_with_test_launchd(&temp, &context, &payload, &fake_bin)
+            .expect("create paused schedule"),
+    );
+    let fetched = parse(
+        &get_task(
+            &context,
+            &json!({"action": "get", "id": "config-options-round-trip"}),
+        )
+        .expect("get schedule"),
+    );
+
+    assert_eq!(
+        created["task"]["config_options"],
+        json!({
+            "model": "claude-opus-4.6",
+            "stream": true,
+            "max_turns": 3
+        })
+    );
+    assert_eq!(
+        fetched["config_options"],
+        json!({
+            "model": "claude-opus-4.6",
+            "stream": true,
+            "max_turns": 3
+        })
+    );
+}
+
+#[test]
+fn create_task_without_config_options_defaults_response_to_empty_object() {
+    let temp = TempDir::new().expect("temp dir");
+    let context = test_context(&temp);
+    let fake_bin = fake_bin_in(&temp);
+
+    let created = parse(
+        &create_task_with_test_launchd(
+            &temp,
+            &context,
+            &create_payload("config-options-default-empty", false),
+            &fake_bin,
+        )
+        .expect("create paused schedule"),
+    );
+    let fetched = parse(
+        &get_task(
+            &context,
+            &json!({"action": "get", "id": "config-options-default-empty"}),
+        )
+        .expect("get schedule"),
+    );
+
+    assert_eq!(created["task"]["config_options"], json!({}));
+    assert_eq!(fetched["config_options"], json!({}));
+}
+
+#[test]
+fn update_task_replaces_existing_config_options_map() {
+    let temp = TempDir::new().expect("temp dir");
+    let context = test_context(&temp);
+    let fake_bin = fake_bin_in(&temp);
+    let mut payload = create_payload("config-options-replace", false);
+    payload["config_options"] = json!({"model": "claude-opus-4.6"});
+    create_task_with_test_launchd(&temp, &context, &payload, &fake_bin)
+        .expect("create paused schedule");
+
+    let updated = parse(
+        &update_task_with_test_launchd(
+            &temp,
+            &context,
+            &json!({
+                "action": "update",
+                "id": "config-options-replace",
+                "config_options": {
+                    "model": "gpt-5.5",
+                    "stream": false,
+                    "max_turns": 5
+                }
+            }),
+            &fake_bin,
+        )
+        .expect("update paused schedule"),
+    );
+
+    assert_eq!(
+        updated["task"]["config_options"],
+        json!({
+            "model": "gpt-5.5",
+            "stream": false,
+            "max_turns": 5
+        })
+    );
+}
+
+#[test]
+fn update_task_without_config_options_leaves_existing_map_untouched() {
+    let temp = TempDir::new().expect("temp dir");
+    let context = test_context(&temp);
+    let fake_bin = fake_bin_in(&temp);
+    let mut payload = create_payload("config-options-untouched", false);
+    payload["config_options"] = json!({"model": "claude-opus-4.6", "stream": true});
+    create_task_with_test_launchd(&temp, &context, &payload, &fake_bin)
+        .expect("create paused schedule");
+
+    let updated = parse(
+        &update_task_with_test_launchd(
+            &temp,
+            &context,
+            &json!({
+                "action": "update",
+                "id": "config-options-untouched",
+                "prompt": "Run a different prompt"
+            }),
+            &fake_bin,
+        )
+        .expect("update paused schedule"),
+    );
+
+    assert_eq!(
+        updated["task"]["config_options"],
+        json!({
+            "model": "claude-opus-4.6",
+            "stream": true
+        })
+    );
+}
+
+#[test]
+fn update_task_with_empty_config_options_clears_existing_map() {
+    let temp = TempDir::new().expect("temp dir");
+    let context = test_context(&temp);
+    let fake_bin = fake_bin_in(&temp);
+    let mut payload = create_payload("config-options-clear", false);
+    payload["config_options"] = json!({"model": "claude-opus-4.6", "stream": true});
+    create_task_with_test_launchd(&temp, &context, &payload, &fake_bin)
+        .expect("create paused schedule");
+
+    let updated = parse(
+        &update_task_with_test_launchd(
+            &temp,
+            &context,
+            &json!({
+                "action": "update",
+                "id": "config-options-clear",
+                "config_options": {}
+            }),
+            &fake_bin,
+        )
+        .expect("update paused schedule"),
+    );
+
+    assert_eq!(updated["task"]["config_options"], json!({}));
 }

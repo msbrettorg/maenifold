@@ -3,17 +3,12 @@ use serde_json::Value;
 use std::sync::OnceLock;
 
 static RUNTIME_MODELS: OnceLock<DashMap<String, Vec<String>>> = OnceLock::new();
-static RUNTIME_MODES: OnceLock<DashMap<String, Vec<String>>> = OnceLock::new();
 static RUNTIME_CONFIG_OPTIONS: OnceLock<DashMap<String, Vec<Value>>> = OnceLock::new();
 static RUNTIME_AVAILABLE_COMMANDS: OnceLock<DashMap<String, Vec<Value>>> = OnceLock::new();
 static RUNTIME_AGENT_CAPABILITIES: OnceLock<DashMap<String, Value>> = OnceLock::new();
 
 fn runtime_models() -> &'static DashMap<String, Vec<String>> {
     RUNTIME_MODELS.get_or_init(DashMap::new)
-}
-
-fn runtime_modes() -> &'static DashMap<String, Vec<String>> {
-    RUNTIME_MODES.get_or_init(DashMap::new)
 }
 
 fn runtime_config_options() -> &'static DashMap<String, Vec<Value>> {
@@ -30,7 +25,6 @@ fn runtime_agent_capabilities() -> &'static DashMap<String, Value> {
 
 pub(super) fn clear_all() {
     runtime_models().clear();
-    runtime_modes().clear();
     runtime_config_options().clear();
     runtime_available_commands().clear();
     runtime_agent_capabilities().clear();
@@ -49,24 +43,8 @@ pub(super) fn remember_runtime_models(runtime_key: &str, mut models: Vec<String>
     runtime_models().insert(runtime_key.to_string(), models);
 }
 
-pub(super) fn remember_runtime_modes(runtime_key: &str, mut modes: Vec<String>) {
-    if modes.is_empty() {
-        return;
-    }
-    modes.sort_unstable();
-    modes.dedup();
-    runtime_modes().insert(runtime_key.to_string(), modes);
-}
-
 pub fn list_discovered_models(runtime_key: &str) -> Vec<String> {
     runtime_models()
-        .get(runtime_key)
-        .map(|v| v.clone())
-        .unwrap_or_default()
-}
-
-pub fn list_discovered_modes(runtime_key: &str) -> Vec<String> {
-    runtime_modes()
         .get(runtime_key)
         .map(|v| v.clone())
         .unwrap_or_default()

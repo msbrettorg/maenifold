@@ -80,7 +80,6 @@ mod tests {
         AgentSessionConfig {
             cwd: PathBuf::from("."),
             model: None,
-            mode: None,
             thought_level: None,
             config_options: None,
             output_schema: None,

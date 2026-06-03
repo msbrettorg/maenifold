@@ -4,6 +4,9 @@ mod db;
 pub mod emitter;
 pub mod types;
 
+#[cfg(test)]
+pub(crate) mod test_util;
+
 /// Type alias for the event broadcast sender used throughout the crate.
 pub type EventSender = tokio::sync::broadcast::Sender<JockeyEvent>;
 

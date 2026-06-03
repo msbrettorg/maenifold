@@ -19,6 +19,7 @@ fn test_task(id: &str) -> ScheduledTask {
         workdir: Some(PathBuf::from("/tmp/workdir")),
         auto_grant_permissions: false,
         allowed_tools: Vec::new(),
+        config_options: serde_json::Map::new(),
         mcp_action: None,
         mcp_parameters: None,
         timeout_seconds: 900,

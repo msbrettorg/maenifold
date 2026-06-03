@@ -122,17 +122,30 @@ mod tests {
         assert!(!throttle.take_trailing_dispatch().await);
     }
 
+    /// Poll for a trailing dispatch up to ~1 second, yielding between attempts.
+    /// Necessary on platforms with coarse scheduler granularity (Windows
+    /// ~15ms ticks) where exact `tokio::time::sleep` margins are unreliable.
+    async fn await_trailing_dispatch(throttle: &TrailingThrottle) -> bool {
+        for _ in 0..100 {
+            tokio::task::yield_now().await;
+            if throttle.take_trailing_dispatch().await {
+                return true;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        false
+    }
+
     #[tokio::test]
     async fn rapid_signals_coalesce_to_one_trailing_dispatch() {
-        let throttle = TrailingThrottle::new(Duration::from_millis(25));
+        let throttle = TrailingThrottle::new(Duration::from_millis(50));
 
         assert!(throttle.signal().await);
         for _ in 0..8 {
             assert!(!throttle.signal().await);
         }
 
-        tokio::time::sleep(Duration::from_millis(30)).await;
-        assert!(throttle.take_trailing_dispatch().await);
+        assert!(await_trailing_dispatch(&throttle).await);
         assert!(!throttle.take_trailing_dispatch().await);
     }
 
@@ -182,7 +195,7 @@ mod tests {
 
     #[tokio::test]
     async fn concurrent_callers_still_coalesce_to_one_trailing_dispatch() {
-        let throttle = TrailingThrottle::new(Duration::from_millis(25));
+        let throttle = TrailingThrottle::new(Duration::from_millis(50));
         let shared = throttle.clone();
 
         let mut join_set = JoinSet::new();
@@ -199,21 +212,19 @@ mod tests {
         }
 
         assert_eq!(immediate_count, 1);
-        tokio::time::sleep(Duration::from_millis(35)).await;
-        assert!(shared.take_trailing_dispatch().await);
+        assert!(await_trailing_dispatch(&shared).await);
         assert!(!shared.take_trailing_dispatch().await);
     }
 
     #[tokio::test]
     async fn zero_window_is_clamped_to_one_millisecond() {
+        // Test the clamp itself; the wait-for-trailing-dispatch behavior is
+        // covered by the larger-window tests (rapid_signals_coalesce_*,
+        // trailing_edge_sequence_*) so we don't need timing-dependent assertions
+        // on a 1ms window that is below Windows scheduler granularity (~15ms).
         let throttle = TrailingThrottle::new(Duration::ZERO);
-
-        // Zero windows are normalized to a 1ms minimum to avoid busy loops.
         assert_eq!(throttle.window(), Duration::from_millis(1));
         assert!(throttle.signal().await);
-        assert!(!throttle.signal().await);
-        tokio::time::sleep(Duration::from_millis(2)).await;
-        assert!(throttle.take_trailing_dispatch().await);
     }
 
     #[tokio::test]

@@ -1,4 +1,4 @@
-use agent_client_protocol::{self as acp};
+use agent_client_protocol::schema::{self as acp};
 use serde_json::{Value, json};
 use std::path::PathBuf;
 
@@ -50,9 +50,8 @@ fn maybe_synthesize_terminal(
     augmented
 }
 
-#[async_trait::async_trait(?Send)]
-impl acp::Client for JockeyUiClient {
-    async fn request_permission(
+impl JockeyUiClient {
+    pub(crate) async fn request_permission(
         &self,
         args: acp::RequestPermissionRequest,
     ) -> acp::Result<acp::RequestPermissionResponse> {
@@ -110,7 +109,10 @@ impl acp::Client for JockeyUiClient {
         }
     }
 
-    async fn session_notification(&self, args: acp::SessionNotification) -> acp::Result<()> {
+    pub(crate) async fn session_notification(
+        &self,
+        args: acp::SessionNotification,
+    ) -> acp::Result<()> {
         let event = match args.update {
             acp::SessionUpdate::UserMessageChunk(chunk) => {
                 let text = match chunk.content {
@@ -217,9 +219,6 @@ impl acp::Client for JockeyUiClient {
                     .map(|e| serde_json::to_value(e).unwrap_or(json!({})))
                     .collect(),
             },
-            acp::SessionUpdate::CurrentModeUpdate(mode) => AcpEvent::ModeUpdate {
-                mode_id: mode.current_mode_id.to_string(),
-            },
             acp::SessionUpdate::ConfigOptionUpdate(cfg) => AcpEvent::ConfigUpdate {
                 options: cfg
                     .config_options
@@ -260,47 +259,47 @@ impl acp::Client for JockeyUiClient {
         Ok(())
     }
 
-    async fn read_text_file(
+    pub(crate) async fn read_text_file(
         &self,
         args: acp::ReadTextFileRequest,
     ) -> acp::Result<acp::ReadTextFileResponse> {
         super::client_fs::read_text_file(&self.workspace_root, args).await
     }
 
-    async fn write_text_file(
+    pub(crate) async fn write_text_file(
         &self,
         args: acp::WriteTextFileRequest,
     ) -> acp::Result<acp::WriteTextFileResponse> {
         super::client_fs::write_text_file(&self.workspace_root, args).await
     }
 
-    async fn create_terminal(
+    pub(crate) async fn create_terminal(
         &self,
         args: acp::CreateTerminalRequest,
     ) -> acp::Result<acp::CreateTerminalResponse> {
         super::client_terminal::create_terminal(args).await
     }
-    async fn terminal_output(
+    pub(crate) async fn terminal_output(
         &self,
         args: acp::TerminalOutputRequest,
     ) -> acp::Result<acp::TerminalOutputResponse> {
         super::client_terminal::terminal_output(args).await
     }
-    async fn wait_for_terminal_exit(
+    pub(crate) async fn wait_for_terminal_exit(
         &self,
         args: acp::WaitForTerminalExitRequest,
     ) -> acp::Result<acp::WaitForTerminalExitResponse> {
         super::client_terminal::wait_for_terminal_exit(args).await
     }
 
-    async fn kill_terminal(
+    pub(crate) async fn kill_terminal(
         &self,
         args: acp::KillTerminalRequest,
     ) -> acp::Result<acp::KillTerminalResponse> {
         super::client_terminal::kill_terminal(args).await
     }
 
-    async fn release_terminal(
+    pub(crate) async fn release_terminal(
         &self,
         args: acp::ReleaseTerminalRequest,
     ) -> acp::Result<acp::ReleaseTerminalResponse> {

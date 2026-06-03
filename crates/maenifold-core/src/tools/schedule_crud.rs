@@ -1,18 +1,21 @@
 use super::{
     ToolContext, env_allowlist_view, optional_bool, optional_path_buf, optional_string,
-    optional_string_array, optional_u32, optional_value, reject_enabled_while_paused, render,
-    required_string, resolve_maenifold_bin, schedule_store, task_value,
-    validate_and_parse_schedule, validate_mcp_action,
+    optional_string_array, optional_u32, optional_value, optional_value_map,
+    reject_enabled_while_paused, render, required_string, resolve_maenifold_bin, schedule_store,
+    task_value, validate_and_parse_schedule, validate_mcp_action,
 };
 use crate::error::{MaenifoldError, Result};
 #[cfg(all(test, target_os = "macos"))]
 use crate::schedule::LaunchctlBackend;
-use crate::schedule::{ScheduledTask, Supervisor};
+use crate::schedule::ScheduledTask;
 use chrono::Utc;
 use serde_json::{Value, json};
+#[cfg(unix)]
+use std::os::unix::process::CommandExt;
 use std::path::Path;
 #[cfg(all(test, target_os = "macos"))]
 use std::path::PathBuf;
+use std::process::{Command, Stdio};
 #[cfg(all(test, target_os = "macos"))]
 use std::sync::Arc;
 use tracing::warn;
@@ -65,7 +68,7 @@ pub(super) fn create_task_with_bin_for_test(
     )
 }
 
-#[cfg(all(test, not(target_os = "macos")))]
+#[cfg(all(test, unix, not(target_os = "macos")))]
 pub(super) fn create_task_with_bin_for_test(
     context: &ToolContext,
     payload: &Value,
@@ -96,6 +99,7 @@ where
         workdir: optional_path_buf(payload, "workdir")?,
         auto_grant_permissions: optional_bool(payload, "auto_grant_permissions")?.unwrap_or(false),
         allowed_tools: optional_string_array(payload, "allowed_tools")?.unwrap_or_default(),
+        config_options: optional_value_map(payload, "config_options")?.unwrap_or_default(),
         mcp_action: optional_string(payload, "mcp_action")?,
         mcp_parameters: optional_value(payload, "mcp_parameters")?,
         timeout_seconds: optional_u32(payload, "timeout_seconds")?.unwrap_or(300),
@@ -197,6 +201,9 @@ where
     if let Some(allowed_tools) = optional_string_array(payload, "allowed_tools")? {
         task.allowed_tools = allowed_tools;
     }
+    if payload.get("config_options").is_some() {
+        task.config_options = optional_value_map(payload, "config_options")?.unwrap_or_default();
+    }
     if payload.get("mcp_action").is_some() {
         if payload.get("mcp_action").is_some_and(Value::is_null) {
             task.mcp_action = None;
@@ -277,6 +284,25 @@ pub(super) fn list_tasks(context: &ToolContext) -> Result<String> {
     Ok(render(context.output_format, json!(tasks)))
 }
 
+pub(super) fn options_action(context: &ToolContext) -> Result<String> {
+    let mcp_actions = crate::schedule::mcp_action_allowlist::DEFAULT_ALLOWLIST_ENTRIES
+        .iter()
+        .map(|entry| {
+            json!({
+                "domain": entry.domain,
+                "command": entry.command,
+                "value": format!("{}.{}", entry.domain, entry.command),
+                "label": entry.label,
+                "description": entry.description,
+            })
+        })
+        .collect::<Vec<_>>();
+    Ok(render(
+        context.output_format,
+        json!({ "mcp_actions": mcp_actions }),
+    ))
+}
+
 pub(super) fn get_task(context: &ToolContext, payload: &Value) -> Result<String> {
     let id = required_string(payload, "id")?;
     let task = schedule_store(context)
@@ -286,13 +312,61 @@ pub(super) fn get_task(context: &ToolContext, payload: &Value) -> Result<String>
 }
 
 pub(super) fn run_now(context: &ToolContext, payload: &Value) -> Result<String> {
+    let bin = resolve_maenifold_bin()?;
+    run_now_with_bin(context, payload, &bin)
+}
+
+pub(super) fn run_now_with_bin(
+    context: &ToolContext,
+    payload: &Value,
+    bin: &Path,
+) -> Result<String> {
     let id = required_string(payload, "id")?;
-    let supervisor = Supervisor::new(schedule_store(context), resolve_maenifold_bin()?);
-    let run = supervisor
-        .run(id)
+    schedule_store(context)
+        .read(id)
         .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+
+    let mut command = Command::new(bin);
+    command
+        .args(["schedule", "run", id])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+
+    #[cfg(unix)]
+    unsafe {
+        command.pre_exec(|| {
+            if libc::setsid() == -1 {
+                return Err(std::io::Error::last_os_error());
+            }
+            Ok(())
+        });
+    }
+
+    let child = command.spawn().map_err(|error| {
+        MaenifoldError::Message(format!(
+            "failed to spawn detached scheduled run '{id}': {error}"
+        ))
+    })?;
+    let pid = child.id();
+    // Reap the zombie when the child exits. setsid detaches the session/process
+    // group but does NOT reparent the child while the daemon is alive, so we
+    // must wait() somewhere. A background reaper thread takes ownership and
+    // joins itself when the child exits, never blocking the daemon.
+    std::thread::spawn(move || {
+        let mut child = child;
+        let _ = child.wait();
+    });
+
+    let started_at = Utc::now();
     Ok(render(
         context.output_format,
-        json!({"action":"run_now","id":id,"run":run,"message":format!("Scheduled task '{}' executed.", id)}),
+        json!({
+            "action": "run_now",
+            "id": id,
+            "pid": pid,
+            "started_at": started_at,
+            "message": format!("Scheduled task '{}' spawned (pid {}).", id, pid)
+        }),
     ))
 }

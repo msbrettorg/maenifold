@@ -109,6 +109,13 @@ pub(super) fn spawn_server_thread(
 ///    `KeepAlive { SuccessfulExit: false }` plist policy would otherwise leave
 ///    the service inactive after the user clicks Restart.
 ///
+///    The launchctl child MUST be `setsid`-detached: launchd cleans up the
+///    service's process group when the service exits, and a child still in
+///    that group will be killed mid-IPC. Symptom (observed pre-fix at
+///    14:22:13 on 2026-06-01): the logged launchctl PID disappeared with no
+///    launchd activity beyond "service inactive", and the daemon never came
+///    back up.
+///
 /// 2. **Standalone** (developer running `maenifold --http` from a shell):
 ///    fork an independent grandchild via `setsid` so the new process detaches
 ///    from our process group. Without `setsid` macOS sends SIGHUP to the
@@ -119,10 +126,13 @@ pub(super) fn spawn_server_thread(
 pub(super) fn spawn_restart_process() {
     if crate::tray_menu::is_launchd_managed() {
         let target = crate::tray_menu::launchd_service_target();
-        match std::process::Command::new("launchctl")
-            .args(["kickstart", "-k", &target])
-            .spawn()
-        {
+        // Absolute path: launchd-managed processes have a sparse default PATH.
+        let mut command = std::process::Command::new("/bin/launchctl");
+        command.args(["kickstart", "-k", &target]);
+        // Detach so the launchctl child survives our exit + launchd's
+        // service-group cleanup long enough to complete its IPC handshake.
+        detach_from_parent_session(&mut command);
+        match command.spawn() {
             Ok(child) => {
                 info!(
                     pid = child.id(),

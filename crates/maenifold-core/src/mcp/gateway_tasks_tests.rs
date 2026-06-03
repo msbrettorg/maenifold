@@ -56,8 +56,9 @@ fn parsed(result: &CallToolResult) -> Value {
 }
 
 async fn create_task(name: &str, nodes: usize) -> String {
+    let driver = crate::test_util::fake_exit_zero_binary();
     let previous = std::env::var("MAENIFOLD_PIPELINE_DRIVER").ok();
-    unsafe { std::env::set_var("MAENIFOLD_PIPELINE_DRIVER", "/usr/bin/true") };
+    unsafe { std::env::set_var("MAENIFOLD_PIPELINE_DRIVER", &driver) };
     let result = invoke_tasks(
         "TaskCreate".to_string(),
         json!({ "definition": definition(nodes), "name": name }),
@@ -92,6 +93,7 @@ async fn state() -> GatewayState {
         registry,
         IntentResolverSettings::default(),
         PathBuf::from("."),
+        crate::mcp::config_tools::mutation_state_for_tests(),
     )
 }
 
@@ -233,8 +235,9 @@ async fn gateway_registry_lists_maenifold_tasks_domain_with_5_commands() {
 async fn gateway_execute_routes_task_create_to_invoke_tasks() {
     let (_tmp, _guard, _context) = setup();
     let state = state().await;
+    let driver = crate::test_util::fake_exit_zero_binary();
     let previous = std::env::var("MAENIFOLD_PIPELINE_DRIVER").ok();
-    unsafe { std::env::set_var("MAENIFOLD_PIPELINE_DRIVER", "/usr/bin/true") };
+    unsafe { std::env::set_var("MAENIFOLD_PIPELINE_DRIVER", &driver) };
     let result = state
         .handle_gateway_execute(json!({
             "domain": DOMAIN_NAME,

@@ -123,6 +123,14 @@ pub struct MaenifoldSettings {
     pub snippet_length: Option<u64>,
     #[serde(default)]
     pub sync_role: Option<String>,
+    /// Preferred default agent name for the UI's auto-selection. When
+    /// the maenifold.json defines this and the named agent is present in
+    /// `agents`, the UI selects it on startup. When unset or pointing at
+    /// an unknown agent, the UI falls back to the first agent in the
+    /// returned map. UI-only setting -- the daemon never resolves this
+    /// for its own purposes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_agent: Option<String>,
     #[serde(default)]
     pub decay: DecaySettings,
     #[serde(default)]
@@ -155,6 +163,7 @@ impl Default for MaenifoldSettings {
             quarantine_retention_days: None,
             snippet_length: None,
             sync_role: None,
+            default_agent: None,
             decay: DecaySettings::default(),
             community: CommunitySettings::default(),
             vector: VectorSettings::default(),

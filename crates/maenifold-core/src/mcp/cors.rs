@@ -13,6 +13,13 @@ pub(crate) fn localhost_cors() -> tower_http::cors::CorsLayer {
                 || s.starts_with("http://127.0.0.1:")
                 || s == "http://[::1]"
                 || s.starts_with("http://[::1]:")
+                // Tauri 2 WebView2 (Windows) issues fetches from
+                // http://tauri.localhost; macOS uses tauri://localhost.
+                // Both are first-party app origins and must be allowed
+                // so the bundled UI can talk to the local /mcp endpoint.
+                || s == "http://tauri.localhost"
+                || s == "https://tauri.localhost"
+                || s == "tauri://localhost"
         },
     );
     CorsLayer::new()

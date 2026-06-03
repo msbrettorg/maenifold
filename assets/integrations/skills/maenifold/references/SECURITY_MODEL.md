@@ -1,167 +1,49 @@
 # Security Model
 
-maenifold is a local-only, single-user context engineering infrastructure built in Rust. It exposes two interfaces: an MCP server over stdio and a CLI. There is no network listener, no authentication, and no multi-user access control. The trust boundary is the OS user account.
+maenifold now serves two HTTP listeners, so the security boundary is no longer "one loopback socket for everything." This reference describes the shipped posture only and matches the split-listener implementation in `crates/maenifold-core/src/mcp/http.rs`, `crates/maenifold-core/src/api/acp_relay.rs`, and `crates/maenifold-core/src/config.rs`.
 
-This document describes what the security model **is**, not what it should be.
+## Listener topology
 
-## Data Flow Diagram
+| Listener | Default bind | Surface | Exposable? |
+| --- | --- | --- | --- |
+| MCP (`/mcp`) | `127.0.0.1:8080` | MCP JSON-RPC only | YES, via transport-layer auth (Tailscale Serve / mTLS / SSH tunnel) |
+| Local API (`/api/*`) | `127.0.0.1:8081` | config / user-prompt / acp/session / machine-id / health | NO — always loopback, no CLI flag |
 
-```
-External Entities                             maenifold Process                          Persistent Storage
-─────────────────                             ─────────────────                          ──────────────────
+The split is enforced in `crates/maenifold-core/src/mcp/http.rs`: `serve_split_with_shutdown` binds the MCP listener from the configurable MCP bind address, then separately binds the Local API listener to `127.0.0.1:{local_api_port}`.
+Only `/mcp` is intended for optional LAN or tailnet exposure, and even then only behind transport-layer auth chosen by the operator.
+`/api/*` stays on the loopback-only listener because it carries privileged endpoints such as config writes, the user-prompt bridge, `/api/acp/session`, machine-id, and health.
+There is no flag that moves the Local API listener off loopback, so operators must treat `127.0.0.1:8081` as non-exposable by design.
+This means the attack surface exposed to remote peers is intentionally narrower than the full daemon surface.
 
-[npm Registry] ──┐
-                 ├──► binary + native libs + ONNX model ─► (no code signing)
-[Homebrew /     ─┘
- GitHub Rel.] ────► binary + SHA-256 checksums ─────────► (no SLSA provenance)
+## Trust model
 
-[MCP Client] ─────► JSON-RPC via stdio ────► [MCP Server] ──┐
-                                                            │
-[CLI User]   ─────► tool <name> <payload> ──────► [CLI Parser] ──┤
-                                                            ▼
-[Env Vars    ─────► paths, config (no ──► (consumed by process; no validation
- MAENIFOLD_*]       validation beyond     beyond type-safe parsing)
-                    type-safe parsing)
-                                                  │
-                                                  ▼
-                                          [ToolRegistry — 28 tools]
-                                                  │
-              ┌───────────────────┬───────────────┼──────────────┬──────────────┐
-              ▼                   ▼               ▼              ▼              ▼
-       [MarkdownIO]       [SearchEngine]    [DecayCalc]   [graph queries  parameterized]
-        read/write +      FTS5 + vector +                       │
-        path validation   RRF fusion                            ▼
-              │                   │                       ┌─────────────┐
-              ▼                   ▼                       │  SQLite     │
-       ┌──────────────┐    queries to ─────────────────► │  memory.db  │
-       │ Markdown     │                                  │  (concepts, │
-       │ Files        │    [IncrementalSync] ──watch──► │  file_search│
-       │ ~/maenifold/ │◄──────┘   │                      │  FTS5,      │
-       │ memory/      │           ├──upsert content──►  │  graph,     │
-       └──────────────┘           │   + concepts         │  vec_*)     │
-                                  ▼                      └─────────────┘
-                              [ONNX Runtime] ──384-dim──► (above)
-                                  ▲                          ▲
-                          loaded in-process              loaded as native
-                          (no integrity check)           ext (no integrity)
-                                  │                          │
-                          ┌───────┴───────┐           ┌──────┴──────┐
-                          │ ONNX Model    │           │ sqlite-vec  │
-                          │ all-MiniLM-   │           │ vec0.{dylib,│
-                          │ L6-v2.onnx    │           │ so, dll}    │
-                          └───────────────┘           └─────────────┘
+Loopback peers are trusted on BOTH listeners by policy because the model assumes the operator controls local processes on the host. Loopback TCP is not a cryptographic or per-UID auth boundary, so any local process that can reach the socket can speak to it; the trust decision is operational, not enforced by the TCP transport itself.
+Tailnet peers are trusted only if the operator deliberately exposes the MCP listener through a transport edge such as Tailscale Serve and trusts the tailnet identity that the edge authenticates.
+That trust decision is outside Rust middleware: the daemon does not parse Authorization headers or inject application auth on `/mcp`; the authenticated boundary lives at the transport edge.
+Tailnet peers CANNOT reach `/api/*` because the Local API listener remains loopback-only on `127.0.0.1:8081`, independent of the MCP bind setting.
+Tailnet peers CANNOT spawn local CLI subprocesses because the ACP relay that launches them is on `/api/acp/session` in the loopback-only listener, not on the exposable `/mcp` listener.
 
-       [AssetWatcher] ─watch *.json──► ~/maenifold/assets/
-                     ─resource notifications──► [MCP Server]
-```
+## DNS rebinding
 
-Trust-boundary highlights visible in the flow above:
+The MCP HTTP stack in `crates/maenifold-core/src/mcp/http.rs` builds `StreamableHttpServerConfig` and can call `with_allowed_hosts` and `with_allowed_origins` before the `/mcp` service is exposed.
+rmcp `StreamableHttpServerConfig::with_allowed_hosts` enforces a Host allowlist whose default is `["localhost", "127.0.0.1", "::1"]`; when maenifold passes a non-empty `mcpAllowedHosts` vector to `with_allowed_hosts`, that call REPLACES rmcp's default vector rather than extending it. If you supply a tailnet hostname, you must also include `localhost`, `127.0.0.1`, and `::1` explicitly in `mcpAllowedHosts` if you want those loopback names preserved.
+rmcp `with_allowed_origins` enforces an Origin allowlist populated from `mcpAllowedOrigins`; when maenifold passes a non-empty vector to `with_allowed_origins`, that call REPLACES rmcp's default `[]` rather than extending it. Operators therefore must list every allowed origin explicitly, and if they are preserving loopback host access via a parallel host policy such as a tailnet hostname plus `localhost`, `127.0.0.1`, and `::1`, they must keep the full desired origin set in `mcpAllowedOrigins` as well.
+The ACP WebSocket path has a separate hand-rolled Origin guard in `crates/maenifold-core/src/api/acp_relay.rs`, specifically the `check_origin` function, because `/api/acp/session` is not protected by rmcp's MCP transport stack.
+Opaque origins are intentionally not first-party there: `Origin: null` and `Origin: file://` are excluded because sandboxed iframes can synthesize `Origin: null`; operators who truly need those origins must list them explicitly in `mcpAllowedOrigins`.
 
-- **Distribution → process**: binaries arrive via npm or Homebrew with no code signing and no SLSA provenance.
-- **MCP client / CLI user → process**: requests cross stdio or shell args; there is no authentication.
-- **Process → filesystem**: `MarkdownIO` validates paths before reading or writing markdown.
-- **Process → SQLite**: all queries are parameterized; embeddings and graph data live in `memory.db`.
-- **Process → native deps**: ONNX model and `sqlite-vec` are loaded in-process with no integrity verification.
+## What auth is NOT in scope
 
-### Threat Flow Table
+No Authorization header parsing is in scope for the daemon.
+No JWT validation is in scope for the daemon.
+No OAuth 2.1 in-process is in scope for the daemon.
+No bearer tokens are in scope for the daemon.
+No mTLS termination is in scope for the daemon; transport-layer TLS termination is delegated to the exposure mechanism, and Tailscale handles TLS when Tailscale Serve is the edge.
+All of the above are intentionally excluded per Constitution P0 #4: auth lives at the transport edge, not in Rust middleware.
 
-| Category | From | To | Security Note |
-|----------|------|-----|---------------|
-| Distribution | npm Registry | maenifold process (Binary + native libs + ONNX model) | No code signing |
-| Distribution | Homebrew / GitHub Releases | maenifold process (Binary + SHA-256 checksums) | No SLSA provenance |
-| User Environment | Environment Variables | maenifold process (Paths, config) | Type-safe parsing only |
-| User Environment | MCP Client (Claude, Desktop) | MCP Server (stdio JSON-RPC) | No authentication |
-| User Environment | CLI User (shell) | CLI Parser (tool \<name\> \<payload\> args) | No authentication |
-| Internal Process | MCP Server | ToolRegistry (Dispatch to 28 tools) | — |
-| Internal Process | CLI Parser | ToolRegistry (Dispatch to 28 tools) | — |
-| Internal Process | ToolRegistry | MarkdownIO (Read/write operations) | Path validated |
-| Internal Process | ToolRegistry | SearchEngine (FTS5 + vector queries) | — |
-| Internal Process | ToolRegistry | SQLite memory.db (Graph queries) | Parameterized |
-| Internal Process | ToolRegistry | DecayCalculator (Decay calculations) | — |
-| File System | MarkdownIO | Markdown Files (~/maenifold/memory/, Read/write .md) | Path validated |
-| File System | IncrementalSync | Markdown Files (Watch *.md changes) | — |
-| File System | IncrementalSync | SQLite memory.db (Upsert content + concepts) | — |
-| File System | IncrementalSync | ONNX Runtime (Embedding generation) | — |
-| File System | AssetWatcher | Asset Files (~/maenifold/assets/, Watch *.json changes) | — |
-| File System | AssetWatcher | MCP Server (Resource notifications) | — |
-| Search & Storage | SearchEngine | SQLite memory.db (FTS5 + vector queries) | — |
-| Search & Storage | ONNX Runtime | SQLite memory.db (384-dim embeddings) | — |
-| Native Dependencies | ONNX Model (all-MiniLM-L6-v2.onnx) | ONNX Runtime (Loaded in-process) | No integrity check |
-| Native Dependencies | sqlite-vec (vec0.dylib/so/dll) | SQLite (Loaded as native extension) | No integrity check |
+## Operator obligations when exposing to LAN
 
-## Trust Boundaries
-
-| Boundary | Components | Trust Level | Controls |
-|---|---|---|---|
-| Distribution to Machine | npm, Homebrew, GitHub Releases | Implicit trust in registry | SHA-256 checksums (Homebrew only). No code signing, no SLSA provenance |
-| Environment to Process | Env vars (`MAENIFOLD_ROOT`, `MAENIFOLD_DATABASE_PATH`) | Any local process can set | No validation beyond type-safe parsing |
-| MCP Client to Process | stdio pipe | Parent process (1:1) | No auth (by MCP spec). JSON depth limit=32 |
-| CLI to Process | Shell args | Any local user | No auth. JSON depth limit=32 |
-| Process to Filesystem | `MarkdownIO` | OS file permissions | Path traversal: `UriToPath` prefix check, `ValidatePathSecurity`, `SanitizeUserInput` (URL-decode first), `Slugify` |
-| Process to SQLite | Parameterized queries | In-process | Prepared statements throughout. WAL mode. Foreign keys. Read-only connections for queries |
-| Process to ONNX | In-process native code | Bundled model | No integrity verification. Model path from assets directory |
-| Process to sqlite-vec | Native extension loading | Bundled native lib | No integrity verification. `load_extension_enable()` |
-
-## STRIDE Threat Analysis
-
-### Noteworthy (document, don't panic)
-
-**1. Indirect Prompt Injection via Memory Content**
-
-Memory content flows into LLM context. This is architecturally inherent to all MCP tools -- the `session_start` hook auto-injects recent memory. Mitigation: memory content is as trusted as the user who wrote it. This is the design intent, not a vulnerability.
-
-**2. ONNX Model Integrity**
-
-No hash verification when loading the `.onnx` model. ONNX models can contain custom operators that execute arbitrary code. Bounded risk: the model file lives in the assets directory (the installed binary directory), not in user-writable `~/maenifold/`. Exploiting this requires write access to the installation directory.
-
-**3. sqlite-vec Native Extension Integrity**
-
-Same situation as the ONNX model. The native library (`vec0.dylib`/`so`/`dll`) is loaded from the binary directory without verification. Same bounded risk: requires write access to the installation directory.
-
-**4. MAENIFOLD_ROOT Redirection**
-
-The `MAENIFOLD_ROOT` environment variable redirects all data operations. Any process running as the user can set this. Bounded risk: if an attacker controls your environment variables, they already control your shell.
-
-### Accepted Risks (by design)
-
-- **No authentication.** Single-user local tool. The OS handles access control.
-- **No encryption at rest.** User's home directory, user's data. Volume-level encryption is the user's choice.
-- **No audit logging.** Single-user system. Nothing to audit.
-- **No network exposure.** stdio only. No listening sockets.
-
-### Well-Mitigated
-
-- **Path traversal:** 4-layer defense -- URL-decode, sanitize, validate, canonicalize+prefix-check.
-- **SQL injection:** Parameterized queries throughout. No string concatenation of user input into SQL.
-- **JSON DoS:** JSON depth limit of 32 enforced on all deserialization.
-- **WikiLink regex:** Negative lookbehind/lookahead rejects malformed triple/quadruple brackets. Markdig depth limit as fallback.
-
-## Security Controls Reference
-
-| Control | Location |
-|---|---|
-| JSON depth limits | `crates/maenifold-core/src/util/json.rs` |
-| `sanitize_user_input` (URL-decode, strip dangerous chars, collapse traversal) | `crates/maenifold-core/src/memory/` |
-| `validate_path_security` (block absolute paths, dot sequences) | `crates/maenifold-core/src/util/paths.rs` |
-| URI-to-path traversal check (canonicalize + prefix match) | `crates/maenifold-core/src/markdown/` |
-| Sanitize frontmatter (strip embedding fields) | `crates/maenifold-core/src/markdown/` |
-| Parameterized queries (rusqlite named parameters) | `crates/maenifold-core/src/db/` |
-| WikiLink regex hardening (negative lookaround) | `crates/maenifold-core/src/markdown/` |
-| Checksum concurrency guard | `crates/maenifold-core/src/markdown/` |
-| `MoveMemory` boundary check (canonicalize + prefix match) | `crates/maenifold-core/src/memory/` |
-| `slugify` (strip non-alphanumeric, collapse hyphens) | `crates/maenifold-core/src/markdown/` |
-| Read-only SQLite connections (`query_only=ON`) | `crates/maenifold-core/src/db/` |
-
-## Design Philosophy
-
-maenifold's security model follows from what it is: a local tool that runs as you, reads your files, and talks to your LLM client over a pipe.
-
-**The OS is the security boundary.** There is no authentication because there is no one to authenticate. If you can run the binary, you are the user. If you are the user, you own the data. Adding auth would be security theater.
-
-**Markdown files are the source of truth.** SQLite is a regenerable cache built from the markdown. The security controls on filesystem access (path traversal prevention) matter more than the database controls, because the files are the durable state.
-
-**Defense-in-depth where it counts.** Path traversal gets four layers of defense because that is the one boundary where user-supplied input meets the filesystem. Everything else either has no user-facing surface (ONNX loading) or is handled by parameterized queries (SQLite).
-
-**No encryption because the user owns the disk.** maenifold stores data in `~/maenifold/`. If you want encryption, encrypt the volume. Implementing application-level encryption for a single-user local tool would be complexity without security gain.
-
-**This is not a server.** No listening sockets, no multi-tenancy, no shared state, no network protocol. The threat model is commensurately narrow.
+If an operator exposes the MCP listener beyond loopback, the minimum bar is the LAN guidance in `docs/lan-exposure.md`, plus explicit review of the MCP/ACP split described above.
+Tailnet Lock must be enabled so the tailnet trust decision is rooted in locked node identity rather than a soft default.
+The SSO identity used to administer that tailnet must require a FIDO2 hardware key, not password-only or software-only second factors.
+The tailnet policy must use tag-based ACLs with no default-allow reachability inside the tailnet, and it must include no Funnel grant at all.
+Before exposure, the operator must explicitly populate both `mcpAllowedHosts` and `mcpAllowedOrigins`, because relying on defaults is not sufficient for a LAN-facing or tailnet-facing deployment.

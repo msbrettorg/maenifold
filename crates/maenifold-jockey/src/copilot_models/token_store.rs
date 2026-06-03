@@ -133,7 +133,11 @@ fn expiry_to_datetime(value: &Value) -> Option<DateTime<Utc>> {
             .map(|value| value.with_timezone(&Utc)),
         Value::Number(number) => {
             let raw = number.as_i64()?;
-            let seconds = if raw > 1_000_000_000_000 { raw / 1000 } else { raw };
+            let seconds = if raw > 1_000_000_000_000 {
+                raw / 1000
+            } else {
+                raw
+            };
             DateTime::<Utc>::from_timestamp(seconds, 0)
         }
         _ => None,

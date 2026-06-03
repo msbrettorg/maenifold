@@ -1,4 +1,4 @@
-use agent_client_protocol::{self as acp};
+use agent_client_protocol::schema::{self as acp};
 use serde_json::Value;
 use std::path::{Component, Path, PathBuf};
 

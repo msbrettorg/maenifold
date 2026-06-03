@@ -3,6 +3,12 @@ use std::collections::HashMap;
 use crate::acp_config::EnvFromCommand;
 use crate::mcp::stdio_env_resolver::resolve_mcp_server_env;
 
+fn echo_command() -> String {
+    crate::test_util::fake_echo_binary()
+        .to_string_lossy()
+        .to_string()
+}
+
 #[test]
 fn mcp_server_env_from_file_resolves_literal_value() {
     let root = tempfile::tempdir().expect("create env file root");
@@ -34,7 +40,7 @@ fn mcp_server_env_from_command_resolves_stdout() {
     env_from_command.insert(
         "API_KEY".to_string(),
         EnvFromCommand {
-            command: "/bin/echo".to_string(),
+            command: echo_command(),
             args: vec!["cmd-key-value".to_string()],
         },
     );
@@ -59,7 +65,7 @@ fn mcp_server_env_precedence_literal_over_file_and_command() {
     env_from_command.insert(
         "MY_KEY".to_string(),
         EnvFromCommand {
-            command: "/bin/echo".to_string(),
+            command: echo_command(),
             args: vec!["cmd-loses".to_string()],
         },
     );

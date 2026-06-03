@@ -50,6 +50,9 @@ pub(crate) enum CommandTarget {
     Native {
         tool_name: String,
     },
+    ConfigCommand {
+        command: String,
+    },
     Gate {
         command: String,
     },

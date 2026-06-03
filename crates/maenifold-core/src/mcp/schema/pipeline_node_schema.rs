@@ -6,9 +6,10 @@ use super::pipeline_node_schema_workflow_variants::{
     prompt_variant_schema, workflow_variant_schema,
 };
 use schemars::JsonSchema;
-use schemars::r#gen::SchemaGenerator;
-use schemars::schema::Schema;
+use schemars::Schema;
+use schemars::generate::SchemaGenerator;
 use serde_json::json;
+use std::borrow::Cow;
 
 /// Custom `JsonSchema` for `PipelineNodeSchema` that produces a **flat `oneOf`** with every
 /// variant schema fully inlined — no `$ref` pointers into a `definitions` block.
@@ -27,18 +28,18 @@ use serde_json::json;
 /// (`"enum": ["workflow"]`, `"enum": ["prompt"]`, etc.) so agents can unambiguously
 /// identify which variant they are targeting.
 impl JsonSchema for PipelineNodeSchema {
-    /// Returning `false` forces schemars to inline this schema wherever it appears
+    /// Returning `true` forces schemars to inline this schema wherever it appears
     /// (e.g. as array `items`) instead of emitting a `$ref` to `definitions`.
-    fn is_referenceable() -> bool {
-        false
+    fn inline_schema() -> bool {
+        true
     }
 
-    fn schema_name() -> String {
-        "PipelineNodeSchema".to_string()
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("PipelineNodeSchema")
     }
 
-    fn json_schema(_gen: &mut SchemaGenerator) -> Schema {
-        serde_json::from_value(node_schema_value())
+    fn json_schema(_generator: &mut SchemaGenerator) -> Schema {
+        serde_json::from_value::<Schema>(node_schema_value())
             .expect("PipelineNodeSchema value is valid JSON Schema")
     }
 }
@@ -57,10 +58,6 @@ pub(super) fn agent_config_schema() -> serde_json::Value {
                     "type": "string",
                     "description": "Model override for the agent session"
                 },
-            "mode": {
-                "type": "string",
-                "description": "Session mode override for the agent session"
-            },
             "thoughtLevel": {
                 "type": "string",
                 "description": "Thought level override for the agent session"

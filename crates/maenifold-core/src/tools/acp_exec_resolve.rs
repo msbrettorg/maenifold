@@ -1,6 +1,6 @@
 use crate::acp_config::{AgentEntry, AgentsConfig};
 use crate::error::{MaenifoldError, Result};
-use agent_client_protocol as acp;
+use agent_client_protocol::schema::{self as acp};
 use std::collections::HashSet;
 use std::path::Path;
 
@@ -135,6 +135,7 @@ mod tests {
     fn infer_runtime_kind_maps_command_binary() {
         let entry = AgentEntry {
             command: "/usr/local/bin/claude --print".to_string(),
+            args: None,
             env: HashMap::new(),
             env_from_file: HashMap::new(),
             env_from_command: HashMap::new(),
@@ -151,6 +152,7 @@ mod tests {
     fn infer_runtime_kind_rejects_empty_command() {
         let entry = AgentEntry {
             command: "  ".to_string(),
+            args: None,
             env: HashMap::new(),
             env_from_file: HashMap::new(),
             env_from_command: HashMap::new(),
@@ -168,6 +170,7 @@ mod tests {
     fn infer_runtime_kind_rejects_mock_runtime() {
         let entry = AgentEntry {
             command: "mock".to_string(),
+            args: None,
             env: HashMap::new(),
             env_from_file: HashMap::new(),
             env_from_command: HashMap::new(),
@@ -184,11 +187,19 @@ mod tests {
     #[test]
     fn resolve_agent_maps_codex_display_name_to_runtime_id() {
         let root = tempdir().expect("temp root");
-        std::fs::write(
-            root.path().join("maenifold.json"),
-            r#"{"agents":{"codex-cli":{"command":"/bin/sh codex"}}}"#,
-        )
-        .expect("write config");
+        // Use a real executable path so `validate_agent_entry` (which checks
+        // absolute + exists + executable) accepts the agent on every platform.
+        // The first arg ("codex") drives `infer_runtime_kind` to "codex-cli".
+        let stub = crate::test_util::fake_exit_zero_binary();
+        let config = serde_json::to_string(&serde_json::json!({
+            "agents": {
+                "codex-cli": {
+                    "command": format!("{} codex", stub.display())
+                }
+            }
+        }))
+        .expect("config json");
+        std::fs::write(root.path().join("maenifold.json"), config).expect("write config");
 
         assert_eq!(
             resolve_agent(root.path(), "Codex")

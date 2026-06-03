@@ -8,7 +8,6 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::task::JoinSet;
 
-const PYTHON: &str = "/usr/bin/python3";
 const GOOD_SERVER: &str = r#"
 import json, sys
 tool_name = sys.argv[1]
@@ -75,7 +74,9 @@ while True:
 fn server_config(name: &str, tool_name: &str) -> StdioServerConfig {
     StdioServerConfig {
         name: name.to_string(),
-        command: PYTHON.to_string(),
+        command: crate::test_util::locate_python3()
+            .to_string_lossy()
+            .to_string(),
         args: vec![
             "-u".to_string(),
             "-c".to_string(),
@@ -88,20 +89,21 @@ fn server_config(name: &str, tool_name: &str) -> StdioServerConfig {
 }
 
 async fn started_server(name: &str, tool_name: &str) -> ManagedServer {
+    let python = crate::test_util::locate_python3()
+        .to_string_lossy()
+        .to_string();
     ManagedServer::running(
         server_config(name, tool_name).into(),
         crate::mcp::gateway_session::GatewaySession::Stdio(
             StdioSession::start(
-                &agent_client_protocol_schema::McpServerStdio::new(
-                    name.to_string(),
-                    PYTHON.to_string(),
-                )
-                .args(vec![
-                    "-u".to_string(),
-                    "-c".to_string(),
-                    GOOD_SERVER.to_string(),
-                    tool_name.to_string(),
-                ]),
+                &agent_client_protocol_schema::McpServerStdio::new(name.to_string(), python).args(
+                    vec![
+                        "-u".to_string(),
+                        "-c".to_string(),
+                        GOOD_SERVER.to_string(),
+                        tool_name.to_string(),
+                    ],
+                ),
                 Duration::from_secs(2),
             )
             .await

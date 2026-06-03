@@ -1,20 +1,77 @@
 //! Schedule MCP action allowlist — defense against P0 trigger #6 (hidden inference).
 use std::collections::HashSet;
 
+/// One allow-listed gateway action the scheduler may invoke, plus
+/// human-facing metadata so UI clients can render a picker without
+/// inventing their own catalog.
+#[derive(Debug, Clone)]
+pub struct McpActionAllowEntry {
+    pub domain: &'static str,
+    pub command: &'static str,
+    pub label: &'static str,
+    pub description: &'static str,
+}
+
+/// Canonical (domain, command, label, description) catalog. The (domain,
+/// command) pair is the contract enforced by `is_allowed`; the label and
+/// description are UI sugar — they MUST stay in sync with the underlying
+/// gateway commands.
+pub const DEFAULT_ALLOWLIST_ENTRIES: &[McpActionAllowEntry] = &[
+    McpActionAllowEntry {
+        domain: "maenifold.gate",
+        command: "gate_Status",
+        label: "Gate · Status",
+        description: "Read the current Gate board state for a project root.",
+    },
+    McpActionAllowEntry {
+        domain: "maenifold.gate",
+        command: "gate_Sync",
+        label: "Gate · Sync",
+        description: "Rebuild the Gate read-model from the markdown task files.",
+    },
+    McpActionAllowEntry {
+        domain: "maenifold.memory",
+        command: "ReadMemory",
+        label: "Memory · Read",
+        description: "Read a memory note by URI.",
+    },
+    McpActionAllowEntry {
+        domain: "maenifold.memory",
+        command: "ListMemories",
+        label: "Memory · List",
+        description: "List memory notes under a prefix.",
+    },
+    McpActionAllowEntry {
+        domain: "maenifold.system",
+        command: "MemoryStatus",
+        label: "Memory · Status",
+        description: "Summarise the memory store (counts, paths).",
+    },
+    McpActionAllowEntry {
+        domain: "maenifold.graph",
+        command: "BuildContext",
+        label: "Graph · BuildContext",
+        description: "Materialise an LLM-shaped context bundle from the graph.",
+    },
+    McpActionAllowEntry {
+        domain: "maenifold.system",
+        command: "RecentActivity",
+        label: "System · RecentActivity",
+        description: "Recent agent activity rollup from the graph.",
+    },
+    McpActionAllowEntry {
+        domain: "maenifold.system",
+        command: "Schedule",
+        label: "System · Schedule",
+        description: "Self-call the Schedule tool (list/get/pause_status etc).",
+    },
+];
+
 pub fn default_allowlist() -> HashSet<(String, String)> {
-    [
-        ("maenifold.gate", "gate_Status"),
-        ("maenifold.gate", "gate_Sync"),
-        ("maenifold.memory", "ReadMemory"),
-        ("maenifold.memory", "ListMemories"),
-        ("maenifold.memory", "MemoryStatus"),
-        ("maenifold.graph", "BuildContext"),
-        ("maenifold.graph", "RecentActivity"),
-        ("maenifold.system", "Schedule"),
-    ]
-    .iter()
-    .map(|(d, c)| (d.to_string(), c.to_string()))
-    .collect()
+    DEFAULT_ALLOWLIST_ENTRIES
+        .iter()
+        .map(|entry| (entry.domain.to_string(), entry.command.to_string()))
+        .collect()
 }
 
 pub fn is_allowed(allowlist: &HashSet<(String, String)>, domain: &str, command: &str) -> bool {
@@ -33,9 +90,9 @@ mod tests {
             ("maenifold.gate", "gate_Sync"),
             ("maenifold.memory", "ReadMemory"),
             ("maenifold.memory", "ListMemories"),
-            ("maenifold.memory", "MemoryStatus"),
+            ("maenifold.system", "MemoryStatus"),
             ("maenifold.graph", "BuildContext"),
-            ("maenifold.graph", "RecentActivity"),
+            ("maenifold.system", "RecentActivity"),
             ("maenifold.system", "Schedule"),
         ] {
             assert!(

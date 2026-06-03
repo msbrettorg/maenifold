@@ -1,10 +1,8 @@
 use super::acp_relay::{RelayConfig, RelaySession, SessionSetupParams};
 use super::acp_relay_caps::{AgentCaps, caps_for_agent};
-use super::acp_relay_helpers::{
-    build_modes, reject_client_mcp_servers, resolve_session_cwd, rpc_error,
-};
+use super::acp_relay_helpers::{reject_client_mcp_servers, resolve_session_cwd, rpc_error};
 use super::acp_relay_mcp::{prewarm_session, reset_session_connection};
-use agent_client_protocol as acp;
+use agent_client_protocol::schema::{self as acp};
 use serde_json::{Value, json};
 use std::collections::HashMap;
 
@@ -28,7 +26,7 @@ pub(super) async fn handle_initialize(
         let app_session_id = format!("acp-relay:{}", uuid::Uuid::new_v4());
         let client_capabilities = request.client_capabilities.clone();
         let mcp_servers = relay.configured_mcp_servers.clone();
-        let (config_options, modes, session_id) = prewarm_session(
+        let (config_options, session_id) = prewarm_session(
             relay,
             &app_session_id,
             relay.default_cwd.clone(),
@@ -53,8 +51,6 @@ pub(super) async fn handle_initialize(
             mcp_servers,
             client_capabilities,
             config_options,
-            modes,
-            current_mode_id: None,
         });
     } else if let Some(active) = session.as_mut() {
         active.client_capabilities = request.client_capabilities;
@@ -107,7 +103,7 @@ pub(super) async fn handle_session_new(
         .map_err(|error| rpc_error(request_id.clone(), -32602, error))?;
     reset_session_connection(relay, &app_session_id, request_id.clone()).await?;
     let mcp_servers = relay.configured_mcp_servers.clone();
-    let (config_options, modes, session_id) = prewarm_session(
+    let (config_options, session_id) = prewarm_session(
         relay,
         &app_session_id,
         cwd.clone(),
@@ -132,13 +128,9 @@ pub(super) async fn handle_session_new(
     active.cwd = cwd;
     active.mcp_servers = mcp_servers;
     active.config_options = config_options.clone();
-    active.modes = modes.clone();
-    active.current_mode_id = None;
-    let modes = build_modes(&active.modes, &active.current_mode_id);
     Ok(json!({
         "sessionId": session_id,
         "configOptions": config_options,
-        "modes": modes,
     }))
 }
 

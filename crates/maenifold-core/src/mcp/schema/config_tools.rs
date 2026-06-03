@@ -4,17 +4,25 @@ use serde_json::{Value, json};
 
 const NAME_PARAM: &str = "name";
 
-pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
+pub(crate) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
     match registry_name {
+        "GetSettingsSchema" => Some(tool_definition(
+            "GetSettingsSchema",
+            "Returns the canonical JSON Schema for partial maenifold settings updates.",
+            object_schema(json!({})),
+        )),
         "ReloadConfig" => Some(tool_definition(
             "ReloadConfig",
             "Reloads maenifold.json and refreshes live daemon settings.",
             object_schema(json!({})),
         )),
-        "UpdateSettings" => Some(tool_definition(
+        "UpdateSettings" => Some(settings_tool(
             "UpdateSettings",
             "Deep-merges partial Maenifold settings into maenifold.json and refreshes live settings.",
-            object_schema(json!({ "settings": partial_settings_schema() })),
+        )),
+        "SetSettings" => Some(settings_tool(
+            "SetSettings",
+            "Deep-merges partial Maenifold settings into maenifold.json and refreshes live settings.",
         )),
         "AddAgent" => Some(agent_tool(
             "AddAgent",
@@ -42,6 +50,14 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
         )),
         _ => None,
     }
+}
+
+fn settings_tool(name: &str, description: &str) -> McpToolDefinition {
+    tool_definition(
+        name,
+        description,
+        object_schema(json!({ "settings": partial_settings_schema() })),
+    )
 }
 
 fn agent_tool(name: &str, description: &str) -> McpToolDefinition {
@@ -79,6 +95,7 @@ fn agent_entry_schema() -> Value {
         "type": "object",
         "properties": {
             "command": { "type": "string", "minLength": 1 },
+            "args": { "type": "array", "items": { "type": "string" } },
             "env": { "type": "object", "additionalProperties": { "type": "string" } },
             "envFromFile": { "type": "object", "additionalProperties": { "type": "string" } },
             "envFromCommand": env_from_command_schema(),
@@ -110,6 +127,9 @@ fn mcp_server_schema() -> Value {
                 "type": "object",
                 "properties": {
                     "url": { "type": "string", "minLength": 1 },
+                    "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+                    "auth": { "type": "string", "enum": ["azure-default"] },
+                    "timeout": { "type": "integer", "minimum": 1 },
                     "gateway": { "type": "boolean" }
                 },
                 "required": ["url"],
@@ -134,24 +154,98 @@ fn env_from_command_schema() -> Value {
     })
 }
 
-fn partial_settings_schema() -> Value {
+pub(crate) fn partial_settings_schema() -> Value {
     json!({
         "type": "object",
         "properties": {
-            "logRotation": { "type": "string" },
+            "logRotation": {
+                "type": "string",
+                "enum": ["hourly", "daily", "weekly"]
+            },
             "debounceMs": { "type": "integer", "minimum": 0 },
             "autoSync": { "type": "boolean" },
             "syncLogging": { "type": "boolean" },
             "sessionCleanup": { "type": "boolean" },
             "sqliteBusyTimeoutMs": { "type": "integer", "minimum": 0 },
             "acpConnectionTimeoutSeconds": { "type": "integer", "minimum": 1 },
-            "vector": { "type": "object", "additionalProperties": true },
-            "debug": { "type": "object", "additionalProperties": true },
-            "community": { "type": "object", "additionalProperties": true },
-            "decay": { "type": "object", "additionalProperties": true },
-            "gateway": { "type": "object", "additionalProperties": true },
+            "syncLeaseMs": { "type": "integer", "minimum": 0 },
+            "watcherBufferSize": { "type": "integer", "minimum": 0 },
+            "incrementalOptimizeEvery": { "type": "integer", "minimum": 0 },
+            "incrementalVacuumMinutes": { "type": "integer", "minimum": 0 },
+            "sessionAbandonMinutes": { "type": ["integer", "null"], "minimum": 0 },
+            "quarantineRetentionDays": { "type": ["integer", "null"], "minimum": 0 },
+            "snippetLength": { "type": ["integer", "null"], "minimum": 0 },
+            "syncRole": { "type": ["string", "null"] },
+            "defaultAgent": { "type": ["string", "null"] },
+            "decay": {
+                "type": "object",
+                "properties": {
+                    "graceDaysSequential": { "type": "integer", "minimum": 0 },
+                    "graceDaysWorkflows": { "type": "integer", "minimum": 0 },
+                    "graceDaysDefault": { "type": "integer", "minimum": 0 },
+                    "halfLifeDays": { "type": "integer", "minimum": 1 },
+                    "function": {
+                        "type": "string",
+                        "enum": ["exponential", "power-law", "linear"]
+                    }
+                },
+                "additionalProperties": false
+            },
+            "community": {
+                "type": "object",
+                "properties": {
+                    "louvainGamma": { "type": "number", "minimum": 0 },
+                    "minSharedNeighbors": { "type": "integer", "minimum": 0 },
+                    "minOverlap": { "type": "number", "minimum": 0, "maximum": 1 },
+                    "maxSiblings": { "type": "integer", "minimum": 0 },
+                    "debounceMs": { "type": "integer", "minimum": 0 },
+                    "nmiThreshold": { "type": "number", "minimum": 0, "maximum": 1 },
+                    "recomputeFileThreshold": { "type": ["integer", "null"], "minimum": 0 }
+                },
+                "additionalProperties": false
+            },
+            "vector": {
+                "type": "object",
+                "properties": {
+                    "embeddingLogs": { "type": "boolean" },
+                    "vectorLogs": { "type": "boolean" },
+                    "disableVector": { "type": "boolean" },
+                    "activeModel": { "type": ["string", "null"] }
+                },
+                "additionalProperties": false
+            },
+            "debug": {
+                "type": "object",
+                "properties": {
+                    "trace": { "type": "boolean" },
+                    "pipelineDriver": { "type": ["string", "null"] }
+                },
+                "additionalProperties": false
+            },
+            "gateway": {
+                "type": "object",
+                "properties": {
+                    "intentResolver": {
+                        "type": "object",
+                        "properties": {
+                            "enabled": { "type": "boolean" },
+                            "model": { "type": "string", "minLength": 1 },
+                            "thoughtLevel": { "type": ["string", "null"] },
+                            "timeoutSeconds": { "type": ["integer", "null"], "minimum": 1 },
+                            "maxCandidates": { "type": ["integer", "null"], "minimum": 1 },
+                            "autoExecuteReadSafe": { "type": "boolean" },
+                            "autoExecuteConfidenceThreshold": {
+                                "type": "number", "minimum": 0, "maximum": 1
+                            },
+                            "maxCatalogCharacters": { "type": "integer", "minimum": 1 }
+                        },
+                        "additionalProperties": true
+                    }
+                },
+                "additionalProperties": false
+            },
             "envPassthrough": { "type": "array", "items": { "type": "string" } }
         },
-        "additionalProperties": true
+        "additionalProperties": false
     })
 }

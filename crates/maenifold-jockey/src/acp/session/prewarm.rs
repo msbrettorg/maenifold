@@ -12,12 +12,10 @@ struct PrewarmOpts<'a> {
     cwd: &'a str,
     resume_session_id: Option<String>,
     app_session_id: Option<&'a str>,
-    mcp_servers: Vec<agent_client_protocol::McpServer>,
+    mcp_servers: Vec<agent_client_protocol::schema::McpServer>,
 }
 
-async fn send_prewarm(
-    opts: PrewarmOpts<'_>,
-) -> Option<oneshot::Receiver<(Vec<Value>, Vec<String>, String)>> {
+async fn send_prewarm(opts: PrewarmOpts<'_>) -> Option<oneshot::Receiver<(Vec<Value>, String)>> {
     let adapter = match build_stdio_adapter(opts.role_name) {
         Ok(Some(adapter)) => adapter,
         _ => return None,
@@ -39,7 +37,6 @@ async fn send_prewarm(
         cwd: opts.cwd.to_string(),
         auto_approve: true,
         mcp_servers: opts.mcp_servers,
-        role_mode: None,
         role_config_options: vec![],
         delta_tx: None,
         result_tx: Some(tx),
@@ -76,14 +73,14 @@ pub async fn prewarm_role(
     let _ = rx.await;
 }
 
-/// Prewarm and return discovered config options + modes.
+/// Prewarm and return discovered config options plus the ACP session ID.
 pub async fn prewarm_role_for_config(
     _runtime_kind: &str,
     role_name: &str,
     cwd: &str,
     state: Option<(&AppState, &str)>,
     app_session_id: Option<&str>,
-) -> (Vec<Value>, Vec<String>, String) {
+) -> (Vec<Value>, String) {
     let app_session_id = app_session_id.or_else(|| state.as_ref().map(|(_, sid)| *sid));
     let mcp_servers = state
         .as_ref()
@@ -99,7 +96,7 @@ pub async fn prewarm_role_for_config(
     })
     .await
     else {
-        return (vec![], vec![], String::new());
+        return (vec![], String::new());
     };
 
     rx.await.unwrap_or_default()
@@ -111,7 +108,7 @@ pub async fn refresh_role_config_defs(
     role_name: &str,
     cwd: &str,
     state: &AppState,
-) -> (Vec<Value>, Vec<String>) {
+) -> Vec<Value> {
     let mcp_servers = load_role_mcp_servers(state, role_name);
     let Some(rx) = send_prewarm(PrewarmOpts {
         role_name,
@@ -122,11 +119,11 @@ pub async fn refresh_role_config_defs(
     })
     .await
     else {
-        return (vec![], vec![]);
+        return vec![];
     };
 
-    let (opts, modes, _sid) = rx.await.unwrap_or_default();
-    (opts, modes)
+    let (opts, _sid) = rx.await.unwrap_or_default();
+    opts
 }
 
 /// Prewarm with an explicit session ID.

@@ -1,0 +1,21 @@
+Maenifold UI
+============
+
+This product (Maenifold UI, located at `ui/` in the maenifold repository) is a
+copy-and-own, rebranded fork of the "acp-ui" project.
+
+Original work:
+  acp-ui — A cross-platform client for the Agent Client Protocol (ACP)
+  Copyright (c) 2026 Jun Han (formulahendry)
+  https://github.com/formulahendry/acp-ui
+
+Licensed under the MIT License. The full original license text is retained
+verbatim in the accompanying `LICENSE` file, and the above copyright notice is
+preserved in accordance with the MIT License terms.
+
+Modifications by the maenifold project:
+  - Rebranded from "acp-ui" to "Maenifold UI".
+  - Removed mobile (Android / iOS) scaffolding; retained Desktop (Tauri) and Web.
+  - Updated package metadata, Tauri configuration, and documentation.
+
+This client is a standalone ACP UI and has no coupling to the maenifold backend.

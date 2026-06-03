@@ -57,12 +57,13 @@ pub(super) fn write_mcp_server_config(context: &crate::tools::ToolContext, mcp_s
 }
 
 pub(super) fn write_sleep_mcp_server_config(context: &crate::tools::ToolContext) {
+    let python = crate::test_util::locate_python3();
     write_mcp_server_config(
         context,
         json!({
           "sleepmcp": {
-            "command": "/bin/sleep",
-            "args": ["5"]
+            "command": python.to_string_lossy(),
+            "args": ["-c", "import time; time.sleep(5)"]
           }
         }),
     );
@@ -217,7 +218,7 @@ while True:
         context,
         json!({
           "flakymcp": {
-            "command": "/usr/bin/python3",
+            "command": crate::test_util::locate_python3().to_string_lossy(),
             "args": ["-u", "-c", script, counter_file]
           }
         }),

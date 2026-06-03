@@ -178,7 +178,11 @@ fn sha2_hex(data: &[u8]) -> String {
     use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();
     hasher.update(data);
-    format!("{:x}", hasher.finalize())
+    hasher
+        .finalize()
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 fn list_relative_files(root: &Path) -> Vec<PathBuf> {
@@ -230,7 +234,10 @@ fn ort_runtime_extractor_prefers_real_dylib_over_later_dsym_collision() {
     }
 }
 
-/// Test (b): magic-byte rejection — non-Mach-O bytes cause Err with hex.
+/// Mach-O dylib filetype validation is macOS-specific. Production
+/// `validate_staged_dylib_magic` is `#[cfg(target_os="macos")]`, so the test must
+/// be too — on Windows/Linux the validator is a no-op and extraction succeeds.
+#[cfg(target_os = "macos")]
 #[test]
 fn ort_runtime_extractor_rejects_non_macho_dylib_bytes() {
     let temp = tempfile::TempDir::new().expect("temp dir");
@@ -304,6 +311,7 @@ fn build_dsym_collision_archive(real_bytes: &[u8], dsym_bytes: &[u8]) -> Vec<u8>
     gz.finish().expect("finish gzip")
 }
 
+#[cfg(target_os = "macos")]
 fn build_single_dylib_archive(content: &[u8]) -> Vec<u8> {
     let gz = GzEncoder::new(Vec::new(), Compression::default());
     let mut builder = Builder::new(gz);
@@ -326,6 +334,9 @@ fn macho64_header(filetype: u32, tag: &[u8; 2]) -> [u8; 16] {
     h
 }
 
+/// Mach-O dylib filetype validation is macOS-specific (see
+/// `ort_runtime_extractor_rejects_non_macho_dylib_bytes`). Gate to macOS only.
+#[cfg(target_os = "macos")]
 #[test]
 fn ort_runtime_extractor_rejects_mh_dsym_filetype_at_lib_passing_path() {
     let t = tempfile::TempDir::new().expect("td");

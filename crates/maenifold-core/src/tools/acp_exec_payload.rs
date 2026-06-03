@@ -64,7 +64,6 @@ pub(super) struct RequestOptions {
     pub app_session_id: String,
     pub cwd: PathBuf,
     pub auto_approve: bool,
-    pub role_mode: Option<String>,
     pub role_config_options: Vec<(String, String)>,
     pub timeout_seconds: Option<u64>,
     pub extra_context: Vec<(String, String)>,
@@ -81,7 +80,6 @@ pub(super) fn request_options_from(cwd: PathBuf, payload: &Value) -> Result<Requ
             .map(PathBuf::from)
             .unwrap_or(cwd),
         auto_approve: required_bool(payload, "autoGrantPermissions")?,
-        role_mode: optional_string(payload, "sessionMode"),
         role_config_options,
         timeout_seconds: payload.get("timeoutSeconds").and_then(Value::as_u64),
         extra_context,

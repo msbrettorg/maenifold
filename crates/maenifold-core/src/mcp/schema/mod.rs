@@ -1,4 +1,7 @@
 mod assumption_params;
+pub(crate) mod config_tools;
+#[cfg(test)]
+mod config_tools_tests;
 mod embedding_models_params;
 mod files_params;
 pub(crate) mod gateway_tools;

@@ -68,7 +68,14 @@ async fn state(settings: IntentResolverSettings) -> GatewayState {
     );
     let registry = GatewayRegistry::build(Vec::new(), &BTreeMap::new()).expect("registry");
     let resources = Arc::new(ResourceRoutingRegistry::build(pool.as_ref()).expect("resources"));
-    GatewayState::new(pool, resources, registry, settings, PathBuf::from("."))
+    GatewayState::new(
+        pool,
+        resources,
+        registry,
+        settings,
+        PathBuf::from("."),
+        crate::mcp::config_tools::mutation_state_for_tests(),
+    )
 }
 
 fn settings(auto: bool) -> IntentResolverSettings {

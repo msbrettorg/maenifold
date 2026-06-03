@@ -94,7 +94,10 @@ fn find_driver_binary() -> Result<std::path::PathBuf> {
             MaenifoldError::Message("Cannot determine executable directory".to_string())
         })?
         .to_path_buf();
-    let driver = exe_dir.join(format!("maenifold-pipeline-driver{}", std::env::consts::EXE_SUFFIX));
+    let driver = exe_dir.join(format!(
+        "maenifold-pipeline-driver{}",
+        std::env::consts::EXE_SUFFIX
+    ));
     if driver.exists() {
         return Ok(driver);
     }

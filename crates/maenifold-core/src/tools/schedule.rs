@@ -23,20 +23,28 @@ pub(super) mod schedule_helpers;
 #[path = "schedule_os.rs"]
 pub(super) mod schedule_os;
 #[cfg(test)]
+#[path = "schedule_run_now_async_tests.rs"]
+mod schedule_run_now_async_tests;
+#[cfg(test)]
 #[path = "schedule_tests.rs"]
 mod schedule_tests;
 #[path = "schedule_validation.rs"]
 pub(super) mod schedule_validation;
 
 #[cfg(test)]
-use schedule_crud::update_task_for_test;
-use schedule_crud::{create_task, delete_task, get_task, list_tasks, run_now, update_task};
+use schedule_crud::create_task_with_bin;
+#[cfg(all(test, unix))]
+use schedule_crud::create_task_with_bin_for_test;
 #[cfg(test)]
-use schedule_crud::{create_task_with_bin, create_task_with_bin_for_test};
+#[cfg(target_os = "macos")]
+use schedule_crud::update_task_for_test;
+use schedule_crud::{
+    create_task, delete_task, get_task, list_tasks, options_action, run_now, update_task,
+};
 use schedule_helpers::{
     env_allowlist_view, optional_bool, optional_path_buf, optional_string, optional_string_array,
-    optional_u32, optional_value, reject_enabled_while_paused, resolve_maenifold_bin,
-    schedule_store, task_value, validate_mcp_action,
+    optional_u32, optional_value, optional_value_map, reject_enabled_while_paused,
+    resolve_maenifold_bin, schedule_store, task_value, validate_mcp_action,
 };
 use schedule_validation::{preview_schedule, validate_and_parse_schedule, verify_installed_action};
 
@@ -71,8 +79,9 @@ pub fn schedule(context: &ToolContext, payload: &Value) -> Result<String> {
         "resume_all" => schedule_batch::resume_all(context, payload),
         "set_all_enabled" => schedule_batch::set_all_enabled(context, payload),
         "pause_status" => schedule_batch::pause_status(context),
+        "options" => options_action(context),
         _ => Err(MaenifoldError::InvalidArgument(format!(
-            "unknown action '{}'. Available: create, update, delete, list, get, run_now, logs, clear_history, backfill, preview, verify_installed, pause_all, resume_all, set_all_enabled, pause_status",
+            "unknown action '{}'. Available: create, update, delete, list, get, run_now, logs, clear_history, backfill, preview, verify_installed, pause_all, resume_all, set_all_enabled, pause_status, options",
             action
         ))),
     }

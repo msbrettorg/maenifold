@@ -52,3 +52,6 @@ uat-evidence/
 ralph/state/iter-snapshots/*.ps.txt
 ralph/state/iter-snapshots/*.du.txt
 crates/maenifold-pipeline-driver/target/
+
+# ORT runtime DLLs (downloaded at runtime, not source)
+assets/lib/

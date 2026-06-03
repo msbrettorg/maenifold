@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::error::{MaenifoldError, Result};
 use crate::registry::ToolRegistry;
-use agent_client_protocol as acp;
+use agent_client_protocol::schema::{self as acp};
 use jockey::EventSender;
 
 use super::agent_session::open_agent_session;
@@ -23,7 +23,6 @@ pub(crate) struct AgentSessionConfig {
     pub cwd: PathBuf,
     pub model: Option<String>,
     pub session_id: Option<String>,
-    pub mode: Option<String>,
     pub thought_level: Option<String>,
     pub config_options: Option<serde_json::Map<String, serde_json::Value>>,
     pub output_schema: Option<serde_json::Value>,
@@ -121,7 +120,6 @@ mod tests {
         AgentSessionConfig {
             cwd: PathBuf::from("."),
             model: None,
-            mode: None,
             thought_level: None,
             config_options: None,
             output_schema: None,

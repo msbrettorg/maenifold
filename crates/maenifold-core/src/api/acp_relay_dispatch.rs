@@ -4,7 +4,7 @@ use super::acp_relay_helpers::{
 };
 use super::acp_relay_prompt::{handle_prompt, handle_set_config_option};
 use super::acp_relay_session::{handle_initialize, handle_session_load, handle_session_new};
-use agent_client_protocol as acp;
+use agent_client_protocol::schema::{self as acp};
 use axum::extract::ws::{Message, WebSocket};
 use serde_json::{Value, json};
 use std::collections::HashMap;
@@ -194,20 +194,6 @@ pub(super) fn handle_cancel(
 pub(super) fn apply_event_state(session: &mut RelaySession, event: &jockey::acp::AcpEvent) {
     match event {
         jockey::acp::AcpEvent::ConfigUpdate { options } => session.config_options = options.clone(),
-        jockey::acp::AcpEvent::AvailableModes { modes, current } => {
-            session.modes = modes
-                .iter()
-                .filter_map(|mode| {
-                    mode.get("id")
-                        .and_then(Value::as_str)
-                        .map(ToString::to_string)
-                })
-                .collect();
-            session.current_mode_id = current.clone();
-        }
-        jockey::acp::AcpEvent::ModeUpdate { mode_id } => {
-            session.current_mode_id = Some(mode_id.clone());
-        }
         _ => {}
     }
 }
@@ -220,32 +206,86 @@ pub(super) async fn forward_event(
     next_permission_id: &mut u64,
 ) -> bool {
     let payload = match event {
-        jockey::acp::AcpEvent::TextDelta { text } => Some(rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "agent_message_chunk", "content": {"type": "text", "text": text}}}))),
-        jockey::acp::AcpEvent::UserTextDelta { text } => Some(rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "user_message_chunk", "content": {"type": "text", "text": text}}}))),
-        jockey::acp::AcpEvent::ThoughtDelta { text } => Some(rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "agent_thought_chunk", "content": {"type": "text", "text": text}}}))),
-        jockey::acp::AcpEvent::ToolCall { tool_call_id, title, tool_kind, status, content, locations, raw_input, raw_output } => Some(rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "tool_call", "toolCallId": tool_call_id, "title": title, "kind": tool_kind, "status": status, "content": content, "locations": locations, "rawInput": raw_input, "rawOutput": raw_output}}))),
-        jockey::acp::AcpEvent::ToolCallUpdate { tool_call_id, tool_kind, status, title, content, locations, raw_input, raw_output } => Some(rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "tool_call_update", "toolCallId": tool_call_id, "kind": tool_kind, "status": status, "title": title, "content": content, "locations": locations, "rawInput": raw_input, "rawOutput": raw_output}}))),
-        jockey::acp::AcpEvent::Plan { entries } => Some(rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "plan", "entries": entries}}))),
-        jockey::acp::AcpEvent::ModeUpdate { mode_id } => Some(rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "current_mode_update", "currentModeId": mode_id}}))),
-        jockey::acp::AcpEvent::ConfigUpdate { options } => Some(rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "config_option_update", "configOptions": options}}))),
-        jockey::acp::AcpEvent::SessionInfo { title } => Some(rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "session_info_update", "title": title}}))),
-        jockey::acp::AcpEvent::AvailableCommands { commands } => Some(rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "available_commands_update", "availableCommands": commands}}))),
+        jockey::acp::AcpEvent::TextDelta { text } => Some(rpc_notification(
+            "session/update",
+            json!({"sessionId": session_id, "update": {"sessionUpdate": "agent_message_chunk", "content": {"type": "text", "text": text}}}),
+        )),
+        jockey::acp::AcpEvent::UserTextDelta { text } => Some(rpc_notification(
+            "session/update",
+            json!({"sessionId": session_id, "update": {"sessionUpdate": "user_message_chunk", "content": {"type": "text", "text": text}}}),
+        )),
+        jockey::acp::AcpEvent::ThoughtDelta { text } => Some(rpc_notification(
+            "session/update",
+            json!({"sessionId": session_id, "update": {"sessionUpdate": "agent_thought_chunk", "content": {"type": "text", "text": text}}}),
+        )),
+        jockey::acp::AcpEvent::ToolCall {
+            tool_call_id,
+            title,
+            tool_kind,
+            status,
+            content,
+            locations,
+            raw_input,
+            raw_output,
+        } => Some(rpc_notification(
+            "session/update",
+            json!({"sessionId": session_id, "update": {"sessionUpdate": "tool_call", "toolCallId": tool_call_id, "title": title, "kind": tool_kind, "status": status, "content": content, "locations": locations, "rawInput": raw_input, "rawOutput": raw_output}}),
+        )),
+        jockey::acp::AcpEvent::ToolCallUpdate {
+            tool_call_id,
+            tool_kind,
+            status,
+            title,
+            content,
+            locations,
+            raw_input,
+            raw_output,
+        } => Some(rpc_notification(
+            "session/update",
+            json!({"sessionId": session_id, "update": {"sessionUpdate": "tool_call_update", "toolCallId": tool_call_id, "kind": tool_kind, "status": status, "title": title, "content": content, "locations": locations, "rawInput": raw_input, "rawOutput": raw_output}}),
+        )),
+        jockey::acp::AcpEvent::Plan { entries } => Some(rpc_notification(
+            "session/update",
+            json!({"sessionId": session_id, "update": {"sessionUpdate": "plan", "entries": entries}}),
+        )),
+        jockey::acp::AcpEvent::ConfigUpdate { options } => Some(rpc_notification(
+            "session/update",
+            json!({"sessionId": session_id, "update": {"sessionUpdate": "config_option_update", "configOptions": options}}),
+        )),
+        jockey::acp::AcpEvent::SessionInfo { title } => Some(rpc_notification(
+            "session/update",
+            json!({"sessionId": session_id, "update": {"sessionUpdate": "session_info_update", "title": title}}),
+        )),
+        jockey::acp::AcpEvent::AvailableCommands { commands } => Some(rpc_notification(
+            "session/update",
+            json!({"sessionId": session_id, "update": {"sessionUpdate": "available_commands_update", "availableCommands": commands}}),
+        )),
         // NOTE: Permission forwarding infrastructure is dormant while auto_approve is true.
         // The code is retained for future multi-user support but is currently unreachable.
-        jockey::acp::AcpEvent::PermissionRequest { request_id, title, description, options } => {
+        jockey::acp::AcpEvent::PermissionRequest {
+            request_id,
+            title,
+            description,
+            options,
+        } => {
             let permission_id = *next_permission_id;
             *next_permission_id += 1;
             permission_ids.insert(permission_id, request_id.clone());
-            Some(rpc_request(permission_id, "session/request_permission", json!({
-                "sessionId": session_id,
-                "toolCall": { "toolCallId": request_id, "title": title, "kind": "other", "status": "pending", "rawInput": description.as_ref().map(|value| json!({"description": value})) },
-                "options": options,
-            })))
+            Some(rpc_request(
+                permission_id,
+                "session/request_permission",
+                json!({
+                    "sessionId": session_id,
+                    "toolCall": { "toolCallId": request_id, "title": title, "kind": "other", "status": "pending", "rawInput": description.as_ref().map(|value| json!({"description": value})) },
+                    "options": options,
+                }),
+            ))
         }
         jockey::acp::AcpEvent::PermissionExpired { .. } => None,
         jockey::acp::AcpEvent::ReplayComplete => None,
-        jockey::acp::AcpEvent::StatusUpdate { text } => Some(rpc_notification("_relay/stderr", json!({"data": text}))),
-        jockey::acp::AcpEvent::AvailableModes { current, .. } => current.as_ref().map(|mode| rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "current_mode_update", "currentModeId": mode}}))),
+        jockey::acp::AcpEvent::StatusUpdate { text } => {
+            Some(rpc_notification("_relay/stderr", json!({"data": text})))
+        }
     };
     match payload {
         Some(value) => send_json(sender, value).await,

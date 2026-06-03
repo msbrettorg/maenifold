@@ -39,13 +39,17 @@ fn read_raw_node_states(
 }
 
 fn write_sleep_mcp_server_config(context: &crate::tools::ToolContext) {
+    // Cross-platform sleep via Python's `time.sleep`. The pre-upgrade fixture
+    // hardcoded `/bin/sleep 5` which only exists on unix; Python ships on every
+    // supported test host so we use it as the cross-platform sleep equivalent.
+    let python = crate::test_util::locate_python3();
     fs::write(
         context.config.maenifold_root.join("maenifold.json"),
         serde_json::to_vec_pretty(&json!({
             "mcpServers": {
                 "sleepmcp": {
-                    "command": "/bin/sleep",
-                    "args": ["5"]
+                    "command": python.to_string_lossy(),
+                    "args": ["-c", "import time; time.sleep(5)"]
                 }
             }
         }))

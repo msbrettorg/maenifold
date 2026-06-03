@@ -21,6 +21,7 @@ struct JoinRequest {
 #[serde(untagged)]
 enum ForkRequest {
     NodeId(String),
+    #[serde(rename_all = "camelCase")]
     Config {
         from_node_id: String,
         #[serde(default)]

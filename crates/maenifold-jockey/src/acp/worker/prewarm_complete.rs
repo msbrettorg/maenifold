@@ -1,14 +1,14 @@
-use agent_client_protocol::{self as acp};
+use agent_client_protocol::schema::{self as acp};
 use serde_json::{Value, json};
 use tokio::sync::{mpsc, oneshot};
 
 use super::super::adapter::acp_log;
-use super::super::runtime_state::{list_discovered_config_options, list_discovered_modes};
+use super::super::runtime_state::list_discovered_config_options;
 use super::pool::{CONN_MAP, find_session_key, register_session_index, remove_session_index};
 use super::types::AcpEvent;
 pub(super) async fn complete_failed_prewarm(
     delta_tx: Option<mpsc::Sender<AcpEvent>>,
-    result_tx: Option<oneshot::Sender<(Vec<Value>, Vec<String>, String)>>,
+    result_tx: Option<oneshot::Sender<(Vec<Value>, String)>>,
     is_resume_replay: bool,
 ) {
     if is_resume_replay {
@@ -17,7 +17,7 @@ pub(super) async fn complete_failed_prewarm(
         }
     }
     if let Some(tx) = result_tx {
-        let _ = tx.send((vec![], vec![], String::new()));
+        let _ = tx.send((vec![], String::new()));
     }
 }
 
@@ -30,7 +30,7 @@ pub(super) async fn complete_live_resume_prewarm(
     _cwd: &str,
     _mcp_servers: Vec<acp::McpServer>,
     delta_tx: Option<mpsc::Sender<AcpEvent>>,
-    result_tx: Option<oneshot::Sender<(Vec<Value>, Vec<String>, String)>>,
+    result_tx: Option<oneshot::Sender<(Vec<Value>, String)>>,
     resume_session_id: &str,
 ) -> bool {
     let Some(existing_key) = find_session_key(runtime_key, role_name, resume_session_id) else {
@@ -84,7 +84,6 @@ pub(super) async fn complete_live_resume_prewarm(
     if let Some(tx) = result_tx {
         let _ = tx.send((
             list_discovered_config_options(runtime_key),
-            list_discovered_modes(runtime_key),
             resume_session_id.to_string(),
         ));
     }
@@ -95,7 +94,7 @@ pub(super) async fn complete_already_live_prewarm(
     key: &str,
     runtime_key: &str,
     delta_tx: Option<mpsc::Sender<AcpEvent>>,
-    result_tx: Option<oneshot::Sender<(Vec<Value>, Vec<String>, String)>>,
+    result_tx: Option<oneshot::Sender<(Vec<Value>, String)>>,
     is_resume_replay: bool,
 ) {
     let session_id = CONN_MAP.with(|m| {
@@ -112,10 +111,6 @@ pub(super) async fn complete_already_live_prewarm(
     }
 
     if let Some(tx) = result_tx {
-        let _ = tx.send((
-            list_discovered_config_options(runtime_key),
-            list_discovered_modes(runtime_key),
-            session_id,
-        ));
+        let _ = tx.send((list_discovered_config_options(runtime_key), session_id));
     }
 }

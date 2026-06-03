@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use agent_client_protocol::{self as acp, Agent as _};
+use agent_client_protocol::schema::{self as acp};
 use tokio::sync::oneshot;
 
 use super::pool::{
@@ -13,7 +13,7 @@ const CLEAN_CANCEL_TIMEOUT: Duration = Duration::from_secs(3);
 static TEST_CLEAN_CANCEL_HANGS: std::sync::atomic::AtomicBool =
     std::sync::atomic::AtomicBool::new(false);
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(super) fn set_test_clean_cancel_hangs(hangs: bool) {
     TEST_CLEAN_CANCEL_HANGS.store(hangs, std::sync::atomic::Ordering::SeqCst);
 }
@@ -52,12 +52,13 @@ pub(crate) async fn cancel_tracked_session(session_id: &str) -> Result<TrackedSe
                     .await
                     .is_ok();
         } else {
-            clean_cancel_completed = tokio::time::timeout(
-                CLEAN_CANCEL_TIMEOUT,
-                h.conn.cancel(acp::CancelNotification::new(h.session_id)),
-            )
+            clean_cancel_completed = tokio::time::timeout(CLEAN_CANCEL_TIMEOUT, async {
+                h.conn
+                    .send_notification(acp::CancelNotification::new(h.session_id))
+                    .is_ok()
+            })
             .await
-            .is_ok();
+            .unwrap_or(false);
         }
     }
 

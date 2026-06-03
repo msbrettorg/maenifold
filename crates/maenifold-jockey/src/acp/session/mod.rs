@@ -16,5 +16,5 @@ pub use prewarm::{
 };
 pub use session_cmds::{
     cancel_session, cancel_tracked_session_blocking, force_kill_session, force_kill_session_sync,
-    list_live_sessions_blocking, reconnect_session, reset_session, set_config_option, set_mode,
+    list_live_sessions_blocking, reconnect_session, reset_session, set_config_option,
 };

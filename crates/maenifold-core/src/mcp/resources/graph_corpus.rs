@@ -101,14 +101,20 @@ pub(super) fn read_or_route_to_concept(
                     .with_mime_type("application/json"),
                 ]));
             }
-            let concept_payload = graph_concept::read_concept_context(connection, uri).map_err(
-                |error| match error {
-                    MaenifoldError::InvalidResourceUri(_) => GraphReadRouteError::NotHandled,
-                    other => GraphReadRouteError::ResourceError(other),
-                },
-            )?;
-            serde_json::to_string_pretty(&concept_payload)
-                .map_err(|err| GraphReadRouteError::ResourceError(err.into()))?
+            if let Some(neighbors_payload) = graph_concept::read_concept_neighbors(connection, uri)
+                .map_err(GraphReadRouteError::ResourceError)?
+            {
+                serde_json::to_string_pretty(&neighbors_payload)
+                    .map_err(|err| GraphReadRouteError::ResourceError(err.into()))?
+            } else {
+                let concept_payload = graph_concept::read_concept_context(connection, uri)
+                    .map_err(|error| match error {
+                        MaenifoldError::InvalidResourceUri(_) => GraphReadRouteError::NotHandled,
+                        other => GraphReadRouteError::ResourceError(other),
+                    })?;
+                serde_json::to_string_pretty(&concept_payload)
+                    .map_err(|err| GraphReadRouteError::ResourceError(err.into()))?
+            }
         }
     };
 

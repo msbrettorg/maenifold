@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::acp_config::McpServerEntry;
-    use agent_client_protocol as acp;
+    use agent_client_protocol::schema as acp;
     use serde_json::json;
     use std::collections::HashMap;
 

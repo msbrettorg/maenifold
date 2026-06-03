@@ -32,10 +32,7 @@ fn parses_copilot_models_fixture_with_exact_reasoning_effort_shape() {
         .expect("find claude-opus-4.7-xhigh");
     assert_ne!(opus.id, opus_xhigh.id);
     assert_eq!(gpt_55.capabilities.supports.structured_outputs, Some(true));
-    assert_eq!(
-        opus.capabilities.supports.structured_outputs,
-        None
-    );
+    assert_eq!(opus.capabilities.supports.structured_outputs, None);
     assert_eq!(
         gpt_55.capabilities.limits.max_non_streaming_output_tokens,
         Some(32_000)

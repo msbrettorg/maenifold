@@ -1,7 +1,6 @@
 mod client_handler;
 #[cfg(test)]
 mod client_handler_tests;
-#[cfg(test)]
 mod config_tools;
 #[cfg(test)]
 mod config_tools_tests;
@@ -11,6 +10,7 @@ mod elicitation_validation;
 pub(crate) mod gateway_batch;
 pub(crate) mod gateway_batch_types;
 mod gateway_cli;
+mod gateway_config;
 mod gateway_direct_inference_resolver;
 #[cfg(test)]
 mod gateway_experiment;
@@ -131,9 +131,11 @@ impl MaenifoldMcpServer {
     pub async fn serve_stdio(shutdown: CancellationToken) -> Result<()> {
         let config = Config::current();
         initialize_runtime(&config)?;
+        let shared_config = crate::api::routes::ApiStateSharedConfig::from(config.clone());
         let pending_registry = Arc::new(PendingRequestRegistry::new());
         let gateway_startup =
-            self::gateway_startup::build_gateway_with_registry(&config, pending_registry).await?;
+            self::gateway_startup::build_gateway_with_registry(shared_config, pending_registry)
+                .await?;
         let (gateway, gateway_diagnostics) = match gateway_startup {
             self::gateway_startup::GatewayStartup::Ready(gateway) => {
                 let diagnostics = Some(gateway.pool());

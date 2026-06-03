@@ -1,4 +1,4 @@
-use agent_client_protocol::{self as acp, Agent as _};
+use agent_client_protocol::schema::{self as acp};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 
@@ -17,7 +17,7 @@ fn is_critical_config_key(key: &str) -> bool {
     CRITICAL_CONFIG_KEYS.contains(&key)
 }
 
-/// Apply session mode and config options after a cold-start (or warm re-use).
+/// Apply config options after a cold-start (or warm re-use).
 ///
 /// Returns `Err` if a *critical* config option (`model`, `thoughtLevel`,
 /// `thought_level`) fails to apply.  Non-critical option failures are logged
@@ -25,45 +25,14 @@ fn is_critical_config_key(key: &str) -> bool {
 pub(crate) async fn apply_cold_start_config(
     key: &str,
     session_id: &acp::SessionId,
-    delta_tx: &mpsc::Sender<AcpEvent>,
-    role_mode: &Option<String>,
+    _delta_tx: &mpsc::Sender<AcpEvent>,
     role_config_options: &[(String, String)],
     runtime_key: &str,
 ) -> Result<(), String> {
-    // Borrow conn fields we need
-    let (available_modes, current_mode) = CONN_MAP.with(|m| {
-        m.borrow()
-            .get(key)
-            .map(|c| (c.available_modes.clone(), c.current_mode.clone()))
-            .unwrap_or_default()
-    });
-
-    if !available_modes.is_empty() {
-        let _ = delta_tx.try_send(AcpEvent::AvailableModes {
-            modes: available_modes,
-            current: current_mode,
-        });
-    }
-
     let conn_rc = CONN_MAP.with(|m| m.borrow().get(key).map(|c| c.conn.clone()));
     let Some(conn_rc) = conn_rc else {
         return Ok(());
     };
-
-    if let Some(mode) = role_mode {
-        if let Err(e) = conn_rc
-            .set_session_mode(acp::SetSessionModeRequest::new(
-                session_id.clone(),
-                acp::SessionModeId::from(mode.clone()),
-            ))
-            .await
-        {
-            acp_log(
-                "config.set_mode.error",
-                json!({ "mode": mode, "error": e.to_string() }),
-            );
-        }
-    }
 
     let discovered = list_discovered_config_options(runtime_key);
     let supported_keys: std::collections::HashSet<String> = discovered
@@ -90,11 +59,12 @@ pub(crate) async fn apply_cold_start_config(
             continue;
         }
         if let Err(e) = conn_rc
-            .set_session_config_option(acp::SetSessionConfigOptionRequest::new(
+            .send_request(acp::SetSessionConfigOptionRequest::new(
                 session_id.clone(),
                 acp::SessionConfigId::from(k.clone()),
                 acp::SessionConfigValueId::from(value.clone()),
             ))
+            .block_task()
             .await
         {
             if is_critical_config_key(k) {

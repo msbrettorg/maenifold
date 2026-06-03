@@ -56,16 +56,13 @@ fn schedule_tool_and_resources_match_after_mutation_matrix() {
     set_enabled_with_store(&context, id, false);
     assert!(!assert_all_surfaces_agree(&context, id).enabled);
 
-    let run_now = call_schedule(&context, json!({"action": "run_now", "id": id}));
-    assert_eq!(run_now["action"], "run_now");
-    assert_eq!(run_now["id"], id);
-    let tool_after_run = call_schedule(&context, json!({"action": "get", "id": id}));
-    let resource_after_run = resource_json(&context, &format!("schedule://job/{id}"));
-    let (tool_last_run, resource_last_run) =
-        (&tool_after_run["last_run"], &resource_after_run["last_run"]);
-    assert!(!tool_last_run.is_null() && !tool_last_run.as_str().is_some_and(str::is_empty));
-    assert!(!resource_last_run.is_null() && !resource_last_run.as_str().is_some_and(str::is_empty));
-    assert!(!assert_all_surfaces_agree(&context, id).enabled);
+    // run_now is intentionally NOT exercised here. It routes through
+    // resolve_maenifold_bin() = current_exe(), which under `cargo test` is the
+    // libtest harness; passing ["schedule","run",id] makes libtest re-run this
+    // very test (the "schedule" filter matches its name), producing an
+    // unbounded detached fork loop (regression T-414.4). run_now's response
+    // shape and async behavior are covered safely via run_now_with_bin + a
+    // fixture binary in tools::schedule::schedule_run_now_async_tests.
 
     let schedule_store = store(&context);
     schedule_store

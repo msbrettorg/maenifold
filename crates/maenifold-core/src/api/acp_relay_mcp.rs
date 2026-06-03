@@ -1,7 +1,7 @@
 use super::acp_relay::RelayConfig;
 use super::acp_relay_helpers::rpc_error;
 use crate::acp_config::AgentsConfig;
-use agent_client_protocol as acp;
+use agent_client_protocol::schema::{self as acp};
 use serde_json::{Value, json};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -36,7 +36,7 @@ pub(super) async fn prewarm_session(
     resume_session_id: Option<String>,
     config_options: HashMap<String, Value>,
     request_id: Value,
-) -> Result<(Vec<Value>, Vec<String>, String), Value> {
+) -> Result<(Vec<Value>, String), Value> {
     let role_config_options = role_config_options(config_options)
         .map_err(|error| rpc_error(request_id.clone(), -32602, error))?;
     let (tx, rx) = oneshot::channel();
@@ -52,7 +52,6 @@ pub(super) async fn prewarm_session(
             cwd,
             auto_approve: false,
             mcp_servers,
-            role_mode: None,
             role_config_options,
             delta_tx: None,
             result_tx: Some(tx),

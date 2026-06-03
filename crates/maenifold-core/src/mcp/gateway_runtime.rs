@@ -1,5 +1,7 @@
 use crate::acp_config::IntentResolverSettings;
+use crate::mcp::config_tools::ConfigMutationState;
 use crate::mcp::domain_mapping;
+use crate::mcp::gateway_config::invoke_config_command;
 use crate::mcp::gateway_gate::invoke_gate;
 use crate::mcp::gateway_registry::{CommandTarget, GatewayRegistry};
 use crate::mcp::gateway_schema_validation::validate_parameters;
@@ -32,6 +34,7 @@ pub(crate) struct GatewayState {
     batch_state: crate::mcp::gateway_batch_types::BatchState,
     intent_settings: IntentResolverSettings,
     workspace_root: PathBuf,
+    config_mutation_state: ConfigMutationState,
     startup_error: Option<String>,
 }
 
@@ -42,6 +45,7 @@ impl GatewayState {
         registry: GatewayRegistry,
         intent_settings: IntentResolverSettings,
         workspace_root: PathBuf,
+        config_mutation_state: ConfigMutationState,
     ) -> Self {
         Self {
             pool,
@@ -50,6 +54,7 @@ impl GatewayState {
             batch_state: crate::mcp::gateway_batch_types::BatchState::new(),
             intent_settings,
             workspace_root,
+            config_mutation_state,
             startup_error: None,
         }
     }
@@ -58,6 +63,7 @@ impl GatewayState {
         pool: Arc<StdioPool>,
         intent_settings: IntentResolverSettings,
         workspace_root: PathBuf,
+        config_mutation_state: ConfigMutationState,
         startup_error: String,
     ) -> Result<Self, crate::error::MaenifoldError> {
         let registry = GatewayRegistry::build(Vec::new(), &pool.all_gateway_descriptions())?;
@@ -73,6 +79,7 @@ impl GatewayState {
             batch_state: crate::mcp::gateway_batch_types::BatchState::new(),
             intent_settings,
             workspace_root,
+            config_mutation_state,
             startup_error: Some(startup_error),
         })
     }
@@ -91,6 +98,10 @@ impl GatewayState {
 
     pub(crate) fn intent_settings(&self) -> &IntentResolverSettings {
         &self.intent_settings
+    }
+
+    pub(crate) fn config_mutation_state(&self) -> &ConfigMutationState {
+        &self.config_mutation_state
     }
 
     pub(crate) fn startup_error(&self) -> Option<&str> {
@@ -232,6 +243,13 @@ impl GatewayState {
                         .map_err(|err| rmcp::ErrorData::invalid_params(err.to_string(), None))?;
                 }
                 support::invoke_native(tool_name, parameters).await
+            }
+            CommandTarget::ConfigCommand { command } => {
+                if !learn_requested(&parameters) {
+                    validate_parameters(&command_ref, &parameters, &command_record.entry.schema)
+                        .map_err(|err| rmcp::ErrorData::invalid_params(err.to_string(), None))?;
+                }
+                invoke_config_command(self.config_mutation_state(), command, parameters).await
             }
             CommandTarget::Gate { command } => invoke_gate(command, parameters).await,
             CommandTarget::Tasks { command } => invoke_tasks(command, parameters).await,

@@ -18,6 +18,8 @@ pub struct ScheduledTask {
     #[serde(default)]
     pub allowed_tools: Vec<String>,
     #[serde(default)]
+    pub config_options: serde_json::Map<String, serde_json::Value>,
+    #[serde(default)]
     pub mcp_action: Option<String>,
     #[serde(default)]
     pub mcp_parameters: Option<serde_json::Value>,
@@ -122,6 +124,52 @@ mod tests {
 
         assert_eq!(rendered["mcp_action"], serde_json::Value::Null);
         assert_eq!(rendered["mcp_parameters"], serde_json::Value::Null);
+    }
+
+    #[test]
+    fn schedule_config_options_round_trip_preserves_scalar_map_entries() {
+        let task = serde_json::from_value::<ScheduledTask>(json!({
+            "id": "config-options",
+            "name": "Config options task",
+            "schedule": "0 9 * * *",
+            "agent": "swe",
+            "prompt": "run configured task",
+            "config_options": {
+                "model": "claude-opus-4.6",
+                "stream": true,
+                "max_turns": 3
+            },
+            "created_at": "2026-04-21T07:00:00Z",
+            "updated_at": "2026-04-21T07:00:00Z"
+        }))
+        .expect("task with config options should deserialize");
+        let rendered = serde_json::to_value(&task).expect("serialize task");
+
+        assert_eq!(
+            rendered["config_options"],
+            json!({
+                "model": "claude-opus-4.6",
+                "stream": true,
+                "max_turns": 3
+            })
+        );
+    }
+
+    #[test]
+    fn schedule_config_options_absent_defaults_to_empty_object() {
+        let task = serde_json::from_value::<ScheduledTask>(json!({
+            "id": "legacy-config-options",
+            "name": "Legacy config options task",
+            "schedule": "0 9 * * *",
+            "agent": "swe",
+            "prompt": "run legacy configured task",
+            "created_at": "2026-04-21T07:00:00Z",
+            "updated_at": "2026-04-21T07:00:00Z"
+        }))
+        .expect("legacy config options task should deserialize");
+        let rendered = serde_json::to_value(&task).expect("serialize task");
+
+        assert_eq!(rendered["config_options"], json!({}));
     }
 
     #[test]

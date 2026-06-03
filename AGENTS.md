@@ -1,6 +1,6 @@
 # maenifold — Constitution
 
-One product, one Rust workspace. `crates/` = backend (CLI + MCP server + pipeline driver + ACP runtime). No in-tree frontend; clients reach maenifold through MCP.
+One product, one Rust workspace. `crates/` = backend (CLI + MCP server + pipeline driver + ACP runtime); clients reach the backend through MCP. `ui/` holds a standalone, vendored ACP UI (copy-and-own, decoupled from maenifold internals) used as a convenience client; it is not part of the backend and must not be wired into MCP/ACP/inferencing resolver paths.
 
 ## Key Documents
 
@@ -16,15 +16,15 @@ One product, one Rust workspace. `crates/` = backend (CLI + MCP server + pipelin
 1. **"trio"** — The operating model is **duo** (two architects). Any reference to a trio is contamination.
 2. **"deferral"** — We do not defer. Do it now or escalate.
 3. **"Architect Alpha" / "Architect Beta" / "Architect Gamma"** — Named architect roles are banned.
-4. **Re-introducing an in-tree frontend** — `apps/desktop/` was ripped to return maenifold to a vanilla MCP server baseline. Do not re-add an Electron/Vue/SPA frontend, `apps/` directory, or `npm`/`vue-tsc`/`vitest` toolchain without explicit user direction.
-5. **Cargo-cult security** — Adding unrequested auth, OAuth, bearer tokens, CSRF, rate limiting, etc. The security boundary is APIM at the edge. The Rust backend is localhost loopback that trusts its caller. If you reach for `axum::middleware`, `Authorization` headers, or any crate with "auth" in its name — stop. (8 sprints burned 3 days on this; all ripped out.)
-6. **Hidden inference / invisible ACP sessions** — Any inference path the operator can't inspect, pause, and kill. If maenifold is reasoning, the calling MCP client MUST see it via the canonical `sampling://sessions` resource.
-7. **ACP / Jockey inside the MCP gateway path** — Three distinct protocols, three distinct roles:
+4. **Cargo-cult security** — Adding unrequested auth, OAuth, bearer tokens, CSRF, rate limiting, etc. The security boundary is APIM at the edge. The Rust backend is localhost loopback that trusts its caller. If you reach for `axum::middleware`, `Authorization` headers, or any crate with "auth" in its name — stop. (8 sprints burned 3 days on this; all ripped out.)
+5. **Hidden inference / invisible ACP sessions** — Any inference path the operator can't inspect, pause, and kill. If maenifold is reasoning, the calling MCP client MUST see it via the canonical `sampling://sessions` resource.
+6. **ACP / Jockey inside the MCP gateway path** — Three distinct protocols, three distinct roles:
    - **MCP** = universal client interface into the daemon.
    - **ACP/Jockey** = product runtime for user-visible CLI agents driven from pipelines/workflows. NOT gateway infrastructure.
    - **Inferencing** = direct LLM API access for gateway tools when the client lacks `sampling/createMessage`.
    
    `GatewayIntent` has exactly two resolver paths: (a) MCP client sampling, (b) direct inferencing. There is no third path. If you reach for `AgentsConfig::load`, `jockey::acp::execute_runtime`, or any path requiring a `maenifold.json` agent entry to resolve a GatewayIntent — stop.
+7. **WSL on Windows** — This repo is developed on **native Windows**. NO WSL. Never invoke `wsl`, `C:\Windows\System32\bash.exe`, or any `/mnt/c/...` path-based tooling. The bash helper scripts under `ralph/scripts/*.sh` are Unix-only and MUST NOT be run on Windows (e.g. `worktree-create.sh` via system32 bash produces a worktree with a `/mnt/c/...` gitdir that native git cannot open). On Windows use the native toolchain only: PowerShell, `git worktree add`, `mklink /J` for junctions, `rebuild.ps1`, and the MSVC Rust toolchain. If a task can only be done via WSL/bash, stop and escalate — do not reach for WSL.
 
 **Violation response:** Stop all work. Identify the source. Purge the reference. Report to PM. Resume only after confirmed removed.
 
@@ -64,7 +64,7 @@ One product, one Rust workspace. `crates/` = backend (CLI + MCP server + pipelin
 
 **Direct access OK:** `maenifold.json` (preferences only), ACP host filesystem/terminal per protocol spec.
 
-**MCP tools are the primary interface.** Agents use `GatewayExecute`, `GatewayIndex`, `GatewayBatch`, `GatewayIntent`, `complete_node`, `ReadMcpResource`, and `GetHelp` as their first choice. The `mae_mcp` curl helper and direct `curl` to `/mcp` are **last-resort fallbacks** only when MCP tools are unavailable or timing out. Never default to curl when MCP tools work.
+**MCP tools are the primary interface.** Agents use `GatewayExecute`, `GatewayIndex`, `GatewayBatch`, `GatewayIntent`, `complete_node`, `ReadMcpResource`, and `GetHelp` as their first choice. If the MCP tools aren't exposed in the session, start the daemon (`launchctl kickstart -k gui/$(id -u)/com.ma-collective.maenifold` on macOS, or `./rebuild.sh` for a full redeploy) and re-check the tool inventory. If they still aren't reachable, fall back to the in-process CLI: `maenifold tool <NAME> '<JSON-PAYLOAD>'`. If neither path works, fail fast and report — never curl `/mcp` directly, never hand-roll an MCP HTTP envelope, never reintroduce a `mae_mcp`-style helper.
 
 **No REST data APIs.** The daemon exposes `/mcp` for MCP JSON-RPC. The only non-MCP HTTP endpoints are infrastructure: `/api/health`, `/api/machine-id`, `/api/config/*` (file I/O), `/api/user-prompt/*` (MCP sampling bridge), `/api/acp/session` (ACP WebSocket transport). All domain data flows through MCP.
 
@@ -151,12 +151,14 @@ The `task-pm` tier is deprecated and forbidden. The outer-loop PM owns the per-s
 
 ### Test Policy
 
-| Role | Allowed | Forbidden |
-|------|---------|-----------|
-| SWE | `cargo build -p <crate>` | `cargo test`, any test execution |
-| Red-team | Read code, reason | Execute tests |
-| Blue-team | `cargo test -p <crate> <test_name>` | Full workspace test runs |
-| PM | `cargo test -p <crate>` at sprint close | Mid-sprint test runs |
+All compilation — including test compilation — goes through the rebuild scripts, which set the `MAENIFOLD_REBUILD=1` token the build guard requires (see Build). The role limits below describe **scope** (what each role may compile/test), not a license to invoke `cargo` out of band: run cargo under the rebuild-script environment, never bare.
+
+| Role | Allowed scope | Forbidden |
+|------|---------------|-----------|
+| SWE | Build only the assigned crate | `cargo test`, any test execution; bare out-of-band `cargo` |
+| Red-team | Read code, reason | Execute tests; any compile |
+| Blue-team | Test only the changed code | Full workspace test runs; bare out-of-band `cargo` |
+| PM | Build/test the touched crate at sprint close | Mid-sprint test runs; bare out-of-band `cargo` |
 
 ### Scoping
 
@@ -206,26 +208,29 @@ Agent-facing markdown MUST render in terminal MCP clients. No ` ```mermaid ` (us
 
 ## Build
 
-### Deploy (the one and only command)
+### The only approved build path: the rebuild scripts
+
+Compilation happens **only** through the rebuild scripts. They are the one approved build entry point on each OS:
 
 ```bash
-./rebuild.sh
+./rebuild.sh                              # macOS / Linux
+pwsh -NoProfile -File .\rebuild.ps1       # Windows
 ```
 
-This is the canonical redeploy. It builds every crate in release, verifies the `/usr/local/bin/maenifold` symlink, and `launchctl kickstart`s the launchd service. **There is no separate "restart the daemon" step.** `/usr/local/bin/maenifold` is a symlink to `target/release/maenifold`, so the live daemon binary updates the moment the release build finishes, and the launchd kickstart picks up the new bits on next request. Never ask the user "should I redeploy myself or do you want to?" — just run `./rebuild.sh`.
+**Direct `cargo build` / `cargo test` / `cargo check` / `cargo run` is "out of band" and is forbidden.** A repo-level build guard enforces this: the `build.rs` scripts in `maenifold-core`, `maenifold-gate-core`, and `maenifold-jockey` abort any compile that does not carry the `MAENIFOLD_REBUILD=1` token, which **only** the rebuild scripts set. An out-of-band compile fails fast with a pointer back to this section. rust-analyzer's background pre-pass is exempt (it sets `RA_RUSTC_WRAPPER=1`), so LSP intelligence keeps working. GitHub-hosted CI is also exempt (it sets `GITHUB_ACTIONS=true`): the release matrix cross-compiles four targets and the build/test workflow runs on a hosted runner, neither of which can use the rebuild scripts (those build only the host target and restart the local daemon). Do not set `MAENIFOLD_REBUILD` by hand to bypass the guard on a dev machine — that token is reserved for the rebuild scripts, and the `GITHUB_ACTIONS` exemption only fires on real GitHub runners.
 
-### Focused targets (when you don't need a full rebuild)
+This is the canonical redeploy. It builds every crate in release, verifies the `/usr/local/bin/maenifold` symlink (macOS), and `launchctl kickstart`s the launchd service. **There is no separate "restart the daemon" step.** `/usr/local/bin/maenifold` is a symlink to `target/release/maenifold`, so the live daemon binary updates the moment the release build finishes, and the launchd kickstart picks up the new bits on next request. Never ask the user "should I redeploy myself or do you want to?" — just run the rebuild script for the OS.
+
+### Non-compiling helpers
 
 ```bash
-cargo build --release -p maenifold-cli              # CLI/daemon only
-cargo build --release -p maenifold-pipeline-driver  # driver only
-make audit                                          # all constitution linters
-make audit-crates                                   # Rust: 500 LOC, no TODO, no unwrap
+make audit                                          # all constitution linters (no compile)
+make audit-crates                                   # Rust: 500 LOC, no TODO, no unwrap (no compile)
 ```
 
-Binaries: `target/release/maenifold` (symlinked to `/usr/local/bin/maenifold`) and `target/release/maenifold-pipeline-driver`.
+Binaries produced by the rebuild scripts: `target/release/maenifold` (symlinked to `/usr/local/bin/maenifold` on macOS) and `target/release/maenifold-pipeline-driver`.
 
-The daemon hosts MCP/HTTP; the driver hosts pipeline node execution. ANY change touching `crates/maenifold-core/src/workflow/` requires rebuilding both. After rebuild + restart, terminate stale driver PIDs one by one.
+The daemon hosts MCP/HTTP; the driver hosts pipeline node execution. ANY change touching `crates/maenifold-core/src/workflow/` requires rebuilding both — which the rebuild scripts do. After rebuild + restart, terminate stale driver PIDs one by one.
 
 ---
 
@@ -255,6 +260,7 @@ The daemon hosts MCP/HTTP; the driver hosts pipeline node execution. ANY change 
 | Blocked >1 iter | Close or dispatch this iter. |
 | Instinct: "file for next PM" | **Stop. That's punting.** Fix this iter. |
 | Instinct: "should I redeploy or do you want to?" | **Stop. Just run `./rebuild.sh`.** It is the one-shot full redeploy. The binary is a symlink to `target/release/maenifold`; rebuild.sh builds + restarts launchd. Never ask. |
+| Instinct: "I'll just `cargo build`/`cargo test`/`cargo check`" | **Stop. That's out of band and the build guard will reject it.** Compile only via `./rebuild.sh` (macOS/Linux) or `pwsh -NoProfile -File .\rebuild.ps1` (Windows). |
 
 ---
 
@@ -273,6 +279,23 @@ The daemon hosts MCP/HTTP; the driver hosts pipeline node execution. ANY change 
 ## Protected Files
 
 - `assets/integrations/copilot/plugin-maenifold/.mcp.json` — dot prefix intentional, never rename.
+
+---
+
+## Forensics references
+
+When stealing components from prior maenifold UI eras (Pipeline / Workflow / Onboarding wizard / Settings / etc.), use these checked-out snapshots — DO NOT re-resurrect them from git history each time:
+
+- **`C:\src\maenifold\worktrees\old-ui-vue\apps\desktop\`** — Vue 3 + Vite + Pinia + Electron (forge). Detached HEAD at `0080ca9a2` (snapshot of `main` pre-`06ad66f15` vanilla-rip).
+  - 204 Vue components: 24 Pipeline*, 20 Workflow*, 7 Onboarding* (+ `OnboardingWizard.vue`), 6 Setting*, 147 other.
+  - shadcn-vue + Tailwind v4 + Lucide + Vue-flow + cytoscape + mermaid + KaTeX + Shiki.
+  - **Build proven:** `cd apps/desktop && npx vite build` -> clean `dist/` in ~3s. `npm install --ignore-scripts --no-audit --no-fund` already done (1410 packages, 764MB).
+  - Inventory map: `~/.copilot/session-state/ab143dec-cee0-4810-b5ca-fa1f56287c15/files/T-412/old-ui-inventory.md`
+  - Provenance: rip commit `06ad66f15` explicitly preserved this state at `main` snapshot `0080ca9a2`.
+
+- **Recent React/shadcn Pipeline Viewer (T-251.13)** — `apps/maenifold-console/` at `8d57b589a^`. React + Vite + Tailwind v4 + shadcn + React Flow. 69 files. NOT currently checked out as a worktree (smaller scope, can resurrect on demand).
+
+To clean up the forensics worktree when done: `git worktree remove C:\src\maenifold\worktrees\old-ui-vue`.
 
 ---
 

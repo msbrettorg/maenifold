@@ -63,7 +63,6 @@ pub(crate) async fn open_agent_session(
         cwd: cwd_str,
         model: session_config.model.clone(),
         thought_level: session_config.thought_level.clone(),
-        role_mode: session_config.mode.clone(),
         config_options,
         output_schema: session_config.output_schema.clone(),
         allowed_tools: session_config.allowed_tools.clone(),
@@ -93,7 +92,7 @@ async fn prewarm_acp_session(
     cwd: &str,
     session_id: &str,
 ) -> Result<String> {
-    let (_config_options, _modes, actual_acp_session_id) =
+    let (_config_options, actual_acp_session_id) =
         jockey::acp::prewarm_role_for_config(runtime_kind, agent_name, cwd, None, Some(session_id))
             .await;
     if actual_acp_session_id.trim().is_empty() {

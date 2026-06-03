@@ -9,13 +9,13 @@
 //! instead.  `list_memories` continues with degraded metadata on any per-file
 //! error so the whole listing is never blocked by a single bad file.
 
+#[cfg(target_os = "macos")]
+use maenifold_core::util::is_dataless;
 use maenifold_core::{
-    config::Config,
-    memory::list_memories,
-    tools::ToolContext,
-    util::{OutputFormat, is_dataless},
+    config::Config, memory::list_memories, tools::ToolContext, util::OutputFormat,
 };
 use std::io::Write;
+#[cfg(target_os = "macos")]
 use std::process::Command;
 use std::time::{Duration, Instant};
 

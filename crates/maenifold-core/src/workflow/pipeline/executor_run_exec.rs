@@ -313,6 +313,7 @@ mod budget_tests {
     // returns Err shortly after the budget fires, and (b) the kill closure
     // actually killed the child (`kill -0` returns ESRCH).
     #[tokio::test]
+    #[cfg(unix)]
     async fn await_with_budget_and_kill_runs_kill_switch_on_timeout() {
         let mut child = tokio::process::Command::new("sleep")
             .arg("99999")

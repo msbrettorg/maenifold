@@ -1,11 +1,11 @@
-use crate::acp_config::{AgentsConfig, MaenifoldSettings};
+use crate::acp_config::{AgentsConfig, MaenifoldSettings, default_agents_config};
 use crate::error::{MaenifoldError, Result};
 use parking_lot::RwLock;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
-use tracing::error;
+use tracing::{error, info, warn};
 
 #[derive(Debug, Clone, Default)]
 struct Overrides {
@@ -88,7 +88,36 @@ impl Config {
         ] {
             fs::create_dir_all(path)?;
         }
+        self.ensure_default_config_file();
         Ok(())
+    }
+
+    /// On first run there is no `$MAENIFOLD_ROOT/maenifold.json` — write
+    /// the shipped default (mirrors what the Maenifold Tauri UI used to
+    /// hardcode) so both the daemon and the UI have one source of truth
+    /// for agents from the very first launch. Subsequent launches see the
+    /// file exists and leave it alone — never overwrite user edits.
+    fn ensure_default_config_file(&self) {
+        let path = self.maenifold_root.join("maenifold.json");
+        if path.exists() {
+            return;
+        }
+        let defaults = default_agents_config();
+        let body = match serde_json::to_string_pretty(&defaults) {
+            Ok(body) => body,
+            Err(err) => {
+                warn!(error = %err, "skipping default maenifold.json bootstrap: serialize failed");
+                return;
+            }
+        };
+        match fs::write(&path, format!("{body}\n")) {
+            Ok(()) => {
+                info!(path = %path.display(), agents = defaults.agents.len(), "wrote default maenifold.json")
+            }
+            Err(err) => {
+                warn!(error = %err, path = %path.display(), "failed to write default maenifold.json")
+            }
+        }
     }
 
     pub fn database_connection_string(&self) -> Result<String> {

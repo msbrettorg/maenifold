@@ -21,7 +21,7 @@ futures-util = "0.3"
 jockey = { package = "maenifold-jockey", path = "../maenifold-jockey" }
 maenifold-gate-core = { path = "../maenifold-gate-core" }
 libc.workspace = true
-machine-uid = "0.5"
+machine-uid = "0.6"
 notify.workspace = true
 once_cell.workspace = true
 parking_lot.workspace = true
@@ -37,7 +37,7 @@ serde_yml.workspace = true
 sse-stream = "0.2"
 handlebars = "6"
 indexmap = { version = "2", features = ["serde"] }
-jsonschema = { version = "0.28", default-features = false }
+jsonschema = { version = "0.46", default-features = false }
 sha2.workspace = true
 slug.workspace = true
 thiserror.workspace = true
@@ -68,7 +68,6 @@ winit = { version = "0.30", default-features = false, features = ["rwh_06"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2-core-foundation = { version = "0.3", default-features = false, features = ["std", "CFRunLoop"] }
-wry.workspace = true
 
 [dev-dependencies]
 reqwest.workspace = true

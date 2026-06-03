@@ -1,4 +1,4 @@
-use agent_client_protocol::Agent as _;
+use agent_client_protocol::schema::{self as acp};
 use serde_json::json;
 use tokio::sync::mpsc;
 
@@ -28,7 +28,6 @@ pub(super) async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                 mcp_servers,
                 allowed_tools,
                 output_schema,
-                role_mode,
                 role_config_options,
                 resume_session_id,
                 session_id_tx,
@@ -54,7 +53,6 @@ pub(super) async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                         mcp_servers,
                         allowed_tools,
                         output_schema,
-                        role_mode,
                         role_config_options,
                         resume_session_id,
                         session_id_tx,
@@ -73,7 +71,6 @@ pub(super) async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                 cwd,
                 auto_approve,
                 mcp_servers,
-                role_mode,
                 role_config_options,
                 delta_tx,
                 result_tx,
@@ -93,7 +90,6 @@ pub(super) async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                         cwd,
                         auto_approve,
                         mcp_servers,
-                        role_mode,
                         role_config_options,
                         delta_tx,
                         result_tx,
@@ -178,38 +174,6 @@ pub(super) async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                     let _ = result_tx.send(resumed);
                 });
             }
-            WorkerMsg::SetMode {
-                runtime_key,
-                role_name,
-                app_session_id,
-                mode_id,
-                result_tx,
-            } => {
-                use agent_client_protocol as acp;
-                let key = pool_key(&app_session_id, &runtime_key, &role_name);
-                tokio::task::spawn_local(async move {
-                    let result = CONN_MAP.with(|m| {
-                        let map = m.borrow();
-                        if let Some(live) = map.get(&key) {
-                            Some((live.conn.clone(), live.session_id.clone()))
-                        } else {
-                            None
-                        }
-                    });
-                    let result = if let Some((conn, session_id)) = result {
-                        conn.set_session_mode(acp::SetSessionModeRequest::new(
-                            session_id,
-                            acp::SessionModeId::from(mode_id),
-                        ))
-                        .await
-                        .map(|_| ())
-                        .map_err(|e| e.to_string())
-                    } else {
-                        Err("no active session".to_string())
-                    };
-                    let _ = result_tx.send(result);
-                });
-            }
             WorkerMsg::SetConfigOption {
                 runtime_key,
                 role_name,
@@ -218,7 +182,6 @@ pub(super) async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                 value,
                 result_tx,
             } => {
-                use agent_client_protocol as acp;
                 let key = pool_key(&app_session_id, &runtime_key, &role_name);
                 tokio::task::spawn_local(async move {
                     let result = CONN_MAP.with(|m| {
@@ -230,11 +193,12 @@ pub(super) async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                         }
                     });
                     let result = if let Some((conn, session_id)) = result {
-                        conn.set_session_config_option(acp::SetSessionConfigOptionRequest::new(
+                        conn.send_request(acp::SetSessionConfigOptionRequest::new(
                             session_id,
                             acp::SessionConfigId::from(config_id),
                             acp::SessionConfigValueId::from(value),
                         ))
+                        .block_task()
                         .await
                         .map(|_| ())
                         .map_err(|e| e.to_string())

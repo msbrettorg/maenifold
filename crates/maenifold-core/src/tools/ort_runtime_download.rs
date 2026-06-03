@@ -306,5 +306,9 @@ fn validate_staged_dylib_magic(_staging_dir: &Path) -> Result<(), String> {
 fn sha256_bytes(data: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(data);
-    format!("{:x}", hasher.finalize())
+    hasher
+        .finalize()
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }

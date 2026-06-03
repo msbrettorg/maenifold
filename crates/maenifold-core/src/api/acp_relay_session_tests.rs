@@ -69,24 +69,24 @@ fn initialize_handshake_for_ollama_reports_no_image_or_audio() {
 async fn wait_for_worker_result_returns_result_when_oneshot_fires() {
     use tokio::sync::oneshot;
 
-    let (result_tx, mut result_rx) = oneshot::channel::<(Vec<Value>, Vec<String>, String)>();
+    let (result_tx, mut result_rx) = oneshot::channel::<(Vec<Value>, String)>();
 
     tokio::spawn(async move {
         tokio::time::sleep(std::time::Duration::from_millis(20)).await;
-        let _ = result_tx.send((vec![], vec![], "resumed-session-1".to_string()));
+        let _ = result_tx.send((vec![], "resumed-session-1".to_string()));
     });
 
     let result = wait_for_worker_result(&mut result_rx)
         .await
         .expect("worker result must be delivered after ReplayComplete");
-    assert_eq!(result.2, "resumed-session-1");
+    assert_eq!(result.1, "resumed-session-1");
 }
 
 #[tokio::test]
 async fn wait_for_worker_result_reports_worker_disconnect_on_sender_drop() {
     use tokio::sync::oneshot;
 
-    let (result_tx, mut result_rx) = oneshot::channel::<(Vec<Value>, Vec<String>, String)>();
+    let (result_tx, mut result_rx) = oneshot::channel::<(Vec<Value>, String)>();
     drop(result_tx);
 
     let err = wait_for_worker_result(&mut result_rx)
@@ -103,7 +103,7 @@ async fn session_load_loop_survives_event_channel_close_after_replay_complete() 
     use tokio::sync::{mpsc, oneshot};
 
     let (event_tx, mut event_rx) = mpsc::channel::<jockey::acp::AcpEvent>(8);
-    let (result_tx, mut rx) = oneshot::channel::<(Vec<Value>, Vec<String>, String)>();
+    let (result_tx, mut rx) = oneshot::channel::<(Vec<Value>, String)>();
 
     // Upstream: send ReplayComplete, then drop sender so channel closes.
     event_tx
@@ -113,12 +113,12 @@ async fn session_load_loop_survives_event_channel_close_after_replay_complete() 
     drop(event_tx);
     tokio::spawn(async move {
         tokio::time::sleep(std::time::Duration::from_millis(20)).await;
-        let _ = result_tx.send((vec![], vec![], "resumed-session-2".to_string()));
+        let _ = result_tx.send((vec![], "resumed-session-2".to_string()));
     });
 
     // Mirror the fixed loop in handle_session_load.
     let mut replay_complete = false;
-    let mut replay_result: Option<(Vec<Value>, Vec<String>, String)> = None;
+    let mut replay_result: Option<(Vec<Value>, String)> = None;
     let mut spurious_close = false;
     let outcome = loop {
         if replay_complete {
@@ -158,5 +158,5 @@ async fn session_load_loop_survives_event_channel_close_after_replay_complete() 
         "post-ReplayComplete channel close must not surface as a spurious error"
     );
     let result = outcome.expect("session/load loop must succeed");
-    assert_eq!(result.2, "resumed-session-2");
+    assert_eq!(result.1, "resumed-session-2");
 }

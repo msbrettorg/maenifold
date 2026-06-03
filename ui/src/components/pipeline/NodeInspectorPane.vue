@@ -4,27 +4,85 @@
 // (`controller.selectedNodeId`), resolved against the store's `selectedNodes`.
 // Shows identity / status / session / prompt / config / output preview, and a
 // "zoom" affordance that opens the SemanticZoom overlay for the node.
-import { computed } from 'vue';
+import { computed, onUnmounted, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Maximize2, MousePointerClick } from '@lucide/vue';
 import { usePipelinesStore } from '../../stores/pipelines';
+import { usePipelineInspectionStore } from '../../stores/pipelineInspection';
 import { useCanvasController } from './useCanvasController';
 import { availableSurfaces, nodeConfigEntries, type ConfigEntry } from './zoomLogic';
+import SessionInspectorPanel from './inspect/SessionInspectorPanel.vue';
+import ProvenanceBreadcrumbs from './inspect/ProvenanceBreadcrumbs.vue';
 import {
   isWorkflowViewNode,
   viewNodeDisplayLabel,
   viewNodeType,
   type ViewNode,
 } from '../../lib/pipeline-types';
+import { isInspectableNode } from '../../lib/sessionResolve';
 
 const store = usePipelinesStore();
-const { selectedNodes } = storeToRefs(store);
+const { selectedNodes, selectedView } = storeToRefs(store);
 const controller = useCanvasController();
+const inspection = usePipelineInspectionStore();
 
 const node = computed<ViewNode | null>(() => {
   const id = controller.selectedNodeId.value;
   if (!id) return null;
   return selectedNodes.value.find((candidate) => candidate.nodeId === id) ?? null;
+});
+
+// The node the LIVE observer should attach to. The zoom overlay opens for the
+// selected node, so an open zoom takes precedence (scope #4: opening zoom
+// auto-reconnects the live stream); otherwise the selected node. Resolved
+// against the full view node set so a zoom target that isn't in the (single)
+// selection still resolves.
+const inspectionTarget = computed<ViewNode | null>(() => {
+  const id = controller.zoomNodeId.value ?? controller.selectedNodeId.value;
+  if (!id) return null;
+  const fromView = selectedView.value?.nodes.find((candidate) => candidate.nodeId === id);
+  if (fromView) return fromView;
+  return selectedNodes.value.find((candidate) => candidate.nodeId === id) ?? null;
+});
+
+// NodeInspectorPane is the always-mounted owner of the inspection lifecycle: it
+// drives grace tracking from the live view and the single live attachment from
+// the inspection target. Unmounting (leaving the Pipelines tab) tears the
+// transport down so no ACP connection leaks.
+watch(
+  () => selectedView.value,
+  (view) => inspection.syncActiveNodes(view),
+  { immediate: true }
+);
+
+// Re-attach when the FULL attachment identity changes: the selected pipeline,
+// the target node, or any of the resolved session/agent/model fields. This
+// mirrors the store's attachment key so a node id reused across pipelines, or a
+// node whose session is upgraded (sessionRef → provenance.detail), forces a
+// clean teardown+reconnect instead of bleeding the previous stream. `attach`
+// is idempotent for an unchanged identity, so the 3s poll churn — which replaces
+// the node object every tick with stable fields — does not thrash the transport.
+watch(
+  () => {
+    const target = inspectionTarget.value;
+    if (!target) return null;
+    const guard = inspection.guardFor(target);
+    return [
+      store.selectedPipelineId ?? '',
+      target.nodeId,
+      guard.sessionId ?? '',
+      guard.agent ?? '',
+      guard.model ?? '',
+    ].join('\u0000');
+  },
+  () => {
+    void inspection.attach(inspectionTarget.value);
+  },
+  { immediate: true }
+);
+
+onUnmounted(() => {
+  void inspection.detach();
 });
 
 interface Field {
@@ -71,7 +129,14 @@ const outputPreview = computed(() => {
   return out.length > 280 ? `${out.slice(0, 280)}…` : out;
 });
 
-const surfaceCount = computed(() => (node.value ? availableSurfaces(node.value).length : 0));
+// Surfaces the zoom overlay can show for this node: its content surfaces plus
+// the live ACP session (offered for any inspectable/non-tool node, even before
+// it has produced output — that's exactly when the live stream matters).
+const surfaceCount = computed(() => {
+  const n = node.value;
+  if (!n) return 0;
+  return availableSurfaces(n).length + (isInspectableNode(n) ? 1 : 0);
+});
 
 function openZoom(): void {
   if (node.value) controller.openZoom(node.value.nodeId);
@@ -107,6 +172,12 @@ function openZoom(): void {
             <dd :class="{ mono: field.mono }">{{ field.value }}</dd>
           </div>
         </dl>
+
+        <ProvenanceBreadcrumbs :node="node" />
+
+        <section class="inspector-section">
+          <SessionInspectorPanel :node="node" />
+        </section>
 
         <section v-if="promptPreview" class="inspector-section">
           <h4>Prompt</h4>

@@ -269,10 +269,6 @@ interface ViewNodeBase {
   stale?: boolean;
   startedAt?: string | number | null;
   completedAt?: string | number | null;
-  refinement?: {
-    sessionId: string;
-    takenAt: number;
-  };
 }
 
 export interface WorkflowViewNode extends ViewNodeBase {

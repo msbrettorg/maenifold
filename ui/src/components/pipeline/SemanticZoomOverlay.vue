@@ -22,11 +22,13 @@ import {
   viewNodeType,
   type ViewNode,
 } from '../../lib/pipeline-types';
+import { isInspectableNode } from '../../lib/sessionResolve';
 import ZoomPromptView from './ZoomPromptView.vue';
 import ZoomThinkingView from './ZoomThinkingView.vue';
 import ZoomWorkflowView from './ZoomWorkflowView.vue';
 import ZoomOutputView from './ZoomOutputView.vue';
 import ZoomProvenanceView from './ZoomProvenanceView.vue';
+import SessionInspectorPanel from './inspect/SessionInspectorPanel.vue';
 
 const store = usePipelinesStore();
 const { selectedNodes } = storeToRefs(store);
@@ -38,9 +40,19 @@ const node = computed<ViewNode | null>(() => {
   return selectedNodes.value.find((candidate) => candidate.nodeId === id) ?? null;
 });
 
-const surfaces = computed<ZoomSurface[]>(() => (node.value ? availableSurfaces(node.value) : []));
+// The live ACP session is offered first for any inspectable (non-tool) node, so
+// opening zoom on a running node lands on its live stream — the attachment is
+// owned/driven by NodeInspectorPane's watch on the zoom-or-selected target, so
+// opening the overlay auto-reconnects (scope #4). Content surfaces follow.
+const surfaces = computed<ZoomSurface[]>(() => {
+  const n = node.value;
+  if (!n) return [];
+  const live: ZoomSurface[] = isInspectableNode(n) ? ['live'] : [];
+  return [...live, ...availableSurfaces(n)];
+});
 
 const SURFACE_LABELS: Record<ZoomSurface, string> = {
+  live: 'Live',
   prompt: 'Prompt',
   thinking: 'Thinking',
   workflow: 'Steps',
@@ -157,6 +169,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
           <p v-if="surfaces.length === 0" class="zoom-empty">
             This node carries no inspectable cognitive surfaces yet.
           </p>
+          <SessionInspectorPanel v-else-if="activeSurface === 'live'" :node="node" />
           <ZoomPromptView v-else-if="activeSurface === 'prompt'" :assembled-prompt="assembledPrompt" />
           <ZoomThinkingView v-else-if="activeSurface === 'thinking'" :trace="thinkingTrace" />
           <ZoomWorkflowView v-else-if="activeSurface === 'workflow'" :steps="workflowSteps" />

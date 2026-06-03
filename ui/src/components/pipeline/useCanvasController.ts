@@ -24,6 +24,11 @@ const hasSelection = ref(false);
 // selected). Drives the teleported node inspector pane (T-600.6). Set by the
 // canvas's flow→selection handler in useCanvasSync.
 const selectedNodeId = ref<string | null>(null);
+// ALL currently-selected node ids (0, 1, or many). `selectedNodeId` is null for
+// a multi-selection, so the explicit multi-selection is surfaced here for batch
+// surgery (T-600.5 batch rewind). Set by the canvas's flow→selection handler in
+// useCanvasSync alongside `selectedNodeId`.
+const selectedNodeIds = ref<string[]>([]);
 // The node whose SemanticZoom overlay is open (null = overlay closed). Shared
 // here because the inspector (which opens it) and the overlay (which renders it)
 // are teleported into sibling subtrees and cannot reach each other via props.
@@ -52,6 +57,10 @@ export function useCanvasController() {
     selectedNodeId.value = next;
   }
 
+  function setSelectedNodeIds(next: string[]): void {
+    selectedNodeIds.value = next;
+  }
+
   function openZoom(nodeId: string): void {
     zoomNodeId.value = nodeId;
   }
@@ -77,12 +86,14 @@ export function useCanvasController() {
     paletteOpen,
     hasSelection,
     selectedNodeId,
+    selectedNodeIds,
     zoomNodeId,
     registerActions,
     clearActions,
     setDirection,
     togglePalette,
     setSelectedNodeId,
+    setSelectedNodeIds,
     openZoom,
     closeZoom,
     autoLayout,

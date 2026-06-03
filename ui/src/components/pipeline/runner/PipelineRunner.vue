@@ -5,12 +5,13 @@
 // event log, and the run-history table around the selected pipeline. All
 // behavior flows through `usePipelineRunner` (polling + lifecycle ops); pure
 // decision logic lives in the sibling `.ts` helpers.
-import { computed, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { TriangleAlert, X } from '@lucide/vue';
 import { usePipelinesStore } from '../../../stores/pipelines';
 import type { PipelineInputs } from '../../../lib/pipeline-types';
 import { usePipelineRunner } from './usePipelineRunner';
+import { useSurgeryController } from '../surgery/useSurgeryController';
 import RunnerActionBar from './RunnerActionBar.vue';
 import RunInputForm from './RunInputForm.vue';
 import EventLogPanel from './EventLogPanel.vue';
@@ -21,6 +22,21 @@ type RunnerTab = 'run' | 'events' | 'history';
 const store = usePipelinesStore();
 const { pipelines } = storeToRefs(store);
 const runner = usePipelineRunner();
+
+// Register the runner's polling controls with the surgery controller so surgery
+// actions can pause polling before a mutation and resume afterward. `startPolling`
+// self-guards terminal status + design mode, so a post-mutation resume only
+// restarts polling when it should.
+const surgeryController = useSurgeryController();
+onMounted(() => {
+  surgeryController.registerPollControl({
+    stop: runner.stopPolling,
+    start: runner.startPolling,
+  });
+});
+onUnmounted(() => {
+  surgeryController.clearPollControl();
+});
 
 const tab = ref<RunnerTab>('events');
 const createOpen = ref(false);

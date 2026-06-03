@@ -648,15 +648,22 @@ html, body, #app {
   height: 100%;
   width: 100%;
   overflow: hidden;
+  gap: 0.75rem;
+  padding: 0.75rem;
 }
 
+/* The agent sidebar is a floating pane that matches the Knowledge tree pane
+   and the Settings rail: tinted surface, full border, rounded corners, with
+   the notebook grid showing only in the gutter around it. */
 .sidebar {
   width: 320px;
   min-width: 320px;
-  background: var(--bg-sidebar);
-  border-right: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--bg-main) 94%, var(--bg-sidebar));
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .sidebar-header {
@@ -849,11 +856,17 @@ html, body, #app {
   }
 }
 
+/* The main chat region is a solid pane so messages read as a coherent
+   surface instead of floating directly on the notebook grid. The grid is
+   only visible in the gutter between this pane and the sidebar. */
 .main-area {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
 }
 
 .main-content {
@@ -1143,6 +1156,15 @@ html, body, #app {
   .app-container {
     /* Prevent the off-screen drawer from causing horizontal scroll. */
     overflow-x: hidden;
+    /* Drawer mode: the sidebar overlays, so the content uses the full width
+       with no gutter and the main pane is edge-to-edge. */
+    gap: 0;
+    padding: 0;
+  }
+
+  .main-area {
+    border: none;
+    border-radius: 0;
   }
 
   /* Banners sit at the very top of the main area, where the OS status bar
@@ -1163,6 +1185,9 @@ html, body, #app {
     max-width: 360px;
     z-index: 100;
     box-shadow: 2px 0 16px rgba(0, 0, 0, 0.3);
+    /* Edge-anchored drawer: drop the floating-pane radius/border. */
+    border: none;
+    border-radius: 0;
     /* Honour iOS notch / Android status bar. */
     padding-top: env(safe-area-inset-top, 0px);
   }

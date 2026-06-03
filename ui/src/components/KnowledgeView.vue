@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import {
   BookOpen,
@@ -67,9 +67,20 @@ const {
 } = storeToRefs(knowledge);
 
 const workspaceView = ref<'viewer' | 'graph'>('viewer');
+const graphCanvas = ref<HTMLElement | null>(null);
+const graphStageSize = ref<number | null>(null);
+
+const graphStageStyle = computed<Record<string, string> | undefined>(() => {
+  if (!graphStageSize.value) return undefined;
+  const size = `${graphStageSize.value}px`;
+  return {
+    width: size,
+    height: size,
+  };
+});
 
 const graphNodes = computed<GraphNode[]>(() => {
-  const relations = visibleRelations.value.slice(0, 24);
+  const relations = visibleRelations.value;
   const count = relations.length || 1;
   const nodes: GraphNode[] = [
     {
@@ -239,6 +250,31 @@ function toMarkdownLine(rawLine: string, index: number): MarkdownLine {
   return { key: `${index}-p`, kind: 'p', segments: parseSegments(rawLine) };
 }
 
+function syncGraphStageSize(element: HTMLElement | null): void {
+  if (!element) {
+    graphStageSize.value = null;
+    return;
+  }
+
+  const { width, height } = element.getBoundingClientRect();
+  const nextSize = Math.floor(Math.min(width, height));
+  graphStageSize.value = nextSize > 0 ? nextSize : null;
+}
+
+watch(graphCanvas, (element, _previous, onCleanup) => {
+  syncGraphStageSize(element);
+
+  if (!element || typeof ResizeObserver === 'undefined') {
+    return;
+  }
+
+  const observer = new ResizeObserver(() => {
+    syncGraphStageSize(element);
+  });
+  observer.observe(element);
+  onCleanup(() => observer.disconnect());
+});
+
 onMounted(() => {
   void knowledge.bootstrap();
 });
@@ -405,30 +441,32 @@ onMounted(() => {
             <strong>{{ formatNumber(relationTotal) }} neighbors</strong>
           </div>
 
-          <div class="graph-canvas" :class="{ loading: graphLoading }">
-            <svg class="graph-edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-              <line
-                v-for="node in graphEdges"
-                :key="`${selectedConcept}-${node.id}`"
-                x1="50"
-                y1="50"
-                :x2="node.x"
-                :y2="node.y"
-              />
-            </svg>
+          <div ref="graphCanvas" class="graph-canvas" :class="{ loading: graphLoading }">
+            <div class="graph-stage" :style="graphStageStyle">
+              <svg class="graph-edges" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                <line
+                  v-for="node in graphEdges"
+                  :key="`${selectedConcept}-${node.id}`"
+                  x1="50"
+                  y1="50"
+                  :x2="node.x"
+                  :y2="node.y"
+                />
+              </svg>
 
-            <button
-              v-for="node in graphNodes"
-              :key="node.id"
-              type="button"
-              class="graph-node"
-              :class="{ focus: node.focus }"
-              :style="{ left: `${node.x}%`, top: `${node.y}%` }"
-              @click="openGraphNode(node)"
-            >
-              <Network v-if="node.focus" :size="17" :stroke-width="1.8" />
-              <span>{{ node.label }}</span>
-            </button>
+              <button
+                v-for="node in graphNodes"
+                :key="node.id"
+                type="button"
+                class="graph-node"
+                :class="{ focus: node.focus }"
+                :style="{ left: `${node.x}%`, top: `${node.y}%` }"
+                @click="openGraphNode(node)"
+              >
+                <Network v-if="node.focus" :size="17" :stroke-width="1.8" />
+                <span>{{ node.label }}</span>
+              </button>
+            </div>
           </div>
 
           <div class="graph-meta">
@@ -789,10 +827,20 @@ onMounted(() => {
     radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--text-accent) 10%, transparent), transparent 42%),
     color-mix(in srgb, var(--bg-main) 92%, var(--bg-sidebar));
   overflow: hidden;
+  display: grid;
+  place-items: center;
 }
 
 .graph-canvas.loading {
   opacity: 0.72;
+}
+
+.graph-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .graph-edges {

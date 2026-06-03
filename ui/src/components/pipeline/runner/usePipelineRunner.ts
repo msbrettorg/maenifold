@@ -16,6 +16,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { usePipelinesStore } from '../../../stores/pipelines';
+import { usePipelineDesignStore } from '../../../stores/pipelineDesign';
 import type {
   PipelineDefinition,
   PipelineInputs,
@@ -39,6 +40,7 @@ export interface CreateOptions {
 
 export function usePipelineRunner() {
   const store = usePipelinesStore();
+  const design = usePipelineDesignStore();
   const { selectedView, selectedPipelineId, eventLog, pollingActive, pollError } =
     storeToRefs(store);
 
@@ -60,6 +62,11 @@ export function usePipelineRunner() {
   const deleteNeedsForce = ref(false);
 
   const flags = computed(() => actionFlags(selectedView.value));
+
+  // Surfaced so runner components can disable lifecycle buttons (run/pause/
+  // resume/cancel/delete) while the operator is in design mode, preventing any
+  // lifecycle action from racing against unsaved design edits.
+  const designModeActive = computed(() => design.designModeActive);
 
   function clearTimer(): void {
     if (timer != null) {
@@ -104,7 +111,12 @@ export function usePipelineRunner() {
         return;
       }
       // Still current: apply the view ourselves (keeps canvas/inspector live) and
-      // diff/append the event log.
+      // diff/append the event log. While design mode is active we DROP the polled
+      // view: applying it would overwrite the editable design graph's source of
+      // truth (`selectedView`) with unsaved edits in flight pending Save.
+      if (design.designModeActive) {
+        return;
+      }
       store.applyPolledView(view);
       const entries = diffViews(lastView, view, Date.now());
       store.appendLogEntries(entries);
@@ -136,7 +148,7 @@ export function usePipelineRunner() {
   function startPolling(): void {
     clearTimer();
     const view = selectedView.value;
-    if (disposed || !view || isTerminalStatus(view.status)) {
+    if (disposed || !view || isTerminalStatus(view.status) || design.designModeActive) {
       store.setPollingActive(false);
       return;
     }
@@ -224,6 +236,11 @@ export function usePipelineRunner() {
   async function remove(force = false): Promise<boolean> {
     const id = selectedPipelineId.value;
     if (!id) return false;
+    // Design-mode guard: deleting clears the selection the designer is editing,
+    // which would silently drop unsaved node/edge edits. Consult the discard
+    // prompt first and tear design mode down before any backend mutation.
+    if (!design.confirmDiscardDesignChanges()) return false;
+    design.exitDesignMode();
     busy.value = true;
     actionError.value = null;
     try {
@@ -253,6 +270,9 @@ export function usePipelineRunner() {
   // empty-graph pipeline carrying name/description/maxConcurrency so the operator
   // has a created session to design into. See WorkResult confession.
   async function create(options: CreateOptions): Promise<void> {
+    // Creating a new pipeline navigates away from any in-flight design edits.
+    if (!design.confirmDiscardDesignChanges()) return;
+    design.exitDesignMode();
     const definition: PipelineDefinition = { nodes: [], edges: [] };
     await withBusy(async () => {
       await store.createPipeline(definition, {
@@ -288,6 +308,16 @@ export function usePipelineRunner() {
     syncToSelection();
   });
 
+  // Design mode pauses live polling so a poll can never clobber unsaved edits.
+  // On exit, resume watching the (now freshly-saved or reverted) selection.
+  watch(
+    () => design.designModeActive,
+    (active) => {
+      if (active) stopPolling();
+      else syncToSelection();
+    }
+  );
+
   // Mount with an already-selected pipeline (e.g. returning to the Pipelines
   // tab): the watcher is not `immediate`, so kick the same logic once here.
   onMounted(() => {
@@ -312,6 +342,7 @@ export function usePipelineRunner() {
     actionError,
     deleteNeedsForce,
     flags,
+    designModeActive,
     // actions
     run,
     pause,

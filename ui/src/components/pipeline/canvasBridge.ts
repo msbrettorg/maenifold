@@ -307,6 +307,25 @@ export function savePositions(
   }
 }
 
+/**
+ * Merge a single node's position into the cached layout for `pipelineId`,
+ * preserving every other node's cached coordinate. Used by design mode to seed a
+ * freshly added node under the cursor BEFORE the canvas re-projects, so the new
+ * node renders at the click point instead of a fallback-grid slot.
+ */
+export function mergePosition(
+  pipelineId: string | null | undefined,
+  id: string,
+  xy: XY
+): void {
+  const current = loadPositions(pipelineId);
+  current[id] = { x: xy.x, y: xy.y };
+  savePositions(
+    Object.entries(current).map(([nodeId, position]) => ({ id: nodeId, position })),
+    pipelineId
+  );
+}
+
 export function loadDirection(pipelineId: string): Direction {
   try {
     const raw = globalThis.localStorage?.getItem(directionKey(pipelineId));

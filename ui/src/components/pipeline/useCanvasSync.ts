@@ -15,11 +15,12 @@
 // coordinates as fixed; cached positions always win over freshly-computed ones,
 // so only genuinely new nodes are laid out and existing nodes never jump.
 
-import { nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useVueFlow } from '@vue-flow/core';
 import type { Node } from '@vue-flow/core';
 import { usePipelinesStore } from '../../stores/pipelines';
+import { usePipelineDesignStore } from '../../stores/pipelineDesign';
 import { useCanvasController } from './useCanvasController';
 import { useCanvasLayout } from './useCanvasLayout';
 import {
@@ -37,9 +38,20 @@ import {
 export function useCanvasSync(flowId: string) {
   const store = usePipelinesStore();
   const { selectedView } = storeToRefs(store);
+  const design = usePipelineDesignStore();
   const controller = useCanvasController();
   const { layout } = useCanvasLayout();
   const vf = useVueFlow(flowId);
+
+  // The graph the canvas actually renders: the editable DESIGN graph while
+  // design mode is active (so node/edge mutations show live, pre-save), else the
+  // runtime `selectedView`. Identity (pipelineId) is preserved across the toggle
+  // so the position cache + fit latch never reset on enter/exit. A poll mutating
+  // `selectedView` cannot perturb this computed while design mode is active —
+  // the design branch never reads `selectedView`.
+  const activeView = computed(() =>
+    design.designModeActive ? design.designGraph : selectedView.value
+  );
 
   // The single reactivity-loop guard. Exposed so the canvas can show a
   // brief "laying out…" affordance and so tests can assert on it.
@@ -65,7 +77,7 @@ export function useCanvasSync(flowId: string) {
   let restoringDirection = false;
 
   function currentPipelineId(): string | null {
-    return selectedView.value?.pipelineId ?? null;
+    return activeView.value?.pipelineId ?? null;
   }
 
   /** Live position of a node already on the canvas, if any. */
@@ -92,7 +104,7 @@ export function useCanvasSync(flowId: string) {
     // Claim this invocation's generation. Any run that starts after this point
     // increments applyGen, so our post-await checks below detect supersession.
     const myGen = ++applyGen;
-    const view = selectedView.value;
+    const view = activeView.value;
     if (!view) {
       syncing.value = true;
       vf.setNodes([]);
@@ -193,7 +205,7 @@ export function useCanvasSync(flowId: string) {
   // (Vue skips no-op same-id), so the reset never perturbs the steady state, and
   // it is pure controller state (no store write) so the sync guards are untouched.
   watch(
-    () => currentPipelineId(),
+    () => activeView.value?.pipelineId ?? null,
     (pipelineId) => {
       const restored = pipelineId ? loadDirection(pipelineId) : 'LR';
       // Only flag + mutate when the direction will actually change, so the flag
@@ -210,8 +222,9 @@ export function useCanvasSync(flowId: string) {
     }
   );
 
-  // Any view change (selection, status poll, graft) re-projects into the canvas.
-  watch(selectedView, () => {
+  // Any active-graph change (selection, status poll, graft, OR a design-mode
+  // node/edge mutation) re-projects into the canvas.
+  watch(activeView, () => {
     void applyStoreToFlow();
   });
 

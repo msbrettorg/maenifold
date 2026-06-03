@@ -16,9 +16,30 @@ export const useAppShellStore = defineStore('appShell', () => {
   // so a live chat is never left hidden behind the landing page.
   const activeTab = ref<AppShellTab>('home');
 
+  // Optional navigation guard. A feature owning unsaved state (e.g. the
+  // Pipelines design store) registers a predicate consulted before EVERY tab
+  // switch; returning false aborts the switch. There is no vue-router here, so
+  // this tab store is the single chokepoint for in-app navigation.
+  let navigationGuard: (() => boolean) | null = null;
+
+  function registerNavigationGuard(guard: () => boolean): void {
+    navigationGuard = guard;
+  }
+
+  function clearNavigationGuard(): void {
+    navigationGuard = null;
+  }
+
   function setActiveTab(tab: AppShellTab): void {
+    if (tab === activeTab.value) return;
+    if (navigationGuard && !navigationGuard()) return;
     activeTab.value = tab;
   }
 
-  return { activeTab, setActiveTab };
+  return {
+    activeTab,
+    setActiveTab,
+    registerNavigationGuard,
+    clearNavigationGuard,
+  };
 });

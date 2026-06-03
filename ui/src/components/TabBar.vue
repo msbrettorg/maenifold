@@ -10,7 +10,7 @@
 // is a hallucination per the UI honesty rule. When those surfaces get
 // real views wired to maenifold.gate / maenifold.workflow they can be
 // added back.
-import { House, MessageSquare, CalendarClock, Brain, Network } from '@lucide/vue';
+import { House, MessageSquare, CalendarClock, Brain, Network, GitBranch } from '@lucide/vue';
 import { Settings } from '@lucide/vue';
 import { useAppShellStore, type AppShellTab } from '../stores/appShell';
 
@@ -25,6 +25,7 @@ const tabs: TabDef[] = [
   { id: 'agents', label: 'Agents', icon: MessageSquare },
   { id: 'knowledge', label: 'Knowledge', icon: Network },
   { id: 'schedules', label: 'Schedules', icon: CalendarClock },
+  { id: 'pipelines', label: 'Pipelines', icon: GitBranch },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 

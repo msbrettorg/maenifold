@@ -17,6 +17,7 @@ import TabBar from './components/TabBar.vue';
 import HomeView from './components/HomeView.vue';
 import KnowledgeView from './components/KnowledgeView.vue';
 import SchedulesView from './components/SchedulesView.vue';
+import PipelinesView from './components/PipelinesView.vue';
 import type { SavedSession } from './lib/types';
 
 const configStore = useConfigStore();
@@ -537,6 +538,7 @@ function clearError() {
       <KnowledgeView v-else-if="shell.activeTab === 'knowledge'" />
       <SettingsView v-else-if="shell.activeTab === 'settings'" />
       <SchedulesView v-else-if="shell.activeTab === 'schedules'" />
+      <PipelinesView v-else-if="shell.activeTab === 'pipelines'" />
     </div>
     <!-- /tab-content -->
 

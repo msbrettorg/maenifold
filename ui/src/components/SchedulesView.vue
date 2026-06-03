@@ -1063,7 +1063,7 @@ defineExpose({ editorForm });
   padding: 2rem;
   background:
     radial-gradient(70% 50% at 50% 0%, color-mix(in srgb, var(--text-accent) 9%, transparent) 0%, transparent 70%),
-    var(--bg-main);
+    transparent;
 }
 
 .schedules-inner {

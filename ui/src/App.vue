@@ -628,6 +628,11 @@ html, body, #app {
   min-height: 0;
   display: flex;
   overflow: hidden;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--border-color) 72%, transparent) 1px, transparent 1px),
+    linear-gradient(0deg, color-mix(in srgb, var(--border-color) 72%, transparent) 1px, transparent 1px),
+    var(--bg-main);
+  background-size: 28px 28px;
 }
 
 /* Each tab view fills the content area. */
@@ -854,7 +859,7 @@ html, body, #app {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--bg-main);
+  background: transparent;
 }
 
 .traffic-panel {
@@ -971,7 +976,7 @@ html, body, #app {
   color: var(--text-secondary);
   background:
     radial-gradient(80% 60% at 50% 0%, color-mix(in srgb, var(--text-accent) 8%, transparent) 0%, transparent 70%),
-    var(--bg-main);
+    transparent;
 }
 
 .welcome-hero {

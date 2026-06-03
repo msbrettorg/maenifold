@@ -3,16 +3,19 @@
 // Pinia⇄Vue Flow sync, and renders the notebook-grid background. Layout (ELK)
 // and the reactivity-loop guard live in useCanvasSync; this component is the
 // thin Vue Flow shell plus the empty-state and node-type palette legend.
-import { markRaw, onBeforeUnmount } from 'vue';
+import { computed, markRaw, onBeforeUnmount } from 'vue';
 import { storeToRefs } from 'pinia';
-import { VueFlow } from '@vue-flow/core';
+import { VueFlow, useVueFlow } from '@vue-flow/core';
+import type { Connection, EdgeMouseEvent, NodeMouseEvent } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { Workflow } from '@lucide/vue';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import { usePipelinesStore } from '../../stores/pipelines';
+import { usePipelineDesignStore } from '../../stores/pipelineDesign';
 import { useCanvasController } from './useCanvasController';
 import { useCanvasSync } from './useCanvasSync';
+import { useDesignController } from './design/useDesignController';
 import PipelineNode from './PipelineNode.vue';
 import PipelineEdge from './PipelineEdge.vue';
 
@@ -20,8 +23,13 @@ const FLOW_ID = 'pipelines-canvas';
 
 const store = usePipelinesStore();
 const { selectedView, viewLoading } = storeToRefs(store);
+const design = usePipelineDesignStore();
 const controller = useCanvasController();
+const designController = useDesignController();
 const { layingOut, dispose } = useCanvasSync(FLOW_ID);
+const { screenToFlowCoordinate } = useVueFlow(FLOW_ID);
+
+const designModeActive = computed(() => design.designModeActive);
 
 const nodeTypes = { pipeline: markRaw(PipelineNode) };
 const edgeTypes = { pipeline: markRaw(PipelineEdge) };
@@ -32,6 +40,41 @@ const paletteEntries = [
   { type: 'sequentialThinking', label: 'Thinking', accent: 'var(--node-accent-thinking)' },
   { type: 'tool', label: 'Tool', accent: 'var(--node-accent-tool)' },
 ];
+
+// --- design-mode context-menu + draw-to-connect wiring --------------------
+// These handlers only act while design mode is active; otherwise the canvas is
+// a read-only runtime view and native context menus are left alone.
+
+function onPaneContextMenu(event: MouseEvent): void {
+  if (!designModeActive.value) return;
+  event.preventDefault();
+  const flowPos = screenToFlowCoordinate({ x: event.clientX, y: event.clientY });
+  designController.openPaneMenu(event.clientX, event.clientY, { x: flowPos.x, y: flowPos.y });
+}
+
+function onNodeContextMenu({ event, node }: NodeMouseEvent): void {
+  if (!designModeActive.value) return;
+  event.preventDefault();
+  const mouse = event as MouseEvent;
+  designController.openNodeMenu(mouse.clientX, mouse.clientY, node.id);
+}
+
+function onEdgeContextMenu({ event, edge }: EdgeMouseEvent): void {
+  if (!designModeActive.value) return;
+  event.preventDefault();
+  const mouse = event as MouseEvent;
+  designController.openEdgeMenu(mouse.clientX, mouse.clientY, edge.id);
+}
+
+function onConnect(connection: Connection): void {
+  if (!designModeActive.value) return;
+  const { source, target } = connection;
+  if (!source || !target) return;
+  const index = design.addEdge(source, target);
+  if (index != null) {
+    designController.openEdgeForm(index);
+  }
+}
 
 onBeforeUnmount(dispose);
 </script>
@@ -49,6 +92,10 @@ onBeforeUnmount(dispose);
       :snap-grid="[16, 16]"
       :elevate-edges-on-select="true"
       fit-view-on-init
+      @pane-context-menu="onPaneContextMenu"
+      @node-context-menu="onNodeContextMenu"
+      @edge-context-menu="onEdgeContextMenu"
+      @connect="onConnect"
     >
       <Background :gap="28" :size="1" pattern-color="var(--border-color)" />
     </VueFlow>

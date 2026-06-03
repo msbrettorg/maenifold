@@ -81,7 +81,7 @@ async function onForceDelete(): Promise<void> {
       <RunnerActionBar
         :flags="runner.flags.value"
         :status="runner.selectedView.value?.status ?? null"
-        :busy="runner.busy.value"
+        :busy="runner.busy.value || runner.designModeActive.value"
         @new="onNew"
         @run="onRunClicked"
         @pause="runner.pause"

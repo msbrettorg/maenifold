@@ -14,13 +14,19 @@ import { computed, onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { GitBranch, PanelLeft, RefreshCw, Search } from '@lucide/vue';
 import { usePipelinesStore } from '../stores/pipelines';
+import { usePipelineDesignStore } from '../stores/pipelineDesign';
 import PipelineCanvas from './pipeline/PipelineCanvas.vue';
 import PipelineToolbar from './pipeline/PipelineToolbar.vue';
 import NodeInspectorPane from './pipeline/NodeInspectorPane.vue';
 import SemanticZoomOverlay from './pipeline/SemanticZoomOverlay.vue';
 import PipelineRunner from './pipeline/runner/PipelineRunner.vue';
+import PipelineContextMenu from './pipeline/design/PipelineContextMenu.vue';
+import NodeConfigForm from './pipeline/design/NodeConfigForm.vue';
+import EdgeConfigForm from './pipeline/design/EdgeConfigForm.vue';
+import SaveStatusBadge from './pipeline/design/SaveStatusBadge.vue';
 
 const store = usePipelinesStore();
+const design = usePipelineDesignStore();
 const { pipelines, loading, error, selectedPipelineId, viewLoading } = storeToRefs(store);
 
 const flyoutOpen = ref(true);
@@ -45,6 +51,10 @@ function refresh(): void {
 
 function selectPipeline(pipelineId: string): void {
   if (viewLoading.value) return;
+  if (pipelineId === selectedPipelineId.value) return;
+  // Loading another pipeline navigates away from any in-flight design edits.
+  if (!design.confirmDiscardDesignChanges()) return;
+  design.exitDesignMode();
   void store.viewPipeline(pipelineId);
 }
 </script>
@@ -142,6 +152,15 @@ function selectPipeline(pipelineId: string): void {
          into #pipeline-runner. Mounted here so its Teleport target resolves;
          it renders nothing until a pipeline is selected. -->
     <PipelineRunner />
+
+    <!-- Design mode (T-600.4): the Save/badge/toggle teleports into
+         #pipeline-toolbar; the context menu + node/edge config forms teleport
+         into #pipeline-overlay. All communicate through the design store +
+         design controller singleton, never props/emits across the teleport. -->
+    <SaveStatusBadge />
+    <PipelineContextMenu />
+    <NodeConfigForm />
+    <EdgeConfigForm />
   </section>
 </template>
 

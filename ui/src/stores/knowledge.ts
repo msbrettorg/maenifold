@@ -6,7 +6,7 @@ const MEMORY_DOMAIN = 'maenifold.memory';
 const DEFAULT_QUERY = 'maenifold';
 const DEFAULT_CONCEPT = 'maenifold';
 const STATS_URI = 'graph://stats';
-const GRAPH_RELATION_LIMIT = 28;
+export const GRAPH_RELATION_LIMIT = 28;
 const SEARCH_PAGE_SIZE = 32;
 const ROOT_TREE_PATH = '';
 
@@ -188,6 +188,7 @@ function conceptFromResult(result: MemorySearchResult): string {
 
 export const useKnowledgeStore = defineStore('knowledge', () => {
   const query = ref(DEFAULT_QUERY);
+  const lastSearchQuery = ref(DEFAULT_QUERY);
   const selectedConcept = ref(DEFAULT_CONCEPT);
   const stats = ref<GraphStats | null>(null);
   const search = ref<SearchMemoriesResponse | null>(null);
@@ -365,6 +366,7 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
   async function runSearch(nextQuery = query.value, openFirst = false): Promise<void> {
     const cleanedQuery = cleanQuery(nextQuery);
     query.value = cleanedQuery;
+    lastSearchQuery.value = cleanedQuery;
     loading.value = true;
     try {
       const nextSearch = await executeGateway<SearchMemoriesResponse>(MEMORY_DOMAIN, 'SearchMemories', {
@@ -390,10 +392,17 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     }
   }
 
-  async function openConcept(conceptName: string): Promise<void> {
+  async function openConcept(conceptName: string): Promise<boolean> {
     const nextConcept = cleanConcept(conceptName);
     query.value = nextConcept;
-    await Promise.all([runSearch(nextConcept, false), loadConcept(nextConcept)]);
+    await runSearch(nextConcept, false);
+    const firstResult = search.value?.results?.find((result) => result.path);
+    if (firstResult) {
+      await readMemory(firstResult, nextConcept);
+      return true;
+    }
+    await loadConcept(nextConcept);
+    return false;
   }
 
   async function openRelation(relation: ContextRelation): Promise<void> {
@@ -432,6 +441,7 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
 
   return {
     query,
+    lastSearchQuery,
     selectedConcept,
     stats,
     search,

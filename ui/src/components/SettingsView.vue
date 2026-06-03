@@ -158,7 +158,7 @@ function selectArea(area: SettingsArea): void {
   padding: 1.5rem 1.75rem 3rem;
   background:
     radial-gradient(70% 50% at 50% 0%, color-mix(in srgb, var(--text-accent) 9%, transparent) 0%, transparent 70%),
-    var(--bg-main);
+    transparent;
 }
 
 .settings-inner {

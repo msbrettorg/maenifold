@@ -151,12 +151,14 @@ The `task-pm` tier is deprecated and forbidden. The outer-loop PM owns the per-s
 
 ### Test Policy
 
-| Role | Allowed | Forbidden |
-|------|---------|-----------|
-| SWE | `cargo build -p <crate>` | `cargo test`, any test execution |
-| Red-team | Read code, reason | Execute tests |
-| Blue-team | `cargo test -p <crate> <test_name>` | Full workspace test runs |
-| PM | `cargo test -p <crate>` at sprint close | Mid-sprint test runs |
+All compilation — including test compilation — goes through the rebuild scripts, which set the `MAENIFOLD_REBUILD=1` token the build guard requires (see Build). The role limits below describe **scope** (what each role may compile/test), not a license to invoke `cargo` out of band: run cargo under the rebuild-script environment, never bare.
+
+| Role | Allowed scope | Forbidden |
+|------|---------------|-----------|
+| SWE | Build only the assigned crate | `cargo test`, any test execution; bare out-of-band `cargo` |
+| Red-team | Read code, reason | Execute tests; any compile |
+| Blue-team | Test only the changed code | Full workspace test runs; bare out-of-band `cargo` |
+| PM | Build/test the touched crate at sprint close | Mid-sprint test runs; bare out-of-band `cargo` |
 
 ### Scoping
 
@@ -206,26 +208,29 @@ Agent-facing markdown MUST render in terminal MCP clients. No ` ```mermaid ` (us
 
 ## Build
 
-### Deploy (the one and only command)
+### The only approved build path: the rebuild scripts
+
+Compilation happens **only** through the rebuild scripts. They are the one approved build entry point on each OS:
 
 ```bash
-./rebuild.sh
+./rebuild.sh                              # macOS / Linux
+pwsh -NoProfile -File .\rebuild.ps1       # Windows
 ```
 
-This is the canonical redeploy. It builds every crate in release, verifies the `/usr/local/bin/maenifold` symlink, and `launchctl kickstart`s the launchd service. **There is no separate "restart the daemon" step.** `/usr/local/bin/maenifold` is a symlink to `target/release/maenifold`, so the live daemon binary updates the moment the release build finishes, and the launchd kickstart picks up the new bits on next request. Never ask the user "should I redeploy myself or do you want to?" — just run `./rebuild.sh`.
+**Direct `cargo build` / `cargo test` / `cargo check` / `cargo run` is "out of band" and is forbidden.** A repo-level build guard enforces this: the `build.rs` scripts in `maenifold-core`, `maenifold-gate-core`, and `maenifold-jockey` abort any compile that does not carry the `MAENIFOLD_REBUILD=1` token, which **only** the rebuild scripts set. An out-of-band compile fails fast with a pointer back to this section. rust-analyzer's background pre-pass is exempt (it sets `RA_RUSTC_WRAPPER=1`), so LSP intelligence keeps working. Do not set `MAENIFOLD_REBUILD` by hand to bypass the guard — that token is reserved for the rebuild scripts.
 
-### Focused targets (when you don't need a full rebuild)
+This is the canonical redeploy. It builds every crate in release, verifies the `/usr/local/bin/maenifold` symlink (macOS), and `launchctl kickstart`s the launchd service. **There is no separate "restart the daemon" step.** `/usr/local/bin/maenifold` is a symlink to `target/release/maenifold`, so the live daemon binary updates the moment the release build finishes, and the launchd kickstart picks up the new bits on next request. Never ask the user "should I redeploy myself or do you want to?" — just run the rebuild script for the OS.
+
+### Non-compiling helpers
 
 ```bash
-cargo build --release -p maenifold-cli              # CLI/daemon only
-cargo build --release -p maenifold-pipeline-driver  # driver only
-make audit                                          # all constitution linters
-make audit-crates                                   # Rust: 500 LOC, no TODO, no unwrap
+make audit                                          # all constitution linters (no compile)
+make audit-crates                                   # Rust: 500 LOC, no TODO, no unwrap (no compile)
 ```
 
-Binaries: `target/release/maenifold` (symlinked to `/usr/local/bin/maenifold`) and `target/release/maenifold-pipeline-driver`.
+Binaries produced by the rebuild scripts: `target/release/maenifold` (symlinked to `/usr/local/bin/maenifold` on macOS) and `target/release/maenifold-pipeline-driver`.
 
-The daemon hosts MCP/HTTP; the driver hosts pipeline node execution. ANY change touching `crates/maenifold-core/src/workflow/` requires rebuilding both. After rebuild + restart, terminate stale driver PIDs one by one.
+The daemon hosts MCP/HTTP; the driver hosts pipeline node execution. ANY change touching `crates/maenifold-core/src/workflow/` requires rebuilding both — which the rebuild scripts do. After rebuild + restart, terminate stale driver PIDs one by one.
 
 ---
 
@@ -255,6 +260,7 @@ The daemon hosts MCP/HTTP; the driver hosts pipeline node execution. ANY change 
 | Blocked >1 iter | Close or dispatch this iter. |
 | Instinct: "file for next PM" | **Stop. That's punting.** Fix this iter. |
 | Instinct: "should I redeploy or do you want to?" | **Stop. Just run `./rebuild.sh`.** It is the one-shot full redeploy. The binary is a symlink to `target/release/maenifold`; rebuild.sh builds + restarts launchd. Never ask. |
+| Instinct: "I'll just `cargo build`/`cargo test`/`cargo check`" | **Stop. That's out of band and the build guard will reject it.** Compile only via `./rebuild.sh` (macOS/Linux) or `pwsh -NoProfile -File .\rebuild.ps1` (Windows). |
 
 ---
 

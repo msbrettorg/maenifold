@@ -28,6 +28,11 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = $PSScriptRoot
 Set-Location $repoRoot
 
+# Approved-build token. The maenifold-core/gate-core/jockey build scripts reject
+# any compile that does not carry this token (see AGENTS.md > Build). Setting it
+# here is what makes the rebuild script the only approved build path.
+$env:MAENIFOLD_REBUILD = '1'
+
 # Interactive/canonical build must use the workspace target, never an agent cache.
 Remove-Item Env:\CARGO_TARGET_DIR -ErrorAction SilentlyContinue
 

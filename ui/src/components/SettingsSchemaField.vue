@@ -544,7 +544,7 @@ function handleAddEntry(): void {
         spellcheck="false"
       />
 
-      <p v-if="validationMessage" class="field-error">{{ validationMessage }}</p>
+      <p v-if="isDirty && validationMessage" class="field-error">{{ validationMessage }}</p>
 
       <div class="field-actions">
         <button type="button" class="icon-button primary" :disabled="!canSave" @click="emitSave">

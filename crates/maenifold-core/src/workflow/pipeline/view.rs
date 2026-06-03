@@ -14,7 +14,7 @@ use super::session_io::{
 use super::view_mermaid::{edge_type_name, render_pipeline_mermaid};
 use super::view_nodes::pipeline_nodes_json_with_live_sessions;
 use super::{
-    NodeState, NodeStatus, PipelineDefinition, compute_pipeline_status_with_definition,
+    EdgeType, NodeState, NodeStatus, PipelineDefinition, compute_pipeline_status_with_definition,
     compute_ready_set,
 };
 
@@ -245,13 +245,105 @@ fn pipeline_edges_json(definition: &PipelineDefinition) -> Vec<Value> {
         .edges
         .iter()
         .map(|edge| {
-            json!({
-                "source": edge.source,
-                "target": edge.target,
-                "type": edge_type_name(&edge.edge_type),
-                "mode": edge.mode,
-                "mapping": edge.mapping,
-            })
+            let mut map = serde_json::Map::new();
+            map.insert("source".to_string(), json!(edge.source));
+            map.insert("target".to_string(), json!(edge.target));
+            map.insert("type".to_string(), json!(edge_type_name(&edge.edge_type)));
+            map.insert("mode".to_string(), json!(edge.mode));
+            map.insert("mapping".to_string(), json!(edge.mapping));
+            if let EdgeType::Conditional { path, equals } = &edge.edge_type {
+                map.insert("path".to_string(), json!(path));
+                map.insert("equals".to_string(), equals.clone());
+            }
+            Value::Object(map)
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::pipeline_edges_json;
+    use super::{EdgeDataMode, EdgeType, PipelineDefinition, PipelineEdge};
+    use serde_json::json;
+
+    fn definition_with_edges(edges: Vec<PipelineEdge>) -> PipelineDefinition {
+        PipelineDefinition {
+            nodes: Vec::new(),
+            edges,
+            inputs: None,
+            input_schema: None,
+            template_id: None,
+        }
+    }
+
+    fn edge(source: &str, target: &str, edge_type: EdgeType) -> PipelineEdge {
+        PipelineEdge {
+            source: source.to_string(),
+            target: target.to_string(),
+            edge_type,
+            mode: EdgeDataMode::Context,
+            mapping: None,
+        }
+    }
+
+    #[test]
+    fn pipeline_edges_json_emits_conditional_predicate() {
+        let definition = definition_with_edges(vec![
+            edge("a", "b", EdgeType::Success),
+            edge("a", "c", EdgeType::Always),
+            edge(
+                "a",
+                "d",
+                EdgeType::Conditional {
+                    path: "out.status".into(),
+                    equals: json!("ok"),
+                },
+            ),
+        ]);
+
+        let edges = pipeline_edges_json(&definition);
+        assert_eq!(edges.len(), 3);
+
+        let success = &edges[0];
+        let always = &edges[1];
+        let conditional = &edges[2];
+
+        // Conditional edge carries flat top-level `path`/`equals` plus the
+        // `conditional` type tag.
+        assert_eq!(conditional.get("type").and_then(|v| v.as_str()), Some("conditional"));
+        assert_eq!(conditional.get("path").and_then(|v| v.as_str()), Some("out.status"));
+        assert_eq!(conditional.get("equals").and_then(|v| v.as_str()), Some("ok"));
+
+        // Success / Always edges must NOT leak predicate keys.
+        assert_eq!(success.get("type").and_then(|v| v.as_str()), Some("success"));
+        assert!(success.get("path").is_none());
+        assert!(success.get("equals").is_none());
+
+        assert_eq!(always.get("type").and_then(|v| v.as_str()), Some("always"));
+        assert!(always.get("path").is_none());
+        assert!(always.get("equals").is_none());
+    }
+
+    #[test]
+    fn pipeline_edges_json_preserves_non_string_equals() {
+        // Guards `equals.clone()`: a numeric predicate must round-trip as a JSON
+        // number, not be coerced to a string.
+        let definition = definition_with_edges(vec![edge(
+            "a",
+            "d",
+            EdgeType::Conditional {
+                path: "out.code".into(),
+                equals: json!(42),
+            },
+        )]);
+
+        let edges = pipeline_edges_json(&definition);
+        assert_eq!(edges.len(), 1);
+
+        let conditional = &edges[0];
+        let equals = conditional.get("equals").expect("conditional edge must carry `equals`");
+        assert!(equals.is_number(), "equals should remain a JSON number, got {equals:?}");
+        assert_eq!(equals.as_i64(), Some(42));
+        assert_eq!(equals, &json!(42));
+    }
 }

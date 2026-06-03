@@ -324,7 +324,7 @@ describe('usePipelinesStore — view-payload normalizer (snake_case → camelCas
     expect(view.edges).toEqual([{ source: 'n0', target: 'n1', type: 'success' }]);
 
     // Node 1: assembled_prompt → assembledPrompt; workflow_steps[].step_name → stepName.
-    const node1 = view.nodes[0] as Record<string, unknown>;
+    const node1 = view.nodes[0] as unknown as Record<string, unknown>;
     expect(node1.assembledPrompt).toBe('ASSEMBLED');
     expect('assembled_prompt' in node1).toBe(false);
     const steps = node1.workflowSteps as Array<Record<string, unknown>>;
@@ -334,7 +334,7 @@ describe('usePipelinesStore — view-payload normalizer (snake_case → camelCas
     expect('workflow_steps' in node1).toBe(false);
 
     // Node 2: thinking_trace member fields renamed to camelCase.
-    const node2 = view.nodes[1] as Record<string, unknown>;
+    const node2 = view.nodes[1] as unknown as Record<string, unknown>;
     expect(node2.assembledPrompt).toBe('THINK');
     const trace = node2.thinkingTrace as Array<Record<string, unknown>>;
     expect(trace[0].thoughtNumber).toBe(1);

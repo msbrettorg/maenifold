@@ -193,7 +193,11 @@ export function parseAssembledPrompt(text: string): PromptSections {
 // 3. Node → available zoom surfaces
 // ---------------------------------------------------------------------------
 
-export type ZoomSurface = 'prompt' | 'thinking' | 'workflow' | 'output' | 'provenance';
+// 'live' is the read-only live ACP session stream (T-600.7). It is NOT produced
+// by `availableSurfaces` (which only reports node-content surfaces, keeping its
+// pure-function tests stable); the overlay composes it in separately for any
+// inspectable (non-tool) node.
+export type ZoomSurface = 'live' | 'prompt' | 'thinking' | 'workflow' | 'output' | 'provenance';
 
 function hasText(value: string | null | undefined): value is string {
   return typeof value === 'string' && value.trim().length > 0;

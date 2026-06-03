@@ -310,12 +310,24 @@ mod tests {
 
         // Conditional edge carries flat top-level `path`/`equals` plus the
         // `conditional` type tag.
-        assert_eq!(conditional.get("type").and_then(|v| v.as_str()), Some("conditional"));
-        assert_eq!(conditional.get("path").and_then(|v| v.as_str()), Some("out.status"));
-        assert_eq!(conditional.get("equals").and_then(|v| v.as_str()), Some("ok"));
+        assert_eq!(
+            conditional.get("type").and_then(|v| v.as_str()),
+            Some("conditional")
+        );
+        assert_eq!(
+            conditional.get("path").and_then(|v| v.as_str()),
+            Some("out.status")
+        );
+        assert_eq!(
+            conditional.get("equals").and_then(|v| v.as_str()),
+            Some("ok")
+        );
 
         // Success / Always edges must NOT leak predicate keys.
-        assert_eq!(success.get("type").and_then(|v| v.as_str()), Some("success"));
+        assert_eq!(
+            success.get("type").and_then(|v| v.as_str()),
+            Some("success")
+        );
         assert!(success.get("path").is_none());
         assert!(success.get("equals").is_none());
 
@@ -341,8 +353,13 @@ mod tests {
         assert_eq!(edges.len(), 1);
 
         let conditional = &edges[0];
-        let equals = conditional.get("equals").expect("conditional edge must carry `equals`");
-        assert!(equals.is_number(), "equals should remain a JSON number, got {equals:?}");
+        let equals = conditional
+            .get("equals")
+            .expect("conditional edge must carry `equals`");
+        assert!(
+            equals.is_number(),
+            "equals should remain a JSON number, got {equals:?}"
+        );
         assert_eq!(equals.as_i64(), Some(42));
         assert_eq!(equals, &json!(42));
     }

@@ -2,8 +2,7 @@ use super::{
     ToolContext, env_allowlist_view, optional_bool, optional_path_buf, optional_string,
     optional_string_array, optional_u32, optional_value, optional_value_map,
     reject_enabled_while_paused, render, required_string, resolve_maenifold_bin, schedule_store,
-    task_value,
-    validate_and_parse_schedule, validate_mcp_action,
+    task_value, validate_and_parse_schedule, validate_mcp_action,
 };
 use crate::error::{MaenifoldError, Result};
 #[cfg(all(test, target_os = "macos"))]
@@ -14,9 +13,9 @@ use serde_json::{Value, json};
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
 use std::path::Path;
-use std::process::{Command, Stdio};
 #[cfg(all(test, target_os = "macos"))]
 use std::path::PathBuf;
+use std::process::{Command, Stdio};
 #[cfg(all(test, target_os = "macos"))]
 use std::sync::Arc;
 use tracing::warn;
@@ -317,7 +316,11 @@ pub(super) fn run_now(context: &ToolContext, payload: &Value) -> Result<String> 
     run_now_with_bin(context, payload, &bin)
 }
 
-pub(super) fn run_now_with_bin(context: &ToolContext, payload: &Value, bin: &Path) -> Result<String> {
+pub(super) fn run_now_with_bin(
+    context: &ToolContext,
+    payload: &Value,
+    bin: &Path,
+) -> Result<String> {
     let id = required_string(payload, "id")?;
     schedule_store(context)
         .read(id)
@@ -341,7 +344,9 @@ pub(super) fn run_now_with_bin(context: &ToolContext, payload: &Value, bin: &Pat
     }
 
     let child = command.spawn().map_err(|error| {
-        MaenifoldError::Message(format!("failed to spawn detached scheduled run '{id}': {error}"))
+        MaenifoldError::Message(format!(
+            "failed to spawn detached scheduled run '{id}': {error}"
+        ))
     })?;
     let pid = child.id();
     // Reap the zombie when the child exits. setsid detaches the session/process

@@ -167,8 +167,7 @@ pub async fn get_copilot_models(
     services: &CopilotModelsServices,
     refresh: bool,
 ) -> Result<GetCopilotModelsResult, GetCopilotModelsError> {
-    let oauth_domain =
-        client::oauth_domain_for_enterprise_uri(services.enterprise_uri.as_deref());
+    let oauth_domain = client::oauth_domain_for_enterprise_uri(services.enterprise_uri.as_deref());
     let token = services
         .token_store
         .load_token(&oauth_domain)
@@ -182,7 +181,8 @@ pub async fn get_copilot_models(
             warn!(error = %error, "Copilot endpoint discovery failed; using default endpoint");
             client::default_endpoint()
         });
-    if let Some(result) = cached_result(services, &endpoint.api, &token.fingerprint, refresh).await {
+    if let Some(result) = cached_result(services, &endpoint.api, &token.fingerprint, refresh).await
+    {
         return Ok(result);
     }
     match services

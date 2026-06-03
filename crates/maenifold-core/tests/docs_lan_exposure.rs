@@ -142,7 +142,9 @@ fn tailscale_serve_command_uses_current_v1_syntax() {
     let serve_line = body
         .lines()
         .find(|line| line.contains("tailscale serve"))
-        .unwrap_or_else(|| panic!("Tailscale setup section must include a tailscale serve command"));
+        .unwrap_or_else(|| {
+            panic!("Tailscale setup section must include a tailscale serve command")
+        });
 
     assert!(
         serve_line.contains("--set-path="),
@@ -183,7 +185,9 @@ fn tailscale_serve_target_only_127_0_0_1() {
     let serve_line = body
         .lines()
         .find(|line| line.contains("tailscale serve"))
-        .unwrap_or_else(|| panic!("Tailscale setup section must include a tailscale serve command"));
+        .unwrap_or_else(|| {
+            panic!("Tailscale setup section must include a tailscale serve command")
+        });
 
     assert!(
         serve_line.contains("http://127.0.0.1:8080/mcp"),
@@ -217,8 +221,8 @@ fn opt_in_section_lists_both_camelcase_keys() {
         return;
     };
 
-    let body =
-        section_body(&doc, "## maenifold.json opt-in").unwrap_or_else(|message| panic!("{message}"));
+    let body = section_body(&doc, "## maenifold.json opt-in")
+        .unwrap_or_else(|message| panic!("{message}"));
     assert!(
         body.contains("mcpAllowedHosts"),
         "opt-in section must mention mcpAllowedHosts"

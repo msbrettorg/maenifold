@@ -23,11 +23,11 @@ pub(super) mod schedule_helpers;
 #[path = "schedule_os.rs"]
 pub(super) mod schedule_os;
 #[cfg(test)]
-#[path = "schedule_tests.rs"]
-mod schedule_tests;
-#[cfg(test)]
 #[path = "schedule_run_now_async_tests.rs"]
 mod schedule_run_now_async_tests;
+#[cfg(test)]
+#[path = "schedule_tests.rs"]
+mod schedule_tests;
 #[path = "schedule_validation.rs"]
 pub(super) mod schedule_validation;
 
@@ -38,7 +38,9 @@ use schedule_crud::create_task_with_bin_for_test;
 #[cfg(test)]
 #[cfg(target_os = "macos")]
 use schedule_crud::update_task_for_test;
-use schedule_crud::{create_task, delete_task, get_task, list_tasks, options_action, run_now, update_task};
+use schedule_crud::{
+    create_task, delete_task, get_task, list_tasks, options_action, run_now, update_task,
+};
 use schedule_helpers::{
     env_allowlist_view, optional_bool, optional_path_buf, optional_string, optional_string_array,
     optional_u32, optional_value, optional_value_map, reject_enabled_while_paused,

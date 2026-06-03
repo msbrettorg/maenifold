@@ -1,5 +1,5 @@
-use super::*;
 use super::schedule_crud::run_now_with_bin;
+use super::*;
 use crate::acp_config::MaenifoldSettings;
 use crate::config::Config;
 use crate::schedule::{ScheduleStore, ScheduledTask};
@@ -119,8 +119,7 @@ fn schedule_run_now_async_run_now_response_payload_includes_pid_and_started_at()
     let fast_bin = fast_fixture_bin(&temp);
 
     let payload = parse(
-        &run_now_with_bin(&context, &json!({"id": &task.id}), &fast_bin)
-            .expect("run_now payload"),
+        &run_now_with_bin(&context, &json!({"id": &task.id}), &fast_bin).expect("run_now payload"),
     );
 
     assert_eq!(payload["action"], "run_now");

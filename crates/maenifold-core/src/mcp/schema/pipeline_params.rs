@@ -324,7 +324,10 @@ mod t600_9_schema_tests {
             Some("in.y"),
             "string->string mapping entry must round-trip"
         );
-        let bindings = edge.bindings.as_ref().expect("edge bindings must be present");
+        let bindings = edge
+            .bindings
+            .as_ref()
+            .expect("edge bindings must be present");
         assert_eq!(bindings.len(), 1, "one binding expected");
         assert_eq!(bindings[0].from, "a.b", "binding.from must round-trip");
         assert_eq!(bindings[0].to, "c.d", "binding.to must round-trip");
@@ -337,7 +340,10 @@ mod t600_9_schema_tests {
         let payload = json!({ "update": true, "force": true });
         let params: PipelineParams =
             serde_json::from_value(payload).expect("update/force payload should deserialize Ok");
-        assert!(params.update, "update:true must map to PipelineParams::update");
+        assert!(
+            params.update,
+            "update:true must map to PipelineParams::update"
+        );
         assert!(params.force, "force:true must map to PipelineParams::force");
     }
 

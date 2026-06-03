@@ -16,13 +16,17 @@ pub(super) fn load_copilot_enterprise_uri(config_root: &Path) -> Option<String> 
         })?
         .1;
     let env = entry.get("env")?.as_object()?;
-    ["GITHUB_ENTERPRISE_URI", "COPILOT_ENTERPRISE_URI", "GITHUB_HOST"]
-        .into_iter()
-        .find_map(|key| {
-            env.get(key)
-                .and_then(serde_json::Value::as_str)
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .map(ToOwned::to_owned)
-        })
+    [
+        "GITHUB_ENTERPRISE_URI",
+        "COPILOT_ENTERPRISE_URI",
+        "GITHUB_HOST",
+    ]
+    .into_iter()
+    .find_map(|key| {
+        env.get(key)
+            .and_then(serde_json::Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(ToOwned::to_owned)
+    })
 }

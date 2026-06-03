@@ -123,9 +123,9 @@ impl CopilotModelsClient {
                 StatusCode::UNAUTHORIZED => CopilotModelsClientError::Unauthorized,
                 StatusCode::NOT_FOUND => CopilotModelsClientError::EndpointNotFound,
                 StatusCode::TOO_MANY_REQUESTS => CopilotModelsClientError::RateLimited,
-                status if status.is_server_error() => CopilotModelsClientError::ServerError {
-                    status,
-                },
+                status if status.is_server_error() => {
+                    CopilotModelsClientError::ServerError { status }
+                }
                 status => CopilotModelsClientError::UnexpectedStatus { status },
             });
         }
@@ -161,7 +161,9 @@ pub fn default_endpoint() -> CopilotEndpoint {
 }
 
 pub fn oauth_domain_for_enterprise_uri(enterprise_uri: Option<&str>) -> String {
-    enterprise_uri.map(parse_domain).unwrap_or_else(|| DEFAULT_OAUTH_DOMAIN.to_string())
+    enterprise_uri
+        .map(parse_domain)
+        .unwrap_or_else(|| DEFAULT_OAUTH_DOMAIN.to_string())
 }
 
 fn graphql_url_for_enterprise_uri(enterprise_uri: Option<&str>) -> String {
@@ -187,7 +189,9 @@ fn parse_max_age(cache_control: &str) -> Option<i64> {
         let mut kv = part.trim().splitn(2, '=');
         let key = kv.next()?.trim();
         let value = kv.next()?.trim();
-        (key == "max-age").then(|| value.parse::<i64>().ok()).flatten()
+        (key == "max-age")
+            .then(|| value.parse::<i64>().ok())
+            .flatten()
     })
 }
 

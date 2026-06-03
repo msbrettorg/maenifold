@@ -15,7 +15,9 @@ fn lock_env() -> MutexGuard<'static, ()> {
 }
 
 fn echo_cmd() -> String {
-    crate::test_util::fake_echo_binary().to_string_lossy().to_string()
+    crate::test_util::fake_echo_binary()
+        .to_string_lossy()
+        .to_string()
 }
 
 fn agent_command(suffix: &str) -> String {
@@ -26,7 +28,9 @@ fn agent_command(suffix: &str) -> String {
 }
 
 fn always_fail_cmd() -> String {
-    crate::test_util::fake_exit_one_binary().to_string_lossy().to_string()
+    crate::test_util::fake_exit_one_binary()
+        .to_string_lossy()
+        .to_string()
 }
 
 #[test]
@@ -260,4 +264,3 @@ fn precedence_literal_overrides_command_overrides_file_overrides_passthrough() {
         std::env::remove_var("T324_PASSTHROUGH");
     }
 }
-

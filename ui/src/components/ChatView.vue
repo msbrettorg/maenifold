@@ -99,9 +99,11 @@ function handleCancel() {
 }
 
 async function handleConfigOptionChange(configId: string, value: string | boolean): Promise<void> {
+  sessionStore.clearError();
   try {
     await sessionStore.setConfigOption(configId, value);
   } catch (e) {
+    sessionStore.error = e instanceof Error ? e.message : String(e);
     console.error('Failed to change config option:', configId, e);
   }
 }

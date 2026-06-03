@@ -31,6 +31,8 @@ import GraftNodesDialog from './pipeline/surgery/GraftNodesDialog.vue';
 import JoinPipelineDialog from './pipeline/surgery/JoinPipelineDialog.vue';
 import ForkPipelineDialog from './pipeline/surgery/ForkPipelineDialog.vue';
 import SurgeryStatusToast from './pipeline/surgery/SurgeryStatusToast.vue';
+import TemplateGallery from './pipeline/templates/TemplateGallery.vue';
+import PromoteToMemoryDialog from './pipeline/promote/PromoteToMemoryDialog.vue';
 
 const store = usePipelinesStore();
 const design = usePipelineDesignStore();
@@ -148,6 +150,10 @@ function selectPipeline(pipelineId: string): void {
 
       <PipelineCanvas />
 
+      <!-- Empty-stage entry point: the template + intent gallery, shown only
+           when no pipeline is selected. Instantiates REAL pipelines (T-600.8). -->
+      <TemplateGallery v-if="!selectedPipelineId" class="stage-gallery" />
+
       <div id="pipeline-runner" class="mount mount-runner"></div>
       <div id="pipeline-overlay" class="mount mount-overlay"></div>
     </div>
@@ -185,6 +191,11 @@ function selectPipeline(pipelineId: string): void {
     <JoinPipelineDialog />
     <ForkPipelineDialog />
     <SurgeryStatusToast />
+
+    <!-- Promote-to-memory dialog (T-600.8): launched from the SemanticZoom
+         overlay via the usePromoteToMemory singleton; teleports into
+         #pipeline-overlay. Renders nothing until opened. -->
+    <PromoteToMemoryDialog />
   </section>
 </template>
 
@@ -457,5 +468,14 @@ function selectPipeline(pipelineId: string): void {
   position: absolute;
   inset: 0;
   z-index: 8;
+}
+
+/* Template gallery overlays the (empty) canvas when no pipeline is selected. */
+.stage-gallery {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: color-mix(in srgb, var(--bg-main) 94%, var(--bg-sidebar));
+  overflow: hidden;
 }
 </style>

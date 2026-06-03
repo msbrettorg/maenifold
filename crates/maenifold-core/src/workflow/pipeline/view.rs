@@ -263,7 +263,8 @@ fn pipeline_edges_json(definition: &PipelineDefinition) -> Vec<Value> {
 #[cfg(test)]
 mod tests {
     use super::pipeline_edges_json;
-    use super::{EdgeDataMode, EdgeType, PipelineDefinition, PipelineEdge};
+    use super::{EdgeType, PipelineDefinition};
+    use crate::workflow::pipeline::{EdgeDataMode, PipelineEdge};
     use serde_json::json;
 
     fn definition_with_edges(edges: Vec<PipelineEdge>) -> PipelineDefinition {

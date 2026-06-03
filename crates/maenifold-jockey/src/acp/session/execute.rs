@@ -116,7 +116,6 @@ pub async fn execute_runtime(
         }),
     );
 
-    let resume_session_id = resume_session_id;
     let app_session_scope = if app_session_id.trim().is_empty() {
         uuid::Uuid::new_v4().to_string()
     } else {

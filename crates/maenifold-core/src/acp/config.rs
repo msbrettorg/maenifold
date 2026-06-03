@@ -33,7 +33,6 @@ mod types_tests;
 
 pub use defaults::default_agents_config;
 #[allow(unused_imports)]
-#[allow(unused_imports)]
 pub use gateway_settings::*;
 pub use loader::AgentsConfig;
 #[allow(unused_imports)]

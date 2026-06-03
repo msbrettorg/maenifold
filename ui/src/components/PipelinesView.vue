@@ -18,6 +18,7 @@ import PipelineCanvas from './pipeline/PipelineCanvas.vue';
 import PipelineToolbar from './pipeline/PipelineToolbar.vue';
 import NodeInspectorPane from './pipeline/NodeInspectorPane.vue';
 import SemanticZoomOverlay from './pipeline/SemanticZoomOverlay.vue';
+import PipelineRunner from './pipeline/runner/PipelineRunner.vue';
 
 const store = usePipelinesStore();
 const { pipelines, loading, error, selectedPipelineId, viewLoading } = storeToRefs(store);
@@ -132,11 +133,15 @@ function selectPipeline(pipelineId: string): void {
 
     <!-- Canvas toolbar teleports into #pipeline-toolbar above. -->
     <PipelineToolbar />
-
     <!-- Node inspector + semantic-zoom overlay teleport into their mount
          targets (#pipeline-inspector / #pipeline-overlay) above (T-600.6). -->
     <NodeInspectorPane />
     <SemanticZoomOverlay />
+
+    <!-- Runner panel (action bar + run form + event log + history) teleports
+         into #pipeline-runner. Mounted here so its Teleport target resolves;
+         it renders nothing until a pipeline is selected. -->
+    <PipelineRunner />
   </section>
 </template>
 

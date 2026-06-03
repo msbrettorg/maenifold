@@ -51,7 +51,6 @@ uuid = { version = "1.23.2", features = ["v4", "serde"] }
 ort = { version = "2.0.0-rc.12", default-features = false, features = ["std", "ndarray", "load-dynamic", "api-24"] }
 tokenizers = "0.23.1"
 tray-icon = { version = "0.24", default-features = false }
-wry = { version = "0.55.1", default-features = false, features = ["os-webview", "protocol"] }
 notify = { version = "8", features = ["macos_fsevent"] }
 tempfile = "3.27.0"
 fd-lock = "4"

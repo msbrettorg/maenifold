@@ -864,6 +864,45 @@
                     }
                   ],
                   "properties": {
+                    "bindings": {
+                      "description": "Binding pairs ({from, to}) merged into the edge mapping",
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "from": {
+                            "description": "Source path within upstream node output",
+                            "type": "string"
+                          },
+                          "to": {
+                            "description": "Target path within downstream node input",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "from",
+                          "to"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "mapping": {
+                      "additionalProperties": {
+                        "type": "string"
+                      },
+                      "default": null,
+                      "description": "Explicit downstream-input to upstream-output field mapping (target path -> source path)",
+                      "type": "object"
+                    },
+                    "mode": {
+                      "description": "Data propagation mode: 'context' (default), 'binding', or 'none'",
+                      "enum": [
+                        "context",
+                        "binding",
+                        "none"
+                      ],
+                      "type": "string"
+                    },
                     "source": {
                       "description": "Upstream node identifier",
                       "type": "string"
@@ -880,6 +919,10 @@
                   "type": "object"
                 },
                 "type": "array"
+              },
+              "inputSchema": {
+                "default": null,
+                "description": "Optional JSON Schema validating pipeline-level inputs at definition time"
               },
               "inputs": {
                 "additionalProperties": true,
@@ -1467,9 +1510,19 @@
             "description": "Delete the pipeline session and all associated workflow sessions",
             "type": "boolean"
           },
+          "description": {
+            "default": null,
+            "description": "Optional human-readable description persisted with the pipeline session",
+            "type": "string"
+          },
           "dispatch": {
             "default": false,
             "description": "Claim ready nodes as active",
+            "type": "boolean"
+          },
+          "force": {
+            "default": false,
+            "description": "Force destructive operations such as deleting a completed, active, or unreadable pipeline",
             "type": "boolean"
           },
           "forceComplete": {
@@ -1574,6 +1627,45 @@
                     }
                   ],
                   "properties": {
+                    "bindings": {
+                      "description": "Binding pairs ({from, to}) merged into the edge mapping",
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "from": {
+                            "description": "Source path within upstream node output",
+                            "type": "string"
+                          },
+                          "to": {
+                            "description": "Target path within downstream node input",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "from",
+                          "to"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "mapping": {
+                      "additionalProperties": {
+                        "type": "string"
+                      },
+                      "default": null,
+                      "description": "Explicit downstream-input to upstream-output field mapping (target path -> source path)",
+                      "type": "object"
+                    },
+                    "mode": {
+                      "description": "Data propagation mode: 'context' (default), 'binding', or 'none'",
+                      "enum": [
+                        "context",
+                        "binding",
+                        "none"
+                      ],
+                      "type": "string"
+                    },
                     "source": {
                       "description": "Upstream node identifier",
                       "type": "string"
@@ -2222,6 +2314,45 @@
                     }
                   ],
                   "properties": {
+                    "bindings": {
+                      "description": "Binding pairs ({from, to}) merged into the edge mapping",
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "from": {
+                            "description": "Source path within upstream node output",
+                            "type": "string"
+                          },
+                          "to": {
+                            "description": "Target path within downstream node input",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "from",
+                          "to"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "mapping": {
+                      "additionalProperties": {
+                        "type": "string"
+                      },
+                      "default": null,
+                      "description": "Explicit downstream-input to upstream-output field mapping (target path -> source path)",
+                      "type": "object"
+                    },
+                    "mode": {
+                      "description": "Data propagation mode: 'context' (default), 'binding', or 'none'",
+                      "enum": [
+                        "context",
+                        "binding",
+                        "none"
+                      ],
+                      "type": "string"
+                    },
                     "source": {
                       "description": "Upstream node identifier",
                       "type": "string"
@@ -2348,6 +2479,11 @@
             "format": "uint64",
             "minimum": 0,
             "type": "integer"
+          },
+          "update": {
+            "default": false,
+            "description": "Update an existing pipeline definition in place instead of creating a new session",
+            "type": "boolean"
           },
           "view": {
             "default": false,

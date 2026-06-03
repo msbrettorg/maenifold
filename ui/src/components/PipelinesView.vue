@@ -16,6 +16,8 @@ import { GitBranch, PanelLeft, RefreshCw, Search } from '@lucide/vue';
 import { usePipelinesStore } from '../stores/pipelines';
 import PipelineCanvas from './pipeline/PipelineCanvas.vue';
 import PipelineToolbar from './pipeline/PipelineToolbar.vue';
+import NodeInspectorPane from './pipeline/NodeInspectorPane.vue';
+import SemanticZoomOverlay from './pipeline/SemanticZoomOverlay.vue';
 
 const store = usePipelinesStore();
 const { pipelines, loading, error, selectedPipelineId, viewLoading } = storeToRefs(store);
@@ -130,6 +132,11 @@ function selectPipeline(pipelineId: string): void {
 
     <!-- Canvas toolbar teleports into #pipeline-toolbar above. -->
     <PipelineToolbar />
+
+    <!-- Node inspector + semantic-zoom overlay teleport into their mount
+         targets (#pipeline-inspector / #pipeline-overlay) above (T-600.6). -->
+    <NodeInspectorPane />
+    <SemanticZoomOverlay />
   </section>
 </template>
 

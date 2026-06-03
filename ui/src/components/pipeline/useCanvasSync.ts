@@ -185,8 +185,13 @@ export function useCanvasSync(flowId: string) {
 
   // --- store → flow ---------------------------------------------------------
 
-  // Pipeline identity changes: adopt that pipeline's saved layout direction and
-  // reset the fit latch so the new graph gets framed.
+  // Pipeline identity changes: adopt that pipeline's saved layout direction,
+  // reset the fit latch so the new graph gets framed, and clear stale selection
+  // + zoom state. Clearing here (not only via the flow selection watcher) stops
+  // a singleton selectedNodeId/zoomNodeId from pipeline A resolving against a
+  // same-id node in pipeline B. This watcher fires ONLY on an actual id change
+  // (Vue skips no-op same-id), so the reset never perturbs the steady state, and
+  // it is pure controller state (no store write) so the sync guards are untouched.
   watch(
     () => currentPipelineId(),
     (pipelineId) => {
@@ -199,6 +204,9 @@ export function useCanvasSync(flowId: string) {
         controller.direction.value = restored;
       }
       fittedPipelineId.value = null;
+      controller.setSelectedNodeId(null);
+      controller.hasSelection.value = false;
+      controller.closeZoom();
     }
   );
 
@@ -241,10 +249,21 @@ export function useCanvasSync(flowId: string) {
     }
   });
 
+  // Selection mirror: keep `hasSelection` (any node OR edge selected) and the
+  // single-node `selectedNodeId` (null when zero or multiple nodes are selected)
+  // in sync with Vue Flow. Watching the node-id signature — not just the count —
+  // updates the inspector when selection moves between two single nodes. This is
+  // a read-only flow→controller mirror (it never writes back to the store), so
+  // it needs no `syncing` guard.
   watch(
-    () => vf.getSelectedNodes.value.length + vf.getSelectedEdges.value.length,
-    (count) => {
-      controller.hasSelection.value = count > 0;
+    () => [
+      vf.getSelectedNodes.value.map((node) => node.id).join('\u0001'),
+      vf.getSelectedEdges.value.length,
+    ] as const,
+    ([nodeKey, edgeCount]) => {
+      const nodeIds = nodeKey ? nodeKey.split('\u0001') : [];
+      controller.hasSelection.value = nodeIds.length + edgeCount > 0;
+      controller.setSelectedNodeId(nodeIds.length === 1 ? nodeIds[0] : null);
     }
   );
 

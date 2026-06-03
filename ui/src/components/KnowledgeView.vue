@@ -50,6 +50,9 @@ interface TreeRow {
 const knowledge = useKnowledgeStore();
 const {
   query,
+  lastSearchQuery,
+  search,
+  searchResults,
   selectedConcept,
   stats,
   selectedMemory,
@@ -140,6 +143,9 @@ const markdownLines = computed<MarkdownLine[]>(() => {
   return content.split(/\r?\n/).map((line, index) => toMarkdownLine(line, index));
 });
 
+const searchResultCount = computed(() => search.value?.totalCount ?? searchResults.value.length);
+const hasSearchState = computed(() => search.value !== null);
+
 function formatNumber(value: number | null | undefined): string {
   if (typeof value !== 'number' || !Number.isFinite(value)) return '-';
   return new Intl.NumberFormat().format(value);
@@ -148,6 +154,12 @@ function formatNumber(value: number | null | undefined): string {
 function formatScore(value: number | undefined | null): string {
   if (typeof value !== 'number' || !Number.isFinite(value)) return '-';
   return value.toFixed(value >= 10 ? 0 : 3);
+}
+
+function formatEdgeCount(value: number | undefined | null): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '- edges';
+  const count = Math.max(0, Math.trunc(value));
+  return `${formatNumber(count)} ${count === 1 ? 'edge' : 'edges'}`;
 }
 
 function relationName(relation: ContextRelation): string {
@@ -164,8 +176,7 @@ function relationFiles(relation: ContextRelation): string {
 }
 
 function submitSearch(): void {
-  void knowledge.runSearch(query.value, true);
-  workspaceView.value = 'viewer';
+  void knowledge.runSearch(query.value, workspaceView.value === 'viewer');
 }
 
 function refreshAll(): void {
@@ -188,9 +199,9 @@ function openRelation(relation: ContextRelation): void {
   workspaceView.value = 'viewer';
 }
 
-function openConcept(concept: string): void {
-  void knowledge.openConcept(concept);
-  workspaceView.value = 'graph';
+async function openConcept(concept: string): Promise<void> {
+  const opened = await knowledge.openConcept(concept);
+  workspaceView.value = opened ? 'viewer' : 'graph';
 }
 
 function openTreeRow(row: TreeRow): void {
@@ -400,6 +411,37 @@ onMounted(() => {
           </div>
         </div>
 
+        <section v-if="hasSearchState" class="search-results-panel">
+          <div class="pane-header">
+            <span>Search</span>
+            <strong>{{ formatNumber(searchResultCount) }} results</strong>
+          </div>
+
+          <div class="search-results">
+            <button
+              v-for="result in searchResults"
+              :key="result.path ?? result.title ?? 'search-result'"
+              type="button"
+              class="search-result-row"
+              :class="{ selected: selectedSearchResult?.path === result.path }"
+              @click="openMemory(result)"
+            >
+              <div class="search-result-main">
+                <span class="search-result-title">{{ result.title ?? result.path ?? 'Untitled memory' }}</span>
+                <code>{{ result.path ?? 'memory://' }}</code>
+              </div>
+              <small class="search-result-meta">
+                <span v-if="typeof result.fusedScore === 'number'">{{ formatScore(result.fusedScore) }} ranked</span>
+                <span v-if="result.snippet">{{ result.snippet }}</span>
+              </small>
+            </button>
+
+            <div v-if="searchResults.length === 0" class="search-empty">
+              No matches for "{{ lastSearchQuery }}"
+            </div>
+          </div>
+        </section>
+
         <article v-if="workspaceView === 'viewer'" class="viewer-view">
           <div class="viewer-header">
             <span>Viewer</span>
@@ -484,7 +526,7 @@ onMounted(() => {
             >
               <span>{{ relationName(relation) }}</span>
               <small>
-                {{ formatScore(relation.coOccurrenceCount) }} edges /
+                {{ formatEdgeCount(relation.coOccurrenceCount) }} /
                 {{ formatScore(relation.weightedScore) }} weighted /
                 {{ relationFiles(relation) }}
               </small>
@@ -655,7 +697,8 @@ onMounted(() => {
 
 .tree-list,
 .relation-list,
-.markdown-viewer {
+.markdown-viewer,
+.search-results {
   overflow-y: auto;
 }
 
@@ -808,12 +851,86 @@ onMounted(() => {
 }
 
 .viewer-view,
-.graph-view {
+.graph-view,
+.search-results-panel {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.search-results-panel {
+  flex: 0 0 180px;
+  border-bottom: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--bg-main) 96%, var(--bg-sidebar));
+}
+
+.search-results {
+  min-height: 0;
+  padding: 0.45rem;
+}
+
+.search-result-row {
+  width: 100%;
+  display: grid;
+  gap: 0.22rem;
+  margin: 0 0 0.35rem;
+  padding: 0.55rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.search-result-row:last-child {
+  margin-bottom: 0;
+}
+
+.search-result-row:hover,
+.search-result-row.selected {
+  border-color: color-mix(in srgb, var(--text-accent) 42%, var(--border-color));
+  background: color-mix(in srgb, var(--text-accent) 9%, var(--bg-main));
+}
+
+.search-result-main {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.search-result-title {
+  font-size: 0.84rem;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.search-result-main code,
+.search-result-meta {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.search-result-main code {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-result-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+}
+
+.search-empty {
+  padding: 0.7rem 0.6rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
 }
 
 .graph-canvas {

@@ -56,23 +56,13 @@ fn schedule_tool_and_resources_match_after_mutation_matrix() {
     set_enabled_with_store(&context, id, false);
     assert!(!assert_all_surfaces_agree(&context, id).enabled);
 
-    // run_now is now fire-and-forget; the supervisor writes last_run from the
-    // detached child. The cross-surface last_run consistency check that lived
-    // here historically relied on synchronous in-process Supervisor::run; with
-    // the async swap the test environment cannot exercise the spawn end-to-end
-    // because resolve_maenifold_bin() returns current_exe() (the libtest
-    // binary) which has no `schedule run` subcommand. Full async coverage is
-    // in tools::schedule::schedule_run_now_async_tests. Here we only smoke-
-    // test the new run_now response shape and confirm the schedule's enabled
-    // state survives the call.
-    let run_now = call_schedule(&context, json!({"action": "run_now", "id": id}));
-    assert_eq!(run_now["action"], "run_now");
-    assert_eq!(run_now["id"], id);
-    assert!(
-        run_now["pid"].as_u64().is_some(),
-        "run_now should return numeric pid, got {run_now}"
-    );
-    assert!(!assert_all_surfaces_agree(&context, id).enabled);
+    // run_now is intentionally NOT exercised here. It routes through
+    // resolve_maenifold_bin() = current_exe(), which under `cargo test` is the
+    // libtest harness; passing ["schedule","run",id] makes libtest re-run this
+    // very test (the "schedule" filter matches its name), producing an
+    // unbounded detached fork loop (regression T-414.4). run_now's response
+    // shape and async behavior are covered safely via run_now_with_bin + a
+    // fixture binary in tools::schedule::schedule_run_now_async_tests.
 
     let schedule_store = store(&context);
     schedule_store

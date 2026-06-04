@@ -1,5 +1,5 @@
 //! T-29.2: support helpers for [`crate::tray`] — kept separate to keep `tray.rs`
-//! within the per-file LOC budget. No behavioral changes.
+//! within the per-file LOC budget.
 //!
 //! Contains: icon construction, URL launchers, menu-event URL routing, and
 //! the post-exit restart spawner.
@@ -10,6 +10,9 @@ use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 use tray_icon::Icon;
 use tray_icon::menu::MenuId;
+
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 // ── Icon ──────────────────────────────────────────────────────────────
 
@@ -117,12 +120,10 @@ pub(super) fn spawn_server_thread(
 ///    back up.
 ///
 /// 2. **Standalone** (developer running `maenifold --http` from a shell):
-///    fork an independent grandchild via `setsid` so the new process detaches
-///    from our process group. Without `setsid` macOS sends SIGHUP to the
-///    parent's process group on session shutdown, which kills the orphan and
-///    is exactly what happened to PID 93066 at 15:32:25 today — the spawned
-///    child ran for ~17 seconds, then died silently when the launchd job's
-///    process group was torn down.
+///    apply platform-specific child-process settings before spawning. Unix
+///    forks an independent grandchild via `setsid`; Windows uses
+///    `CREATE_NO_WINDOW` so the console-subsystem binary can restart from the
+///    tray without opening a visible terminal.
 pub(super) fn spawn_restart_process() {
     if crate::tray_menu::is_launchd_managed() {
         let target = crate::tray_menu::launchd_service_target();
@@ -131,7 +132,7 @@ pub(super) fn spawn_restart_process() {
         command.args(["kickstart", "-k", &target]);
         // Detach so the launchctl child survives our exit + launchd's
         // service-group cleanup long enough to complete its IPC handshake.
-        detach_from_parent_session(&mut command);
+        configure_restart_command(&mut command);
         match command.spawn() {
             Ok(child) => {
                 info!(
@@ -151,7 +152,7 @@ pub(super) fn spawn_restart_process() {
             let args: Vec<String> = std::env::args().skip(1).collect();
             let mut command = std::process::Command::new(&exe);
             command.args(&args);
-            detach_from_parent_session(&mut command);
+            configure_restart_command(&mut command);
             match command.spawn() {
                 Ok(child) => {
                     info!(
@@ -171,12 +172,9 @@ pub(super) fn spawn_restart_process() {
     }
 }
 
-/// Detach the spawned child from the parent's process group / controlling
-/// session via `setsid(2)`. On macOS this is the safe default: when the
-/// launchd-managed parent exits, the kernel sends signals to the parent's
-/// process group, and any child still in that group dies with it.
+/// Apply platform-specific process settings required for restart children.
 #[cfg(unix)]
-fn detach_from_parent_session(command: &mut std::process::Command) {
+fn configure_restart_command(command: &mut std::process::Command) {
     use std::os::unix::process::CommandExt;
     // SAFETY: `pre_exec` runs after fork() and before exec() in the child.
     // setsid() is async-signal-safe and only fails if the caller is already a
@@ -191,9 +189,24 @@ fn detach_from_parent_session(command: &mut std::process::Command) {
     }
 }
 
-#[cfg(not(unix))]
-fn detach_from_parent_session(_command: &mut std::process::Command) {
-    // Windows fallback: parent/child process trees are not subject to the
-    // POSIX process-group SIGHUP-on-exit behaviour, so no extra detach work
-    // is needed for the standalone path.
+#[cfg(target_os = "windows")]
+fn configure_restart_command(command: &mut std::process::Command) {
+    use std::os::windows::process::CommandExt;
+    command.creation_flags(windows_restart_creation_flags());
+}
+
+#[cfg(all(not(unix), not(target_os = "windows")))]
+fn configure_restart_command(_command: &mut std::process::Command) {}
+
+#[cfg(target_os = "windows")]
+fn windows_restart_creation_flags() -> u32 {
+    CREATE_NO_WINDOW
+}
+
+#[cfg(all(test, target_os = "windows"))]
+mod tests {
+    #[test]
+    fn windows_restart_uses_create_no_window() {
+        assert_eq!(super::windows_restart_creation_flags(), 0x08000000);
+    }
 }

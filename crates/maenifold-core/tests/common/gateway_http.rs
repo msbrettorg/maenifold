@@ -9,7 +9,6 @@ use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 
-const PYTHON: &str = "/usr/bin/python3";
 const PROTOCOL_VERSION: &str = "2025-03-26";
 
 const TEST_SERVER: &str = r#"
@@ -216,7 +215,7 @@ pub fn stdio_server_with_metadata(
     json!({
         "type": "stdio",
         "name": name,
-        "command": PYTHON,
+        "command": super::locate_python3(),
         "args": [
             "-u",
             "-c",

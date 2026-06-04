@@ -248,23 +248,47 @@ fn xml_escape(value: &str) -> String {
 const RUN_KEY: &str = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run";
 
 #[cfg(target_os = "windows")]
-fn login_run_command_value(exe_display: &str, port: u16) -> String {
-    format!("\"{exe_display}\" --http --port {port}")
+const LEGACY_RUN_VALUE: &str = "Maenifold-Daemon";
+
+#[cfg(target_os = "windows")]
+fn login_run_value_names() -> [&'static str; 2] {
+    [SERVICE_LABEL, LEGACY_RUN_VALUE]
 }
 
 #[cfg(target_os = "windows")]
-fn run_key_entry_exists() -> bool {
+fn powershell_single_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "''"))
+}
+
+#[cfg(target_os = "windows")]
+fn login_run_command_value(exe_display: &str, port: u16) -> String {
+    let exe = powershell_single_quote(exe_display);
+    format!(
+        "powershell.exe -NoLogo -NoProfile -NonInteractive -WindowStyle Hidden -Command \"Start-Process -FilePath {exe} -ArgumentList @('--http','--port','{port}') -WindowStyle Hidden\""
+    )
+}
+
+#[cfg(target_os = "windows")]
+fn run_key_value_exists(value_name: &str) -> bool {
     std::process::Command::new("reg")
-        .args(["query", RUN_KEY, "/v", SERVICE_LABEL])
+        .args(["query", RUN_KEY, "/v", value_name])
         .output()
         .map(|output| output.status.success())
         .unwrap_or(false)
 }
 
 #[cfg(target_os = "windows")]
+fn run_key_entry_exists() -> bool {
+    login_run_value_names()
+        .iter()
+        .any(|value_name| run_key_value_exists(value_name))
+}
+
+#[cfg(target_os = "windows")]
 fn enable_login_run_key(port: u16) -> std::io::Result<()> {
     let exe_path = std::env::current_exe()?;
     let value = login_run_command_value(&exe_path.display().to_string(), port);
+    delete_login_run_value(LEGACY_RUN_VALUE)?;
     let output = std::process::Command::new("reg")
         .args([
             "add",
@@ -290,8 +314,16 @@ fn enable_login_run_key(port: u16) -> std::io::Result<()> {
 
 #[cfg(target_os = "windows")]
 fn disable_login_run_key() -> std::io::Result<()> {
+    for value_name in login_run_value_names() {
+        delete_login_run_value(value_name)?;
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn delete_login_run_value(value_name: &str) -> std::io::Result<()> {
     let output = std::process::Command::new("reg")
-        .args(["delete", RUN_KEY, "/v", SERVICE_LABEL, "/f"])
+        .args(["delete", RUN_KEY, "/v", value_name, "/f"])
         .output()?;
     if output.status.success() {
         return Ok(());
@@ -319,11 +351,31 @@ mod tests {
 
     #[cfg(target_os = "windows")]
     #[test]
-    fn login_run_command_value_quotes_exe_and_sets_http_port() {
+    fn login_run_command_value_starts_hidden_and_sets_http_port() {
         use super::login_run_command_value;
         assert_eq!(
             login_run_command_value(r"C:\Program Files\maenifold\maenifold.exe", 8080),
-            "\"C:\\Program Files\\maenifold\\maenifold.exe\" --http --port 8080"
+            "powershell.exe -NoLogo -NoProfile -NonInteractive -WindowStyle Hidden -Command \"Start-Process -FilePath 'C:\\Program Files\\maenifold\\maenifold.exe' -ArgumentList @('--http','--port','8080') -WindowStyle Hidden\""
+        );
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn login_run_command_value_escapes_powershell_single_quotes() {
+        use super::login_run_command_value;
+        assert_eq!(
+            login_run_command_value(r"C:\Users\O'Brien\maenifold.exe", 8081),
+            "powershell.exe -NoLogo -NoProfile -NonInteractive -WindowStyle Hidden -Command \"Start-Process -FilePath 'C:\\Users\\O''Brien\\maenifold.exe' -ArgumentList @('--http','--port','8081') -WindowStyle Hidden\""
+        );
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn login_run_value_names_include_current_and_stale_entries() {
+        use super::login_run_value_names;
+        assert_eq!(
+            login_run_value_names(),
+            ["com.ma-collective.maenifold", "Maenifold-Daemon"]
         );
     }
 }

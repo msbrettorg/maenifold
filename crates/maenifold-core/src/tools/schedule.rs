@@ -22,7 +22,7 @@ pub(super) mod schedule_crud;
 pub(super) mod schedule_helpers;
 #[path = "schedule_os.rs"]
 pub(super) mod schedule_os;
-#[cfg(test)]
+#[cfg(all(test, unix))]
 #[path = "schedule_run_now_async_tests.rs"]
 mod schedule_run_now_async_tests;
 #[cfg(test)]

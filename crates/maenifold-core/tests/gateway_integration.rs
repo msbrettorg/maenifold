@@ -1,3 +1,5 @@
+mod common;
+
 use maenifold_core::error::MaenifoldError;
 use maenifold_core::mcp::stdio_pool::{StdioPool, StdioServerConfig};
 use rmcp::model::CallToolResult;
@@ -5,7 +7,6 @@ use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::time::Duration;
 
-const PYTHON: &str = "/usr/bin/python3";
 const TEST_SERVER: &str = r#"
 import json, sys
 server_name = sys.argv[1]
@@ -74,7 +75,7 @@ fn error_tool(name: &str, code: i64, message: &str, data: Value) -> Value {
 fn server_config(name: &str, tool_specs: Vec<Value>) -> StdioServerConfig {
     StdioServerConfig {
         name: name.to_string(),
-        command: PYTHON.to_string(),
+        command: common::locate_python3(),
         args: vec![
             "-u".to_string(),
             "-c".to_string(),

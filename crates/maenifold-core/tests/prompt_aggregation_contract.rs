@@ -1,14 +1,15 @@
+mod common;
+
 use maenifold_core::mcp::stdio_pool::{StdioPool, StdioServerConfig};
 use std::collections::HashMap;
 use std::time::Duration;
 
 const PROMPT_FIXTURE_PATH: &str = "tests/fixtures/prompt_server.py";
-const PYTHON: &str = "/usr/bin/python3";
 
 fn fixture_config(name: &str, prompt_name: &str) -> StdioServerConfig {
     StdioServerConfig {
         name: name.to_string(),
-        command: PYTHON.to_string(),
+        command: common::locate_python3(),
         args: vec![
             "-u".to_string(),
             PROMPT_FIXTURE_PATH.to_string(),

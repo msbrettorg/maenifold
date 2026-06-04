@@ -36,6 +36,7 @@ pub(super) async fn repair_structured_output_if_needed(
     Ok(response_with_hard_failure(repaired))
 }
 
+#[allow(clippy::result_large_err)]
 fn early_return_if_valid(
     response: super::super::super::agent_session::AgentResponse,
     schema: &JsonValue,

@@ -24,15 +24,6 @@ jobs:
           - os: macos-latest
             target: aarch64-apple-darwin
             artifact: maenifold-osx-arm64
-          # T-9.5: RTM FR-9 (RTM-063) - Linux x64
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            artifact: maenifold-linux-x64
-          # Linux arm64 (cross-compiled)
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            artifact: maenifold-linux-arm64
-            cross: true
           # T-9.5: RTM FR-9 (RTM-064) - Windows x64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
@@ -47,17 +38,6 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-
-      - name: Install aarch64 cross-compiler (Linux arm64 only)
-        if: matrix.cross
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-          mkdir -p .cargo
-          cat >> .cargo/config.toml <<'EOF'
-          [target.aarch64-unknown-linux-gnu]
-          linker = "aarch64-linux-gnu-gcc"
-          EOF
 
       - name: Build maenifold-cli
         run: cargo build --release --target ${{ matrix.target }} -p maenifold-cli
@@ -87,23 +67,21 @@ jobs:
           New-Item -ItemType Directory -Force -Path staging | Out-Null
           Copy-Item "target/${{ matrix.target }}/release/maenifold.exe" staging/
           Copy-Item "target/${{ matrix.target }}/release/maenifold-pipeline-driver.exe" staging/
-          # T-9.5: RTM FR-9 (RTM-065) - bundle release assets but exclude ONNX models
-          $source = "assets"
-          $dest = "staging/assets"
-          Get-ChildItem -Path $source -Recurse -File | Where-Object { $_.Extension -ne '.onnx' } | ForEach-Object {
-            $relativePath = $_.FullName.Substring((Resolve-Path $source).Path.Length + 1)
-            $destPath = Join-Path $dest $relativePath
-            $destDir = Split-Path $destPath -Parent
-            New-Item -ItemType Directory -Force -Path $destDir | Out-Null
-            Copy-Item $_.FullName $destPath
-          }
+          # T-9.5: RTM FR-9 (RTM-065) - bundle release assets but exclude ONNX models.
+          # robocopy dereferences git symlinks (the skill dedup links under
+          # assets/integrations/.../skills/* -> ../../../skills/*) and handles long
+          # paths; the prior per-file Copy-Item loop crashed on those symlinked dirs
+          # with "Could not find file". robocopy exit codes 0-7 mean success; >= 8 is
+          # a real failure, so guard on that and reset $LASTEXITCODE afterwards.
+          robocopy assets staging\assets /E /XF *.onnx /NFL /NDL /NJH /NJS /NP /R:2 /W:2 | Out-Host
+          if ($LASTEXITCODE -ge 8) { throw "robocopy failed with exit code $LASTEXITCODE" }
+          $global:LASTEXITCODE = 0
           foreach ($f in @('readme.md', 'CHANGELOG.md', 'AGENTS.md')) {
             if (Test-Path $f) { Copy-Item $f staging/ }
           }
           Compress-Archive -Path staging/* -DestinationPath "${{ matrix.artifact }}.zip" -Force
 
-      - name: Smoke test binaries (native targets only)
-        if: '!matrix.cross'
+      - name: Smoke test binaries
         shell: bash
         run: |
           set -euo pipefail

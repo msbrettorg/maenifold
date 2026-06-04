@@ -60,20 +60,20 @@ fn breaker_scoped_to_target() {
 
 #[test]
 fn breaker_closes_after_cooldown() {
-    let breaker = CircuitBreaker::new(3, Duration::from_millis(20));
+    let breaker = CircuitBreaker::new(3, Duration::from_millis(400));
 
     breaker.record_failure("agent-a", true);
     breaker.record_failure("agent-a", true);
     breaker.record_failure("agent-a", true);
     assert!(breaker.is_open("agent-a"));
 
-    sleep(Duration::from_millis(5));
+    sleep(Duration::from_millis(20));
     assert!(
         breaker.is_open("agent-a"),
         "breaker should remain open until cooldown has elapsed"
     );
 
-    sleep(Duration::from_millis(25));
+    sleep(Duration::from_millis(450));
     assert!(!breaker.is_open("agent-a"));
 }
 

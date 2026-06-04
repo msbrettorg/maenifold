@@ -10,7 +10,7 @@ use std::path::Path;
 use tokio_util::sync::CancellationToken;
 
 thread_local! {
-    static CURRENT_CANCELLATION_TOKEN: RefCell<Option<CancellationToken>> = RefCell::new(None);
+    static CURRENT_CANCELLATION_TOKEN: RefCell<Option<CancellationToken>> = const { RefCell::new(None) };
 }
 
 pub struct ToolContext {

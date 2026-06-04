@@ -205,7 +205,11 @@ if [ ! -d "$APP_INSTALL" ]; then
 fi
 
 LEGACY_APP="/Applications/maenifold.app"
-if [ -L "$LEGACY_APP" ]; then
+app_install_inode=$(stat -f '%d:%i' "$APP_INSTALL" 2>/dev/null || true)
+legacy_app_inode=$(stat -f '%d:%i' "$LEGACY_APP" 2>/dev/null || true)
+if [ -n "$app_install_inode" ] && [ "$legacy_app_inode" = "$app_install_inode" ]; then
+  :
+elif [ -L "$LEGACY_APP" ]; then
   echo "  → removing legacy build-tree symlink $LEGACY_APP"
   rm "$LEGACY_APP"
 elif [ -d "$LEGACY_APP" ]; then

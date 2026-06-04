@@ -140,14 +140,20 @@ echo "═══ UI: install deps (npm ci) ═══"
 ( cd "$ROOT/ui" && npm ci )
 
 echo ""
-echo "═══ UI: build Tauri native app (npm run tauri build) ═══"
-( cd "$ROOT/ui" && npm run tauri build )
-TAURI_APP="$ROOT/ui/src-tauri/target/release/bundle/macos/Maenifold.app"
-if [ ! -d "$TAURI_APP" ]; then
-  echo "  ✗ Tauri build did not produce $TAURI_APP"
+echo "═══ UI: build Tauri macOS DMG (npm run tauri build -- --bundles dmg --ci) ═══"
+TAURI_BUNDLE_DIR="$ROOT/ui/src-tauri/target/release/bundle"
+TAURI_DMG_DIR="$TAURI_BUNDLE_DIR/dmg"
+rm -rf "$TAURI_DMG_DIR" "$TAURI_BUNDLE_DIR/macos"
+( cd "$ROOT/ui" && npm run tauri build -- --bundles dmg --ci )
+shopt -s nullglob
+tauri_dmgs=("$TAURI_DMG_DIR"/*.dmg)
+if [ "${#tauri_dmgs[@]}" -ne 1 ]; then
+  echo "  ✗ expected exactly one DMG in $TAURI_DMG_DIR, found ${#tauri_dmgs[@]}"
+  printf '    %s\n' "${tauri_dmgs[@]}"
   exit 1
 fi
-echo "  ✓ Tauri app built at $TAURI_APP"
+TAURI_DMG="${tauri_dmgs[0]}"
+echo "  ✓ Tauri DMG built at $TAURI_DMG"
 
 echo ""
 echo "═══ UI: build web SPA (npm run build:web — for iframe embedding via spa-server) ═══"
@@ -160,26 +166,51 @@ fi
 echo "  ✓ web SPA built at $SPA_DIST"
 
 echo ""
-echo "═══ Install desktop app to /Applications ═══"
-APP_SYMLINK="/Applications/maenifold.app"
-if [ -L "$APP_SYMLINK" ]; then
-  current_target=$(readlink "$APP_SYMLINK")
-  if [ "$current_target" = "$TAURI_APP" ]; then
-    echo "  ✓ symlink already correct: $APP_SYMLINK → $TAURI_APP"
-  else
-    echo "  → replacing symlink: was → $current_target"
-    rm "$APP_SYMLINK"
-    ln -s "$TAURI_APP" "$APP_SYMLINK"
-    echo "  ✓ symlink now: $APP_SYMLINK → $TAURI_APP"
+echo "═══ Install desktop app from DMG to /Applications ═══"
+APP_INSTALL="/Applications/Maenifold.app"
+DMG_MOUNT="$(mktemp -d "${TMPDIR:-/tmp}/maenifold-dmg.XXXXXX")"
+DMG_MOUNTED=0
+cleanup_dmg_mount() {
+  if [ "$DMG_MOUNTED" -eq 1 ]; then
+    hdiutil detach -quiet "$DMG_MOUNT" || true
   fi
-elif [ -e "$APP_SYMLINK" ]; then
-  echo "  ⚠ $APP_SYMLINK exists and is not a symlink — refusing to overwrite"
-  echo "     remove or rename it manually, then rerun ./rebuild.sh"
+  rmdir "$DMG_MOUNT" 2>/dev/null || true
+}
+trap cleanup_dmg_mount EXIT
+
+if ! hdiutil attach -quiet -readonly -nobrowse -mountpoint "$DMG_MOUNT" "$TAURI_DMG"; then
+  echo "  ✗ failed to mount $TAURI_DMG"
   exit 1
-else
-  ln -s "$TAURI_APP" "$APP_SYMLINK"
-  echo "  ✓ symlink created: $APP_SYMLINK → $TAURI_APP"
 fi
+DMG_MOUNTED=1
+
+mounted_apps=("$DMG_MOUNT"/*.app)
+if [ "${#mounted_apps[@]}" -ne 1 ]; then
+  echo "  ✗ expected exactly one .app inside $TAURI_DMG, found ${#mounted_apps[@]}"
+  printf '    %s\n' "${mounted_apps[@]}"
+  exit 1
+fi
+
+echo "  → installing $(basename "${mounted_apps[0]}") from $TAURI_DMG"
+rm -rf "$APP_INSTALL"
+ditto "${mounted_apps[0]}" "$APP_INSTALL"
+hdiutil detach -quiet "$DMG_MOUNT"
+DMG_MOUNTED=0
+rmdir "$DMG_MOUNT"
+trap - EXIT
+
+if [ ! -d "$APP_INSTALL" ]; then
+  echo "  ✗ install did not produce $APP_INSTALL"
+  exit 1
+fi
+
+if [ -L "/Applications/maenifold.app" ]; then
+  echo "  → removing legacy build-tree symlink /Applications/maenifold.app"
+  rm "/Applications/maenifold.app"
+fi
+
+codesign --verify --deep --strict "$APP_INSTALL"
+echo "  ✓ installed desktop app from DMG at $APP_INSTALL"
 
 echo ""
 echo "═══ Kill stale maenifold processes (orphans not managed by launchd) ═══"
@@ -281,10 +312,10 @@ fi
 
 echo ""
 echo "═══ Launch desktop app ═══"
-if [ -L "$APP_SYMLINK" ] && [ -d "$(readlink "$APP_SYMLINK")" ]; then
-  echo "  ✓ Available at $APP_SYMLINK (click in Finder or run: open $APP_SYMLINK)"
+if [ -d "$APP_INSTALL" ]; then
+  echo "  ✓ Available at $APP_INSTALL (click in Finder or run: open $APP_INSTALL)"
 else
-  echo "  ⚠ $APP_SYMLINK unavailable"
+  echo "  ⚠ $APP_INSTALL unavailable"
 fi
 
 echo ""

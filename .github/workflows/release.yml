@@ -1,20 +1,29 @@
-# T-9.5: RTM FR-9 (RTM-062, RTM-063, RTM-064, RTM-065)
+# T-9.5: RTM FR-9 (RTM-062, RTM-064, RTM-065)
 name: Release
 
 on:
-  pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to publish, for example v0.1.1"
+        required: true
+        type: string
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   CARGO_TERM_COLOR: always
 
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
   build:
-    if: github.event.pull_request.head.ref == 'dev' && github.event.pull_request.head.repo.full_name == github.repository
     name: Build ${{ matrix.artifact }}
     strategy:
       fail-fast: false
@@ -32,7 +41,10 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout release ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -52,7 +64,6 @@ jobs:
           mkdir -p staging
           cp "target/${{ matrix.target }}/release/maenifold" staging/
           cp "target/${{ matrix.target }}/release/maenifold-pipeline-driver" staging/
-          # T-9.5: RTM FR-9 (RTM-065) - bundle release assets but exclude ONNX models
           rsync -a --exclude='*.onnx' assets/ staging/assets/
           for f in readme.md CHANGELOG.md AGENTS.md; do
             if [ -f "$f" ]; then cp "$f" staging/; fi
@@ -67,12 +78,6 @@ jobs:
           New-Item -ItemType Directory -Force -Path staging | Out-Null
           Copy-Item "target/${{ matrix.target }}/release/maenifold.exe" staging/
           Copy-Item "target/${{ matrix.target }}/release/maenifold-pipeline-driver.exe" staging/
-          # T-9.5: RTM FR-9 (RTM-065) - bundle release assets but exclude ONNX models.
-          # robocopy dereferences git symlinks (the skill dedup links under
-          # assets/integrations/.../skills/* -> ../../../skills/*) and handles long
-          # paths; the prior per-file Copy-Item loop crashed on those symlinked dirs
-          # with "Could not find file". robocopy exit codes 0-7 mean success; >= 8 is
-          # a real failure, so guard on that and reset $LASTEXITCODE afterwards.
           robocopy assets staging\assets /E /XF *.onnx /NFL /NDL /NJH /NJS /NP /R:2 /W:2 | Out-Host
           if ($LASTEXITCODE -ge 8) { throw "robocopy failed with exit code $LASTEXITCODE" }
           $global:LASTEXITCODE = 0
@@ -93,9 +98,41 @@ jobs:
             ./staging/maenifold-pipeline-driver --help 2>&1 | head -n 1 || true
           fi
 
-      - name: Upload artifact
+      - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: ${{ matrix.artifact }}.zip
           if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          find artifacts -name '*.zip' -exec cp {} dist/ \;
+          test -n "$(find dist -name '*.zip' -print -quit)"
+          cd dist
+          sha256sum *.zip > SHA256SUMS.txt
+          ls -lh
+          cat SHA256SUMS.txt
+
+      - name: Publish release
+        run: |
+          set -euo pipefail
+          gh release create "$RELEASE_TAG" dist/*.zip dist/SHA256SUMS.txt \
+            --verify-tag \
+            --generate-notes

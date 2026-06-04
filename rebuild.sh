@@ -204,9 +204,22 @@ if [ ! -d "$APP_INSTALL" ]; then
   exit 1
 fi
 
-if [ -L "/Applications/maenifold.app" ]; then
-  echo "  → removing legacy build-tree symlink /Applications/maenifold.app"
-  rm "/Applications/maenifold.app"
+LEGACY_APP="/Applications/maenifold.app"
+if [ -L "$LEGACY_APP" ]; then
+  echo "  → removing legacy build-tree symlink $LEGACY_APP"
+  rm "$LEGACY_APP"
+elif [ -d "$LEGACY_APP" ]; then
+  legacy_bundle_id=$(plutil -extract CFBundleIdentifier raw "$LEGACY_APP/Contents/Info.plist" 2>/dev/null || true)
+  if [ "$legacy_bundle_id" = "com.maenifold.ui" ]; then
+    echo "  → removing legacy lowercase Maenifold bundle $LEGACY_APP"
+    rm -rf "$LEGACY_APP"
+  else
+    echo "  ✗ $LEGACY_APP exists but is not a Maenifold bundle (CFBundleIdentifier=$legacy_bundle_id)"
+    exit 1
+  fi
+elif [ -e "$LEGACY_APP" ]; then
+  echo "  ✗ $LEGACY_APP exists but is not an app bundle or symlink"
+  exit 1
 fi
 
 codesign --verify --deep --strict "$APP_INSTALL"

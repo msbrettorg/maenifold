@@ -55,6 +55,9 @@ memory/*.db-wal
 # Memory directory (user-specific thinking sessions and data)
 memory/
 
+# Gate task backlog is local runtime state
+todo/
+
 # macOS
 .DS_Store
 

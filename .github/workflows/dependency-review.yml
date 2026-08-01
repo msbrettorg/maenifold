@@ -12,11 +12,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Dependency Review
         id: review
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@v5
         continue-on-error: true
         with:
           # Fail on any vulnerable advisories of critical/high severity
